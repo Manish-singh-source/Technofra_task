@@ -17,6 +17,7 @@
 			</div>
 			<div class="ms-auto">
 				<a href="#" class="btn btn-outline-secondary me-2"><i class="bx bx-arrow-back"></i> Back</a>
+				<a href="{{ route('client-issue') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-plus"></i> Raise Issue</a>
 				<div class="btn-group">
 					<button type="button" class="btn btn-primary">Edit Project</button>
 					<button type="button" class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span></button>

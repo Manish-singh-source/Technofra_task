@@ -248,6 +248,28 @@
                         <div class="menu-title">Projects</div>
                     </a>
                 </li>
+                <li>
+                    <a href="{{ route('task') }}">
+                        <div class="parent-icon"><i class="bx bx-task"></i>
+                            </div>
+                            <div class="menu-title">Tasks</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('client-issue') }}">
+                            <div class="parent-icon"><i class="bx bx-error"></i>
+                            </div>
+                            <div class="menu-title">Client Issue</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('clients') }}">
+                            <div class="parent-icon"><i class="bx bx-user-check"></i>
+                            </div>
+                            <div class="menu-title">Client</div>
+                        </a>
+                    </li>
+                    
                 
 
 

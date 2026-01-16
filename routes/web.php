@@ -161,6 +161,31 @@ Route::get('/project-details', function () {
 Route::get('/task', function () {
     return view('task');
 })->name('task');
+Route::get('/add-task', function () {
+    return view('add-task');
+})->name('add-task');
+Route::get('/task-details/{id}', function () {
+    return view('task-details');
+})->name('task-details');
+Route::get('/task-details', function () {
+    return view('task-details');
+})->name('task-details');
+Route::get('/client-issue', function () {
+    return view('client-issue');
+})->name('client-issue');
+Route::get('/client-issue-details', function () {
+    return view('client-issue-details');
+})->name('client-issue-details');
+Route::get('/clients', function () {
+    return view('clients');
+})->name('clients');
+//add clients
+Route::get('/add-clients', function () {
+    return view('add-clients');
+})->name('add-clients');
+Route::get('/clients-details', function () {
+    return view('clients-details');
+})->name('clients-details');
 
 
 

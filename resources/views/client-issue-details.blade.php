@@ -1,13 +1,67 @@
 @extends('/layout/master')
 @section('content')
+<style>
+  .modal-backdrop.show {
+    opacity: 0.0;
+}
+.modal-backdrop{
+  z-index: 1;
+}
+.modal-body1 {
+    display: grid!important;
+}
+.modal-body1 {
+    display: flex;
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+.card-labels span {
+    padding: 4px;
+    color: #fff;
+    border-radius: 5px;
+    font-size: 12px;
+}
+</style>
 <!--start page wrapper -->
 <div class="page-wrapper">
     <div class="page-content">
 
 
 		<!--start page wrapper -->
+<div class="issue-navbar">
+  <div class="navbar-content">
+    <div class="navbar-left">
+      <div class="user-avatars">
+        <img src="{{ asset('assets/images/avatars/avatar-1.png') }}" alt="User 1" class="avatar avatar-1">
+        <img src="{{ asset('assets/images/avatars/avatar-2.png') }}" alt="User 2" class="avatar avatar-2">
+        <img src="{{ asset('assets/images/avatars/avatar-3.png') }}" alt="User 3" class="avatar avatar-3">
+        <div class="avatar add-avatar">
+          <i class="bx bx-plus"></i>
+        </div>
+      </div>
+      <button class="navbar-btn share-btn" data-bs-toggle="modal" data-bs-target="#shareModal">
+        <i class="bx bx-share"></i> Share
+      </button>
+      <div class="dropdown">
+        <button class="navbar-btn menu-btn" data-bs-toggle="dropdown">
+          <i class="bx bx-dots-vertical-rounded"></i>
+        </button>
+        <ul class="dropdown-menu">
+          <li><a class="dropdown-item" href="#"><i class="bx bx-edit"></i> Edit Issue</a></li>
+          <li><a class="dropdown-item" href="#"><i class="bx bx-copy"></i> Duplicate</a></li>
+          <li><a class="dropdown-item" href="#"><i class="bx bx-archive"></i> Archive</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="#"><i class="bx bx-trash"></i> Delete</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="kanban-container">
-  <h1>Kanban To-Do Board</h1>
+  <h1>Technofra</h1>
   <button id="add-column-btn">Add New Column</button>
   <div class="kanban-board mt-3" id="kanban-board">
     <div class="column" data-column-id="todo">
@@ -215,7 +269,190 @@
   </div>
 </div>
 
+<!-- Share Modal -->
+<div class="modal fade" id="shareModal" tabindex="-1" aria-labelledby="shareModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="shareModalLabel">Share board</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body1">
+        <div class="row">
+          <div class="col-12">
+            <div class="share-input-section mb-4">
+              <div class="input-group">
+                <input type="text" class="form-control" placeholder="Email address or name" id="shareEmail">
+                <button class="btn btn-outline-primary" type="button" id="memberBtn">Member</button>
+                <button class="btn btn-primary" type="button" id="shareBtn">Share</button>
+              </div>
+            </div>
+
+            <div class="share-link-section mb-4 p-3 border rounded">
+              <h6 class="mb-2">Share this board with a link</h6>
+              <button class="btn btn-outline-secondary btn-sm">Create link</button>
+            </div>
+
+            <div class="board-members-section">
+              <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">Board members</h6>
+                <span class="badge bg-secondary">2</span>
+              </div>
+
+              <div class="join-requests mb-3">
+                <p class="text-muted mb-2">Join requests</p>
+              </div>
+
+              <div class="members-list">
+                <div class="member-item d-flex align-items-center justify-content-between p-3 border rounded mb-2">
+                  <div class="d-flex align-items-center">
+                    <img src="{{ asset('assets/images/avatars/technofra.png') }}" alt="Technofra" class="rounded-circle me-3" style="width: 48px; height: 48px;">
+                    <div>
+                      <div class="fw-bold">Technofra (you)</div>
+                      <small class="text-muted">@technofra • Workspace admin</small>
+                    </div>
+                  </div>
+                  <span class="badge bg-primary">Admin</span>
+                </div>
+
+                <div class="member-item d-flex align-items-center justify-content-between p-3 border rounded">
+                  <div class="d-flex align-items-center">
+                    <div class="bg-secondary rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                      <span class="text-white fw-bold">GG</span>
+                    </div>
+                    <div>
+                      <div class="fw-bold">Gopal Giri</div>
+                      <small class="text-muted">@gopalgiri4 • Workspace guest</small>
+                    </div>
+                  </div>
+                  <span class="badge bg-secondary">Member</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <style>
+.issue-navbar {
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 12px 20px;
+  margin-bottom: 20px;
+}
+
+.navbar-content {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.user-avatars {
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  object-fit: cover;
+}
+
+.avatar-1 {
+  z-index: 3;
+}
+
+.avatar-2 {
+  margin-left: -8px;
+  z-index: 2;
+}
+
+.avatar-3 {
+  margin-left: -8px;
+  z-index: 1;
+}
+
+.add-avatar {
+  margin-left: -8px;
+  background: #0079bf;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 16px;
+  border: 2px solid #fff;
+}
+
+.add-avatar:hover {
+  background: #005a87;
+}
+
+.navbar-left {
+  display: flex;
+  gap: 12px;
+}
+
+.navbar-right {
+  display: flex;
+  align-items: center;
+}
+
+.navbar-btn {
+  background: #0079bf;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  transition: background 0.3s ease;
+}
+
+.navbar-btn:hover {
+  background: #005a87;
+}
+
+.menu-btn {
+  background: transparent;
+  color: #6c757d;
+  padding: 8px;
+}
+
+.menu-btn:hover {
+  background: #f8f9fa;
+  color: #495057;
+}
+
+.dropdown-menu {
+  min-width: 180px;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.dropdown-item:hover {
+  background: #f8f9fa;
+}
+
+.dropdown-item.text-danger:hover {
+  background: #f8d7da;
+  color: #721c24 !important;
+}
+
 .kanban-container {
   padding: 20px;
   font-family: Arial, sans-serif;
@@ -229,7 +466,7 @@
 }
 
 .column {
-  background: #f4f5f7;
+  background: #0079bf26;
   border-radius: 8px;
   width: 300px;
   min-height: 400px;
@@ -485,11 +722,39 @@
   gap: 4px;
 }
 
-.label {
-  padding: 4px 8px;
+.label-item {
+  position: relative;
+  padding: 4px 20px 4px 8px;
   border-radius: 12px;
   color: #fff;
   font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.remove-label-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
+  width: 12px;
+  height: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+.remove-label-btn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .date-fields {
@@ -1240,9 +1505,22 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function renderLabels(labels) {
-    labelsList.innerHTML = labels.map(label => `
-      <div class="label" style="background: ${getColor(label.color)}">${label.name || label.color}</div>
+    labelsList.innerHTML = labels.map((label, index) => `
+      <div class="label-item" style="background: ${getColor(label.color)}">
+        <span>${label.name || label.color}</span>
+        <button class="remove-label-btn" data-index="${index}">&times;</button>
+      </div>
     `).join('');
+
+    // Add event listeners for remove buttons
+    document.querySelectorAll('.remove-label-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const index = parseInt(e.target.dataset.index);
+        currentTask.labels.splice(index, 1);
+        renderLabels(currentTask.labels);
+        saveTask();
+      });
+    });
   }
 
   function getColor(color) {
