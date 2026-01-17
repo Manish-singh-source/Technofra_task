@@ -191,6 +191,12 @@ Route::get('/clients-details', function () {
 Route::get('/leads', function () {
     return view('leads');
 })->name('leads');
+Route::get('/add-lead', function () {
+    return view('add-lead');
+})->name('add-lead');
+Route::get('/view-lead', function () {
+    return view('view-lead');
+})->name('view-lead');
 
 
 

@@ -242,6 +242,13 @@
                     </ul>
                 </li>
                 <li>
+                        <a href="{{ route('leads') }}">
+                            <div class="parent-icon"><i class="bx bx-user-voice"></i>
+                            </div>
+                            <div class="menu-title">Leads</div>
+                        </a>
+                    </li>
+                <li>
                     <a href="{{ route('project') }}">
                         <div class="parent-icon"><i class="bx bx-bar-chart"></i>
                         </div>
@@ -269,13 +276,7 @@
                             <div class="menu-title">Client</div>
                         </a>
                     </li>
-                    <li>
-                        <a href="{{ route('leads') }}">
-                            <div class="parent-icon"><i class="bx bx-user-voice"></i>
-                            </div>
-                            <div class="menu-title">Leads</div>
-                        </a>
-                    </li>
+                    
                     
                 
 
