@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailController;
@@ -103,6 +104,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/summary', [NotificationController::class, 'getNotificationSummary'])->name('summary');
         Route::post('/mark-read', [NotificationController::class, 'markAsRead'])->name('mark-read');
         Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read');
+    });
+
+    // Calendar Event routes
+    Route::prefix('calendar')->name('calendar.')->group(function () {
+        Route::get('/events', [CalendarEventController::class, 'getEvents'])->name('events');
+        Route::post('/events', [CalendarEventController::class, 'store'])->name('store');
+        Route::get('/events/{id}', [CalendarEventController::class, 'show'])->name('show');
+        Route::put('/events/{id}', [CalendarEventController::class, 'update'])->name('update');
+        Route::delete('/events/{id}', [CalendarEventController::class, 'destroy'])->name('destroy');
+        Route::post('/toggle-status', [CalendarEventController::class, 'toggleStatus'])->name('toggleStatus');
     });
 
     // Additional routes for backward compatibility

@@ -31,6 +31,8 @@
     <link rel="stylesheet" href="{{ asset('assets/css/semi-dark.css') }}" />
     <link rel="stylesheet" href="{{ asset('assets/css/header-colors.css') }}" />
 
+    @stack('styles')
+
     <!-- Custom Notification Styles -->
     <style>
         .alert-count {
@@ -1316,6 +1318,7 @@
     </script>
 
     @yield('scripts')
+    @stack('scripts')
 </body>
 
 <script>
