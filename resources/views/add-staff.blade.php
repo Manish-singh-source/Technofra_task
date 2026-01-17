@@ -40,41 +40,43 @@
                     <h5 class="card-title">Add New Staff</h5>
                     <hr />
                     <div class="form-body mt-4">
+                        <form action="{{ route('staff.store') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
                         <div class="row">
                             <div class="col-lg-12">
                                 <div class="border border-3 p-4 rounded">
                                     <div class="mb-3">
                                         <label for="profileImage" class="form-label">Profile Image</label>
-                                        <input type="file" class="form-control" id="profileImage" accept="image/*">
+                                        <input type="file" class="form-control" id="profileImage" name="profileImage" accept="image/*">
                                     </div>
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="firstName" class="form-label">First Name</label>
-                                            <input type="text" class="form-control" id="firstName"
+                                            <input type="text" class="form-control" id="firstName" name="firstName"
                                                 placeholder="Enter first name">
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="lastName" class="form-label">Last Name</label>
-                                            <input type="text" class="form-control" id="lastName"
+                                            <input type="text" class="form-control" id="lastName" name="lastName"
                                                 placeholder="Enter last name">
                                         </div>
                                     </div>
                                     <div class="mb-3">
                                         <label for="email" class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="email" placeholder="Enter email">
+                                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter email">
                                     </div>
                                     <div class="mb-3">
                                         <label for="phone" class="form-label">Phone</label>
-                                        <input type="text" class="form-control" id="phone"
+                                        <input type="text" class="form-control" id="phone" name="phone"
                                             placeholder="Enter phone number">
                                     </div>
                                     <div class="row g-3">
                                         <div class="col-12">
                                             <label for="role" class="form-label">Role</label>
-                                            <select class="form-select" id="role">
+                                            <select class="form-select" id="role" name="role">
                                                 <option>Select Role</option>
                                                 <option value="web_developers">Web Developers</option>
-                                                <option value="design_graphics">Design and Graphics</option>
+                                                <option value="design_and_graphics">Design and Graphics</option>
                                                 <option value="seo_developer">Seo Developer</option>
                                             </select>
                                         </div>
@@ -104,32 +106,33 @@
                                         </div>
                                         <div class="col-12">
                                             <label for="password" class="form-label">Password</label>
-                                            <input type="password" class="form-control" id="password"
+                                            <input type="password" class="form-control" id="password" name="password"
                                                 placeholder="Enter password">
                                         </div>
                                         <div class="col-12">
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="sendWelcomeEmail">
+                                                <input class="form-check-input" type="checkbox" name="sendWelcomeEmail" id="sendWelcomeEmail">
                                                 <label class="form-check-label" for="sendWelcomeEmail">
                                                     Send Welcome Email
                                                 </label>
                                             </div>
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="sendWelcomeEmail">
-                                                <label class="form-check-label" for="sendWelcomeEmail">
+                                                <input class="form-check-input" type="checkbox" name="administrator" id="administrator">
+                                                <label class="form-check-label" for="administrator">
                                                    Administrator
                                                 </label>
                                             </div>
                                         </div>
                                         <div class="col-12">
                                             <div class="d-grid">
-                                                <button type="button" class="btn btn-primary">Add Staff</button>
+                                                <button type="submit" class="btn btn-primary">Add Staff</button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div><!--end row-->
+                        </form>
                     </div>
                 </div>
             </div>

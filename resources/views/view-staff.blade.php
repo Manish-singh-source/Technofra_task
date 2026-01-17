@@ -79,13 +79,12 @@
 								<div class="card">
 									<div class="card-body">
 										<div class="d-flex flex-column align-items-center text-center">
-											<img src="assets/images/avatars/avatar-2.png" alt="Admin" class="rounded-circle p-1 bg-primary" width="110">
+											<img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Admin" class="rounded-circle p-1 bg-primary" width="110">
 											<div class="mt-3">
-												<h4>John Doe</h4>
-												<p class="text-secondary mb-1">Full Stack Developer</p>
-												<p class="text-muted font-size-sm">Bay Area, San Francisco, CA</p>
-												<button class="btn btn-primary">Follow</button>
-												<button class="btn btn-outline-primary">Message</button>
+												<h4>{{ $staff->first_name . ' ' . $staff->last_name }}</h4>
+												<p class="text-secondary mb-1">{{ ucwords(str_replace('_', ' ', $staff->role)) }}</p>
+												<p class="text-muted font-size-sm">{{ $staff->email }}</p>
+												
 											</div>
 										</div>
 										<hr class="my-4" />
@@ -144,100 +143,57 @@
 								</div>
 							</div>
 							<div class="col-lg-8">
-								<div class="card">
-									<div class="card-body">
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Full Name</h6>
+								<form method="POST" action="{{ route('staff.update', $staff->id) }}">
+									@csrf
+									@method('PUT')
+									<div class="card">
+										<div class="card-body">
+											<div class="row mb-3">
+												<div class="col-sm-3">
+													<h6 class="mb-0">Full Name</h6>
+												</div>
+												<div class="col-sm-9 text-secondary">
+													<input type="text" name="first_name" class="form-control" value="{{ $staff->first_name }}" placeholder="First Name" required />
+													<input type="text" name="last_name" class="form-control mt-2" value="{{ $staff->last_name }}" placeholder="Last Name" required />
+												</div>
 											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="John Doe" />
+											<div class="row mb-3">
+												<div class="col-sm-3">
+													<h6 class="mb-0">Email</h6>
+												</div>
+												<div class="col-sm-9 text-secondary">
+													<input type="email" name="email" class="form-control" value="{{ $staff->email }}" required />
+												</div>
 											</div>
-										</div>
-                                        <div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Full Name</h6>
+											<div class="row mb-3">
+												<div class="col-sm-3">
+													<h6 class="mb-0">Phone</h6>
+												</div>
+												<div class="col-sm-9 text-secondary">
+													<input type="text" name="phone" class="form-control" value="{{ $staff->phone }}" required />
+												</div>
 											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="John Doe" />
+											<div class="row mb-3">
+												<div class="col-sm-3">
+													<h6 class="mb-0">Role</h6>
+												</div>
+												<div class="col-sm-9 text-secondary">
+													<select name="role" class="form-control" required>
+														<option value="web_developers" {{ $staff->role == 'web_developers' ? 'selected' : '' }}>Web Developers</option>
+														<option value="design_and_graphics" {{ $staff->role == 'design_and_graphics' ? 'selected' : '' }}>Design and Graphics</option>
+														<option value="seo_developer" {{ $staff->role == 'seo_developer' ? 'selected' : '' }}>Seo Developer</option>
+													</select>
+												</div>
 											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Email</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="john@example.com" />
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Phone</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="(239) 816-9029" />
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Mobile</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="(320) 380-4539" />
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Address</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="Bay Area, San Francisco, CA" />
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Role</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<select class="form-control">
-													<option>Admin</option>
-													<option>Staff</option>
-													<option>User</option>
-												</select>
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Department</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="IT" />
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Designation</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="Software Engineer" />
-											</div>
-										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Date of Joining</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="01-01-2022" />
-											</div>
-										</div>
-										<div class="row">
-											<div class="col-sm-3"></div>
-											<div class="col-sm-9 text-secondary">
-												<input type="button" class="btn btn-primary px-4" value="Save Changes" />
+											<div class="row">
+												<div class="col-sm-3"></div>
+												<div class="col-sm-9 text-secondary">
+													<input type="submit" class="btn btn-primary px-4" value="Save Changes" />
+												</div>
 											</div>
 										</div>
 									</div>
-								</div>
+								</form>
 								
 								<div class="row">
 									<div class="col-sm-12">

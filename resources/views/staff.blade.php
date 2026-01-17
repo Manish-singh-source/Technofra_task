@@ -59,90 +59,42 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @foreach($staff as $member)
                                 <tr>
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <a href="#" class="avatar online avatar-rounded">
-                                                <img src="https://placehold.co/40x40" class="img-fluid" alt="img">
+                                                <img src="{{ asset('uploads/staff/' . $member->profile_image) }}" style="width: 30px; height: 30px; border-radius: 50%;" alt="img">
                                             </a>
                                             <div class="ms-2">
-                                                <h6 class="fs-14 fw-medium m-0"><a href="{{route('view-staff')}}">John Doe</a></h6>
+                                                <h6 class="fs-14 fw-medium m-0"><a href="#">{{ $member->first_name . ' ' . $member->last_name }}</a></h6>
                                             </div>
                                         </div>
                                     </td>
-                                    <td>john.doe@example.com</td>
-                                    <td>Admin</td>
-                                    <td>2023-10-01 10:30 AM</td>
+                                    <td>{{ $member->email }}</td>
+                                    <td>{{ ucwords( str_replace('_', ' ', $member->role)) }}</td>
+                                    <td>{{ $member->created_at->format('Y-m-d H:i A') }}</td>
                                     <td>
-                                        <div
-                                            class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Active
+                                        <div class="badge rounded-pill {{ $member->status == 'active' ? 'text-success bg-light-success' : 'text-warning bg-light-warning' }} p-2 text-uppercase px-3">
+                                            <i class='bx bxs-circle me-1'></i>{{ ucfirst($member->status) }}
                                         </div>
                                     </td>
                                     <td>
                                         <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                            <a href="{{ route('view-staff', $member->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                            <form method="POST" action="{{ route('staff.destroy', $member->id) }}"
+                                                class="d-inline ms-3"
+                                                onsubmit="return confirm('Are you sure you want to delete this staff?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <a>
+                                                    <button type="submit" style="border: none;"><i class='bx bxs-trash'></i></button>
+                                                </a>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <a href="#" class="avatar online avatar-rounded">
-                                                <img src="https://placehold.co/40x40" class="img-fluid" alt="img">
-                                            </a>
-                                            <div class="ms-2">
-                                                <h6 class="fs-14 fw-medium m-0"><a href="#">John Doe</a></h6>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>jane.smith@example.com</td>
-                                    <td>Manager</td>
-                                    <td>2023-09-28 02:15 PM</td>
-                                    <td>
-                                        <div
-                                            class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Active
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <a href="#" class="avatar online avatar-rounded">
-                                                <img src="https://placehold.co/40x40" class="img-fluid" alt="img">
-                                            </a>
-                                            <div class="ms-2">
-                                                <h6 class="fs-14 fw-medium m-0"><a href="#">Manish Doe</a></h6>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>bob.johnson@example.com</td>
-                                    <td>Staff</td>
-                                    <td>2023-09-25 09:45 AM</td>
-                                    <td>
-                                        <div
-                                            class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Inactive
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

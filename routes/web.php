@@ -6,6 +6,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\StaffController;
 use App\Http\Controllers\VendorServiceController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -109,6 +110,10 @@ Route::middleware('auth')->group(function () {
      Route::delete('/vendor1/delete-selected', [VendorController::class, 'deleteSelected'])->name('delete.selected.vendor');
     Route::post('/vendor1/toggle-status',  [VendorController::class, 'toggleStatus'])->name('vendor1.toggleStatus');
     Route::get('/servies', [ServiceController::class, 'index'])->name('servies');
+
+    // Staff routes
+    Route::post('/store-staff', [StaffController::class, 'store'])->name('staff.store');
+    Route::put('/update-staff/{id}', [StaffController::class, 'update'])->name('staff.update');
 });
 
 // Authentication Routes
@@ -129,16 +134,13 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 
-Route::get('/staff', function () {
-    return view('staff');
-})->name('staff');
+Route::get('/staff', [StaffController::class, 'index'])->name('staff');
+Route::delete('/staff/delete/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
 
 Route::get('/add-staff', function () {
     return view('add-staff');
 })->name('add-staff');
-Route::get('view-staff', function () {
-    return view('view-staff');
-})->name('view-staff');
+Route::get('/view-staff/{id}', [StaffController::class, 'show'])->name('view-staff');
 
 Route::get('/roles', function () {
     return view('roles');
@@ -186,6 +188,9 @@ Route::get('/add-clients', function () {
 Route::get('/clients-details', function () {
     return view('clients-details');
 })->name('clients-details');
+Route::get('/leads', function () {
+    return view('leads');
+})->name('leads');
 
 
 
