@@ -58,6 +58,7 @@ class CalendarEventController extends Controller
             'event_date' => 'required|date',
             'event_time' => 'required|date_format:H:i',
             'email_recipients' => 'required|string',
+            'whatsapp_recipients' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -78,6 +79,21 @@ class CalendarEventController extends Controller
             }
         }
 
+        // Validate WhatsApp recipients (phone numbers)
+        if ($request->whatsapp_recipients) {
+            $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
+            foreach ($phones as $phone) {
+                // Remove all non-numeric characters except +
+                $cleanPhone = preg_replace('/[^0-9+]/', '', $phone);
+                if (strlen($cleanPhone) < 10) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Invalid phone number: {$phone}"
+                    ], 422);
+                }
+            }
+        }
+
         DB::beginTransaction();
         try {
             $eventDateTime = Carbon::parse($request->event_date . ' ' . $request->event_time);
@@ -88,6 +104,7 @@ class CalendarEventController extends Controller
                 'event_date' => $request->event_date,
                 'event_time' => $eventDateTime,
                 'email_recipients' => $request->email_recipients,
+                'whatsapp_recipients' => $request->whatsapp_recipients,
                 'created_by' => Auth::id(),
                 'status' => 1,
             ]);
@@ -141,7 +158,10 @@ class CalendarEventController extends Controller
                     'event_date' => $event->event_date->format('Y-m-d'),
                     'event_time' => $event->event_time->format('H:i'),
                     'email_recipients' => $event->email_recipients,
+                    'whatsapp_recipients' => $event->whatsapp_recipients,
                     'notification_sent' => $event->notification_sent,
+                    'reminder_10min_sent' => $event->reminder_10min_sent,
+                    'event_time_notification_sent' => $event->event_time_notification_sent,
                     'created_by' => $event->creator->name ?? 'Unknown',
                 ]
             ]);
@@ -166,6 +186,7 @@ class CalendarEventController extends Controller
             'event_date' => 'required|date',
             'event_time' => 'required|date_format:H:i',
             'email_recipients' => 'required|string',
+            'whatsapp_recipients' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -186,6 +207,21 @@ class CalendarEventController extends Controller
             }
         }
 
+        // Validate WhatsApp recipients (phone numbers)
+        if ($request->whatsapp_recipients) {
+            $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
+            foreach ($phones as $phone) {
+                // Remove all non-numeric characters except +
+                $cleanPhone = preg_replace('/[^0-9+]/', '', $phone);
+                if (strlen($cleanPhone) < 10) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "Invalid phone number: {$phone}"
+                    ], 422);
+                }
+            }
+        }
+
         DB::beginTransaction();
         try {
             $event = CalendarEvent::findOrFail($id);
@@ -197,6 +233,7 @@ class CalendarEventController extends Controller
                 'event_date' => $request->event_date,
                 'event_time' => $eventDateTime,
                 'email_recipients' => $request->email_recipients,
+                'whatsapp_recipients' => $request->whatsapp_recipients,
             ]);
 
             DB::commit();

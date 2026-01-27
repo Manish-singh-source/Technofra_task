@@ -283,6 +283,12 @@
 						<small class="form-text text-muted">Enter comma-separated email addresses</small>
 						<div class="invalid-feedback"></div>
 					</div>
+					<div class="mb-3">
+						<label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers)</label>
+						<input type="text" class="form-control" id="whatsapp_recipients" name="whatsapp_recipients" placeholder="+919876543210, +919876543211">
+						<small class="form-text text-muted">Enter comma-separated phone numbers with country code (e.g., +91 for India)</small>
+						<div class="invalid-feedback"></div>
+					</div>
 				</form>
 			</div>
 			<div class="modal-footer">
@@ -334,7 +340,14 @@
 						<div class="invalid-feedback"></div>
 					</div>
 					<div class="mb-3">
-						<p class="mb-1"><strong>Notification Status:</strong> <span id="notification_status"></span></p>
+						<label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers)</label>
+						<input type="text" class="form-control" id="edit_whatsapp_recipients" name="whatsapp_recipients" placeholder="+919876543210, +919876543211">
+						<small class="form-text text-muted">Enter comma-separated phone numbers with country code (e.g., +91 for India)</small>
+						<div class="invalid-feedback"></div>
+					</div>
+					<div class="mb-3">
+						<p class="mb-1"><strong>10-Min Reminder:</strong> <span id="reminder_10min_status"></span></p>
+						<p class="mb-1"><strong>Event-Time Notification:</strong> <span id="event_time_status"></span></p>
 						<p class="mb-0"><strong>Created By:</strong> <span id="created_by"></span></p>
 					</div>
 				</form>
@@ -422,6 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			event_date: $('#event_date').val(),
 			event_time: $('#event_time').val(),
 			email_recipients: $('#email_recipients').val(),
+			whatsapp_recipients: $('#whatsapp_recipients').val(),
 			_token: $('meta[name="csrf-token"]').attr('content')
 		};
 
@@ -491,7 +505,9 @@ document.addEventListener('DOMContentLoaded', function() {
 					$('#edit_event_date').val(event.event_date);
 					$('#edit_event_time').val(event.event_time);
 					$('#edit_email_recipients').val(event.email_recipients);
-					$('#notification_status').text(event.notification_sent ? 'Sent' : 'Pending');
+					$('#edit_whatsapp_recipients').val(event.whatsapp_recipients || '');
+					$('#reminder_10min_status').html(event.reminder_10min_sent ? '<span class="badge bg-success">Sent</span>' : '<span class="badge bg-warning">Pending</span>');
+					$('#event_time_status').html(event.event_time_notification_sent ? '<span class="badge bg-success">Sent</span>' : '<span class="badge bg-warning">Pending</span>');
 					$('#created_by').text(event.created_by);
 					$('#editEventModal').modal('show');
 				}
@@ -515,6 +531,7 @@ document.addEventListener('DOMContentLoaded', function() {
 			event_date: $('#edit_event_date').val(),
 			event_time: $('#edit_event_time').val(),
 			email_recipients: $('#edit_email_recipients').val(),
+			whatsapp_recipients: $('#edit_whatsapp_recipients').val(),
 			_token: $('meta[name="csrf-token"]').attr('content'),
 			_method: 'PUT'
 		};
