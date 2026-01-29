@@ -268,7 +268,7 @@
                         <a href="{{ route('client-issue') }}">
                             <div class="parent-icon"><i class="bx bx-error"></i>
                             </div>
-                            <div class="menu-title">Client Issue</div>
+                            <div class="menu-title">Raise Issue</div>
                         </a>
                     </li>
                     <li>

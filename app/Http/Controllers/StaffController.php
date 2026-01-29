@@ -29,6 +29,7 @@ class StaffController extends Controller
             'email' => 'required|email|unique:staff,email,' . $id,
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
+            'status' => 'required|in:active,inactive',
         ]);
 
         $staff = Staff::findOrFail($id);
@@ -38,6 +39,7 @@ class StaffController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'role' => $request->role,
+            'status' => $request->status,
         ]);
 
         return redirect()->route('staff')->with('success', 'Staff updated successfully.');

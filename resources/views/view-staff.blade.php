@@ -30,48 +30,275 @@
 					</div>
 				</div>
 				<!--end breadcrumb-->
-				<div class="row justify-content-center mb-4">
-					<div class="col-md-2">
-						<div class="card">
-							<div class="card-body text-center">
-								<h6>Total Logged Time</h6>
-								<h4>29:23</h4>
+				<div class="row mb-4">
+					<div class="col-lg-3 col-md-6">
+						<div class="card radius-10 border-start border-0 border-4 border-primary h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Total Logged Time</p>
+										<h4 class="my-1 text-primary">29:23</h4>
+										<p class="mb-0 font-13">All time tracking</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
+										<i class='bx bx-time-five'></i>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
-					<div class="col-md-2">
-						<div class="card">
-							<div class="card-body text-center">
-								<h6>Last Month Logged Time</h6>
-								<h4>00:00</h4>
+					<div class="col-lg-3 col-md-6">
+						<div class="card radius-10 border-start border-0 border-4 border-info h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Last Month Logged Time</p>
+										<h4 class="my-1 text-info">00:00</h4>
+										<p class="mb-0 font-13">Previous month</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto">
+										<i class='bx bx-calendar'></i>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
-					<div class="col-md-2">
-						<div class="card">
-							<div class="card-body text-center">
-								<h6>This Month Logged Time</h6>
-								<h4>29:23</h4>
+					<div class="col-lg-3 col-md-6">
+						<div class="card radius-10 border-start border-0 border-4 border-success h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">This Month Logged Time</p>
+										<h4 class="my-1 text-success">29:23</h4>
+										<p class="mb-0 font-13">Current month</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
+										<i class='bx bx-trending-up'></i>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
-					<div class="col-md-2">
-						<div class="card">
-							<div class="card-body text-center">
-								<h6>Last Week Logged Time</h6>
-								<h4>29:23</h4>
-							</div>
-						</div>
-					</div>
-					<div class="col-md-2">
-						<div class="card">
-							<div class="card-body text-center">
-								<h6>This Week Logged Time</h6>
-								<h4>00:00</h4>
+					<div class="col-lg-3 col-md-6">
+						<div class="card radius-10 border-start border-0 border-4 border-warning h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">This Week Logged Time</p>
+										<h4 class="my-1 text-warning">00:00</h4>
+										<p class="mb-0 font-13">Current week</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
+										<i class='bx bx-week'></i>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
 				</div>
+
+				<!-- Performance Reports Section -->
+				<div class="row mb-4">
+					<div class="col-12">
+						<h4 class="mb-3">Performance Reports</h4>
+					</div>
+				</div>
+
+				<!-- Performance Metrics Cards -->
+				<div class="row mb-4">
+					<div class="col-md-3 col-sm-6">
+						<div class="card radius-10 border-start border-0 border-4 border-primary h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Productivity Score</p>
+										<h4 class="my-1 text-primary">85%</h4>
+										<p class="mb-0 font-13">+5.2% from last month</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
+										<i class='bx bx-trending-up'></i>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3 col-sm-6">
+						<div class="card radius-10 border-start border-0 border-4 border-success h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Tasks Completed</p>
+										<h4 class="my-1 text-success">47</h4>
+										<p class="mb-0 font-13">+12.5% from last month</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
+										<i class='bx bx-check-circle'></i>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3 col-sm-6">
+						<div class="card radius-10 border-start border-0 border-4 border-warning h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Average Response Time</p>
+										<h4 class="my-1 text-warning">2.3h</h4>
+										<p class="mb-0 font-13">-8.1% improvement</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-blooker text-white ms-auto">
+										<i class='bx bx-time-five'></i>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3 col-sm-6">
+						<div class="card radius-10 border-start border-0 border-4 border-info h-100">
+							<div class="card-body">
+								<div class="d-flex align-items-center">
+									<div>
+										<p class="mb-0 text-secondary">Code Quality Score</p>
+										<h4 class="my-1 text-info">92%</h4>
+										<p class="mb-0 font-13">+3.7% from last month</p>
+									</div>
+									<div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto">
+										<i class='bx bx-star'></i>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Performance Charts -->
+				<div class="row mb-4">
+					<div class="col-md-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header">
+								<h5>Monthly Performance Trend</h5>
+							</div>
+							<div class="card-body">
+								<div class="chart-container-1">
+									<canvas id="performanceChart" width="400" height="250"></canvas>
+								</div>
+								<div class="mt-3">
+									<div class="row text-center">
+										<div class="col-3">
+											<small>Jan</small>
+											<h6 class="text-primary">82%</h6>
+										</div>
+										<div class="col-3">
+											<small>Feb</small>
+											<h6 class="text-primary">85%</h6>
+										</div>
+										<div class="col-3">
+											<small>Mar</small>
+											<h6 class="text-primary">88%</h6>
+										</div>
+										<div class="col-3">
+											<small>Apr</small>
+											<h6 class="text-primary">92%</h6>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header">
+								<h5>Task Completion Breakdown</h5>
+							</div>
+							<div class="card-body">
+								<div class="chart-container-1">
+									<canvas id="taskBreakdownChart" width="400" height="250"></canvas>
+								</div>
+								<div class="mt-3">
+									<div class="d-flex justify-content-around">
+										<div class="text-center">
+											<div class="badge bg-success p-2 mb-1">High Priority</div>
+											<h6 class="text-success">65%</h6>
+										</div>
+										<div class="text-center">
+											<div class="badge bg-warning p-2 mb-1">Medium Priority</div>
+											<h6 class="text-warning">25%</h6>
+										</div>
+										<div class="text-center">
+											<div class="badge bg-danger p-2 mb-1">Low Priority</div>
+											<h6 class="text-danger">10%</h6>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Performance Details Table -->
+				<div class="row mb-4">
+					<div class="col-12">
+						<div class="card radius-10">
+							<div class="card-header">
+								<h5>Detailed Performance Metrics</h5>
+							</div>
+							<div class="card-body">
+								<div class="table-responsive">
+									<table class="table table-striped table-hover mb-0">
+										<thead class="table-light">
+											<tr>
+												<th>Metric</th>
+												<th>Current Month</th>
+												<th>Last Month</th>
+												<th>Change</th>
+												<th>Status</th>
+											</tr>
+										</thead>
+										<tbody>
+											<tr>
+												<td>Tasks Completed</td>
+												<td>47</td>
+												<td>42</td>
+												<td><span class="text-success">+11.9%</span></td>
+												<td><span class="badge bg-success">Excellent</span></td>
+											</tr>
+											<tr>
+												<td>Average Response Time</td>
+												<td>2.3 hours</td>
+												<td>2.5 hours</td>
+												<td><span class="text-success">-8.0%</span></td>
+												<td><span class="badge bg-success">Improved</span></td>
+											</tr>
+											<tr>
+												<td>Code Review Feedback</td>
+												<td>4.8/5</td>
+												<td>4.6/5</td>
+												<td><span class="text-success">+4.3%</span></td>
+												<td><span class="badge bg-success">Excellent</span></td>
+											</tr>
+											<tr>
+												<td>Bug Fix Rate</td>
+												<td>95%</td>
+												<td>92%</td>
+												<td><span class="text-success">+3.3%</span></td>
+												<td><span class="badge bg-success">Good</span></td>
+											</tr>
+											<tr>
+												<td>Client Satisfaction</td>
+												<td>4.9/5</td>
+												<td>4.7/5</td>
+												<td><span class="text-success">+4.3%</span></td>
+												<td><span class="badge bg-success">Outstanding</span></td>
+											</tr>
+										</tbody>
+									</table>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
 				<div class="container">
 					<div class="main-body">
 						<div class="row">
@@ -185,6 +412,17 @@
 													</select>
 												</div>
 											</div>
+											<div class="row mb-3">
+												<div class="col-sm-3">
+													<h6 class="mb-0">Status</h6>
+												</div>
+												<div class="col-sm-9 text-secondary">
+													<select name="status" class="form-control" required>
+														<option value="active" {{ $staff->status == 'active' ? 'selected' : '' }}>Active</option>
+														<option value="inactive" {{ $staff->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
+													</select>
+												</div>
+											</div>
 											<div class="row">
 												<div class="col-sm-3"></div>
 												<div class="col-sm-9 text-secondary">
@@ -253,6 +491,107 @@
 		</footer>
 	</div>
 	<!--end wrapper-->
+</div>
 
+@push('scripts')
+<script>
+$(function() {
+	   "use strict";
+
+	   // Performance Trend Chart (Line)
+	   if (document.getElementById("performanceChart")) {
+	       var ctx = document.getElementById('performanceChart').getContext('2d');
+
+	       var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
+	       gradientStroke1.addColorStop(0, '#00b09b');
+	       gradientStroke1.addColorStop(1, '#96c93d');
+
+	       var myChart = new Chart(ctx, {
+	           type: 'line',
+	           data: {
+	               labels: ['Jan', 'Feb', 'Mar', 'Apr'],
+	               datasets: [{
+	                   label: 'Performance Score',
+	                   data: [82, 85, 88, 92],
+	                   backgroundColor: [
+	                       gradientStroke1
+	                   ],
+	                   fill: {
+	                       target: 'origin',
+	                       above: 'rgb(21 202 32 / 15%)',
+	                   },
+	                   tension: 0.4,
+	                   borderColor: [
+	                       gradientStroke1
+	                   ],
+	                   borderWidth: 3
+	               }]
+	           },
+	           options: {
+	               maintainAspectRatio: false,
+	               plugins: {
+	                   legend: {
+	                       display: false,
+	                   }
+	               },
+	               scales: {
+	                   y: {
+	                       beginAtZero: true,
+	                       max: 100
+	                   }
+	               }
+	           }
+	       });
+	   }
+
+	   // Task Breakdown Chart (Doughnut)
+	   if (document.getElementById("taskBreakdownChart")) {
+	       var ctx = document.getElementById("taskBreakdownChart").getContext('2d');
+
+	       var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
+	       gradientStroke1.addColorStop(0, '#fc4a1a');
+	       gradientStroke1.addColorStop(1, '#f7b733');
+
+	       var gradientStroke2 = ctx.createLinearGradient(0, 0, 0, 300);
+	       gradientStroke2.addColorStop(0, '#4776e6');
+	       gradientStroke2.addColorStop(1, '#8e54e9');
+
+	       var gradientStroke3 = ctx.createLinearGradient(0, 0, 0, 300);
+	       gradientStroke3.addColorStop(0, '#ee0979');
+	       gradientStroke3.addColorStop(1, '#ff6a00');
+
+	       var myChart = new Chart(ctx, {
+	           type: 'doughnut',
+	           data: {
+	               labels: ["High Priority", "Medium Priority", "Low Priority"],
+	               datasets: [{
+	                   backgroundColor: [
+	                       gradientStroke1,
+	                       gradientStroke2,
+	                       gradientStroke3
+	                   ],
+	                   hoverBackgroundColor: [
+	                       gradientStroke1,
+	                       gradientStroke2,
+	                       gradientStroke3
+	                   ],
+	                   data: [65, 25, 10],
+	                   borderWidth: [1, 1, 1]
+	               }]
+	           },
+	           options: {
+	               maintainAspectRatio: false,
+	               cutout: 82,
+	               plugins: {
+	                   legend: {
+	                       display: false,
+	                   }
+	               }
+	           }
+	       });
+	   }
+});
+</script>
+@endpush
 
 @endsection

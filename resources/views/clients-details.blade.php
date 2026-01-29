@@ -12,7 +12,7 @@
                         <ol class="breadcrumb mb-0 p-0">
                             <li class="breadcrumb-item"><a href="{{ route('clients') }}"><i class="bx bx-home-alt"></i></a>
                             </li>
-                            <li class="breadcrumb-item active" aria-current="page">ABC Corp</li>
+                            <li class="breadcrumb-item active" aria-current="page">{{ $customer->client_name }}</li>
                         </ol>
                     </nav>
                 </div>
@@ -42,32 +42,31 @@
                             <div class="card">
                                 <div class="card-body">
                                     <div class="d-flex flex-column align-items-center text-center">
-                                        <img src="https://placehold.co/110x110" alt="Client Logo" class="rounded-circle p-1 bg-primary" width="110">
+                                        {{-- <img src="https://placehold.co/110x110" alt="Client Logo" class="rounded-circle p-1 bg-primary" width="110"> --}}
                                         <div class="mt-3">
-                                            <h4>ABC Corp</h4>
-                                            <p class="text-secondary mb-1">Technology Company</p>
-                                            <p class="text-muted font-size-sm">Active Client</p>
-                                            <button class="btn btn-primary">Edit Profile</button>
-                                            <button class="btn btn-outline-primary">View Projects</button>
+                                            <h4>{{ $customer->client_name }}</h4>
+                                            <p class="text-secondary mb-1">{{ $customer->industry }} Company</p>
+                                            <p class="text-muted font-size-sm">{{ $customer->status }} Client</p>
+                                            
                                         </div>
                                     </div>
                                     <hr class="my-4" />
                                     <ul class="list-group list-group-flush">
                                         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                                             <h6 class="mb-0"><i class="bx bx-envelope me-2"></i>Email</h6>
-                                            <span class="text-secondary">contact@abc.com</span>
+                                            <span class="text-secondary">{{ $customer->email }}</span>
                                         </li>
                                         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                                             <h6 class="mb-0"><i class="bx bx-phone me-2"></i>Phone</h6>
-                                            <span class="text-secondary">+1 234 567 890</span>
+                                            <span class="text-secondary">{{ $customer->phone ?? 'N/A' }}</span>
                                         </li>
                                         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                                             <h6 class="mb-0"><i class="bx bx-globe me-2"></i>Website</h6>
-                                            <span class="text-secondary">www.abc.com</span>
+                                            <span class="text-secondary">{{ $customer->website ?? 'N/A' }}</span>
                                         </li>
                                         <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                                             <h6 class="mb-0"><i class="bx bx-user me-2"></i>Manager</h6>
-                                            <span class="text-secondary">Jane Smith</span>
+                                            <span class="text-secondary">{{ $customer->assigned_manager_id ? 'Assigned' : 'Not Assigned' }}</span>
                                         </li>
                                     </ul>
                                 </div>
@@ -76,78 +75,122 @@
                         <div class="col-lg-8">
                             <div class="card">
                                 <div class="card-body">
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Client Name</h6>
+                                    <form action="{{ route('clients.update', $customer->id) }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Client Name</label>
+                                                <input type="text" class="form-control" name="client_name" value="{{ $customer->client_name }}" required>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Contact Person</label>
+                                                <input type="text" class="form-control" name="contact_person" value="{{ $customer->contact_person }}" required>
+                                            </div>
                                         </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            ABC Corp
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Email</label>
+                                                <input type="email" class="form-control" name="email" value="{{ $customer->email }}" required>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Phone</label>
+                                                <input type="text" class="form-control" name="phone" value="{{ $customer->phone }}">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Contact Person</h6>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Website</label>
+                                                <input type="url" class="form-control" name="website" value="{{ $customer->website }}">
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Client Type</label>
+                                                <select class="form-control" name="client_type" required>
+                                                    <option value="Individual" {{ $customer->client_type == 'Individual' ? 'selected' : '' }}>Individual</option>
+                                                    <option value="Company" {{ $customer->client_type == 'Company' ? 'selected' : '' }}>Company</option>
+                                                    <option value="Organization" {{ $customer->client_type == 'Organization' ? 'selected' : '' }}>Organization</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            John Doe
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Industry</label>
+                                                <input type="text" class="form-control" name="industry" value="{{ $customer->industry }}" required>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Status</label>
+                                                <select class="form-control" name="status" required>
+                                                    <option value="Active" {{ $customer->status == 'Active' ? 'selected' : '' }}>Active</option>
+                                                    <option value="Inactive" {{ $customer->status == 'Inactive' ? 'selected' : '' }}>Inactive</option>
+                                                    <option value="Suspended" {{ $customer->status == 'Suspended' ? 'selected' : '' }}>Suspended</option>
+                                                </select>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Client Type</h6>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Priority Level</label>
+                                                <select class="form-control" name="priority_level">
+                                                    <option value="">Select Priority</option>
+                                                    <option value="Low" {{ $customer->priority_level == 'Low' ? 'selected' : '' }}>Low</option>
+                                                    <option value="Medium" {{ $customer->priority_level == 'Medium' ? 'selected' : '' }}>Medium</option>
+                                                    <option value="High" {{ $customer->priority_level == 'High' ? 'selected' : '' }}>High</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Address Line 1</label>
+                                                <input type="text" class="form-control" name="address_line1" value="{{ $customer->address_line1 }}" required>
+                                            </div>
                                         </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            Company
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Address Line 2</label>
+                                                <input type="text" class="form-control" name="address_line2" value="{{ $customer->address_line2 }}">
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">City</label>
+                                                <input type="text" class="form-control" name="city" value="{{ $customer->city }}" required>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Industry</h6>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">State</label>
+                                                <input type="text" class="form-control" name="state" value="{{ $customer->state }}" required>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Postal Code</label>
+                                                <input type="text" class="form-control" name="postal_code" value="{{ $customer->postal_code }}" required>
+                                            </div>
                                         </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            Technology
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Country</label>
+                                                <input type="text" class="form-control" name="country" value="{{ $customer->country }}" required>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Default Due Days</label>
+                                                <input type="number" class="form-control" name="default_due_days" value="{{ $customer->default_due_days }}">
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Status</h6>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-6">
+                                                <label class="form-label">Billing Type</label>
+                                                <select class="form-control" name="billing_type">
+                                                    <option value="">Select Billing Type</option>
+                                                    <option value="Hourly" {{ $customer->billing_type == 'Hourly' ? 'selected' : '' }}>Hourly</option>
+                                                    <option value="Fixed" {{ $customer->billing_type == 'Fixed' ? 'selected' : '' }}>Fixed</option>
+                                                    <option value="Retainer" {{ $customer->billing_type == 'Retainer' ? 'selected' : '' }}>Retainer</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <!-- Empty for balance -->
+                                            </div>
                                         </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            <span class="badge bg-success">Active</span>
+                                        <div class="row mb-3">
+                                            <div class="col-sm-12">
+                                                <button type="submit" class="btn btn-primary">Update Client</button>
+                                            </div>
                                         </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Priority Level</h6>
-                                        </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            High
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Address</h6>
-                                        </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            123 Main St, Suite 100<br>City, State 12345<br>Country
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Default Due Days</h6>
-                                        </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            30
-                                        </div>
-                                    </div>
-                                    <div class="row mb-3">
-                                        <div class="col-sm-3">
-                                            <h6 class="mb-0">Billing Type</h6>
-                                        </div>
-                                        <div class="col-sm-9 text-secondary">
-                                            Hourly
-                                        </div>
-                                    </div>
+                                    </form>
                                 </div>
                             </div>
                         </div>

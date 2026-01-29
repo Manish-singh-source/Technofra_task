@@ -35,95 +35,74 @@
             </div>
             <!--end breadcrumb-->
 
-            <!-- Status Cards -->
-            <div class="row">
-                <div class="col-12 col-lg-2">
-                    <div class="card radius-10">
+            <!-- Project Status Cards -->
+            <div class="row mb-3">
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-secondary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="bg-light-secondary text-secondary px-3 py-2 rounded-3">
-                                        <i class="bx bx-circle fs-4"></i>
-                                    </div>
+                                <div>
+                                    <p class="mb-0 text-secondary">Planning</p>
+                                    <h4 class="my-1 text-secondary">{{ $planningProjects ?? 5 }}</h4>
+                                    <p class="mb-0 font-13">Not yet started</p>
                                 </div>
-                                <div class="flex-fill">
-                                    <p class="mb-1">Not Started</p>
-                                    <h4 class="mb-0">5</h4>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
+                                    <i class='bx bx-circle'></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-lg-2">
-                    <div class="card radius-10">
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-primary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="bg-light-primary text-primary px-3 py-2 rounded-3">
-                                        <i class="bx bx-loader-alt fs-4"></i>
-                                    </div>
+                                <div>
+                                    <p class="mb-0 text-secondary">In Progress</p>
+                                    <h4 class="my-1 text-primary">{{ $inProgressProjects ?? 3 }}</h4>
+                                    <p class="mb-0 font-13">Currently active</p>
                                 </div>
-                                <div class="flex-fill">
-                                    <p class="mb-1">In Progress</p>
-                                    <h4 class="mb-0">3</h4>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
+                                    <i class='bx bx-loader-alt'></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-lg-2">
-                    <div class="card radius-10">
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-warning">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="bg-light-warning text-warning px-3 py-2 rounded-3">
-                                        <i class="bx bx-pause fs-4"></i>
-                                    </div>
+                                <div>
+                                    <p class="mb-0 text-secondary">On Hold</p>
+                                    <h4 class="my-1 text-warning">{{ $onHoldProjects ?? 2 }}</h4>
+                                    <p class="mb-0 font-13">Temporarily paused</p>
                                 </div>
-                                <div class="flex-fill">
-                                    <p class="mb-1">On Hold</p>
-                                    <h4 class="mb-0">2</h4>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
+                                    <i class='bx bx-pause'></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-12 col-lg-2">
-                    <div class="card radius-10">
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-success">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="bg-light-success text-success px-3 py-2 rounded-3">
-                                        <i class="bx bx-check fs-4"></i>
-                                    </div>
+                                <div>
+                                    <p class="mb-0 text-secondary">Completed</p>
+                                    <h4 class="my-1 text-success">{{ $completedProjects ?? 9 }}</h4>
+                                    <p class="mb-0 font-13">Finished successfully</p>
                                 </div>
-                                <div class="flex-fill">
-                                    <p class="mb-1">Finished</p>
-                                    <h4 class="mb-0">8</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-12 col-lg-2">
-                    <div class="card radius-10">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="me-3">
-                                    <div class="bg-light-danger text-danger px-3 py-2 rounded-3">
-                                        <i class="bx bx-x fs-4"></i>
-                                    </div>
-                                </div>
-                                <div class="flex-fill">
-                                    <p class="mb-1">Cancelled</p>
-                                    <h4 class="mb-0">1</h4>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
+                                    <i class='bx bx-check'></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-            <!-- End Status Cards -->
+            <!--end row-->
 
             <!-- Status Tabs -->
             <div class="card mt-4">
@@ -184,7 +163,7 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="badge rounded-pill text-secondary bg-light-secondary p-2 text-uppercase px-3">
+                                                <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
                                                     <i class='bx bxs-circle me-1'></i>Not Started
                                                 </div>
                                             </td>

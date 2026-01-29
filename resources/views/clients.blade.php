@@ -59,63 +59,40 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @foreach($customers as $customer)
                                 <tr>
-                                    <td>ABC Corp</td>
-                                    <td>contact@abc.com</td>
-                                    <td>Technology</td>
-                                    <td>www.abc.com</td>
+                                    <td>{{ $customer->client_name }}</td>
+                                    <td>{{ $customer->email }}</td>
+                                    <td>{{ $customer->industry }}</td>
+                                    <td>{{ $customer->website }}</td>
                                     <td>
-                                        <div
-                                            class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Active
+                                        @if($customer->status == 'Active')
+                                        <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                            <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
                                         </div>
+                                        @elseif($customer->status == 'Inactive')
+                                        <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                            <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
+                                        </div>
+                                        @else
+                                        <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
+                                            <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
+                                        </div>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="d-flex order-actions">
-                                            <a href="{{ route('clients-details') }}" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                            <a href="{{ route('clients-details', $customer->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                            {{-- <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a> --}}
+                                            <a href="#" class="ms-3" onclick="if(confirm('Are you sure you want to delete this client?')) { document.getElementById('delete-form-{{$customer->id}}').submit(); }"><i class='bx bxs-trash'></i></a>
+                                            <form id="delete-form-{{$customer->id}}" action="{{ route('clients.delete', $customer->id) }}" method="POST" style="display: none;">
+                                                @csrf
+                                                @method('DELETE')
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>XYZ Ltd</td>
-                                    <td>info@xyz.com</td>
-                                    <td>Finance</td>
-                                    <td>www.xyz.com</td>
-                                    <td>
-                                        <div
-                                            class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Active
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Tech Solutions Inc</td>
-                                    <td>support@techsolutions.com</td>
-                                    <td>IT Services</td>
-                                    <td>www.techsolutions.com</td>
-                                    <td>
-                                        <div
-                                            class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Inactive
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

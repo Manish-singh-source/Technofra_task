@@ -3,6 +3,7 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
+use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
@@ -38,7 +39,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/client', [ClientController::class, 'client'])->name('client');
     Route::post('/client/toggle-status',  [ClientController::class, 'toggleStatus'])->name('client.toggleStatus');
     Route::get('/add-client', [ClientController::class, 'addclient'])->name('add-client');
-    Route::post('/store-client', [ClientController::class, 'storeclient'])->name('store-client');
+    Route::post('/store-client', [CustomerController::class, 'storeclient'])->name('store-client');
     Route::get('/edit-client/{id}', [ClientController::class, 'editclient'])->name('client.edit');
     Route::put('/update-client/{id}', [ClientController::class, 'updateclient'])->name('client.update');
     Route::delete('/client/delete/{id}', [ClientController::class, 'deleteclient'])->name('client.delete');
@@ -189,16 +190,14 @@ Route::get('/client-issue', function () {
 Route::get('/client-issue-details', function () {
     return view('client-issue-details');
 })->name('client-issue-details');
-Route::get('/clients', function () {
-    return view('clients');
-})->name('clients');
+Route::get('/clients', [CustomerController::class, 'index'])->name('clients');
+Route::delete('/clients/{id}', [CustomerController::class, 'delete'])->name('clients.delete');
 //add clients
 Route::get('/add-clients', function () {
     return view('add-clients');
 })->name('add-clients');
-Route::get('/clients-details', function () {
-    return view('clients-details');
-})->name('clients-details');
+Route::get('/clients-details/{id}', [CustomerController::class, 'show'])->name('clients-details');
+Route::put('/clients-details/{id}', [CustomerController::class, 'update'])->name('clients.update');
 Route::get('/leads', function () {
     return view('leads');
 })->name('leads');

@@ -28,15 +28,82 @@
                 </div>
             </div>
             <!--end breadcrumb-->
-
+            
+            <!-- Task Summary Cards -->
+            <div class="row mb-3">
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-primary">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <p class="mb-0 text-secondary">Running Tasks</p>
+                                    <h4 class="my-1 text-primary">{{ $runningTasks ?? 0 }}</h4>
+                                    <p class="mb-0 font-13">Currently in progress</p>
+                                </div>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
+                                    <i class='bx bx-play'></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-success">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <p class="mb-0 text-secondary">Completed Tasks</p>
+                                    <h4 class="my-1 text-success">{{ $completedTasks ?? 0 }}</h4>
+                                    <p class="mb-0 font-13">Finished successfully</p>
+                                </div>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
+                                    <i class='bx bx-check'></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-warning">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <p class="mb-0 text-secondary">Late Tasks</p>
+                                    <h4 class="my-1 text-warning">{{ $lateTasks ?? 0 }}</h4>
+                                    <p class="mb-0 font-13">Overdue but not delayed</p>
+                                </div>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
+                                    <i class='bx bx-time-five'></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card radius-10 border-start border-0 border-4 border-danger">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <p class="mb-0 text-secondary">Delayed Tasks</p>
+                                    <h4 class="my-1 text-danger">{{ $delayedTasks ?? 0 }}</h4>
+                                    <p class="mb-0 font-13">Significantly behind</p>
+                                </div>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-bloody text-white ms-auto">
+                                    <i class='bx bx-error'></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--end row-->
+            
             <div class="card">
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
                         <div class="ms-auto d-flex gap-2">
                             <div class="btn-group">
-                                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bx bx-upload"></i> Bulk Upload
-                                </button>
+                               
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
                                         <i class="bx bx-upload"></i> Upload Excel File

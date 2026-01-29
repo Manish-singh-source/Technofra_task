@@ -36,31 +36,6 @@ class ClientController extends Controller
         return view('add-client');
     }
 
-    public function storeclient(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'cname' => 'required|min:3',
-            'coname' => 'required|min:3',
-            'email' => 'required|email|unique:clients,email',
-            'phone' => 'required|min:10',
-
-        ]);
-
-        if ($validator->fails()) {
-            return back()->withErrors($validator)->withInput();
-        }
-
-        $client = new Client();
-        $client->cname = $request->cname;
-        $client->coname = $request->coname;
-        $client->email = $request->email;
-        $client->phone = $request->phone;
-        $client->address = $request->address;
-        $client->save();
-
-        return redirect()->route('client')->with('success', 'Client added successfully.');
-    }
-
     public function deleteclient($id)
 {
     $client = client::findOrFail($id);
