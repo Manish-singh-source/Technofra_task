@@ -37,13 +37,29 @@
 
             <!-- Project Status Cards -->
             <div class="row mb-3">
-                <div class="col-lg-3">
+                <div class="col-lg-2">
+                    <div class="card radius-10 border-start border-0 border-4 border-info">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <p class="mb-0 text-secondary">All</p>
+                                    <h4 class="my-1 text-info">{{ $allProjects ?? 0 }}</h4>
+                                    <p class="mb-0 font-13">Total projects</p>
+                                </div>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-info text-white ms-auto">
+                                    <i class='bx bx-list-ul'></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
                     <div class="card radius-10 border-start border-0 border-4 border-secondary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Planning</p>
-                                    <h4 class="my-1 text-secondary">{{ $planningProjects ?? 5 }}</h4>
+                                    <h4 class="my-1 text-secondary">{{ $planningProjects ?? 0 }}</h4>
                                     <p class="mb-0 font-13">Not yet started</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
@@ -53,13 +69,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-2">
                     <div class="card radius-10 border-start border-0 border-4 border-primary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">In Progress</p>
-                                    <h4 class="my-1 text-primary">{{ $inProgressProjects ?? 3 }}</h4>
+                                    <h4 class="my-1 text-primary">{{ $inProgressProjects ?? 0 }}</h4>
                                     <p class="mb-0 font-13">Currently active</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
@@ -69,13 +85,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-2">
                     <div class="card radius-10 border-start border-0 border-4 border-warning">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">On Hold</p>
-                                    <h4 class="my-1 text-warning">{{ $onHoldProjects ?? 2 }}</h4>
+                                    <h4 class="my-1 text-warning">{{ $onHoldProjects ?? 0 }}</h4>
                                     <p class="mb-0 font-13">Temporarily paused</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
@@ -85,17 +101,33 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-3">
+                <div class="col-lg-2">
                     <div class="card radius-10 border-start border-0 border-4 border-success">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Completed</p>
-                                    <h4 class="my-1 text-success">{{ $completedProjects ?? 9 }}</h4>
+                                    <h4 class="my-1 text-success">{{ $completedProjects ?? 0 }}</h4>
                                     <p class="mb-0 font-13">Finished successfully</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
                                     <i class='bx bx-check'></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-2">
+                    <div class="card radius-10 border-start border-0 border-4 border-danger">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center">
+                                <div>
+                                    <p class="mb-0 text-secondary">Cancelled</p>
+                                    <h4 class="my-1 text-danger">{{ $cancelledProjects ?? 0 }}</h4>
+                                    <p class="mb-0 font-13">Cancelled projects</p>
+                                </div>
+                                <div class="widgets-icons-2 rounded-circle bg-gradient-danger text-white ms-auto">
+                                    <i class='bx bx-x'></i>
                                 </div>
                             </div>
                         </div>
@@ -109,7 +141,10 @@
                 <div class="card-body">
                     <ul class="nav nav-tabs" id="projectTabs" role="tablist">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active" id="not-started-tab" data-bs-toggle="tab" data-bs-target="#not-started" type="button" role="tab" aria-controls="not-started" aria-selected="true">Not Started</button>
+                            <button class="nav-link active" id="all-tab" data-bs-toggle="tab" data-bs-target="#all" type="button" role="tab" aria-controls="all" aria-selected="true">All</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="not-started-tab" data-bs-toggle="tab" data-bs-target="#not-started" type="button" role="tab" aria-controls="not-started" aria-selected="false">Not Started</button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="in-progress-tab" data-bs-toggle="tab" data-bs-target="#in-progress" type="button" role="tab" aria-controls="in-progress" aria-selected="false">In Progress</button>
@@ -125,8 +160,8 @@
                         </li>
                     </ul>
                     <div class="tab-content mt-3" id="projectTabsContent">
-                        <!-- Not Started Tab -->
-                        <div class="tab-pane fade show active" id="not-started" role="tabpanel" aria-labelledby="not-started-tab">
+                        <!-- All Tab -->
+                        <div class="tab-pane fade show active" id="all" role="tabpanel" aria-labelledby="all-tab">
                             <div class="d-lg-flex align-items-center mb-4 gap-3">
                                 <div class="position-relative">
                                     <input type="text" class="form-control ps-5 radius-30" placeholder="Search Projects"> <span
@@ -151,15 +186,128 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        @forelse($projects as $project)
                                         <tr>
-                                            <td>CRM System</td>
-                                            <td>Global Enterprises</td>
-                                            <td><span class="badge bg-warning">CRM</span> <span class="badge bg-primary">System</span></td>
-                                            <td>2023-11-01</td>
-                                            <td>2024-01-01</td>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($project->tags)
+                                                    @foreach($project->tags as $tag)
+                                                        <span class="badge bg-primary">{{ $tag }}</span>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
+                                                    @if($project->members)
+                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
+                                                            @if(isset($staff[$memberId]))
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                            @endif
+                                                        @endforeach
+                                                        @if(count($project->members) > 2)
+                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                        @endif
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td>
+                                                @if($project->status == 'not_started')
+                                                    <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Not Started
+                                                    </div>
+                                                @elseif($project->status == 'in_progress')
+                                                    <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>In Progress
+                                                    </div>
+                                                @elseif($project->status == 'on_hold')
+                                                    <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>On Hold
+                                                    </div>
+                                                @elseif($project->status == 'completed')
+                                                    <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Finished
+                                                    </div>
+                                                @elseif($project->status == 'cancelled')
+                                                    <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Cancelled
+                                                    </div>
+                                                @else
+                                                    <div class="badge rounded-pill text-secondary bg-light-secondary p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>{{ ucfirst(str_replace('_', ' ', $project->status)) }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="d-flex order-actions">
+                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No projects found</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <!-- Not Started Tab -->
+                        <div class="tab-pane fade" id="not-started" role="tabpanel" aria-labelledby="not-started-tab">
+                            <div class="d-lg-flex align-items-center mb-4 gap-3">
+                                <div class="position-relative">
+                                    <input type="text" class="form-control ps-5 radius-30" placeholder="Search Projects"> <span
+                                        class="position-absolute top-50 product-show translate-middle-y"><i
+                                            class="bx bx-search"></i></span>
+                                </div>
+                            <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="table mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Project name</th>
+                                            <th>Customer</th>
+                                            <th>Tags</th>
+                                            <th>Start date</th>
+                                            <th>Deadline</th>
+                                            <th>Members</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($projects->where('status', 'not_started') as $project)
+                                        <tr>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($project->tags)
+                                                    @foreach($project->tags as $tag)
+                                                        <span class="badge bg-primary">{{ $tag }}</span>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    @if($project->members)
+                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
+                                                            @if(isset($staff[$memberId]))
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                            @endif
+                                                        @endforeach
+                                                        @if(count($project->members) > 2)
+                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
@@ -169,12 +317,17 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details') }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
                                                     <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
                                                 </div>
                                             </td>
                                         </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No projects found</td>
+                                        </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -201,20 +354,35 @@
                                             <th>Deadline</th>
                                             <th>Members</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        @forelse($projects->where('status', 'in_progress') as $project)
                                         <tr>
-                                            <td>Website Redesign</td>
-                                            <td>ABC Corp</td>
-                                            <td><span class="badge bg-primary">Web</span> <span class="badge bg-secondary">Design</span></td>
-                                            <td>2023-10-01</td>
-                                            <td>2023-12-01</td>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($project->tags)
+                                                    @foreach($project->tags as $tag)
+                                                        <span class="badge bg-primary">{{ $tag }}</span>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
-                                                    <span>+2</span>
+                                                    @if($project->members)
+                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
+                                                            @if(isset($staff[$memberId]))
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                            @endif
+                                                        @endforeach
+                                                        @if(count($project->members) > 2)
+                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
@@ -222,7 +390,19 @@
                                                     <i class='bx bxs-circle me-1'></i>In Progress
                                                 </div>
                                             </td>
+                                            <td>
+                                                <div class="d-flex order-actions">
+                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                </div>
+                                            </td>
                                         </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No projects found</td>
+                                        </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -249,27 +429,77 @@
                                             <th>Deadline</th>
                                             <th>Members</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        @forelse($projects->where('status', 'on_hold') as $project)
                                         <tr>
-                                            <td>Mobile App Development</td>
-                                            <td>XYZ Ltd</td>
-                                            <td><span class="badge bg-info">Mobile</span> <span class="badge bg-success">App</span></td>
-                                            <td>2023-09-15</td>
-                                            <td>2023-11-15</td>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($project->tags)
+                                                    @foreach($project->tags as $tag)
+                                                        <span class="badge bg-primary">{{ $tag }}</span>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
-                                                    <span>+1</span>
+                                                    @if($project->members)
+                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
+                                                            @if(isset($staff[$memberId]))
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                            @endif
+                                                        @endforeach
+                                                        @if(count($project->members) > 2)
+                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
-                                                    <i class='bx bxs-circle me-1'></i>On Hold
+                                                @if($project->status == 'not_started')
+                                                    <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Not Started
+                                                    </div>
+                                                @elseif($project->status == 'in_progress')
+                                                    <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>In Progress
+                                                    </div>
+                                                @elseif($project->status == 'on_hold')
+                                                    <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>On Hold
+                                                    </div>
+                                                @elseif($project->status == 'completed')
+                                                    <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Finished
+                                                    </div>
+                                                @elseif($project->status == 'cancelled')
+                                                    <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Cancelled
+                                                    </div>
+                                                @else
+                                                    <div class="badge rounded-pill text-secondary bg-light-secondary p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>{{ ucfirst(str_replace('_', ' ', $project->status)) }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="d-flex order-actions">
+                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
                                                 </div>
                                             </td>
                                         </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No projects found</td>
+                                        </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -296,20 +526,35 @@
                                             <th>Deadline</th>
                                             <th>Members</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        @forelse($projects->where('status', 'completed') as $project)
                                         <tr>
-                                            <td>E-commerce Platform</td>
-                                            <td>Tech Solutions</td>
-                                            <td><span class="badge bg-danger">E-commerce</span></td>
-                                            <td>2023-08-01</td>
-                                            <td>2023-10-01</td>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($project->tags)
+                                                    @foreach($project->tags as $tag)
+                                                        <span class="badge bg-primary">{{ $tag }}</span>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
+                                                    @if($project->members)
+                                                        @foreach(array_slice($project->members, 0, 3) as $memberId)
+                                                            @if(isset($staff[$memberId]))
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                            @endif
+                                                        @endforeach
+                                                        @if(count($project->members) > 3)
+                                                            <span>+{{ count($project->members) - 3 }}</span>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
@@ -317,7 +562,19 @@
                                                     <i class='bx bxs-circle me-1'></i>Finished
                                                 </div>
                                             </td>
+                                            <td>
+                                                <div class="d-flex order-actions">
+                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                </div>
+                                            </td>
                                         </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No projects found</td>
+                                        </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -344,27 +601,77 @@
                                             <th>Deadline</th>
                                             <th>Members</th>
                                             <th>Status</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        @forelse($projects->where('status', 'cancelled') as $project)
                                         <tr>
-                                            <td>Data Analytics Dashboard</td>
-                                            <td>Data Corp</td>
-                                            <td><span class="badge bg-info">Analytics</span> <span class="badge bg-success">Dashboard</span></td>
-                                            <td>2023-07-01</td>
-                                            <td>2023-09-01</td>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
+                                            <td>
+                                                @if($project->tags)
+                                                    @foreach($project->tags as $tag)
+                                                        <span class="badge bg-primary">{{ $tag }}</span>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex align-items-center">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
-                                                    <img src="https://placehold.co/30x30" class="rounded-circle me-1" alt="Member">
+                                                    @if($project->members)
+                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
+                                                            @if(isset($staff[$memberId]))
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                            @endif
+                                                        @endforeach
+                                                        @if(count($project->members) > 2)
+                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                        @endif
+                                                    @endif
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
-                                                    <i class='bx bxs-circle me-1'></i>Cancelled
+                                                @if($project->status == 'not_started')
+                                                    <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Not Started
+                                                    </div>
+                                                @elseif($project->status == 'in_progress')
+                                                    <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>In Progress
+                                                    </div>
+                                                @elseif($project->status == 'on_hold')
+                                                    <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>On Hold
+                                                    </div>
+                                                @elseif($project->status == 'completed')
+                                                    <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Finished
+                                                    </div>
+                                                @elseif($project->status == 'cancelled')
+                                                    <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>Cancelled
+                                                    </div>
+                                                @else
+                                                    <div class="badge rounded-pill text-secondary bg-light-secondary p-2 text-uppercase px-3">
+                                                        <i class='bx bxs-circle me-1'></i>{{ ucfirst(str_replace('_', ' ', $project->status)) }}
+                                                    </div>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <div class="d-flex order-actions">
+                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
+                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
                                                 </div>
                                             </td>
                                         </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center">No projects found</td>
+                                        </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -377,4 +684,13 @@
         </div>
     </div>
     <!--end page wrapper -->
+@endsection
+
+@section('scripts')
+<script>
+    // Initialize tooltips
+    $(document).ready(function() {
+        $('[data-bs-toggle="tooltip"]').tooltip();
+    });
+</script>
 @endsection

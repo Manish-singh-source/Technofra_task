@@ -66,7 +66,7 @@ class CustomerController extends Controller
 
     public function show($id)
     {
-        $customer = Customer::findOrFail($id);
+        $customer = Customer::with('projects.tasks')->findOrFail($id);
         return view('clients-details', compact('customer'));
     }
 

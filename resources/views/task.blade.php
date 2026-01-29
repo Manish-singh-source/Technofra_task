@@ -28,7 +28,9 @@
                 </div>
             </div>
             <!--end breadcrumb-->
-            
+            @if(session('success'))
+                <div class="alert alert-success">{{ session('success') }}</div>
+            @endif
             <!-- Task Summary Cards -->
             <div class="row mb-3">
                 <div class="col-lg-3">
@@ -129,106 +131,64 @@
                                     <th>Total Hours</th>
                                     <th>Priority</th>
                                     <th>Assignee</th>
+                                    <th>Attachments</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
+                                @forelse($tasks as $task)
                                 <tr>
-                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="1"></td>
-                                    <td>#T001</td>
+                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $task->id }}"></td>
+                                    <td>#T{{ str_pad($task->id, 3, '0', STR_PAD_LEFT) }}</td>
                                     <td>
-                                        <strong>Project:</strong> Website Redesign <br>
-                                        <strong>Task:</strong> Design Homepage
+                                        <strong>Project:</strong> {{ $task->project->project_name ?? 'N/A' }} <br>
+                                        <strong>Task:</strong> {{ $task->title }}
                                     </td>
-                                    <td>2024-07-15</td>
-                                    <td>25</td>
-                                    <td><span class="badge bg-danger">High</span></td>
+                                    <td>{{ $task->created_at->format('Y-m-d') }}</td>
+                                    <td>N/A</td>
                                     <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="https://placehold.co/30x30" class="rounded-circle me-2" alt="Assignee">
-                                            John Doe
-                                        </div>
+                                        @if($task->priority == 'high')
+                                            <span class="badge bg-danger">High</span>
+                                        @elseif($task->priority == 'medium')
+                                            <span class="badge bg-warning text-dark">Medium</span>
+                                        @else
+                                            <span class="badge bg-success">Low</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($task->assignees)
+                                            @foreach($task->assignees as $assigneeId)
+                                                @if(isset($staff[$assigneeId]))
+                                                    <div class="d-flex align-items-center mb-1">
+                                                        <img src="{{ $staff[$assigneeId]->profile_image ? asset('uploads/staff/' . $staff[$assigneeId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-2" alt="Assignee" width="30" height="30">
+                                                        {{ $staff[$assigneeId]->first_name }} {{ $staff[$assigneeId]->last_name }}
+                                                    </div>
+                                                @endif
+                                            @endforeach
+                                        @else
+                                            <span>No assignees</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($task->attachments->count() > 0)
+                                            <span class="badge bg-info">{{ $task->attachments->count() }} file(s)</span>
+                                        @else
+                                            <span class="text-muted">No attachments</span>
+                                        @endif
                                     </td>
                                     <td>
                                         <div class="d-flex order-actions">
-                                            <a href="{{ route('task-details') }}"><i class='bx bxs-show'></i></a>
+                                            <a href="{{ route('task-details', $task->id) }}"><i class='bx bxs-show'></i></a>
                                             <a href="javascript:;" class="ms-2"><i class='bx bxs-edit'></i></a>
                                             <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
                                         </div>
                                     </td>
                                 </tr>
+                                @empty
                                 <tr>
-                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="2"></td>
-                                    <td>#T002</td>
-                                    <td>
-                                        <strong>Project:</strong> Mobile App Development <br>
-                                        <strong>Task:</strong> Develop Login Screen
-                                    </td>
-                                    <td>2024-07-16</td>
-                                    <td>18</td>
-                                    <td><span class="badge bg-warning text-dark">Medium</span></td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="https://placehold.co/30x30" class="rounded-circle me-2" alt="Assignee">
-                                            Jane Smith
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="{{ route('task-details', 2) }}"><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
+                                    <td colspan="9" class="text-center">No tasks found.</td>
                                 </tr>
-                                <tr>
-                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="3"></td>
-                                    <td>#T003</td>
-                                    <td>
-                                        <strong>Project:</strong> CRM System <br>
-                                        <strong>Task:</strong> API Integration
-                                    </td>
-                                    <td>2024-07-17</td>
-                                    <td>32</td>
-                                    <td><span class="badge bg-danger">High</span></td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="https://placehold.co/30x30" class="rounded-circle me-2" alt="Assignee">
-                                            Peter Jones
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="{{ route('task-details', 3) }}"><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="4"></td>
-                                    <td>#T004</td>
-                                    <td>
-                                        <strong>Project:</strong> Website Redesign <br>
-                                        <strong>Task:</strong> Create About Us Page
-                                    </td>
-                                    <td>2024-07-18</td>
-                                    <td>12</td>
-                                    <td><span class="badge bg-success">Low</span></td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <img src="https://placehold.co/30x30" class="rounded-circle me-2" alt="Assignee">
-                                            Mary Jane
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="{{ route('task-details', 4) }}"><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>

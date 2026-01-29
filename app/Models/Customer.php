@@ -29,4 +29,9 @@ class Customer extends Model
         'default_due_days',
         'billing_type',
     ];
+
+    public function projects()
+    {
+        return $this->hasMany(Project::class);
+    }
 }

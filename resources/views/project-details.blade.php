@@ -1,4 +1,4 @@
-@extends('/layout/master')
+@extends('layout.master')
 @section('content')
 
 <!--start page wrapper -->
@@ -9,17 +9,17 @@
 			<div class="ps-3">
 				<nav aria-label="breadcrumb">
 					<ol class="breadcrumb mb-0 p-0">
-						<li class="breadcrumb-item"><a href="#"><i class="bx bx-home-alt"></i></a></li>
-						<li class="breadcrumb-item"><a href="#">Projects</a></li>
-						<li class="breadcrumb-item active" aria-current="page">Office Management</li>
+						<li class="breadcrumb-item"><a href="{{ route('project') }}"><i class="bx bx-home-alt"></i></a></li>
+						<li class="breadcrumb-item"><a href="{{ route('project') }}">Projects</a></li>
+						<li class="breadcrumb-item active" aria-current="page">{{ $project->project_name }}</li>
 					</ol>
 				</nav>
 			</div>
 			<div class="ms-auto">
-				<a href="#" class="btn btn-outline-secondary me-2"><i class="bx bx-arrow-back"></i> Back</a>
+				<a href="{{ route('project') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-arrow-back"></i> Back</a>
 				<a href="{{ route('client-issue') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-plus"></i> Raise Issue</a>
 				<div class="btn-group">
-					<button type="button" class="btn btn-primary">Edit Project</button>
+					<a href="{{ route('edit-project', $project->id) }}" class="btn btn-primary">Edit Project</a>
 					<button type="button" class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span></button>
 					<div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
 						<a class="dropdown-item" href="javascript:;">Archive</a>
@@ -38,26 +38,59 @@
 					<div class="card-body">
 						<div class="d-flex align-items-center justify-content-between">
 							<div>
-								<h4 class="card-title mb-1">Office Management</h4>
-								<span class="badge bg-danger">High Urgency</span>
-								<p class="text-muted mt-2 font-13">Project ID: PROJ-2023-001 | Status: In Progress</p>
+								<h4 class="card-title mb-1">{{ $project->project_name }}</h4>
+								<span class="badge @if($project->priority == 'high') bg-danger @elseif($project->priority == 'medium') bg-warning @else bg-success @endif">{{ ucfirst($project->priority) }} Priority</span>
+								<p class="text-muted mt-2 font-13">Project ID: {{ $project->id }} | Status:
+									@if($project->status == 'not_started')
+										<span class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+											<i class='bx bxs-circle me-1'></i>Not Started
+										</span>
+									@elseif($project->status == 'in_progress')
+										<span class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+											<i class='bx bxs-circle me-1'></i>In Progress
+										</span>
+									@elseif($project->status == 'on_hold')
+										<span class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+											<i class='bx bxs-circle me-1'></i>On Hold
+										</span>
+									@elseif($project->status == 'completed')
+										<span class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+											<i class='bx bxs-circle me-1'></i>Finished
+										</span>
+									@elseif($project->status == 'cancelled')
+										<span class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
+											<i class='bx bxs-circle me-1'></i>Cancelled
+										</span>
+									@else
+										<span class="badge rounded-pill text-secondary bg-light-secondary p-2 text-uppercase px-3">
+											<i class='bx bxs-circle me-1'></i>{{ ucfirst(str_replace('_', ' ', $project->status)) }}
+										</span>
+									@endif
+								</p>
 							</div>
 							<div class="d-flex align-items-center">
 								<div class="me-3">
 									<small class="text-muted">Assignees</small><br>
 									<div class="avatar-group">
-										<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-1" width="32" height="32">
-										<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-1" width="32" height="32">
-										<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle" width="32" height="32">
+										@if($project->members)
+											@foreach(array_slice($project->members, 0, 3) as $memberId)
+												@if(isset($staff[$memberId]))
+													<img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/32x32' }}" class="rounded-circle me-1" alt="Member" width="32" height="32" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+												@endif
+											@endforeach
+											@if(count($project->members) > 3)
+												<span>+{{ count($project->members) - 3 }}</span>
+											@endif
+										@endif
 									</div>
 								</div>
 								<div class="me-3">
 									<small class="text-muted">Start Date</small><br>
-									<span>Jan 1, 2023</span>
+									<span>{{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}</span>
 								</div>
 								<div>
 									<small class="text-muted">End Date</small><br>
-									<span>Dec 31, 2023</span>
+									<span>{{ $project->deadline ? $project->deadline->format('M d, Y') : 'N/A' }}</span>
 								</div>
 							</div>
 						</div>
@@ -74,26 +107,27 @@
 						<h5 class="mb-0">Project Description</h5>
 					</div>
 					<div class="card-body">
-						<p class="mb-3">This comprehensive office management system aims to streamline administrative processes, improve productivity, and enhance communication within the organization. The project includes development of a web-based platform for employee management, task tracking, document management, and reporting functionalities.</p>
+						<p class="mb-3">{{ strip_tags($project->description) ?? 'No description available.' }}</p>
 						<div class="row">
 							<div class="col-md-6">
-								<h6>Key Objectives:</h6>
-								<ul class="list-unstyled">
-									<li><i class="bx bx-check text-success me-2"></i>Automate routine administrative tasks</li>
-									<li><i class="bx bx-check text-success me-2"></i>Centralize employee information and records</li>
-									<li><i class="bx bx-check text-success me-2"></i>Implement real-time task tracking and reporting</li>
-									<li><i class="bx bx-check text-success me-2"></i>Enhance inter-departmental communication</li>
-								</ul>
+								@if($project->tags)
+									<h6>Tags:</h6>
+									<div class="d-flex flex-wrap gap-2 mb-3">
+										@foreach($project->tags as $tag)
+											<span class="badge bg-primary">{{ $tag }}</span>
+										@endforeach
+									</div>
+								@endif
 							</div>
 							<div class="col-md-6">
-								<h6>Technologies:</h6>
-								<div class="d-flex flex-wrap gap-2">
-									<span class="badge bg-primary">Laravel</span>
-									<span class="badge bg-info">Vue.js</span>
-									<span class="badge bg-success">MySQL</span>
-									<span class="badge bg-warning">Bootstrap</span>
-									<span class="badge bg-secondary">Docker</span>
-								</div>
+								@if($project->technologies)
+									<h6>Technologies:</h6>
+									<div class="d-flex flex-wrap gap-2">
+										@foreach($project->technologies as $tech)
+											<span class="badge bg-info">{{ $tech }}</span>
+										@endforeach
+									</div>
+								@endif
 							</div>
 						</div>
 					</div>
@@ -112,26 +146,26 @@
 						<div class="d-flex align-items-center mb-3">
 							<img src="https://placehold.co/60x60" alt="Client Logo" class="rounded-circle me-3">
 							<div>
-								<h6 class="mb-0">Global Enterprises Inc.</h6>
-								<small class="text-muted font-13">Technology Solutions Provider</small>
+								<h6 class="mb-0">{{ $project->customer->client_name ?? 'N/A' }}</h6>
+								<small class="text-muted font-13">{{ $project->customer->company ?? 'N/A' }}</small>
 							</div>
 						</div>
 						<div class="row">
 							<div class="col-6">
 								<small class="text-muted">Contact Person</small>
-								<p class="mb-1 font-13">Sarah Johnson</p>
+								<p class="mb-1 font-13">{{ $project->customer->contact_person ?? 'N/A' }}</p>
 							</div>
 							<div class="col-6">
 								<small class="text-muted">Email</small>
-								<p class="mb-1 font-13">sarah.johnson@globalent.com</p>
+								<p class="mb-1 font-13">{{ $project->customer->email ?? 'N/A' }}</p>
 							</div>
 							<div class="col-6">
 								<small class="text-muted">Phone</small>
-								<p class="mb-1 font-13">+1 (555) 123-4567</p>
+								<p class="mb-1 font-13">{{ $project->customer->phone ?? 'N/A' }}</p>
 							</div>
 							<div class="col-6">
 								<small class="text-muted">Address</small>
-								<p class="mb-1 font-13">123 Business Ave, Suite 100<br>Tech City, TC 12345</p>
+								<p class="mb-1 font-13">{{ $project->customer->address ?? 'N/A' }}</p>
 							</div>
 						</div>
 					</div>
@@ -405,7 +439,12 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Tasks</h5>
-							<input type="text" class="form-control w-25 radius-30" placeholder="Search tasks..." id="searchTasks">
+							<div>
+								<button class="btn btn-primary me-2" type="button" data-bs-toggle="collapse" data-bs-target="#addTaskForm" aria-expanded="false" aria-controls="addTaskForm">
+									<i class="bx bx-plus"></i> Add Task
+								</button>
+								<input type="text" class="form-control w-25 radius-30" placeholder="Search tasks..." id="searchTasks">
+							</div>
 						</div>
 					</div>
 					<div class="card-body">
@@ -423,41 +462,41 @@
 								</thead>
 								<tbody>
 									<tr>
-										<td>T001</td>
-										<td>Office Management - Setup Database</td>
-										<td>2023-01-15</td>
-										<td>20h</td>
+										<td>#T001</td>
+										<td>{{ $project->project_name }} - Design Homepage</td>
+										<td>2024-07-15</td>
+										<td>25</td>
 										<td><span class="badge bg-danger">High</span></td>
 										<td>
 											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
-												<span>John Doe</span>
+												<img src="https://placehold.co/32x32" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
+												John Doe
 											</div>
 										</td>
 									</tr>
 									<tr>
-										<td>T002</td>
-										<td>Office Management - Design UI</td>
-										<td>2023-01-20</td>
-										<td>15h</td>
-										<td><span class="badge bg-warning">Medium</span></td>
+										<td>#T002</td>
+										<td>{{ $project->project_name }} - Develop Login Screen</td>
+										<td>2024-07-16</td>
+										<td>18</td>
+										<td><span class="badge bg-warning text-dark">Medium</span></td>
 										<td>
 											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
-												<span>Jane Smith</span>
+												<img src="https://placehold.co/32x32" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
+												Jane Smith
 											</div>
 										</td>
 									</tr>
 									<tr>
-										<td>T003</td>
-										<td>Office Management - Implement Features</td>
-										<td>2023-02-01</td>
-										<td>30h</td>
-										<td><span class="badge bg-success">Low</span></td>
+										<td>#T003</td>
+										<td>{{ $project->project_name }} - API Integration</td>
+										<td>2024-07-17</td>
+										<td>32</td>
+										<td><span class="badge bg-danger">High</span></td>
 										<td>
 											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-2" width="32" height="32">
-												<span>Bob Johnson</span>
+												<img src="https://placehold.co/32x32" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
+												Peter Jones
 											</div>
 										</td>
 									</tr>
@@ -1056,6 +1095,8 @@
 </style>
 
 @push('scripts')
+<!-- CKEditor CDN -->
+<script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
 <script>
 $(function() {
     "use strict";
@@ -1157,6 +1198,30 @@ $(function() {
             }
         });
     }
+
+    // Initialize Select2 for followers, assignees, and tags dropdowns
+    $('#followers').select2({
+        placeholder: "Select followers",
+        allowClear: true
+    });
+
+    $('#assignees').select2({
+        placeholder: "Select assignees",
+        allowClear: true
+    });
+
+    $('#tags').select2({
+        placeholder: "Select or add tags",
+        tags: true,
+        allowClear: true
+    });
+
+    // Initialize CKEditor
+    ClassicEditor
+        .create(document.querySelector('.ckeditor'))
+        .catch(error => {
+            console.error('Error initializing CKEditor:', error);
+        });
 });
 </script>
 @endpush

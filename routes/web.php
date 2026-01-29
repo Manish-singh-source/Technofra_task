@@ -7,8 +7,10 @@ use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\TaskController;
 use App\Http\Controllers\VendorServiceController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -160,30 +162,18 @@ Route::get('/roles', function () {
 Route::get('/add-role', function () {
     return view('add-role');
 })->name('add-role');
-Route::get('/project', function () {
-    return view('project');
-})->name('project');
-Route::get('/add-project', function () {
-    return view('add-project');
-})->name('add-project');
-Route::post('/add-project', function () {
-    return 'Project created successfully!';
-})->name('store-project');
-Route::get('/project-details', function () {
-    return view('project-details');
-})->name('project-details');
-Route::get('/task', function () {
-    return view('task');
-})->name('task');
+Route::get('/project', [ProjectController::class, 'index'])->name('project');
+Route::get('/edit-project/{id}', [ProjectController::class, 'edit'])->name('edit-project');
+Route::put('/edit-project/{id}', [ProjectController::class, 'update'])->name('update-project');
+Route::get('/add-project', [ProjectController::class, 'create'])->name('add-project');
+Route::post('/add-project', [ProjectController::class, 'store'])->name('store-project');
+Route::get('/project-details/{id}', [ProjectController::class, 'show'])->name('project-details');
+Route::get('/task', [TaskController::class, 'index'])->name('task');
 Route::get('/add-task', function () {
     return view('add-task');
 })->name('add-task');
-Route::get('/task-details/{id}', function () {
-    return view('task-details');
-})->name('task-details');
-Route::get('/task-details', function () {
-    return view('task-details');
-})->name('task-details');
+Route::post('/add-task', [TaskController::class, 'store'])->name('add-task.store');
+Route::get('/task-details/{id}', [TaskController::class, 'show'])->name('task-details');
 Route::get('/client-issue', function () {
     return view('client-issue');
 })->name('client-issue');

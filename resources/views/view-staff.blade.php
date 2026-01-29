@@ -299,7 +299,7 @@
 					</div>
 				</div>
 
-				<div class="container">
+				<div class="">
 					<div class="main-body">
 						<div class="row">
 							<div class="col-lg-4">

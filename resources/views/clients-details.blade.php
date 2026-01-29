@@ -205,7 +205,7 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Projects</p>
-                                    <h4 class="my-1 text-primary">5</h4>
+                                    <h4 class="my-1 text-primary">{{ $customer->projects->count() }}</h4>
                                     <p class="mb-0 font-13">+2 from last month</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto"><i class='bx bx-briefcase'></i></div>
@@ -219,7 +219,15 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Active Tasks</p>
-                                    <h4 class="my-1 text-success">12</h4>
+                                    <h4 class="my-1 text-success">
+                                        @php
+                                            $activeTasksCount = 0;
+                                            foreach($customer->projects as $project) {
+                                                $activeTasksCount += $project->tasks->where('status', '!=', 'Completed')->count();
+                                            }
+                                        @endphp
+                                        {{ $activeTasksCount }}
+                                    </h4>
                                     <p class="mb-0 font-13">+3 from last week</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto"><i class='bx bx-task'></i></div>
@@ -265,43 +273,57 @@
                             <h5 class="card-title">Projects</h5>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title">Office Management System</h6>
-                                            <p class="card-text">Complete office automation project.</p>
-                                            <span class="badge bg-success">Completed</span>
-                                            <div class="mt-2">
-                                                <small class="text-muted">Due: Dec 31, 2023</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title">E-commerce Platform</h6>
-                                            <p class="card-text">Online shopping website development.</p>
-                                            <span class="badge bg-warning">In Progress</span>
-                                            <div class="mt-2">
-                                                <small class="text-muted">Due: Mar 15, 2024</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4 mb-3">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title">Mobile App</h6>
-                                            <p class="card-text">iOS and Android app development.</p>
-                                            <span class="badge bg-info">Planning</span>
-                                            <div class="mt-2">
-                                                <small class="text-muted">Due: Jun 30, 2024</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Project Name</th>
+                                            <th>Status</th>
+                                            <th>Start Date</th>
+                                            <th>Deadline</th>
+                                            <th>Priority</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @forelse($customer->projects as $project)
+                                        <tr>
+                                            <td>{{ $project->project_name }}</td>
+                                            <td>
+                                                @if($project->status == 'Completed')
+                                                    <span class="badge bg-success">Completed</span>
+                                                @elseif($project->status == 'In Progress')
+                                                    <span class="badge bg-warning">In Progress</span>
+                                                @elseif($project->status == 'Planning')
+                                                    <span class="badge bg-info">Planning</span>
+                                                @else
+                                                    <span class="badge bg-secondary">{{ $project->status }}</span>
+                                                @endif
+                                            </td>
+                                            <td>{{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}</td>
+                                            <td>{{ $project->deadline ? $project->deadline->format('M d, Y') : 'N/A' }}</td>
+                                            <td>
+                                                @if($project->priority == 'High')
+                                                    <span class="badge bg-danger">High</span>
+                                                @elseif($project->priority == 'Medium')
+                                                    <span class="badge bg-warning">Medium</span>
+                                                @elseif($project->priority == 'Low')
+                                                    <span class="badge bg-success">Low</span>
+                                                @else
+                                                    <span class="badge bg-secondary">{{ $project->priority ?? 'N/A' }}</span>
+                                                @endif
+                                            </td>
+                                            <td>
+                                                <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                                            </td>
+                                        </tr>
+                                        @empty
+                                        <tr>
+                                            <td colspan="6" class="text-center">No projects found for this client.</td>
+                                        </tr>
+                                        @endforelse
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
@@ -328,27 +350,35 @@
                                         </tr>
                                     </thead>
                                     <tbody>
+                                        @php
+                                            $allTasks = collect();
+                                            foreach($customer->projects as $project) {
+                                                $allTasks = $allTasks->merge($project->tasks);
+                                            }
+                                        @endphp
+                                        @forelse($allTasks as $task)
                                         <tr>
-                                            <td>Setup Database</td>
-                                            <td>Office Management</td>
-                                            <td>John Doe</td>
-                                            <td><span class="badge bg-success">Completed</span></td>
-                                            <td>2023-10-15</td>
+                                            <td>{{ $task->title }}</td>
+                                            <td>{{ $task->project->project_name }}</td>
+                                            <td>{{ $task->assignees ? implode(', ', $task->assignees) : 'Unassigned' }}</td>
+                                            <td>
+                                                @if($task->status == 'Completed')
+                                                    <span class="badge bg-success">Completed</span>
+                                                @elseif($task->status == 'In Progress')
+                                                    <span class="badge bg-warning">In Progress</span>
+                                                @elseif($task->status == 'Pending')
+                                                    <span class="badge bg-info">Pending</span>
+                                                @else
+                                                    <span class="badge bg-secondary">{{ $task->status }}</span>
+                                                @endif
+                                            </td>
+                                            <td>{{ $task->deadline ? $task->deadline->format('M d, Y') : 'N/A' }}</td>
                                         </tr>
+                                        @empty
                                         <tr>
-                                            <td>Design UI</td>
-                                            <td>E-commerce Platform</td>
-                                            <td>Jane Smith</td>
-                                            <td><span class="badge bg-warning">In Progress</span></td>
-                                            <td>2023-11-20</td>
+                                            <td colspan="5" class="text-center">No tasks found for this client.</td>
                                         </tr>
-                                        <tr>
-                                            <td>Implement Features</td>
-                                            <td>Mobile App</td>
-                                            <td>Bob Johnson</td>
-                                            <td><span class="badge bg-info">Pending</span></td>
-                                            <td>2023-12-01</td>
-                                        </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>

@@ -8,8 +8,20 @@
         <div class="card">
             <div class="card-body p-4">
                 <h5 class="mb-4">Add Task</h5>
-                <form action="" method="POST" class="row g-3" enctype="multipart/form-data">
+                <form action="{{ route('add-task.store') }}" method="POST" class="row g-3" enctype="multipart/form-data">
                     @csrf
+                    @if(session('success'))
+                        <div class="alert alert-success">{{ session('success') }}</div>
+                    @endif
+                    @if($errors->any())
+                        <div class="alert alert-danger">
+                            <ul class="mb-0">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     <div class="col-md-12">
                         <label for="task_title" class="form-label">Task Title</label>
                         <input type="text" name="task_title" class="form-control" id="task_title" placeholder="Task Title">
@@ -19,9 +31,9 @@
                         <label for="project_related" class="form-label">Project Related To</label>
                         <select id="project_related" name="project_related" class="form-select">
                             <option selected disabled value="">Choose...</option>
-                            <option>Project 1</option>
-                            <option>Project 2</option>
-                            <option>Project 3</option>
+                            @foreach(\App\Models\Project::all() as $project)
+                                <option value="{{ $project->id }}">{{ $project->project_name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
@@ -48,24 +60,28 @@
                     <div class="col-md-6">
                         <label for="assignees" class="form-label">Assignees</label>
                         <select id="assignees" name="assignees[]" class="form-select select2" multiple>
-                            <option>User 1</option>
-                            <option>User 2</option>
-                            <option>User 3</option>
+                            @foreach(\App\Models\Staff::all() as $staff)
+                                <option value="{{ $staff->id }}">{{ $staff->first_name }} {{ $staff->last_name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
                     <div class="col-md-6">
                         <label for="followers" class="form-label">Followers</label>
                         <select id="followers" name="followers[]" class="form-select select2" multiple>
-                            <option>User A</option>
-                            <option>User B</option>
-                            <option>User C</option>
+                            @foreach(\App\Models\Staff::all() as $staff)
+                                <option value="{{ $staff->id }}">{{ $staff->first_name }} {{ $staff->last_name }}</option>
+                            @endforeach
                         </select>
                     </div>
 
                      <div class="col-md-6">
                         <label for="tags" class="form-label">Tags</label>
-                        <input type="text" name="tags" class="form-control" id="tags" placeholder="Tags (comma separated)">
+                        <select id="tags" name="tags[]" class="form-select" multiple data-placeholder="Select or add tags">
+                            <option value="web-design">web-design</option>
+                            <option value="development">development</option>
+                            <option value="seo">seo</option>
+                        </select>
                     </div>
 
                     <div class="col-md-6">
@@ -96,6 +112,12 @@
     $(document).ready(function() {
         $('.select2').select2({
             placeholder: "Choose...",
+            allowClear: true
+        });
+
+        $('#tags').select2({
+            placeholder: "Select or add tags",
+            tags: true,
             allowClear: true
         });
     });
