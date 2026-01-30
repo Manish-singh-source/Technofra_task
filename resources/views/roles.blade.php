@@ -58,10 +58,11 @@
                                 </tr>
                             </thead>
                             <tbody>
+                                @foreach($roles as $role)
                                 <tr>
-                                    <td>Admin</td>
-                                    <td>Full access to all features</td>
-                                    <td>Read, Write, Delete</td>
+                                    <td>{{ $role->name }}</td>
+                                    <td>{{ $role->name }} role with permissions</td>
+                                    <td>{{ $role->permissions->pluck('name')->implode(', ') }}</td>
                                     <td>
                                         <div
                                             class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
@@ -76,42 +77,7 @@
                                         </div>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td>Manager</td>
-                                    <td>Manage team and projects</td>
-                                    <td>Read, Write</td>
-                                    <td>
-                                        <div
-                                            class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Active
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td>Staff</td>
-                                    <td>Basic access to assigned tasks</td>
-                                    <td>Read</td>
-                                    <td>
-                                        <div
-                                            class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>Inactive
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
-                                        </div>
-                                    </td>
-                                </tr>
+                                @endforeach
                             </tbody>
                         </table>
                     </div>

@@ -8,6 +8,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TaskController;
@@ -151,17 +152,12 @@ Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->n
 Route::get('/staff', [StaffController::class, 'index'])->name('staff');
 Route::delete('/staff/delete/{id}', [StaffController::class, 'destroy'])->name('staff.destroy');
 
-Route::get('/add-staff', function () {
-    return view('add-staff');
-})->name('add-staff');
+Route::get('/add-staff', [StaffController::class, 'create'])->name('add-staff');
 Route::get('/view-staff/{id}', [StaffController::class, 'show'])->name('view-staff');
 
-Route::get('/roles', function () {
-    return view('roles');
-})->name('roles');
-Route::get('/add-role', function () {
-    return view('add-role');
-})->name('add-role');
+Route::get('/roles', [RoleController::class, 'index'])->name('roles');
+Route::get('/add-role', [RoleController::class, 'create'])->name('add-role');
+Route::post('/add-role', [RoleController::class, 'store'])->name('store-role');
 Route::get('/project', [ProjectController::class, 'index'])->name('project');
 Route::get('/edit-project/{id}', [ProjectController::class, 'edit'])->name('edit-project');
 Route::put('/edit-project/{id}', [ProjectController::class, 'update'])->name('update-project');

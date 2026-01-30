@@ -175,74 +175,83 @@
      </ul>
     </li> -->
         <li class="menu-label">Master</li>
+        @can('view_staff')
+        <li>
+            <a href="javascript:;" class="has-arrow">
+                <div class="parent-icon"><i class="bx bx-user-circle"></i>
+                </div>
+                <div class="menu-title">Access Control</div>
+            </a>
+            <ul>
+                @can('view_staff')
                 <li>
-                    <a href="javascript:;" class="has-arrow">
-                        <div class="parent-icon"><i class="bx bx-category"></i>
+                    <a href="{{ route('staff') }}">
+                        <div class="parent-icon">
+
                         </div>
-                        <div class="menu-title">Renewal Master</div>
+                        <div class="menu-title">Staff</div>
                     </a>
-                    <ul>
-                        <li>
-                            <a href="{{ route('servies') }}">
-                                <div class="parent-icon">
-
-                                </div>
-                                <div class="menu-title">Client Renewal</div>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('vendor-services.index') }}">
-                                <div class="parent-icon">
-
-                                </div>
-                                <div class="menu-title">Vendor Renewal</div>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('client') }}">
-                                <div class="parent-icon">
-
-                                </div>
-                                <div class="menu-title">Client</div>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('vendor1') }}">
-                                <div class="parent-icon">
-
-                                </div>
-                                <div class="menu-title">Vendor</div>
-                            </a>
-                        </li>
-
-                    </ul>
                 </li>
-               <li>
-                    <a href="javascript:;" class="has-arrow">
-                        <div class="parent-icon"><i class="bx bx-user-circle"></i>
+                @endcan
+                @can('view_roles')
+                <li>
+                    <a href="{{ route('roles') }}">
+                        <div class="parent-icon">
+
                         </div>
-                        <div class="menu-title">Access Control</div>
+                        <div class="menu-title">Roles</div>
                     </a>
-                    <ul>
-                        <li>
-                            <a href="{{ route('staff') }}">
-                                <div class="parent-icon">
-
-                                </div>
-                                <div class="menu-title">Staff</div>
-                            </a>
-                        </li>
-                        <li>
-                            <a href="{{ route('roles') }}">
-                                <div class="parent-icon">
-
-                                </div>
-                                <div class="menu-title">Roles</div>
-                            </a>
-                        </li>
-                       
-                    </ul>
                 </li>
+                @endcan
+
+            </ul>
+        </li>
+        @endcan
+        @can('view_renewals')
+        <li>
+            <a href="javascript:;" class="has-arrow">
+                <div class="parent-icon"><i class="bx bx-category"></i>
+                </div>
+                <div class="menu-title">Renewal Master</div>
+            </a>
+            <ul>
+                <li>
+                    <a href="{{ route('servies') }}">
+                        <div class="parent-icon">
+
+                        </div>
+                        <div class="menu-title">Client Renewal</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('vendor-services.index') }}">
+                        <div class="parent-icon">
+
+                        </div>
+                        <div class="menu-title">Vendor Renewal</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('client') }}">
+                        <div class="parent-icon">
+
+                        </div>
+                        <div class="menu-title">Client</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('vendor1') }}">
+                        <div class="parent-icon">
+
+                        </div>
+                        <div class="menu-title">Vendor</div>
+                    </a>
+                </li>
+
+            </ul>
+        </li>
+        @endcan
+                @can('view_leads')
                 <li>
                         <a href="{{ route('leads') }}">
                             <div class="parent-icon"><i class="bx bx-user-voice"></i>
@@ -250,6 +259,8 @@
                             <div class="menu-title">Leads</div>
                         </a>
                     </li>
+                @endcan
+                @can('view_projects')
                 <li>
                     <a href="{{ route('project') }}">
                         <div class="parent-icon"><i class="bx bx-bar-chart"></i>
@@ -257,6 +268,8 @@
                         <div class="menu-title">Projects</div>
                     </a>
                 </li>
+                @endcan
+                @can('view_task')
                 <li>
                     <a href="{{ route('task') }}">
                         <div class="parent-icon"><i class="bx bx-task"></i>
@@ -264,6 +277,8 @@
                             <div class="menu-title">Tasks</div>
                         </a>
                     </li>
+                @endcan
+                    @can('view_raise_issue')
                     <li>
                         <a href="{{ route('client-issue') }}">
                             <div class="parent-icon"><i class="bx bx-error"></i>
@@ -271,6 +286,8 @@
                             <div class="menu-title">Raise Issue</div>
                         </a>
                     </li>
+                    @endcan
+                    @can('view_client')
                     <li>
                         <a href="{{ route('clients') }}">
                             <div class="parent-icon"><i class="bx bx-user-check"></i>
@@ -278,6 +295,7 @@
                             <div class="menu-title">Client</div>
                         </a>
                     </li>
+                    @endcan
                     
                     
                 

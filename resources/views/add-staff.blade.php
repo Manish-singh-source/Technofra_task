@@ -75,9 +75,9 @@
                                             <label for="role" class="form-label">Role</label>
                                             <select class="form-select" id="role" name="role">
                                                 <option>Select Role</option>
-                                                <option value="web_developers">Web Developers</option>
-                                                <option value="design_and_graphics">Design and Graphics</option>
-                                                <option value="seo_developer">Seo Developer</option>
+                                                @foreach($roles as $role)
+                                                <option value="{{ $role->name }}">{{ $role->name }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         <div class="col-12">

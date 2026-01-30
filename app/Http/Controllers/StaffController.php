@@ -3,12 +3,20 @@
 namespace App\Http\Controllers;
 
 use App\Models\Staff;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
 {
+    public function create()
+    {
+        $roles = Role::all();
+        return view('add-staff', compact('roles'));
+    }
+
     public function index()
     {
         $staff = Staff::all();
@@ -70,7 +78,7 @@ class StaffController extends Controller
 
         
 
-        Staff::create([
+        $staff = Staff::create([
             'profile_image' => $profileImagePath,
             'first_name' => $request->firstName,
             'last_name' => $request->lastName,
@@ -81,6 +89,19 @@ class StaffController extends Controller
             'status' => 'active', // default
             'departments' => $request->departments,
         ]);
+
+        // Create User for login
+        $user = User::create([
+            'name' => $request->firstName . ' ' . $request->lastName,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        // Assign role to user
+        $role = \Spatie\Permission\Models\Role::where('name', $request->role)->first();
+        if ($role) {
+            $user->assignRole($role);
+        }
 
         return redirect()->route('staff')->with('success', 'Staff added successfully.');
     }
