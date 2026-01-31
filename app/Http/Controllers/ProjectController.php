@@ -136,4 +136,11 @@ class ProjectController extends Controller
         return view('project-details', compact('project', 'staff', 'allProjects'));
     }
 
+    public function destroy($id)
+    {
+        $project = Project::findOrFail($id);
+        $project->delete();
+        return redirect()->route('project')->with('success', 'Project deleted successfully!');
+    }
+
 }

@@ -406,9 +406,10 @@
 												</div>
 												<div class="col-sm-9 text-secondary">
 													<select name="role" class="form-control" required>
-														<option value="web_developers" {{ $staff->role == 'web_developers' ? 'selected' : '' }}>Web Developers</option>
-														<option value="design_and_graphics" {{ $staff->role == 'design_and_graphics' ? 'selected' : '' }}>Design and Graphics</option>
-														<option value="seo_developer" {{ $staff->role == 'seo_developer' ? 'selected' : '' }}>Seo Developer</option>
+														<option value="">Select Role</option>
+														@foreach($roles as $role)
+														<option value="{{ $role->name }}" {{ $staff->role == $role->name ? 'selected' : '' }}>{{ $role->name }}</option>
+														@endforeach
 													</select>
 												</div>
 											</div>

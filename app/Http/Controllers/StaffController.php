@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
@@ -26,7 +27,8 @@ class StaffController extends Controller
     public function show($id)
     {
         $staff = Staff::findOrFail($id);
-        return view('view-staff', compact('staff'));
+        $roles = Role::all();
+        return view('view-staff', compact('staff', 'roles'));
     }
 
     public function update(Request $request, $id)
@@ -41,6 +43,10 @@ class StaffController extends Controller
         ]);
 
         $staff = Staff::findOrFail($id);
+        
+        // Get old role to update user role later
+        $oldRole = $staff->role;
+        
         $staff->update([
             'first_name' => $request->first_name,
             'last_name' => $request->last_name,
@@ -49,6 +55,19 @@ class StaffController extends Controller
             'role' => $request->role,
             'status' => $request->status,
         ]);
+
+        // Update user's role if email matches
+        $user = User::where('email', $staff->email)->first();
+        if ($user && $oldRole !== $request->role) {
+            // Remove old role and assign new role
+            $user->removeRole($oldRole);
+            $newRole = Role::where('name', $request->role)->first();
+            if ($newRole) {
+                $user->assignRole($newRole);
+            }
+            // Clear permission cache
+            Cache::forget('spatie.permission.cache');
+        }
 
         return redirect()->route('staff')->with('success', 'Staff updated successfully.');
     }
@@ -98,10 +117,13 @@ class StaffController extends Controller
         ]);
 
         // Assign role to user
-        $role = \Spatie\Permission\Models\Role::where('name', $request->role)->first();
+        $role = Role::where('name', $request->role)->first();
         if ($role) {
             $user->assignRole($role);
         }
+
+        // Clear permission cache
+        Cache::forget('spatie.permission.cache');
 
         return redirect()->route('staff')->with('success', 'Staff added successfully.');
     }
@@ -109,6 +131,13 @@ class StaffController extends Controller
     public function destroy($id)
     {
         $staff = Staff::findOrFail($id);
+        
+        // Delete associated user if exists
+        $user = User::where('email', $staff->email)->first();
+        if ($user) {
+            $user->delete();
+        }
+        
         $staff->delete();
         return redirect()->route('staff')->with('success', 'Staff deleted successfully.');
     }

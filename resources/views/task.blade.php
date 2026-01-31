@@ -121,7 +121,7 @@
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table id="example" class="table table-striped table-bordered" style="width:100%">
+                        <table id="tasksTable" class="table table-striped table-bordered" style="width:100%">
                             <thead class="table-light">
                                 <tr>
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
@@ -197,4 +197,26 @@
         </div>
     </div>
     <!--end page wrapper -->
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable for tasks
+            $('#tasksTable').DataTable({
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                pageLength: 10,
+                order: [[1, 'desc']],
+                language: {
+                    search: "Search Tasks:",
+                    lengthMenu: "Show _MENU_ entries",
+                    info: "Showing _START_ to _END_ of _TOTAL_ tasks",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "Next",
+                        previous: "Previous"
+                    }
+                }
+            });
+        });
+    </script>
 @endsection

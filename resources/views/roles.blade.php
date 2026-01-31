@@ -62,7 +62,7 @@
                                 <tr>
                                     <td>{{ $role->name }}</td>
                                     <td>{{ $role->name }} role with permissions</td>
-                                    <td>{{ $role->permissions->pluck('name')->implode(', ') }}</td>
+                                    <td>{{ $role->permissions->count() }} permissions</td>
                                     <td>
                                         <div
                                             class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
@@ -71,9 +71,14 @@
                                     </td>
                                     <td>
                                         <div class="d-flex order-actions">
-                                            <a href="javascript:;" class=""><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                            <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                            <a href="{{ route('role.edit', $role->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
+                                            <form action="{{ route('role.delete', $role->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this role?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-link p-0 ms-3" style="color: #f54242;">
+                                                    <i class='bx bxs-trash'></i>
+                                                </button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>

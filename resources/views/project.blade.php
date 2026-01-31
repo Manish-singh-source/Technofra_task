@@ -4,6 +4,13 @@
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
             <!--breadcrumb-->
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="breadcrumb-title pe-3">Projects</div>
@@ -168,11 +175,13 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                            <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                @can('create_projects')
+                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
                                             class="bx bxs-plus-square"></i>Add New Project</a></div>
+                                @endcan
                             </div>
                             <div class="table-responsive">
-                                <table class="table mb-0">
+                                <table id="projectsTable" class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
                                             <th>Project name</th>
@@ -242,9 +251,13 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                    @can('view_projects')<a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>@endcan
+                                                    @can('edit_projects')<a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>@endcan
+                                                    @can('delete_projects')<a href="javascript:;" class="ms-3" onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this project?')) { document.getElementById('delete-form-{{ $project->id }}').submit(); }"><i class='bx bxs-trash'></i></a>@endcan
+                                                    <form id="delete-form-{{ $project->id }}" action="{{ route('project.destroy', $project->id) }}" method="POST" style="display: none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -317,9 +330,13 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                    @can('view_projects')<a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>@endcan
+                                                    @can('edit_projects')<a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>@endcan
+                                                    @can('delete_projects')<a href="javascript:;" class="ms-3" onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this project?')) { document.getElementById('delete-form-notstarted-{{ $project->id }}').submit(); }"><i class='bx bxs-trash'></i></a>@endcan
+                                                    <form id="delete-form-notstarted-{{ $project->id }}" action="{{ route('project.destroy', $project->id) }}" method="POST" style="display: none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -392,9 +409,13 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                    @can('view_projects')<a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>@endcan
+                                                    @can('edit_projects')<a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>@endcan
+                                                    @can('delete_projects')<a href="javascript:;" class="ms-3" onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this project?')) { document.getElementById('delete-form-inprogress-{{ $project->id }}').submit(); }"><i class='bx bxs-trash'></i></a>@endcan
+                                                    <form id="delete-form-inprogress-{{ $project->id }}" action="{{ route('project.destroy', $project->id) }}" method="POST" style="display: none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -489,9 +510,13 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                    @can('view_projects')<a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>@endcan
+                                                    @can('edit_projects')<a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>@endcan
+                                                    @can('delete_projects')<a href="javascript:;" class="ms-3" onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this project?')) { document.getElementById('delete-form-onhold-{{ $project->id }}').submit(); }"><i class='bx bxs-trash'></i></a>@endcan
+                                                    <form id="delete-form-onhold-{{ $project->id }}" action="{{ route('project.destroy', $project->id) }}" method="POST" style="display: none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -564,9 +589,13 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                    @can('view_projects')<a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>@endcan
+                                                    @can('edit_projects')<a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>@endcan
+                                                    @can('delete_projects')<a href="javascript:;" class="ms-3" onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this project?')) { document.getElementById('delete-form-finished-{{ $project->id }}').submit(); }"><i class='bx bxs-trash'></i></a>@endcan
+                                                    <form id="delete-form-finished-{{ $project->id }}" action="{{ route('project.destroy', $project->id) }}" method="POST" style="display: none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -661,9 +690,13 @@
                                             </td>
                                             <td>
                                                 <div class="d-flex order-actions">
-                                                    <a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                                    <a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>
-                                                    <a href="javascript:;" class="ms-3"><i class='bx bxs-trash'></i></a>
+                                                    @can('view_projects')<a href="{{ route('project-details', $project->id) }}" class=""><i class='bx bxs-show'></i></a>@endcan
+                                                    @can('edit_projects')<a href="{{ route('edit-project', $project->id) }}" class="ms-3"><i class='bx bxs-edit'></i></a>@endcan
+                                                    @can('delete_projects')<a href="javascript:;" class="ms-3" onclick="event.preventDefault(); if(confirm('Are you sure you want to delete this project?')) { document.getElementById('delete-form-cancelled-{{ $project->id }}').submit(); }"><i class='bx bxs-trash'></i></a>@endcan
+                                                    <form id="delete-form-cancelled-{{ $project->id }}" action="{{ route('project.destroy', $project->id) }}" method="POST" style="display: none;">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                    </form>
                                                 </div>
                                             </td>
                                         </tr>
@@ -691,6 +724,33 @@
     // Initialize tooltips
     $(document).ready(function() {
         $('[data-bs-toggle="tooltip"]').tooltip();
+        
+        // Check if DataTable exists before initializing
+        if ($('#projectsTable').length) {
+            try {
+                // Initialize DataTable for projects
+                $('#projectsTable').DataTable({
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
+                    pageLength: 10,
+                    order: [[0, 'asc']],
+                    language: {
+                        search: "Search Projects:",
+                        lengthMenu: "Show _MENU_ entries",
+                        info: "Showing _START_ to _END_ of _TOTAL_ projects",
+                        paginate: {
+                            first: "First",
+                            last: "Last",
+                            next: "Next",
+                            previous: "Previous"
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error('DataTable initialization error:', e);
+                // Fallback: show table without DataTable
+                $('#projectsTable').show();
+            }
+        }
     });
 </script>
 @endsection
