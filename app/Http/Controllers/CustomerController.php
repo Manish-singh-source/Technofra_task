@@ -3,14 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class CustomerController extends Controller
 {
     public function index(){
         $customers = Customer::all();
         return view('clients' ,compact('customers'));
+    }
+
+    public function create()
+    {
+        $roles = Role::all();
+        return view('add-clients', compact('roles'));
     }
 
     public function storeclient(Request $request)
@@ -34,6 +43,8 @@ class CustomerController extends Controller
             'assigned_manager_id' => 'nullable|integer',
             'default_due_days' => 'nullable|integer',
             'billing_type' => 'nullable|in:Hourly,Fixed,Retainer',
+            'role' => 'nullable|string|max:255',
+            'password' => 'nullable|string|min:6',
         ]);
 
         if ($validator->fails()) {
@@ -59,7 +70,24 @@ class CustomerController extends Controller
         $customer->assigned_manager_id = $request->assigned_manager_id;
         $customer->default_due_days = $request->default_due_days;
         $customer->billing_type = $request->billing_type;
+        $customer->role = $request->role;
+        $customer->password = $request->password ? Hash::make($request->password) : null;
         $customer->save();
+
+        // Create User for customer login
+        if ($request->password) {
+            $user = User::create([
+                'name' => $request->client_name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            // Assign 'customer' role to user
+            $customerRole = Role::where('name', 'customer')->first();
+            if ($customerRole) {
+                $user->assignRole($customerRole);
+            }
+        }
 
         return redirect()->route('clients')->with('success', 'Customer added successfully.');
     }
@@ -107,6 +135,13 @@ class CustomerController extends Controller
     public function delete($id)
     {
         $customer = Customer::findOrFail($id);
+        
+        // Delete associated user if exists
+        $user = User::where('email', $customer->email)->first();
+        if ($user) {
+            $user->delete();
+        }
+        
         $customer->delete();
 
         return redirect()->route('clients')->with('success', 'Customer deleted successfully.');

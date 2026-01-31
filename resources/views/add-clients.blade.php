@@ -10,157 +10,246 @@
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0 p-0">
-                            <li class="breadcrumb-item"><a href="{{ route('clients') }}"><i class="bx bx-home-alt"></i></a>
+                            <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a>
                             </li>
                             <li class="breadcrumb-item active" aria-current="page">Add Client</li>
                         </ol>
                     </nav>
                 </div>
+                <div class="ms-auto">
+                    <div class="btn-group">
+                        <a href="{{ route('clients') }}" class="btn btn-primary">Back to Clients</a>
+                    </div>
+                </div>
             </div>
             <!--end breadcrumb-->
 
             <div class="card">
-                <div class="card-header">
+                <div class="card-body p-4">
                     <h5 class="card-title">Add New Client</h5>
-                </div>
-                <div class="card-body">
-                    <form action="{{ route('store-client') }}" method="POST">
-                        @csrf
-
-                        <!-- Basic Information -->
-                        <h6 class="mb-3">Basic Information</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="client_name" class="form-label">Client Name *</label>
-                                <input type="text" class="form-control" id="client_name" name="client_name" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="contact_person" class="form-label">Contact Person *</label>
-                                <input type="text" class="form-control" id="contact_person" name="contact_person" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="email" class="form-label">Email *</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="phone" class="form-label">Phone</label>
-                                <input type="text" class="form-control" id="phone" name="phone">
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label for="website" class="form-label">Website</label>
-                                <input type="url" class="form-control" id="website" name="website">
-                            </div>
-                        </div>
-
-                        <!-- Address Details -->
-                        <h6 class="mb-3">Address Details</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="address_line1" class="form-label">Address Line 1 *</label>
-                                <input type="text" class="form-control" id="address_line1" name="address_line1" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="address_line2" class="form-label">Address Line 2</label>
-                                <input type="text" class="form-control" id="address_line2" name="address_line2">
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="city" class="form-label">City *</label>
-                                <input type="text" class="form-control" id="city" name="city" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="state" class="form-label">State / Province *</label>
-                                <input type="text" class="form-control" id="state" name="state" required>
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label for="postal_code" class="form-label">Postal Code *</label>
-                                <input type="text" class="form-control" id="postal_code" name="postal_code" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="country" class="form-label">Country *</label>
-                                <input type="text" class="form-control" id="country" name="country" required>
+                    <hr />
+                    <div class="form-body mt-4">
+                        <form action="{{ route('store-client') }}" method="POST" enctype="multipart/form-data">
+                            @csrf
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <div class="border border-3 p-4 rounded">
+                                    <h6>Basic Information</h6>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label for="client_name" class="form-label">Client Name</label>
+                                            <input type="text" class="form-control" id="client_name" name="client_name"
+                                                placeholder="Enter client name" value="{{ old('client_name') }}">
+                                            @error('client_name')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label for="contact_person" class="form-label">Contact Person</label>
+                                            <input type="text" class="form-control" id="contact_person" name="contact_person"
+                                                placeholder="Enter contact person name" value="{{ old('contact_person') }}">
+                                            @error('contact_person')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label for="email" class="form-label">Email</label>
+                                            <input type="email" class="form-control" id="email" name="email" 
+                                                placeholder="Enter email" value="{{ old('email') }}">
+                                            @error('email')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label for="phone" class="form-label">Phone</label>
+                                            <input type="text" class="form-control" id="phone" name="phone"
+                                                placeholder="Enter phone number" value="{{ old('phone') }}">
+                                            @error('phone')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="website" class="form-label">Website</label>
+                                        <input type="url" class="form-control" id="website" name="website"
+                                            placeholder="https://example.com" value="{{ old('website') }}">
+                                        @error('website')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Business & Status -->
-                        <h6 class="mb-3">Business & Status</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="client_type" class="form-label">Client Type *</label>
-                                <select class="form-select" id="client_type" name="client_type" required>
-                                    <option value="">Select Type</option>
-                                    <option value="Individual">Individual</option>
-                                    <option value="Company">Company</option>
-                                    <option value="Organization">Organization</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="industry" class="form-label">Industry *</label>
-                                <input type="text" class="form-control" id="industry" name="industry" required>
-                            </div>
-                        </div>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="status" class="form-label">Status *</label>
-                                <select class="form-select" id="status" name="status" required>
-                                    <option value="">Select Status</option>
-                                    <option value="Active">Active</option>
-                                    <option value="Inactive">Inactive</option>
-                                    <option value="Suspended">Suspended</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="priority_level" class="form-label">Priority Level</label>
-                                <select class="form-select" id="priority_level" name="priority_level">
-                                    <option value="">Select Priority</option>
-                                    <option value="Low">Low</option>
-                                    <option value="Medium">Medium</option>
-                                    <option value="High">High</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <!-- Task & Project Relation -->
-                        <h6 class="mb-3">Task & Project Relation</h6>
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="assigned_manager_id" class="form-label">Assigned Manager</label>
-                                <select class="form-select" id="assigned_manager_id" name="assigned_manager_id">
-                                    <option value="">Select Manager</option>
-                                    <!-- Add options dynamically if needed -->
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="default_due_days" class="form-label">Default Due Days</label>
-                                <input type="number" class="form-control" id="default_due_days" name="default_due_days">
-                            </div>
-                        </div>
-                        <div class="row mb-4">
-                            <div class="col-md-6">
-                                <label for="billing_type" class="form-label">Billing Type</label>
-                                <select class="form-select" id="billing_type" name="billing_type">
-                                    <option value="">Select Billing Type</option>
-                                    <option value="Hourly">Hourly</option>
-                                    <option value="Fixed">Fixed</option>
-                                    <option value="Retainer">Retainer</option>
-                                </select>
+                        <div class="row mt-3">
+                            <div class="col-lg-12">
+                                <div class="border border-3 p-4 rounded">
+                                    <h6>Address Information</h6>
+                                    <div class="mb-3">
+                                        <label for="address_line1" class="form-label">Address Line 1</label>
+                                        <input type="text" class="form-control" id="address_line1" name="address_line1"
+                                            placeholder="Enter address line 1" value="{{ old('address_line1') }}">
+                                        @error('address_line1')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="address_line2" class="form-label">Address Line 2</label>
+                                        <input type="text" class="form-control" id="address_line2" name="address_line2"
+                                            placeholder="Enter address line 2 (optional)" value="{{ old('address_line2') }}">
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-3 mb-3">
+                                            <label for="city" class="form-label">City</label>
+                                            <input type="text" class="form-control" id="city" name="city"
+                                                placeholder="City" value="{{ old('city') }}">
+                                            @error('city')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-3 mb-3">
+                                            <label for="state" class="form-label">State</label>
+                                            <input type="text" class="form-control" id="state" name="state"
+                                                placeholder="State" value="{{ old('state') }}">
+                                            @error('state')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-3 mb-3">
+                                            <label for="postal_code" class="form-label">Postal Code</label>
+                                            <input type="text" class="form-control" id="postal_code" name="postal_code"
+                                                placeholder="Postal Code" value="{{ old('postal_code') }}">
+                                            @error('postal_code')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-3 mb-3">
+                                            <label for="country" class="form-label">Country</label>
+                                            <input type="text" class="form-control" id="country" name="country"
+                                                placeholder="Country" value="{{ old('country') }}">
+                                            @error('country')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end">
-                            <button type="submit" class="btn btn-primary">Save Client</button>
-                            <a href="{{ route('clients') }}" class="btn btn-secondary ms-2">Cancel</a>
+                        <div class="row mt-3">
+                            <div class="col-lg-12">
+                                <div class="border border-3 p-4 rounded">
+                                    <h6>Business Information</h6>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label for="client_type" class="form-label">Client Type</label>
+                                            <select class="form-select" id="client_type" name="client_type">
+                                                <option value="">Select Type</option>
+                                                <option value="Individual" {{ old('client_type') == 'Individual' ? 'selected' : '' }}>Individual</option>
+                                                <option value="Company" {{ old('client_type') == 'Company' ? 'selected' : '' }}>Company</option>
+                                                <option value="Organization" {{ old('client_type') == 'Organization' ? 'selected' : '' }}>Organization</option>
+                                            </select>
+                                            @error('client_type')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label for="industry" class="form-label">Industry</label>
+                                            <input type="text" class="form-control" id="industry" name="industry"
+                                                placeholder="Enter industry" value="{{ old('industry') }}">
+                                            @error('industry')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label for="status" class="form-label">Status</label>
+                                            <select class="form-select" id="status" name="status">
+                                                <option value="Active" {{ old('status') == 'Active' ? 'selected' : '' }}>Active</option>
+                                                <option value="Inactive" {{ old('status') == 'Inactive' ? 'selected' : '' }}>Inactive</option>
+                                                <option value="Suspended" {{ old('status') == 'Suspended' ? 'selected' : '' }}>Suspended</option>
+                                            </select>
+                                            @error('status')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label for="priority_level" class="form-label">Priority Level</label>
+                                            <select class="form-select" id="priority_level" name="priority_level">
+                                                <option value="">Select Priority</option>
+                                                <option value="Low" {{ old('priority_level') == 'Low' ? 'selected' : '' }}>Low</option>
+                                                <option value="Medium" {{ old('priority_level') == 'Medium' ? 'selected' : '' }}>Medium</option>
+                                                <option value="High" {{ old('priority_level') == 'High' ? 'selected' : '' }}>High</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-6 mb-3">
+                                            <label for="billing_type" class="form-label">Billing Type</label>
+                                            <select class="form-select" id="billing_type" name="billing_type">
+                                                <option value="">Select Billing Type</option>
+                                                <option value="Hourly" {{ old('billing_type') == 'Hourly' ? 'selected' : '' }}>Hourly</option>
+                                                <option value="Fixed" {{ old('billing_type') == 'Fixed' ? 'selected' : '' }}>Fixed</option>
+                                                <option value="Retainer" {{ old('billing_type') == 'Retainer' ? 'selected' : '' }}>Retainer</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-6 mb-3">
+                                            <label for="default_due_days" class="form-label">Default Due Days</label>
+                                            <input type="number" class="form-control" id="default_due_days" name="default_due_days"
+                                                placeholder="Due days" value="{{ old('default_due_days') }}">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </form>
+
+                        <div class="row mt-3">
+                            <div class="col-lg-12">
+                                <div class="border border-3 p-4 rounded">
+                                    <h6>Login Information (Optional)</h6>
+                                    <div class="row g-3">
+                                        <div class="col-12">
+                                            <label for="role" class="form-label">Role</label>
+                                            <select class="form-select" id="role" name="role">
+                                                <option value="">Select Role</option>
+                                                @foreach($roles as $role)
+                                                <option value="{{ $role->name }}" {{ old('role') == $role->name ? 'selected' : '' }}>{{ $role->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
+                                            <label for="password" class="form-label">Password</label>
+                                            <input type="password" class="form-control" id="password" name="password"
+                                                placeholder="Enter password (minimum 6 characters)">
+                                            @error('password')
+                                                <span class="text-danger">{{ $message }}</span>
+                                            @enderror
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox" name="sendWelcomeEmail" id="sendWelcomeEmail">
+                                                <label class="form-check-label" for="sendWelcomeEmail">
+                                                    Send Welcome Email
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="col-12">
+                                            <div class="d-grid">
+                                                <button type="submit" class="btn btn-primary">Add Client</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div><!--end row-->
+                        </form>
+                    </div>
                 </div>
             </div>
+
 
         </div>
     </div>

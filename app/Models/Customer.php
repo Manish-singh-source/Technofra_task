@@ -28,6 +28,8 @@ class Customer extends Model
         'assigned_manager_id',
         'default_due_days',
         'billing_type',
+        'role',
+        'password',
     ];
 
     public function projects()

@@ -43,6 +43,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/client', [ClientController::class, 'client'])->name('client')->middleware('can:view_renewals');
     Route::post('/client/toggle-status',  [ClientController::class, 'toggleStatus'])->name('client.toggleStatus')->middleware('can:edit_renewals');
     Route::get('/add-client', [ClientController::class, 'addclient'])->name('add-client')->middleware('can:create_renewals');
+    Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('can:create_renewals');
     Route::post('/store-client', [CustomerController::class, 'storeclient'])->name('store-client')->middleware('can:create_renewals');
     Route::get('/edit-client/{id}', [ClientController::class, 'editclient'])->name('client.edit')->middleware('can:edit_renewals');
     Route::put('/update-client/{id}', [ClientController::class, 'updateclient'])->name('client.update')->middleware('can:edit_renewals');
@@ -182,9 +183,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('/clients', [CustomerController::class, 'index'])->name('clients')->middleware('can:view_client');
         Route::delete('/clients/{id}', [CustomerController::class, 'delete'])->name('clients.delete')->middleware('can:delete_client');
-        Route::get('/add-clients', function () {
-            return view('add-clients');
-        })->name('add-clients')->middleware('can:create_client');
+        Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('can:create_client');
         Route::get('/clients-details/{id}', [CustomerController::class, 'show'])->name('clients-details')->middleware('can:view_client');
         Route::put('/clients-details/{id}', [CustomerController::class, 'update'])->name('clients.update')->middleware('can:edit_client');
     });
