@@ -8,32 +8,46 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
 {
+    /**
+     * Display the staff creation form.
+     */
     public function create()
     {
         $roles = Role::all();
         return view('add-staff', compact('roles'));
     }
 
+    /**
+     * Display a listing of staff members.
+     */
     public function index()
     {
-        $staff = Staff::all();
+        $staff = Staff::with('user')->get();
         return view('staff', compact('staff'));
     }
 
+    /**
+     * Display the specified staff member.
+     */
     public function show($id)
     {
-        $staff = Staff::findOrFail($id);
+        $staff = Staff::with('user')->findOrFail($id);
         $roles = Role::all();
         return view('view-staff', compact('staff', 'roles'));
     }
 
+    /**
+     * Update the specified staff member.
+     */
     public function update(Request $request, $id)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:staff,email,' . $id,
@@ -42,103 +56,238 @@ class StaffController extends Controller
             'status' => 'required|in:active,inactive',
         ]);
 
-        $staff = Staff::findOrFail($id);
-        
-        // Get old role to update user role later
-        $oldRole = $staff->role;
-        
-        $staff->update([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'role' => $request->role,
-            'status' => $request->status,
-        ]);
-
-        // Update user's role if email matches
-        $user = User::where('email', $staff->email)->first();
-        if ($user && $oldRole !== $request->role) {
-            // Remove old role and assign new role
-            $user->removeRole($oldRole);
-            $newRole = Role::where('name', $request->role)->first();
-            if ($newRole) {
-                $user->assignRole($newRole);
-            }
-            // Clear permission cache
-            Cache::forget('spatie.permission.cache');
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
-        return redirect()->route('staff')->with('success', 'Staff updated successfully.');
+        $staff = Staff::findOrFail($id);
+        
+        // Get old role and email to update user later
+        $oldRole = $staff->role;
+        $oldEmail = $staff->email;
+        
+        DB::beginTransaction();
+        try {
+            $staff->update([
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'role' => $request->role,
+                'status' => $request->status,
+            ]);
+
+            // Update associated user
+            $user = $staff->user ?? User::where('email', $oldEmail)->first();
+            if ($user) {
+                $user->update([
+                    'name' => $request->first_name . ' ' . $request->last_name,
+                    'email' => $request->email,
+                ]);
+
+                // Update role if changed
+                if ($oldRole !== $request->role) {
+                    $user->removeRole($oldRole);
+                    $newRole = Role::where('name', $request->role)->first();
+                    if ($newRole) {
+                        $user->assignRole($newRole);
+                    }
+                }
+            }
+
+            // Clear permission cache
+            Cache::forget('spatie.permission.cache');
+            
+            DB::commit();
+            return redirect()->route('staff')->with('success', 'Staff updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to update staff: ' . $e->getMessage());
+        }
     }
 
+    /**
+     * Store a newly created staff member.
+     */
     public function store(Request $request)
     {
-        $request->validate([
+        $validator = Validator::make($request->all(), [
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
-            'email' => 'required|email|unique:staff,email',
+            'email' => 'required|email|unique:staff,email|unique:users,email',
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
         ]);
 
-        $profileImagePath = null;
-        if ($request->hasFile('profileImage')) {
-            $image = $request->file('profileImage');
-            $ext = $image->getClientOriginalExtension();
-            $imageName = time() . "." . $ext;
-            $image->move(public_path('uploads/staff'), $imageName);
-            $profileImagePath = $imageName;
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
         }
 
+        DB::beginTransaction();
+        try {
+            // Handle profile image upload
+            $profileImagePath = null;
+            if ($request->hasFile('profileImage')) {
+                $image = $request->file('profileImage');
+                $ext = $image->getClientOriginalExtension();
+                $imageName = time() . "." . $ext;
+                $image->move(public_path('uploads/staff'), $imageName);
+                $profileImagePath = $imageName;
+            }
 
-        
+            // Create User first
+            $user = User::create([
+                'name' => $request->firstName . ' ' . $request->lastName,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
 
-        $staff = Staff::create([
-            'profile_image' => $profileImagePath,
-            'first_name' => $request->firstName,
-            'last_name' => $request->lastName,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'role' => $request->role,
-            'password' => Hash::make($request->password),
-            'status' => 'active', // default
-            'departments' => $request->departments,
-        ]);
+            // Assign role to user
+            $role = Role::where('name', $request->role)->first();
+            if ($role) {
+                $user->assignRole($role);
+            }
 
-        // Create User for login
-        $user = User::create([
-            'name' => $request->firstName . ' ' . $request->lastName,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+            // Create Staff record linked to user
+            $staff = Staff::create([
+                'user_id' => $user->id,
+                'profile_image' => $profileImagePath,
+                'first_name' => $request->firstName,
+                'last_name' => $request->lastName,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'role' => $request->role,
+                'password' => Hash::make($request->password),
+                'status' => 'active',
+                'departments' => $request->departments,
+            ]);
 
-        // Assign role to user
-        $role = Role::where('name', $request->role)->first();
-        if ($role) {
-            $user->assignRole($role);
+            // Clear permission cache
+            Cache::forget('spatie.permission.cache');
+
+            DB::commit();
+            return redirect()->route('staff')->with('success', 'Staff added successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
         }
-
-        // Clear permission cache
-        Cache::forget('spatie.permission.cache');
-
-        return redirect()->route('staff')->with('success', 'Staff added successfully.');
     }
-    //destroy
+
+    /**
+     * Remove the specified staff member.
+     */
     public function destroy($id)
     {
         $staff = Staff::findOrFail($id);
         
-        // Delete associated user if exists
-        $user = User::where('email', $staff->email)->first();
-        if ($user) {
-            $user->delete();
+        DB::beginTransaction();
+        try {
+            // Delete associated user if exists
+            if ($staff->user) {
+                $staff->user->delete();
+            } else {
+                // Fallback: find user by email
+                $user = User::where('email', $staff->email)->first();
+                if ($user) {
+                    $user->delete();
+                }
+            }
+            
+            $staff->delete();
+            
+            DB::commit();
+            return redirect()->route('staff')->with('success', 'Staff deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to delete staff: ' . $e->getMessage());
         }
-        
-        $staff->delete();
-        return redirect()->route('staff')->with('success', 'Staff deleted successfully.');
+    }
+
+    /**
+     * API: Get all staff members.
+     */
+    public function apiIndex()
+    {
+        $staff = Staff::with('user.roles')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $staff,
+        ]);
+    }
+
+    /**
+     * API: Store a new staff member.
+     */
+    public function apiStore(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:staff,email|unique:users,email',
+            'phone' => 'required|string|max:20',
+            'role' => 'required|string|max:255',
+            'password' => 'required|string|min:8',
+            'departments' => 'nullable|array',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            // Create User first
+            $user = User::create([
+                'name' => $request->first_name . ' ' . $request->last_name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+            ]);
+
+            // Assign role to user
+            $role = Role::where('name', $request->role)->first();
+            if ($role) {
+                $user->assignRole($role);
+            }
+
+            // Create Staff record linked to user
+            $staff = Staff::create([
+                'user_id' => $user->id,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'role' => $request->role,
+                'password' => Hash::make($request->password),
+                'status' => 'active',
+                'departments' => $request->departments,
+            ]);
+
+            // Clear permission cache
+            Cache::forget('spatie.permission.cache');
+
+            DB::commit();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff created successfully.',
+                'data' => $staff->load('user.roles'),
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create staff: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

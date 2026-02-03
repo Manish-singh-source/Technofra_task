@@ -16,21 +16,170 @@ class RoleSeeder extends Seeder
      */
     public function run()
     {
-        // Create 'customer' role if it doesn't exist
-        $customerRole = Role::firstOrCreate(['name' => 'customer']);
-
-        // Assign basic view permissions to customer role
+        // Define all permissions
         $permissions = [
-            'view_renewals',
+            // User Management
+            'view_users',
+            'create_users',
+            'edit_users',
+            'delete_users',
+            
+            // Role Management
+            'view_roles',
+            'create_roles',
+            'edit_roles',
+            'delete_roles',
+            
+            // Project Management
             'view_projects',
-            'view_client',
+            'create_projects',
+            'edit_projects',
+            'delete_projects',
+            
+            // Client Management
+            'view_clients',
+            'create_clients',
+            'edit_clients',
+            'delete_clients',
+            
+            // Dashboard
+            'view_dashboard',
+            'view_renewals',
+            
+            // Vendor Management
+            'view_vendors',
+            'create_vendors',
+            'edit_vendors',
+            'delete_vendors',
+            
+            // Service Management
+            'view_services',
+            'create_services',
+            'edit_services',
+            'delete_services',
+            
+            // Staff Management
+            'view_staff',
+            'create_staff',
+            'edit_staff',
+            'delete_staff',
+            
+            // Task Management
+            'view_tasks',
+            'create_tasks',
+            'edit_tasks',
+            'delete_tasks',
         ];
 
+        // Create permissions if they don't exist
         foreach ($permissions as $permissionName) {
-            $permission = Permission::where('name', $permissionName)->first();
-            if ($permission) {
-                $customerRole->givePermissionTo($permission);
-            }
+            Permission::firstOrCreate(['name' => $permissionName], ['name' => $permissionName]);
+        }
+
+        // Define roles with their permissions
+        $roles = [
+            'super_admin' => [
+                'view_users',
+                'create_users',
+                'edit_users',
+                'delete_users',
+                'view_roles',
+                'create_roles',
+                'edit_roles',
+                'delete_roles',
+                'view_projects',
+                'create_projects',
+                'edit_projects',
+                'delete_projects',
+                'view_clients',
+                'create_clients',
+                'edit_clients',
+                'delete_clients',
+                'view_dashboard',
+                'view_renewals',
+                'view_vendors',
+                'create_vendors',
+                'edit_vendors',
+                'delete_vendors',
+                'view_services',
+                'create_services',
+                'edit_services',
+                'delete_services',
+                'view_staff',
+                'create_staff',
+                'edit_staff',
+                'delete_staff',
+                'view_tasks',
+                'create_tasks',
+                'edit_tasks',
+                'delete_tasks',
+            ],
+            'admin' => [
+                'view_users',
+                'create_users',
+                'edit_users',
+                'view_roles',
+                'create_roles',
+                'edit_roles',
+                'view_projects',
+                'create_projects',
+                'edit_projects',
+                'view_clients',
+                'create_clients',
+                'edit_clients',
+                'view_dashboard',
+                'view_renewals',
+                'view_vendors',
+                'create_vendors',
+                'edit_vendors',
+                'view_services',
+                'create_services',
+                'edit_services',
+                'view_staff',
+                'create_staff',
+                'edit_staff',
+                'view_tasks',
+                'create_tasks',
+                'edit_tasks',
+            ],
+            'manager' => [
+                'view_projects',
+                'create_projects',
+                'edit_projects',
+                'view_clients',
+                'create_clients',
+                'edit_clients',
+                'view_dashboard',
+                'view_renewals',
+                'view_vendors',
+                'view_services',
+                'view_staff',
+                'view_tasks',
+                'create_tasks',
+                'edit_tasks',
+            ],
+            'customer' => [
+                'view_renewals',
+                'view_projects',
+                'view_client',
+            ],
+            'staff' => [
+                'view_projects',
+                'view_clients',
+                'view_dashboard',
+                'view_tasks',
+                'create_tasks',
+                'edit_tasks',
+            ],
+        ];
+
+        // Create roles and assign permissions
+        foreach ($roles as $roleName => $rolePermissions) {
+            $role = Role::firstOrCreate(['name' => $roleName], ['name' => $roleName]);
+            
+            // Sync permissions (update operation - removes old permissions not in this list)
+            $permissionIds = Permission::whereIn('name', $rolePermissions)->pluck('id')->toArray();
+            $role->syncPermissions($permissionIds);
         }
     }
 }

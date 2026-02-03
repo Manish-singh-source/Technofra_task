@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Lead;
 use App\Models\Staff;
+use App\Exports\LeadsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Maatwebsite\Excel\Facades\Excel;
 
 class LeadController extends Controller
 {
@@ -198,5 +200,13 @@ class LeadController extends Controller
         Lead::whereIn('id', $leadIds)->delete();
 
         return response()->json(['success' => true, 'message' => 'Selected leads deleted successfully!']);
+    }
+
+    /**
+     * Export leads to Excel.
+     */
+    public function export()
+    {
+        return Excel::download(new LeadsExport, 'leads_' . date('Y-m-d') . '.xlsx');
     }
 }

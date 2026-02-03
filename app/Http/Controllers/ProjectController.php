@@ -6,13 +6,43 @@ use App\Models\Customer;
 use App\Models\Project;
 use App\Models\Staff;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
 class ProjectController extends Controller
 {
+    /**
+     * Get the logged-in customer
+     */
+    private function getLoggedInCustomer()
+    {
+        $user = Auth::user();
+        if ($user && $user->hasRole('customer')) {
+            return Customer::where('email', $user->email)->first();
+        }
+        return null;
+    }
+
+    /**
+     * Check if current user is a customer
+     */
+    private function isCustomer()
+    {
+        return Auth::user() && Auth::user()->hasRole('customer');
+    }
+
     public function index()
     {
-        $projects = Project::with('customer')->get();
+        $customer = $this->getLoggedInCustomer();
+        
+        if ($customer) {
+            // Customer can only see their own projects
+            $projects = Project::with('customer')->where('customer_id', $customer->id)->get();
+        } else {
+            // Admin/Staff can see all projects
+            $projects = Project::with('customer')->get();
+        }
+        
         $staff = Staff::all()->keyBy('id');
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
@@ -130,9 +160,23 @@ class ProjectController extends Controller
 
     public function show($id)
     {
+        $customer = $this->getLoggedInCustomer();
         $project = Project::with('customer')->findOrFail($id);
+        
+        // If user is a customer, verify they own this project
+        if ($customer && $project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to view this project.');
+        }
+        
         $staff = Staff::all()->keyBy('id');
-        $allProjects = Project::all();
+        
+        if ($customer) {
+            // Customer can only see their own projects
+            $allProjects = Project::where('customer_id', $customer->id)->get();
+        } else {
+            $allProjects = Project::all();
+        }
+        
         return view('project-details', compact('project', 'staff', 'allProjects'));
     }
 
@@ -141,6 +185,31 @@ class ProjectController extends Controller
         $project = Project::findOrFail($id);
         $project->delete();
         return redirect()->route('project')->with('success', 'Project deleted successfully!');
+    }
+
+    /**
+     * Customer's own projects - simplified view for customers
+     */
+    public function myProjects()
+    {
+        $customer = $this->getLoggedInCustomer();
+        
+        if (!$customer) {
+            // Redirect non-customers to the main project page
+            return redirect()->route('project');
+        }
+        
+        // Customer can only see their own projects
+        $projects = Project::with('customer')->where('customer_id', $customer->id)->get();
+        $staff = Staff::all()->keyBy('id');
+        $allProjects = $projects->count();
+        $planningProjects = $projects->where('status', 'not_started')->count();
+        $inProgressProjects = $projects->where('status', 'in_progress')->count();
+        $onHoldProjects = $projects->where('status', 'on_hold')->count();
+        $completedProjects = $projects->where('status', 'completed')->count();
+        $cancelledProjects = $projects->where('status', 'cancelled')->count();
+        
+        return view('customer-projects', compact('projects', 'staff', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects', 'customer'));
     }
 
 }

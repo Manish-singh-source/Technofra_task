@@ -42,4 +42,57 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    /**
+     * Get the staff record associated with the user.
+     */
+    public function staff()
+    {
+        return $this->hasOne(Staff::class);
+    }
+
+    /**
+     * Get the customer record associated with the user.
+     */
+    public function customer()
+    {
+        return $this->hasOne(Customer::class);
+    }
+
+    /**
+     * Check if user is a staff member.
+     */
+    public function isStaff()
+    {
+        return $this->staff()->exists();
+    }
+
+    /**
+     * Check if user is a customer.
+     */
+    public function isCustomer()
+    {
+        return $this->customer()->exists();
+    }
+
+    /**
+     * Get all permissions for the user (including role permissions).
+     */
+    public function getAllPermissionsAttribute()
+    {
+        return $this->getAllPermissions()->pluck('name')->toArray();
+    }
+
+    /**
+     * Get user type (staff, customer, or admin).
+     */
+    public function getUserTypeAttribute()
+    {
+        if ($this->isStaff()) {
+            return 'staff';
+        } elseif ($this->isCustomer()) {
+            return 'customer';
+        }
+        return 'admin';
+    }
 }

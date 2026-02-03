@@ -112,6 +112,9 @@
                                     class="bx bx-search"></i></span>
                         </div>
                         <div class="ms-auto">
+                            <a href="{{ route('lead.export') }}" class="btn btn-success radius-30 mt-2 mt-lg-0 me-2">
+                                <i class='bx bxs-download'></i>Download Excel
+                            </a>
                             <a href="{{ route('add-lead') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Lead
                             </a>

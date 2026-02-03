@@ -10,6 +10,7 @@ class Customer extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'client_name',
         'contact_person',
         'email',
@@ -32,6 +33,17 @@ class Customer extends Model
         'password',
     ];
 
+    /**
+     * Get the user associated with the customer.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the projects for the customer.
+     */
     public function projects()
     {
         return $this->hasMany(Project::class);

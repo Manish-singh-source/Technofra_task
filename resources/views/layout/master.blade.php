@@ -251,7 +251,8 @@
             </ul>
         </li>
         @endcan
-                @can('view_leads')
+        <!-- Leads section - removed permission check -->
+        @can('view_leads')
                 <li>
                         <a href="{{ route('leads') }}">
                             <div class="parent-icon"><i class="bx bx-user-voice"></i>
@@ -259,7 +260,8 @@
                             <div class="menu-title">Leads</div>
                         </a>
                     </li>
-                @endcan
+                    @endcan
+                <!-- Projects section - removed permission check -->
                 @can('view_projects')
                 <li>
                     <a href="{{ route('project') }}">
@@ -269,7 +271,7 @@
                     </a>
                 </li>
                 @endcan
-                @can('view_task')
+                @can('view_tasks')
                 <li>
                     <a href="{{ route('task') }}">
                         <div class="parent-icon"><i class="bx bx-task"></i>
@@ -278,6 +280,7 @@
                         </a>
                     </li>
                 @endcan
+                    <!-- Client Issue section - removed permission check -->
                     @can('view_raise_issue')
                     <li>
                         <a href="{{ route('client-issue') }}">
@@ -287,7 +290,7 @@
                         </a>
                     </li>
                     @endcan
-                    @can('view_client')
+                    @can('view_clients')
                     <li>
                         <a href="{{ route('clients') }}">
                             <div class="parent-icon"><i class="bx bx-user-check"></i>

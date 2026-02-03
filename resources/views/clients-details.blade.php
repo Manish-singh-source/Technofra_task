@@ -182,7 +182,13 @@
                                                 </select>
                                             </div>
                                             <div class="col-sm-6">
-                                                <!-- Empty for balance -->
+                                                <label class="form-label">Role</label>
+                                                <select class="form-control" name="role">
+                                                    <option value="">Select Role</option>
+                                                    @foreach($roles as $role)
+                                                    <option value="{{ $role->name }}" {{ $customer->role == $role->name ? 'selected' : '' }}>{{ $role->name }}</option>
+                                                    @endforeach
+                                                </select>
                                             </div>
                                         </div>
                                         <div class="row mb-3">

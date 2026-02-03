@@ -54,6 +54,7 @@
                                     <th>Email</th>
                                     <th>Industry</th>
                                     <th>Website</th>
+                                    <th>Role</th>
                                     <th>Status</th>
                                     <th>Action</th>
                                 </tr>
@@ -65,6 +66,7 @@
                                     <td>{{ $customer->email }}</td>
                                     <td>{{ $customer->industry }}</td>
                                     <td>{{ $customer->website }}</td>
+                                    <td>{{ $customer->role }}</td></td>
                                     <td>
                                         @if($customer->status == 'Active')
                                         <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">

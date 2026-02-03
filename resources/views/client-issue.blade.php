@@ -16,6 +16,20 @@
             </div>
         </div>
 
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
         <div class="row">
             <div class="col-12">
                 <div class="card">
@@ -26,56 +40,68 @@
                         </button>
                     </div>
                     <div class="card-body">
-                        <div class="row">
-                            <!-- Project Issue Card 1 -->
-                            <div class="col-lg-4 col-md-6 mb-4">
-                                <div class="card project-card">
-                                    <a href="{{ route('client-issue-details') }}">
-                                    <div class="card-body text-center">
-                                        <div class="project-logo mb-3">
-                                            <img src="{{ asset('assets/images/logo-icon.png') }}" alt="Project Logo" class="img-fluid" style="max-width: 80px;">
-                                        </div>
-                                        <h5 class="card-title">E-commerce Platform</h5>
-                                        <p class="card-text text-muted">Online shopping website with payment integration</p>
-                                        <div class="project-status">
-                                            <span class="badge bg-success">Active</span>
-                                        </div>
-                                    </div>
-                                    </a>
-                                </div>
-                            </div>
-
-                            <!-- Project Issue Card 2 -->
-                            <div class="col-lg-4 col-md-6 mb-4">
-                                <div class="card project-card">
-                                    <div class="card-body text-center">
-                                        <div class="project-logo mb-3">
-                                            <img src="{{ asset('assets/images/logo-icon.png') }}" alt="Project Logo" class="img-fluid" style="max-width: 80px;">
-                                        </div>
-                                        <h5 class="card-title">CRM System</h5>
-                                        <p class="card-text text-muted">Customer relationship management solution</p>
-                                        <div class="project-status">
-                                            <span class="badge bg-warning">In Progress</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Project Issue Card 3 -->
-                            <div class="col-lg-4 col-md-6 mb-4">
-                                <div class="card project-card">
-                                    <div class="card-body text-center">
-                                        <div class="project-logo mb-3">
-                                            <img src="{{ asset('assets/images/logo-icon.png') }}" alt="Project Logo" class="img-fluid" style="max-width: 80px;">
-                                        </div>
-                                        <h5 class="card-title">Mobile App</h5>
-                                        <p class="card-text text-muted">Cross-platform mobile application</p>
-                                        <div class="project-status">
-                                            <span class="badge bg-info">Planning</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-bordered">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Sr. No.</th>
+                                        <th>Project Name</th>
+                                        <th>Client Name</th>
+                                        <th>Issue</th>
+                                        <th>Priority</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($clientIssues as $index => $issue)
+                                    <tr>
+                                        <td>{{ $index + 1 }}</td>
+                                        <td>{{ $issue->project->project_name ?? 'N/A' }}</td>
+                                        <td>{{ $issue->customer->client_name ?? 'N/A' }}</td>
+                                        <td>{{ Str::limit($issue->issue_description, 50) }}</td>
+                                        <td>
+                                            @if($issue->priority == 'low')
+                                                <span class="badge bg-secondary">Low</span>
+                                            @elseif($issue->priority == 'medium')
+                                                <span class="badge bg-primary">Medium</span>
+                                            @elseif($issue->priority == 'high')
+                                                <span class="badge bg-warning">High</span>
+                                            @elseif($issue->priority == 'critical')
+                                                <span class="badge bg-danger">Critical</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($issue->status == 'open')
+                                                <span class="badge bg-danger">Open</span>
+                                            @elseif($issue->status == 'in_progress')
+                                                <span class="badge bg-warning">In Progress</span>
+                                            @elseif($issue->status == 'resolved')
+                                                <span class="badge bg-success">Resolved</span>
+                                            @elseif($issue->status == 'closed')
+                                                <span class="badge bg-info">Closed</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <a href="{{ route('client-issue.show', $issue->id) }}" class="btn btn-sm btn-info text-white me-1">
+                                                <i class="bx bx-eye"></i> View
+                                            </a>
+                                            <form action="{{ route('client-issue.destroy', $issue->id) }}" method="POST" class="d-inline">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this issue?')">
+                                                    <i class="bx bx-trash"></i> Delete
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    @empty
+                                    <tr>
+                                        <td colspan="7" class="text-center">No client issues found.</td>
+                                    </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
@@ -93,51 +119,71 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <form id="addIssueForm">
+                <form id="addIssueForm" action="{{ route('client-issue.store') }}" method="POST">
+                    @csrf
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label for="projectName" class="form-label">Project</label>
-                            <select class="form-select" id="projectName" required>
+                            <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                            <select class="form-select @error('project_id') is-invalid @enderror" id="project_id" name="project_id" required>
                                 <option value="">Select Project</option>
-                                <option value="ecommerce">E-commerce Platform</option>
-                                <option value="crm">CRM System</option>
-                                <option value="mobile">Mobile App</option>
-                                <option value="web">Web Application</option>
-                                <option value="api">API Development</option>
+                                @foreach($projects as $project)
+                                    <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                        {{ $project->project_name }}
+                                    </option>
+                                @endforeach
                             </select>
+                            @error('project_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="clientName" class="form-label">Client Name</label>
-                            <input type="text" disabled class="form-control" value="Manish" id="clientName" required>
+                            <label for="customer_id" class="form-label">Client Name <span class="text-danger">*</span></label>
+                            <select class="form-select @error('customer_id') is-invalid @enderror" id="customer_id" name="customer_id" required>
+                                <option value="">Select Client</option>
+                                @foreach($customers as $customer)
+                                    <option value="{{ $customer->id }}" {{ old('customer_id') == $customer->id ? 'selected' : '' }}>
+                                        {{ $customer->client_name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('customer_id')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label for="issueDescription" class="form-label">Issue Description</label>
-                        <textarea class="form-control" id="issueDescription" rows="3" required></textarea>
+                        <label for="issue_description" class="form-label">Issue Description <span class="text-danger">*</span></label>
+                        <textarea class="form-control @error('issue_description') is-invalid @enderror" id="issue_description" name="issue_description" rows="3" required>{{ old('issue_description') }}</textarea>
+                        @error('issue_description')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="priority" class="form-label">Priority</label>
-                            <select class="form-select" id="priority" required>
-                                <option value="">Select Priority</option>
-                                <option value="low">Low</option>
-                                <option value="medium">Medium</option>
-                                <option value="high">High</option>
-                                <option value="critical">Critical</option>
+                            <select class="form-select @error('priority') is-invalid @enderror" id="priority" name="priority">
+                                <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>Low</option>
+                                <option value="medium" {{ old('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
+                                <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>High</option>
+                                <option value="critical" {{ old('priority') == 'critical' ? 'selected' : '' }}>Critical</option>
                             </select>
+                            @error('priority')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="status" class="form-label">Status</label>
-                            <select class="form-select" id="status" required>
-                                <option value="">Select Status</option>
-                                <option value="open">Open</option>
-                                <option value="in-progress">In Progress</option>
-                                <option value="resolved">Resolved</option>
-                                <option value="closed">Closed</option>
+                            <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
+                                <option value="open" {{ old('status') == 'open' ? 'selected' : '' }}>Open</option>
+                                <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                <option value="resolved" {{ old('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                                <option value="closed" {{ old('status') == 'closed' ? 'selected' : '' }}>Closed</option>
                             </select>
+                            @error('status')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
-                    
                 </form>
             </div>
             <div class="modal-footer">
@@ -149,32 +195,58 @@
 </div>
 
 <style>
-.project-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border: 1px solid #e9ecef;
-}
-
-.project-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-}
-
-.project-logo {
-    height: 80px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.project-status {
-    margin-top: 15px;
-}
-
 .card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Save button click handler
+    document.getElementById('saveIssueBtn').addEventListener('click', function() {
+        var form = document.getElementById('addIssueForm');
+        var projectSelect = document.getElementById('project_id');
+        var customerSelect = document.getElementById('customer_id');
+        var descriptionTextarea = document.getElementById('issue_description');
+        
+        // Reset validation
+        projectSelect.classList.remove('is-invalid');
+        customerSelect.classList.remove('is-invalid');
+        descriptionTextarea.classList.remove('is-invalid');
+        
+        var isValid = true;
+        
+        // Validate project
+        if (!projectSelect.value) {
+            projectSelect.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        // Validate customer
+        if (!customerSelect.value) {
+            customerSelect.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        // Validate description
+        if (!descriptionTextarea.value.trim()) {
+            descriptionTextarea.classList.add('is-invalid');
+            isValid = false;
+        }
+        
+        if (isValid) {
+            form.submit();
+        }
+    });
+    
+    // Show modal if there are validation errors
+    @if($errors->any())
+        var addIssueModal = new bootstrap.Modal(document.getElementById('addIssueModal'));
+        addIssueModal.show();
+    @endif
+});
+</script>
 
 @endsection

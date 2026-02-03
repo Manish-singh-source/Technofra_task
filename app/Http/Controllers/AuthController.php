@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Staff;
+use App\Models\Customer;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
@@ -100,6 +102,17 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+            
+            // Store user permissions in session for quick access
+            $user = Auth::user();
+            $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+            $roles = $user->getRoleNames()->toArray();
+            
+            session([
+                'user_permissions' => $permissions,
+                'user_roles' => $roles,
+                'user_type' => $user->user_type,
+            ]);
             
             return redirect()->intended(route('dashboard'))
                 ->with('success', 'Welcome back, ' . Auth::user()->name . '!');
@@ -270,5 +283,300 @@ class AuthController extends Controller
 
         return redirect()->route('login')
             ->with('success', 'Your password has been reset successfully. Please login with your new password.');
+    }
+
+    // ==================== API AUTHENTICATION METHODS ====================
+
+    /**
+     * API: Login and return token with user data
+     */
+    public function apiLogin(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = User::where('email', $request->email)->first();
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid credentials',
+            ], 401);
+        }
+
+        // Revoke existing tokens
+        $user->tokens()->delete();
+
+        // Create new token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        // Get user permissions and roles
+        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+        $roles = $user->getRoleNames()->toArray();
+
+        // Get user profile data
+        $profile = null;
+        $userType = 'admin';
+
+        if ($user->staff) {
+            $profile = $user->staff;
+            $userType = 'staff';
+        } elseif ($user->customer) {
+            $profile = $user->customer;
+            $userType = 'customer';
+        }
+
+        // Get menu items based on permissions
+        $menuItems = $this->getMenuItemsForUser($permissions);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Login successful',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'type' => $userType,
+                ],
+                'profile' => $profile,
+                'roles' => $roles,
+                'permissions' => $permissions,
+                'menu_items' => $menuItems,
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ]);
+    }
+
+    /**
+     * API: Register a new user
+     */
+    public function apiRegister(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Registration successful',
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                ],
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ], 201);
+    }
+
+    /**
+     * API: Logout and revoke token
+     */
+    public function apiLogout(Request $request)
+    {
+        $request->user()->currentAccessToken()->delete();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged out successfully',
+        ]);
+    }
+
+    /**
+     * API: Get current user data with permissions
+     */
+    public function apiUser(Request $request)
+    {
+        $user = $request->user();
+        $permissions = $user->getAllPermissions()->pluck('name')->toArray();
+        $roles = $user->getRoleNames()->toArray();
+
+        $profile = null;
+        $userType = 'admin';
+
+        if ($user->staff) {
+            $profile = $user->staff;
+            $userType = 'staff';
+        } elseif ($user->customer) {
+            $profile = $user->customer;
+            $userType = 'customer';
+        }
+
+        $menuItems = $this->getMenuItemsForUser($permissions);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'type' => $userType,
+                ],
+                'profile' => $profile,
+                'roles' => $roles,
+                'permissions' => $permissions,
+                'menu_items' => $menuItems,
+            ],
+        ]);
+    }
+
+    /**
+     * API: Refresh token
+     */
+    public function apiRefreshToken(Request $request)
+    {
+        $user = $request->user();
+        
+        // Revoke current token
+        $request->user()->currentAccessToken()->delete();
+        
+        // Create new token
+        $token = $user->createToken('auth_token')->plainTextToken;
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Token refreshed successfully',
+            'data' => [
+                'token' => $token,
+                'token_type' => 'Bearer',
+            ],
+        ]);
+    }
+
+    /**
+     * Get menu items based on user permissions
+     */
+    private function getMenuItemsForUser(array $permissions)
+    {
+        $menuItems = [
+            [
+                'name' => 'Dashboard',
+                'route' => 'dashboard',
+                'icon' => 'bx-home-alt',
+                'permission' => null, // Always visible
+            ],
+        ];
+
+        // Access Control menu
+        if (in_array('view_staff', $permissions) || in_array('view_roles', $permissions)) {
+            $accessControlItems = [];
+            
+            if (in_array('view_staff', $permissions)) {
+                $accessControlItems[] = [
+                    'name' => 'Staff',
+                    'route' => 'staff',
+                    'permission' => 'view_staff',
+                ];
+            }
+            
+            if (in_array('view_roles', $permissions)) {
+                $accessControlItems[] = [
+                    'name' => 'Roles',
+                    'route' => 'roles',
+                    'permission' => 'view_roles',
+                ];
+            }
+
+            $menuItems[] = [
+                'name' => 'Access Control',
+                'icon' => 'bx-user-circle',
+                'children' => $accessControlItems,
+            ];
+        }
+
+        // Renewal Master menu
+        if (in_array('view_renewals', $permissions)) {
+            $menuItems[] = [
+                'name' => 'Renewal Master',
+                'icon' => 'bx-category',
+                'children' => [
+                    ['name' => 'Client Renewal', 'route' => 'servies', 'permission' => 'view_renewals'],
+                    ['name' => 'Vendor Renewal', 'route' => 'vendor-services.index', 'permission' => 'view_renewals'],
+                    ['name' => 'Client', 'route' => 'client', 'permission' => 'view_renewals'],
+                    ['name' => 'Vendor', 'route' => 'vendor1', 'permission' => 'view_renewals'],
+                ],
+            ];
+        }
+
+        // Leads
+        $menuItems[] = [
+            'name' => 'Leads',
+            'route' => 'leads',
+            'icon' => 'bx-user-voice',
+            'permission' => null, // Always visible
+        ];
+
+        // Projects
+        if (in_array('view_projects', $permissions)) {
+            $menuItems[] = [
+                'name' => 'Projects',
+                'route' => 'project',
+                'icon' => 'bx-bar-chart',
+                'permission' => 'view_projects',
+            ];
+        }
+
+        // Tasks
+        if (in_array('view_tasks', $permissions)) {
+            $menuItems[] = [
+                'name' => 'Tasks',
+                'route' => 'task',
+                'icon' => 'bx-task',
+                'permission' => 'view_tasks',
+            ];
+        }
+
+        // Raise Issue
+        $menuItems[] = [
+            'name' => 'Raise Issue',
+            'route' => 'client-issue',
+            'icon' => 'bx-error',
+            'permission' => null, // Always visible
+        ];
+
+        // Clients
+        if (in_array('view_clients', $permissions)) {
+            $menuItems[] = [
+                'name' => 'Client',
+                'route' => 'clients',
+                'icon' => 'bx-user-check',
+                'permission' => 'view_clients',
+            ];
+        }
+
+        return $menuItems;
     }
 }

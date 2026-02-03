@@ -14,11 +14,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        // Call seeders in the correct order
+        // Call only PermissionSeeder which creates permissions and super-admin user
         $this->call([
             PermissionSeeder::class,
-            RoleSeeder::class,
-            SuperAdminSeeder::class,
         ]);
     }
 }
