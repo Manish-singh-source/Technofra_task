@@ -46,7 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/client/toggle-status',  [ClientController::class, 'toggleStatus'])->name('client.toggleStatus')->middleware('permission:edit_renewals');
     Route::get('/add-client', [ClientController::class, 'addclient'])->name('add-client')->middleware('permission:create_renewals');
     Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('permission:create_renewals');
-    Route::post('/store-client', [CustomerController::class, 'storeclient'])->name('store-client')->middleware('permission:create_renewals');
+    Route::post('/store-client', [ClientController::class, 'storeclient'])->name('store-client')->middleware('permission:create_renewals');
     Route::get('/edit-client/{id}', [ClientController::class, 'editclient'])->name('client.edit')->middleware('permission:edit_renewals');
     Route::put('/update-client/{id}', [ClientController::class, 'updateclient'])->name('client.update')->middleware('permission:edit_renewals');
     Route::delete('/client/delete/{id}', [ClientController::class, 'deleteclient'])->name('client.delete')->middleware('permission:delete_renewals');

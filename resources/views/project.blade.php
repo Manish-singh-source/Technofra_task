@@ -115,7 +115,7 @@
                                 <div>
                                     <p class="mb-0 text-secondary">Completed</p>
                                     <h4 class="my-1 text-success">{{ $completedProjects ?? 0 }}</h4>
-                                    <p class="mb-0 font-13">Finished successfully</p>
+                                    <p class="mb-0 font-13">Finished</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
                                     <i class='bx bx-check'></i>

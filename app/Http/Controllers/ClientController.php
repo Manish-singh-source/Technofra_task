@@ -6,7 +6,9 @@ use App\Models\Client;
 use App\Imports\ClientsImport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Facades\Excel;
+
 
 class ClientController extends Controller
 {
@@ -32,8 +34,41 @@ class ClientController extends Controller
     }
     public function addclient()
     {
-
         return view('add-client');
+    }
+
+    /**
+     * Store a newly created client.
+     */
+    public function storeclient(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'cname' => 'required|min:3',
+            'coname' => 'required|min:3',
+            'email' => 'required|email|unique:clients,email',
+            'phone' => 'required|min:10',
+            'address' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return back()->withErrors($validator)->withInput();
+        }
+
+        try {
+            $client = new Client();
+            $client->cname = $request->cname;
+            $client->coname = $request->coname;
+            $client->email = $request->email;
+            $client->phone = $request->phone;
+            $client->address = $request->address ?? '';
+            $client->status = 1; // 1 for Active, 0 for Inactive
+            $client->save();
+
+            return redirect()->route('client')->with('success', 'Client added successfully.');
+        } catch (\Exception $e) {
+            Log::error('Error saving client: ' . $e->getMessage());
+            return back()->with('error', 'Failed to save client: ' . $e->getMessage())->withInput();
+        }
     }
 
     public function deleteclient($id)
