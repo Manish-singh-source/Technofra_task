@@ -19,7 +19,6 @@ return new class extends Migration
             $table->enum('status', ['todo', 'in_progress', 'review', 'done'])->default('todo');
             $table->string('priority')->default('medium');
             $table->string('assigned_to')->nullable();
-            $table->string('attachment')->nullable();
              $table->date('start_date')->nullable();
             $table->time('due_time')->nullable();
             $table->date('reminder_date')->nullable();
