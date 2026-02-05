@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientIssue;
+use App\Models\ClientIssueTask;
 use App\Models\Customer;
 use App\Models\Project;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 class ClientIssueController extends Controller
@@ -117,11 +119,11 @@ class ClientIssueController extends Controller
     }
 
     /**
-     * Display the specified client issue.
+     * Display the specified client issue with tasks.
      */
     public function show($id)
     {
-        $clientIssue = ClientIssue::with(['project', 'customer'])->findOrFail($id);
+        $clientIssue = ClientIssue::with(['project', 'customer', 'tasks'])->findOrFail($id);
         
         // If user is a customer, verify they own this issue's project
         $customer = $this->getLoggedInCustomer();
@@ -130,6 +132,177 @@ class ClientIssueController extends Controller
         }
         
         return view('client-issue-details', compact('clientIssue'));
+    }
+
+    /**
+     * Store a newly created task for a client issue.
+     */
+    public function taskStore(Request $request, $clientIssueId)
+    {
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'nullable|in:todo,in_progress,review,done',
+            'priority' => 'nullable|in:low,medium,high,critical',
+            'assigned_to' => 'nullable|string|max:255',
+            'start_date' => 'nullable|date',
+            'due_date' => 'nullable|date',
+            'due_time' => 'nullable',
+            'reminder_date' => 'nullable|date',
+            'reminder_time' => 'nullable',
+            'checklist_data' => 'nullable',
+            'labels_data' => 'nullable',
+            'attachment' => 'nullable|file|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $clientIssue = ClientIssue::findOrFail($clientIssueId);
+        
+        // If user is a customer, verify they own this issue's project
+        $customer = $this->getLoggedInCustomer();
+        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to create tasks for this issue.');
+        }
+
+        // Handle file upload
+        $attachmentPath = null;
+        if ($request->hasFile('attachment') && $request->file('attachment')->isValid()) {
+            $attachmentPath = $request->file('attachment')->store('task-attachments', 'public');
+        }
+
+        ClientIssueTask::create([
+            'client_issue_id' => $clientIssueId,
+            'title' => $request->title,
+            'description' => $request->description,
+            'status' => $request->status ?? 'todo',
+            'priority' => $request->priority ?? 'medium',
+            'assigned_to' => $request->assigned_to,
+            'start_date' => $request->start_date,
+            'due_date' => $request->due_date,
+            'due_time' => $request->due_time,
+            'reminder_date' => $request->reminder_date,
+            'reminder_time' => $request->reminder_time,
+            'checklist_data' => $request->checklist_data,
+            'labels_data' => $request->labels_data,
+            'attachment' => $attachmentPath,
+        ]);
+
+        return redirect()->route('client-issue.show', $clientIssueId)->with('success', 'Task created successfully!');
+    }
+
+    /**
+     * Update an existing task.
+     */
+    public function taskUpdate(Request $request, $clientIssueId, $taskId)
+    {
+        $validator = Validator::make($request->all(), [
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'nullable|in:todo,in_progress,review,done',
+            'priority' => 'nullable|in:low,medium,high,critical',
+            'assigned_to' => 'nullable|string|max:255',
+            'start_date' => 'nullable|date',
+            'due_date' => 'nullable|date',
+            'due_time' => 'nullable',
+            'reminder_date' => 'nullable|date',
+            'reminder_time' => 'nullable',
+            'checklist_data' => 'nullable',
+            'labels_data' => 'nullable',
+            'attachment' => 'nullable|file|max:10240',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $clientIssue = ClientIssue::findOrFail($clientIssueId);
+        $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
+        
+        // If user is a customer, verify they own this issue's project
+        $customer = $this->getLoggedInCustomer();
+        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to update tasks for this issue.');
+        }
+
+        // Handle file upload
+        $attachmentPath = $task->attachment;
+        if ($request->hasFile('attachment') && $request->file('attachment')->isValid()) {
+            // Delete old file if exists
+            if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
+                Storage::disk('public')->delete($task->attachment);
+            }
+            $attachmentPath = $request->file('attachment')->store('task-attachments', 'public');
+        }
+
+        $task->update([
+            'title' => $request->title,
+            'description' => $request->description,
+            'status' => $request->status ?? $task->status,
+            'priority' => $request->priority ?? $task->priority,
+            'assigned_to' => $request->assigned_to,
+            'start_date' => $request->start_date,
+            'due_date' => $request->due_date,
+            'due_time' => $request->due_time,
+            'reminder_date' => $request->reminder_date,
+            'reminder_time' => $request->reminder_time,
+            'checklist_data' => $request->checklist_data,
+            'labels_data' => $request->labels_data,
+            'attachment' => $attachmentPath,
+        ]);
+
+        return redirect()->route('client-issue.show', $clientIssueId)->with('success', 'Task updated successfully!');
+    }
+
+    /**
+     * Update task status (for drag and drop).
+     */
+    public function taskUpdateStatus(Request $request, $clientIssueId, $taskId)
+    {
+        $request->validate([
+            'status' => 'required|in:todo,in_progress,review,done',
+        ]);
+
+        $clientIssue = ClientIssue::findOrFail($clientIssueId);
+        $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
+        
+        // If user is a customer, verify they own this issue's project
+        $customer = $this->getLoggedInCustomer();
+        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        }
+
+        $task->update([
+            'status' => $request->status,
+        ]);
+
+        return response()->json(['success' => true, 'task' => $task]);
+    }
+
+    /**
+     * Delete a task.
+     */
+    public function taskDestroy($clientIssueId, $taskId)
+    {
+        $clientIssue = ClientIssue::findOrFail($clientIssueId);
+        $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
+        
+        // If user is a customer, verify they own this issue's project
+        $customer = $this->getLoggedInCustomer();
+        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to delete tasks for this issue.');
+        }
+
+        // Delete attachment if exists
+        if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
+            Storage::disk('public')->delete($task->attachment);
+        }
+
+        $task->delete();
+
+        return redirect()->route('client-issue.show', $clientIssueId)->with('success', 'Task deleted successfully!');
     }
 
     /**

@@ -37,4 +37,12 @@ class ClientIssue extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    /**
+     * Get the tasks for this client issue.
+     */
+    public function tasks()
+    {
+        return $this->hasMany(ClientIssueTask::class);
+    }
 }

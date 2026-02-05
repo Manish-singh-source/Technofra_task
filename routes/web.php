@@ -191,6 +191,12 @@ Route::middleware('auth')->group(function () {
         Route::post('/client-issue', [ClientIssueController::class, 'store'])->name('client-issue.store');
         Route::get('/client-issue/{id}', [ClientIssueController::class, 'show'])->name('client-issue.show');
         Route::delete('/client-issue/{id}', [ClientIssueController::class, 'destroy'])->name('client-issue.destroy');
+        
+        // Client issue task routes
+        Route::post('/client-issue/{clientIssue}/task', [ClientIssueController::class, 'taskStore'])->name('client-issue.task.store');
+        Route::put('/client-issue/{clientIssue}/task/{task}', [ClientIssueController::class, 'taskUpdate'])->name('client-issue.task.update');
+        Route::patch('/client-issue/{clientIssue}/task/{task}/status', [ClientIssueController::class, 'taskUpdateStatus'])->name('client-issue.task.update-status');
+        Route::delete('/client-issue/{clientIssue}/task/{task}', [ClientIssueController::class, 'taskDestroy'])->name('client-issue.task.destroy');
     });
 
     // Clients routes
