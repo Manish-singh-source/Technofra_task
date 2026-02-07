@@ -1,6 +1,13 @@
 @extends('/layout/master')
 @section('content')
-
+@php
+use Illuminate\Support\Facades\Storage;
+@endphp
+<style>
+    .modal-header{
+        background-color: #000;
+    }
+    </style>
 <div class="page-wrapper">
     <div class="page-content">
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -110,6 +117,24 @@
                                 }
                                 $labels = is_array($task->labels_data) ? $task->labels_data : (json_decode($task->labels_data, true) ?? []);
                                 $checklist = is_array($task->checklist_data) ? $task->checklist_data : (json_decode($task->checklist_data, true) ?? []);
+                                $attachments = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
+                                if (count($attachments) === 0 && $task->attachment) {
+                                    $attachments = [is_array($task->attachment) ? ($task->attachment['path'] ?? null) : $task->attachment];
+                                }
+                                $normalizedAttachments = [];
+                                foreach ($attachments as $item) {
+                                    if (is_array($item)) {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item['path'] ?? null,
+                                            'name' => $item['name'] ?? null,
+                                        ];
+                                    } else {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item,
+                                            'name' => null,
+                                        ];
+                                    }
+                                }
                                 $completedCount = count(array_filter($checklist, function($item) { return isset($item['completed']) && $item['completed']; }));
                                 $totalCount = count($checklist);
                                 $progressPercent = $totalCount > 0 ? ($completedCount / $totalCount) * 100 : 0;
@@ -121,8 +146,14 @@
                                             <h6 class="task-card-title">{{ $task->title }}</h6>
                                         </div>
                                         <div class="task-card-actions">
-                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}">
+                                            <a class="btn btn-sm btn-outline-success" href="{{ route('client-issue.task.show', ['clientIssue' => $clientIssue->id, 'task' => $task->id]) }}" title="View Task">
+                                                <i class="bx bx-show"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}" title="Edit Task">
                                                 <i class="bx bx-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="{{ $task->id }}" title="Delete Task">
+                                                <i class="bx bx-trash"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -164,9 +195,18 @@
                                             </span>
                                         @endif
                                         
-                                        @if($task->attachment)
+                                        @if(count($normalizedAttachments) > 0)
+                                            @php
+                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                            @endphp
                                             <span class="task-meta-item task-attachment">
-                                                <i class='bx bx-paperclip'></i> File
+                                                <i class='bx bx-paperclip'></i>
+                                                {{ $isImage ? 'Image' : 'File' }}
+                                                @if(count($normalizedAttachments) > 1)
+                                                    <small class="text-muted">({{ count($normalizedAttachments) }})</small>
+                                                @endif
                                             </span>
                                         @endif
                                         
@@ -189,6 +229,20 @@
                                                 <div class="task-checklist-progress-bar" style="width: {{ $progressPercent }}%"></div>
                                             </div>
                                         </div>
+                                    @endif
+                                    
+                                    <!-- Image Preview at the end -->
+                                    @if(count($normalizedAttachments) > 0)
+                                        @php
+                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                        @endphp
+                                        @if($isImage)
+                                            <div class="task-image-preview mt-2">
+                                                <img src="{{ $attachmentPath }}" alt="Task Image" class="task-card-image img-thumbnail" data-full-url="{{ $attachmentPath }}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
+                                            </div>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
@@ -224,6 +278,24 @@
                                 }
                                 $labels = is_array($task->labels_data) ? $task->labels_data : (json_decode($task->labels_data, true) ?? []);
                                 $checklist = is_array($task->checklist_data) ? $task->checklist_data : (json_decode($task->checklist_data, true) ?? []);
+                                $attachments = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
+                                if (count($attachments) === 0 && $task->attachment) {
+                                    $attachments = [is_array($task->attachment) ? ($task->attachment['path'] ?? null) : $task->attachment];
+                                }
+                                $normalizedAttachments = [];
+                                foreach ($attachments as $item) {
+                                    if (is_array($item)) {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item['path'] ?? null,
+                                            'name' => $item['name'] ?? null,
+                                        ];
+                                    } else {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item,
+                                            'name' => null,
+                                        ];
+                                    }
+                                }
                                 $completedCount = count(array_filter($checklist, function($item) { return isset($item['completed']) && $item['completed']; }));
                                 $totalCount = count($checklist);
                                 $progressPercent = $totalCount > 0 ? ($completedCount / $totalCount) * 100 : 0;
@@ -235,8 +307,14 @@
                                             <h6 class="task-card-title">{{ $task->title }}</h6>
                                         </div>
                                         <div class="task-card-actions">
-                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}">
+                                            <a class="btn btn-sm btn-outline-success" href="{{ route('client-issue.task.show', ['clientIssue' => $clientIssue->id, 'task' => $task->id]) }}" title="View Task">
+                                                <i class="bx bx-show"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}" title="Edit Task">
                                                 <i class="bx bx-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="{{ $task->id }}" title="Delete Task">
+                                                <i class="bx bx-trash"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -276,9 +354,18 @@
                                             </span>
                                         @endif
                                         
-                                        @if($task->attachment)
+                                        @if(count($normalizedAttachments) > 0)
+                                            @php
+                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                            @endphp
                                             <span class="task-meta-item task-attachment">
-                                                <i class='bx bx-paperclip'></i> File
+                                                <i class='bx bx-paperclip'></i>
+                                                {{ $isImage ? 'Image' : 'File' }}
+                                                @if(count($normalizedAttachments) > 1)
+                                                    <small class="text-muted">({{ count($normalizedAttachments) }})</small>
+                                                @endif
                                             </span>
                                         @endif
                                         
@@ -300,6 +387,20 @@
                                                 <div class="task-checklist-progress-bar" style="width: {{ $progressPercent }}%"></div>
                                             </div>
                                         </div>
+                                    @endif
+                                    
+                                    <!-- Image Preview at the end -->
+                                    @if(count($normalizedAttachments) > 0)
+                                        @php
+                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                        @endphp
+                                        @if($isImage)
+                                            <div class="task-image-preview mt-2">
+                                                <img src="{{ $attachmentPath }}" alt="Task Image" class="task-card-image img-thumbnail" data-full-url="{{ $attachmentPath }}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
+                                            </div>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
@@ -331,6 +432,24 @@
                                 }
                                 $labels = is_array($task->labels_data) ? $task->labels_data : (json_decode($task->labels_data, true) ?? []);
                                 $checklist = is_array($task->checklist_data) ? $task->checklist_data : (json_decode($task->checklist_data, true) ?? []);
+                                $attachments = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
+                                if (count($attachments) === 0 && $task->attachment) {
+                                    $attachments = [is_array($task->attachment) ? ($task->attachment['path'] ?? null) : $task->attachment];
+                                }
+                                $normalizedAttachments = [];
+                                foreach ($attachments as $item) {
+                                    if (is_array($item)) {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item['path'] ?? null,
+                                            'name' => $item['name'] ?? null,
+                                        ];
+                                    } else {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item,
+                                            'name' => null,
+                                        ];
+                                    }
+                                }
                                 $completedCount = count(array_filter($checklist, function($item) { return isset($item['completed']) && $item['completed']; }));
                                 $totalCount = count($checklist);
                                 $progressPercent = $totalCount > 0 ? ($completedCount / $totalCount) * 100 : 0;
@@ -342,8 +461,14 @@
                                             <h6 class="task-card-title">{{ $task->title }}</h6>
                                         </div>
                                         <div class="task-card-actions">
-                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}">
+                                            <a class="btn btn-sm btn-outline-success" href="{{ route('client-issue.task.show', ['clientIssue' => $clientIssue->id, 'task' => $task->id]) }}" title="View Task">
+                                                <i class="bx bx-show"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}" title="Edit Task">
                                                 <i class="bx bx-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="{{ $task->id }}" title="Delete Task">
+                                                <i class="bx bx-trash"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -383,9 +508,18 @@
                                             </span>
                                         @endif
                                         
-                                        @if($task->attachment)
+                                        @if(count($normalizedAttachments) > 0)
+                                            @php
+                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                            @endphp
                                             <span class="task-meta-item task-attachment">
-                                                <i class='bx bx-paperclip'></i> File
+                                                <i class='bx bx-paperclip'></i>
+                                                {{ $isImage ? 'Image' : 'File' }}
+                                                @if(count($normalizedAttachments) > 1)
+                                                    <small class="text-muted">({{ count($normalizedAttachments) }})</small>
+                                                @endif
                                             </span>
                                         @endif
                                         
@@ -407,6 +541,20 @@
                                                 <div class="task-checklist-progress-bar" style="width: {{ $progressPercent }}%"></div>
                                             </div>
                                         </div>
+                                    @endif
+                                    
+                                    <!-- Image Preview at the end -->
+                                    @if(count($normalizedAttachments) > 0)
+                                        @php
+                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                        @endphp
+                                        @if($isImage)
+                                            <div class="task-image-preview mt-2">
+                                                <img src="{{ $attachmentPath }}" alt="Task Image" class="task-card-image img-thumbnail" data-full-url="{{ $attachmentPath }}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
+                                            </div>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
@@ -438,6 +586,24 @@
                                 }
                                 $labels = is_array($task->labels_data) ? $task->labels_data : (json_decode($task->labels_data, true) ?? []);
                                 $checklist = is_array($task->checklist_data) ? $task->checklist_data : (json_decode($task->checklist_data, true) ?? []);
+                                $attachments = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
+                                if (count($attachments) === 0 && $task->attachment) {
+                                    $attachments = [is_array($task->attachment) ? ($task->attachment['path'] ?? null) : $task->attachment];
+                                }
+                                $normalizedAttachments = [];
+                                foreach ($attachments as $item) {
+                                    if (is_array($item)) {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item['path'] ?? null,
+                                            'name' => $item['name'] ?? null,
+                                        ];
+                                    } else {
+                                        $normalizedAttachments[] = [
+                                            'path' => $item,
+                                            'name' => null,
+                                        ];
+                                    }
+                                }
                                 $completedCount = count(array_filter($checklist, function($item) { return isset($item['completed']) && $item['completed']; }));
                                 $totalCount = count($checklist);
                                 $progressPercent = $totalCount > 0 ? ($completedCount / $totalCount) * 100 : 0;
@@ -449,8 +615,14 @@
                                             <h6 class="task-card-title">{{ $task->title }}</h6>
                                         </div>
                                         <div class="task-card-actions">
-                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}">
+                                            <a class="btn btn-sm btn-outline-success" href="{{ route('client-issue.task.show', ['clientIssue' => $clientIssue->id, 'task' => $task->id]) }}" title="View Task">
+                                                <i class="bx bx-show"></i>
+                                            </a>
+                                            <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}" title="Edit Task">
                                                 <i class="bx bx-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="{{ $task->id }}" title="Delete Task">
+                                                <i class="bx bx-trash"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -490,9 +662,18 @@
                                             </span>
                                         @endif
                                         
-                                        @if($task->attachment)
+                                        @if(count($normalizedAttachments) > 0)
+                                            @php
+                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                                $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                            @endphp
                                             <span class="task-meta-item task-attachment">
-                                                <i class='bx bx-paperclip'></i> File
+                                                <i class='bx bx-paperclip'></i>
+                                                {{ $isImage ? 'Image' : 'File' }}
+                                                @if(count($normalizedAttachments) > 1)
+                                                    <small class="text-muted">({{ count($normalizedAttachments) }})</small>
+                                                @endif
                                             </span>
                                         @endif
                                         
@@ -514,6 +695,20 @@
                                                 <div class="task-checklist-progress-bar" style="width: {{ $progressPercent }}%"></div>
                                             </div>
                                         </div>
+                                    @endif
+                                    
+                                    <!-- Image Preview at the end -->
+                                    @if(count($normalizedAttachments) > 0)
+                                        @php
+                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
+                                            $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
+                                        @endphp
+                                        @if($isImage)
+                                            <div class="task-image-preview mt-2">
+                                                <img src="{{ $attachmentPath }}" alt="Task Image" class="task-card-image img-thumbnail" data-full-url="{{ $attachmentPath }}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 8px;">
+                                            </div>
+                                        @endif
                                     @endif
                                 </div>
                             </div>
@@ -686,8 +881,18 @@
                                 <i class='bx bx-paperclip me-2'></i>Attachment
                             </h6>
                             <div class="mb-3">
-                                <input type="file" class="form-control" id="attachment" name="attachment">
+                                <input type="file" class="form-control" id="attachments" name="attachments[]" multiple>
                                 <small class="text-muted">Max file size: 10MB</small>
+                            </div>
+                            <!-- Image Preview -->
+                            <div id="imagePreviewContainer" class="mt-3" style="display: none;">
+                                <p class="mb-2"><strong>Preview:</strong></p>
+                                <div class="attachment-preview">
+                                    <div id="imagePreviewList" class="d-flex flex-wrap gap-2"></div>
+                                    <button type="button" class="btn btn-sm btn-outline-danger ms-2" id="removeImageBtn">
+                                        <i class='bx bx-trash'></i> Remove All
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -728,6 +933,21 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div class="modal fade" id="imagePreviewModal" tabindex="-1" aria-labelledby="imagePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <img id="fullImagePreview" src="" alt="Full Image Preview" class="img-fluid">
             </div>
         </div>
     </div>
@@ -998,6 +1218,50 @@
     margin-top: 6px;
     line-height: 1.5;
 }
+
+/* Attachment preview styles */
+.attachment-preview {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.attachment-preview img {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* Task card image preview */
+.task-image-preview {
+    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.task-image-preview img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.task-image-preview img:hover {
+    transform: scale(1.02);
+}
+
+/* Image preview modal */
+#imagePreviewModal .modal-body {
+    padding: 0;
+    background: #000;
+}
+
+#imagePreviewModal .modal-body img {
+    width: 100%;
+    max-height: 80vh;
+    object-fit: contain;
+}
 </style>
 
 <script>
@@ -1132,7 +1396,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('start_date').value = '';
             document.getElementById('reminder_date').value = '';
             document.getElementById('reminder_time').value = '';
-            document.getElementById('attachment').value = '';
+            document.getElementById('attachments').value = '';
             
             // Reset checklist and labels
             checklistData = [];
@@ -1215,15 +1479,24 @@ document.addEventListener('DOMContentLoaded', function() {
             taskModal.show();
         });
     });
+
+    // Auto-open edit modal from query param
+    const editTaskIdFromQuery = new URLSearchParams(window.location.search).get('edit_task');
+    if (editTaskIdFromQuery) {
+        const editBtn = document.querySelector(`.edit-task-btn[data-task-id="${editTaskIdFromQuery}"]`);
+        if (editBtn) {
+            editBtn.click();
+        }
+    }
     
-    // Task card click handler for delete
-    document.querySelectorAll('.task-card').forEach(card => {
-        card.addEventListener('click', function(e) {
-            if (!e.target.closest('.edit-task-btn')) {
-                const taskId = this.getAttribute('data-task-id');
-                document.getElementById('deleteTaskForm').action = '{{ route('client-issue.task.destroy', ['clientIssue' => $clientIssue->id, 'task' => '__task_id__']) }}'.replace('__task_id__', taskId);
-                deleteTaskModal.show();
-            }
+    // Delete Task button click handler
+    document.querySelectorAll('.delete-task-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            
+            const taskId = this.getAttribute('data-task-id');
+            document.getElementById('deleteTaskForm').action = '{{ route('client-issue.task.destroy', ['clientIssue' => $clientIssue->id, 'task' => '__task_id__']) }}'.replace('__task_id__', taskId);
+            deleteTaskModal.show();
         });
     });
     
@@ -1318,6 +1591,59 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Image Preview Functionality
+    const attachmentInput = document.getElementById('attachments');
+    const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+    const imagePreviewList = document.getElementById('imagePreviewList');
+    const removeImageBtn = document.getElementById('removeImageBtn');
+    
+    if (attachmentInput) {
+        attachmentInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files || []);
+            imagePreviewList.innerHTML = '';
+            
+            const imageFiles = files.filter(file => file.type.startsWith('image/'));
+            if (imageFiles.length > 0) {
+                imageFiles.forEach(file => {
+                    const reader = new FileReader();
+                    reader.onload = function(ev) {
+                        const img = document.createElement('img');
+                        img.src = ev.target.result;
+                        img.alt = 'Image Preview';
+                        img.className = 'img-thumbnail';
+                        img.style.maxWidth = '120px';
+                        img.style.maxHeight = '90px';
+                        img.style.objectFit = 'cover';
+                        imagePreviewList.appendChild(img);
+                    };
+                    reader.readAsDataURL(file);
+                });
+                imagePreviewContainer.style.display = 'block';
+            } else {
+                imagePreviewContainer.style.display = 'none';
+            }
+        });
+    }
+    
+    if (removeImageBtn) {
+        removeImageBtn.addEventListener('click', function() {
+            attachmentInput.value = '';
+            imagePreviewContainer.style.display = 'none';
+            imagePreviewList.innerHTML = '';
+        });
+    }
+    
+    // Task card image click handler for full preview
+    document.querySelectorAll('.task-card-image').forEach(img => {
+        img.addEventListener('click', function() {
+            const fullImageUrl = this.getAttribute('data-full-url');
+            const fullImagePreview = document.getElementById('fullImagePreview');
+            fullImagePreview.src = fullImageUrl;
+            const imagePreviewModal = new bootstrap.Modal(document.getElementById('imagePreviewModal'));
+            imagePreviewModal.show();
+        });
+    });
 });
 </script>
 

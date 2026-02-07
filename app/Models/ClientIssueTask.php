@@ -24,6 +24,7 @@ class ClientIssueTask extends Model
         'checklist_data',
         'labels_data',
         'attachment',
+        'attachments',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class ClientIssueTask extends Model
         'reminder_date' => 'date',
         'checklist_data' => 'array',
         'labels_data' => 'array',
+        'attachments' => 'array',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

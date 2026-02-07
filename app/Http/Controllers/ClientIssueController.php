@@ -135,6 +135,23 @@ class ClientIssueController extends Controller
     }
 
     /**
+     * Display a single task for a client issue.
+     */
+    public function taskShow($clientIssueId, $taskId)
+    {
+        $clientIssue = ClientIssue::with(['project', 'customer'])->findOrFail($clientIssueId);
+        $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
+
+        // If user is a customer, verify they own this issue's project
+        $customer = $this->getLoggedInCustomer();
+        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to view this task.');
+        }
+
+        return view('client-issue-task-view', compact('clientIssue', 'task'));
+    }
+
+    /**
      * Store a newly created task for a client issue.
      */
     public function taskStore(Request $request, $clientIssueId)
@@ -152,7 +169,8 @@ class ClientIssueController extends Controller
             'reminder_time' => 'nullable',
             'checklist_data' => 'nullable',
             'labels_data' => 'nullable',
-            'attachment' => 'nullable|file|max:10240',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -167,10 +185,17 @@ class ClientIssueController extends Controller
             abort(403, 'You are not authorized to create tasks for this issue.');
         }
 
-        // Handle file upload
-        $attachmentPath = null;
-        if ($request->hasFile('attachment') && $request->file('attachment')->isValid()) {
-            $attachmentPath = $request->file('attachment')->store('task-attachments', 'public');
+        // Handle multiple file uploads
+        $attachmentsPaths = [];
+        if ($request->hasFile('attachments')) {
+            foreach ($request->file('attachments') as $file) {
+                if ($file && $file->isValid()) {
+                    $attachmentsPaths[] = [
+                        'path' => $file->store('task-attachments', 'public'),
+                        'name' => $file->getClientOriginalName(),
+                    ];
+                }
+            }
         }
 
         ClientIssueTask::create([
@@ -187,7 +212,8 @@ class ClientIssueController extends Controller
             'reminder_time' => $request->reminder_time,
             'checklist_data' => $request->checklist_data,
             'labels_data' => $request->labels_data,
-            'attachment' => $attachmentPath,
+            'attachment' => $attachmentsPaths[0]['path'] ?? null,
+            'attachments' => $attachmentsPaths,
         ]);
 
         return redirect()->route('client-issue.show', $clientIssueId)->with('success', 'Task created successfully!');
@@ -211,7 +237,8 @@ class ClientIssueController extends Controller
             'reminder_time' => 'nullable',
             'checklist_data' => 'nullable',
             'labels_data' => 'nullable',
-            'attachment' => 'nullable|file|max:10240',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -227,14 +254,32 @@ class ClientIssueController extends Controller
             abort(403, 'You are not authorized to update tasks for this issue.');
         }
 
-        // Handle file upload
-        $attachmentPath = $task->attachment;
-        if ($request->hasFile('attachment') && $request->file('attachment')->isValid()) {
-            // Delete old file if exists
+        // Handle multiple file uploads (replace existing if new files provided)
+        $attachmentsPaths = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
+        if (count($attachmentsPaths) === 0 && $task->attachment) {
+            $attachmentsPaths = [$task->attachment];
+        }
+        if ($request->hasFile('attachments')) {
+            // Delete old files
+            foreach ($attachmentsPaths as $oldItem) {
+                $oldPath = is_array($oldItem) ? ($oldItem['path'] ?? null) : $oldItem;
+                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
             if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
                 Storage::disk('public')->delete($task->attachment);
             }
-            $attachmentPath = $request->file('attachment')->store('task-attachments', 'public');
+
+            $attachmentsPaths = [];
+            foreach ($request->file('attachments') as $file) {
+                if ($file && $file->isValid()) {
+                    $attachmentsPaths[] = [
+                        'path' => $file->store('task-attachments', 'public'),
+                        'name' => $file->getClientOriginalName(),
+                    ];
+                }
+            }
         }
 
         $task->update([
@@ -250,7 +295,8 @@ class ClientIssueController extends Controller
             'reminder_time' => $request->reminder_time,
             'checklist_data' => $request->checklist_data,
             'labels_data' => $request->labels_data,
-            'attachment' => $attachmentPath,
+            'attachment' => $attachmentsPaths[0]['path'] ?? $task->attachment,
+            'attachments' => $attachmentsPaths,
         ]);
 
         return redirect()->route('client-issue.show', $clientIssueId)->with('success', 'Task updated successfully!');
@@ -295,7 +341,14 @@ class ClientIssueController extends Controller
             abort(403, 'You are not authorized to delete tasks for this issue.');
         }
 
-        // Delete attachment if exists
+        // Delete attachments if exists
+        $attachmentsPaths = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
+        foreach ($attachmentsPaths as $oldItem) {
+            $oldPath = is_array($oldItem) ? ($oldItem['path'] ?? null) : $oldItem;
+            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
         if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
             Storage::disk('public')->delete($task->attachment);
         }
