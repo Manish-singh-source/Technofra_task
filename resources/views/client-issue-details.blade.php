@@ -7,7 +7,35 @@ use Illuminate\Support\Facades\Storage;
     .modal-header{
         background-color: #000;
     }
-    </style>
+    .assign-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    .assign-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    .assign-card.selected {
+        border-color: #000;
+        background-color: #f8f9fa;
+    }
+    .assign-card .card-icon {
+        font-size: 2.5rem;
+        margin-bottom: 10px;
+    }
+    .assign-card .card-title {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+    .assign-card .card-text {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+    .card{
+        margin-bottom: 0px;
+    }
+</style>
 <div class="page-wrapper">
     <div class="page-content">
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -22,6 +50,11 @@ use Illuminate\Support\Facades\Storage;
                         <li class="breadcrumb-item active" aria-current="page">Issue Details</li>
                     </ol>
                 </nav>
+            </div>
+            <div class="ms-auto">
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal">
+                    <i class="bx bx-user-plus"></i> Assign
+                </button>
             </div>
         </div>
 
@@ -87,9 +120,12 @@ use Illuminate\Support\Facades\Storage;
         </div>
 
         <!-- Kanban Board -->
-        <div class="row">
-            <div class="col-12">
+        <div class="row align-items-center">
+            <div class="col-12 d-flex justify-content-between align-items-center">
                 <h5 class="mb-3">Tasks</h5>
+                <button class="btn btn-outline-primary mb-3 add-task-btn" data-status="todo">
+                    <i class="bx bx-plus"></i> Add Task
+                </button>
             </div>
         </div>
 
@@ -247,10 +283,6 @@ use Illuminate\Support\Facades\Storage;
                                 </div>
                             </div>
                         @endforeach
-                        <!-- Plus button only for Todo column -->
-                        <button class="btn btn-outline-primary w-100 mt-2 add-task-btn" data-status="todo">
-                            <i class="bx bx-plus"></i> Add Task
-                        </button>
                     </div>
                 </div>
             </div>
@@ -1645,6 +1677,106 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+</script>
+
+<!-- Assign Modal -->
+<div class="modal fade" id="assignModal" tabindex="-1" aria-labelledby="assignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-white" id="assignModalLabel">Assign Issue</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted mb-4">Select a department to assign this issue:</p>
+                <div class="d-flex flex-column gap-3">
+                    <!-- Support Card -->
+                    <div class="card assign-card" data-department="support">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="card-icon text-primary me-3">
+                                <i class="bx bx-support fs-2"></i>
+                            </div>
+                            <div>
+                                <h6 class="card-title mb-1">Support</h6>
+                                <p class="card-text mb-0 text-muted">Technical support and customer service related issues</p>
+                            </div>
+                            <div class="ms-auto">
+                                <i class="bx bx-chevron-right fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Sales Card -->
+                    <div class="card assign-card" data-department="sales">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="card-icon text-success me-3">
+                                <i class="bx bx-dollar fs-2"></i>
+                            </div>
+                            <div>
+                                <h6 class="card-title mb-1">Sales</h6>
+                                <p class="card-text mb-0 text-muted">Sales inquiries and commercial discussions</p>
+                            </div>
+                            <div class="ms-auto">
+                                <i class="bx bx-chevron-right fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Account Card -->
+                    <div class="card assign-card" data-department="account">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="card-icon text-warning me-3">
+                                <i class="bx bx-user fs-2"></i>
+                            </div>
+                            <div>
+                                <h6 class="card-title mb-1">Account</h6>
+                                <p class="card-text mb-0 text-muted">Account management and billing concerns</p>
+                            </div>
+                            <div class="ms-auto">
+                                <i class="bx bx-chevron-right fs-4"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <label for="assignNote" class="form-label">Add a note (optional):</label>
+                    <textarea class="form-control" id="assignNote" rows="3" placeholder="Enter any additional notes..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="assignBtn">
+                    <i class="bx bx-check"></i> Assign
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Card selection handler
+    document.querySelectorAll('.assign-card').forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selected class from all cards
+            document.querySelectorAll('.assign-card').forEach(c => c.classList.remove('selected'));
+            // Add selected class to clicked card
+            this.classList.add('selected');
+        });
+    });
+
+    // Assign button handler
+    document.getElementById('assignBtn').addEventListener('click', function() {
+        const selectedCard = document.querySelector('.assign-card.selected');
+        if (!selectedCard) {
+            alert('Please select a department first');
+            return;
+        }
+        const department = selectedCard.getAttribute('data-department');
+        const note = document.getElementById('assignNote').value;
+        console.log('Assigning to department:', department, 'Note:', note);
+        // Here you can add your assignment logic
+        // Close the modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('assignModal'));
+        modal.hide();
+    });
 </script>
 
 @endsection
