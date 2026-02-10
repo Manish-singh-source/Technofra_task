@@ -20,6 +20,7 @@ class Staff extends Model
         'password',
         'status',
         'departments',
+        'team',
     ];
 
     protected $casts = [

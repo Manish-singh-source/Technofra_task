@@ -48,4 +48,12 @@ class Customer extends Model
     {
         return $this->hasMany(Project::class);
     }
+
+    /**
+     * Get the client issues for the customer.
+     */
+    public function clientIssues()
+    {
+        return $this->hasMany(ClientIssue::class);
+    }
 }

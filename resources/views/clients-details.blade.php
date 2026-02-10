@@ -18,7 +18,7 @@
                 </div>
                 <div class="ms-auto">
                     <a href="{{ route('clients') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-arrow-back"></i> Back</a>
-                    <a href="{{ route('client-issue') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-plus"></i> Raise Issue</a>
+                    
                     <div class="btn-group">
                         <button type="button" class="btn btn-primary">Edit Client</button>
                         <button type="button"
@@ -34,6 +34,20 @@
                 </div>
             </div>
             <!--end breadcrumb-->
+
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
 
             <!-- Client Profile Card -->
                 <div class="main-body">
@@ -247,7 +261,14 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Open Issues</p>
-                                    <h4 class="my-1 text-warning">3</h4>
+                                    <h4 class="my-1 text-warning">
+                                        @php
+                                            $openIssuesCount = $customer->clientIssues
+                                                ->whereIn('status', ['open', 'in_progress'])
+                                                ->count();
+                                        @endphp
+                                        {{ $openIssuesCount }}
+                                    </h4>
                                     <p class="mb-0 font-13">-1 from last week</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-blooker text-white ms-auto"><i class='bx bx-error'></i></div>
@@ -261,7 +282,7 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Revenue</p>
-                                    <h4 class="my-1 text-info">$150,000</h4>
+                                    <h4 class="my-1 text-info">₹150,000</h4>
                                     <p class="mb-0 font-13">+15% from last month</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto"><i class='bx bx-dollar'></i></div>
@@ -399,7 +420,7 @@
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
                             <h5 class="card-title">Issues</h5>
-                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#raiseIssueModal">Raise New Issue</button>
+                            {{-- <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#raiseIssueModal">Raise New Issue</button> --}}
                         </div>
                         <div class="card-body">
                             <div class="table-responsive">
@@ -407,7 +428,8 @@
                                     <thead>
                                         <tr>
                                             <th>Issue ID</th>
-                                            <th>Title</th>
+                                            <th>Project</th>
+                                            <th>Issue</th>
                                             <th>Priority</th>
                                             <th>Status</th>
                                             <th>Assigned To</th>
@@ -416,42 +438,55 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <tr>
-                                            <td>ISS-001</td>
-                                            <td>Database Connection Issue</td>
-                                            <td><span class="badge bg-danger">High</span></td>
-                                            <td><span class="badge bg-warning">In Progress</span></td>
-                                            <td>John Doe</td>
-                                            <td>2023-10-15</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">View</button>
-                                                <button class="btn btn-sm btn-outline-secondary">Edit</button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>ISS-002</td>
-                                            <td>UI Responsiveness Problem</td>
-                                            <td><span class="badge bg-warning">Medium</span></td>
-                                            <td><span class="badge bg-success">Resolved</span></td>
-                                            <td>Jane Smith</td>
-                                            <td>2023-09-20</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">View</button>
-                                                <button class="btn btn-sm btn-outline-secondary">Edit</button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td>ISS-003</td>
-                                            <td>Payment Gateway Error</td>
-                                            <td><span class="badge bg-danger">High</span></td>
-                                            <td><span class="badge bg-info">Pending</span></td>
-                                            <td>Bob Johnson</td>
-                                            <td>2023-11-01</td>
-                                            <td>
-                                                <button class="btn btn-sm btn-outline-primary">View</button>
-                                                <button class="btn btn-sm btn-outline-secondary">Edit</button>
-                                            </td>
-                                        </tr>
+                                        @forelse($customer->clientIssues as $issue)
+                                            @php
+                                                $latestAssignment = $issue->teamAssignments
+                                                    ->sortByDesc('created_at')
+                                                    ->first();
+                                                $assignedLabel = 'Unassigned';
+                                                if ($latestAssignment && $latestAssignment->assignedStaff) {
+                                                    $assignedLabel = $latestAssignment->assignedStaff->full_name;
+                                                } elseif ($latestAssignment && $latestAssignment->team_name) {
+                                                    $assignedLabel = $latestAssignment->team_name;
+                                                }
+                                            @endphp
+                                            <tr>
+                                                <td>#{{ $issue->id }}</td>
+                                                <td>{{ $issue->project->project_name ?? 'N/A' }}</td>
+                                                <td>{{ Str::limit($issue->issue_description, 50) }}</td>
+                                                <td>
+                                                    @if($issue->priority == 'low')
+                                                        <span class="badge bg-secondary">Low</span>
+                                                    @elseif($issue->priority == 'medium')
+                                                        <span class="badge bg-primary">Medium</span>
+                                                    @elseif($issue->priority == 'high')
+                                                        <span class="badge bg-warning">High</span>
+                                                    @elseif($issue->priority == 'critical')
+                                                        <span class="badge bg-danger">Critical</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($issue->status == 'open')
+                                                        <span class="badge bg-danger">Open</span>
+                                                    @elseif($issue->status == 'in_progress')
+                                                        <span class="badge bg-warning">In Progress</span>
+                                                    @elseif($issue->status == 'resolved')
+                                                        <span class="badge bg-success">Resolved</span>
+                                                    @elseif($issue->status == 'closed')
+                                                        <span class="badge bg-info">Closed</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $assignedLabel }}</td>
+                                                <td>{{ $issue->created_at ? $issue->created_at->format('M d, Y') : 'N/A' }}</td>
+                                                <td>
+                                                    <a href="{{ route('client-issue.show', $issue->id) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                                </td>
+                                            </tr>
+                                        @empty
+                                            <tr>
+                                                <td colspan="8" class="text-center">No issues found for this client.</td>
+                                            </tr>
+                                        @endforelse
                                     </tbody>
                                 </table>
                             </div>
@@ -469,33 +504,64 @@
                             <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
-                            <form>
+                            <form id="raiseIssueForm" action="{{ route('client-issue.store') }}" method="POST">
+                                @csrf
+                                <input type="hidden" name="customer_id" value="{{ $customer->id }}">
+                                <input type="hidden" name="redirect_to" value="{{ url()->current() }}">
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <label for="issue_title" class="form-label">Issue Title</label>
-                                        <input type="text" class="form-control" id="issue_title" placeholder="Enter issue title">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="issue_priority" class="form-label">Priority</label>
-                                        <select class="form-select" id="issue_priority">
-                                            <option value="low">Low</option>
-                                            <option value="medium">Medium</option>
-                                            <option value="high">High</option>
-                                            <option value="urgent">Urgent</option>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="project_id" class="form-label">Project <span class="text-danger">*</span></label>
+                                        <select class="form-select @error('project_id') is-invalid @enderror" id="project_id" name="project_id" required>
+                                            <option value="">Select Project</option>
+                                            @foreach($customer->projects as $project)
+                                                <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                                    {{ $project->project_name }}
+                                                </option>
+                                            @endforeach
                                         </select>
+                                        @error('project_id')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label for="priority" class="form-label">Priority</label>
+                                        <select class="form-select @error('priority') is-invalid @enderror" id="priority" name="priority">
+                                            <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>Low</option>
+                                            <option value="medium" {{ old('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
+                                            <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>High</option>
+                                            <option value="critical" {{ old('priority') == 'critical' ? 'selected' : '' }}>Critical</option>
+                                        </select>
+                                        @error('priority')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
-                                <div class="row mt-3">
-                                    <div class="col-12">
-                                        <label for="issue_description" class="form-label">Description</label>
-                                        <textarea class="form-control" id="issue_description" rows="4" placeholder="Describe the issue"></textarea>
+                                <div class="mb-3">
+                                    <label for="issue_description" class="form-label">Issue Description <span class="text-danger">*</span></label>
+                                    <textarea class="form-control @error('issue_description') is-invalid @enderror" id="issue_description" name="issue_description" rows="4" required>{{ old('issue_description') }}</textarea>
+                                    @error('issue_description')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="status" class="form-label">Status</label>
+                                        <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
+                                            <option value="open" {{ old('status') == 'open' ? 'selected' : '' }}>Open</option>
+                                            <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                                            <option value="resolved" {{ old('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
+                                            <option value="closed" {{ old('status') == 'closed' ? 'selected' : '' }}>Closed</option>
+                                        </select>
+                                        @error('status')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
                                     </div>
                                 </div>
                             </form>
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="button" class="btn btn-primary">Submit Issue</button>
+                            <button type="button" class="btn btn-primary" id="submitIssueBtn">Submit Issue</button>
                         </div>
                     </div>
                 </div>
@@ -504,4 +570,39 @@
         </div>
     </div>
     <!--end page wrapper -->
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var submitBtn = document.getElementById('submitIssueBtn');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function() {
+                    var form = document.getElementById('raiseIssueForm');
+                    var projectSelect = document.getElementById('project_id');
+                    var descriptionTextarea = document.getElementById('issue_description');
+
+                    projectSelect.classList.remove('is-invalid');
+                    descriptionTextarea.classList.remove('is-invalid');
+
+                    var isValid = true;
+                    if (!projectSelect.value) {
+                        projectSelect.classList.add('is-invalid');
+                        isValid = false;
+                    }
+                    if (!descriptionTextarea.value.trim()) {
+                        descriptionTextarea.classList.add('is-invalid');
+                        isValid = false;
+                    }
+
+                    if (isValid) {
+                        form.submit();
+                    }
+                });
+            }
+
+            @if($errors->any())
+                var raiseIssueModal = new bootstrap.Modal(document.getElementById('raiseIssueModal'));
+                raiseIssueModal.show();
+            @endif
+        });
+    </script>
 @endsection

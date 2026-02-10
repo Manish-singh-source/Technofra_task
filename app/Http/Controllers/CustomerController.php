@@ -136,7 +136,15 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::with(['projects.tasks', 'user'])->findOrFail($id);
+        $customer = Customer::with([
+            'projects.tasks',
+            'user',
+            'clientIssues' => function ($query) {
+                $query->latest();
+            },
+            'clientIssues.project',
+            'clientIssues.teamAssignments.assignedStaff',
+        ])->findOrFail($id);
         $roles = Role::all();
         return view('clients-details', compact('customer', 'roles'));
     }

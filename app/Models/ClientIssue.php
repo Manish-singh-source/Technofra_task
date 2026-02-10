@@ -45,4 +45,12 @@ class ClientIssue extends Model
     {
         return $this->hasMany(ClientIssueTask::class);
     }
+
+    /**
+     * Get the team assignments for this client issue.
+     */
+    public function teamAssignments()
+    {
+        return $this->hasMany(ClientIssueTeamAssignment::class);
+    }
 }

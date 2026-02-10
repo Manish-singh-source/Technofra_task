@@ -190,6 +190,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/client-issue/create', [ClientIssueController::class, 'create'])->name('client-issue.create');
         Route::post('/client-issue', [ClientIssueController::class, 'store'])->name('client-issue.store');
         Route::get('/client-issue/{id}', [ClientIssueController::class, 'show'])->name('client-issue.show');
+        Route::post('/client-issue/{clientIssue}/assign', [ClientIssueController::class, 'assignTeam'])->name('client-issue.assign');
         Route::delete('/client-issue/{id}', [ClientIssueController::class, 'destroy'])->name('client-issue.destroy');
         
         // Client issue task routes

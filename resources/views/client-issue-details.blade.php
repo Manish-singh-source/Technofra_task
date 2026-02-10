@@ -72,6 +72,18 @@ use Illuminate\Support\Facades\Storage;
         </div>
         @endif
 
+        @if($errors->any())
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <strong>Please fix the following:</strong>
+            <ul class="mb-0 mt-2">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
         <!-- Issue Details Card -->
         <div class="row mb-4">
             <div class="col-12">
@@ -114,6 +126,49 @@ use Illuminate\Support\Facades\Storage;
                                 <p>{{ $clientIssue->issue_description }}</p>
                             </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Assignment Details Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Assignments</h5>
+                    </div>
+                    <div class="card-body">
+                        @if($clientIssue->teamAssignments->count() > 0)
+                            <div class="table-responsive">
+                                <table class="table table-bordered table-sm">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Team</th>
+                                            <th>Assigned To</th>
+                                            <th>Assigned By</th>
+                                            <th>Note</th>
+                                            <th>Date</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($clientIssue->teamAssignments->sortByDesc('created_at') as $assignment)
+                                            <tr>
+                                                <td>{{ $assignment->team_name }}</td>
+                                                <td>
+                                                    {{ $assignment->assignedStaff ? $assignment->assignedStaff->first_name . ' ' . $assignment->assignedStaff->last_name : 'N/A' }}
+                                                </td>
+                                                <td>{{ $assignment->assignedBy->name ?? 'System' }}</td>
+                                                <td>{{ $assignment->note ?? '-' }}</td>
+                                                <td>{{ $assignment->created_at ? $assignment->created_at->format('d M Y, h:i A') : '-' }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <p class="mb-0 text-muted">No assignments yet.</p>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -1688,62 +1743,98 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p class="text-muted mb-4">Select a department to assign this issue:</p>
-                <div class="d-flex flex-column gap-3">
-                    <!-- Support Card -->
-                    <div class="card assign-card" data-department="support">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="card-icon text-primary me-3">
-                                <i class="bx bx-support fs-2"></i>
+                <form id="assignForm" method="POST" action="{{ route('client-issue.assign', $clientIssue->id) }}">
+                    @csrf
+                    <p class="text-muted mb-4">Select a team to assign this issue:</p>
+                    <div class="d-flex flex-column gap-3">
+                        <!-- Web Team Card -->
+                        <div class="card assign-card" data-team="Web Team">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="card-icon text-primary me-3">
+                                    <i class="bx bx-code-alt fs-2"></i>
+                                </div>
+                                <div>
+                                    <h6 class="card-title mb-1">Web Team</h6>
+                                    <p class="card-text mb-0 text-muted">Website development, bugs, and technical changes</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bx bx-chevron-right fs-4"></i>
+                                </div>
                             </div>
-                            <div>
-                                <h6 class="card-title mb-1">Support</h6>
-                                <p class="card-text mb-0 text-muted">Technical support and customer service related issues</p>
+                        </div>
+
+                        <!-- Graphic Team Card -->
+                        <div class="card assign-card" data-team="Graphic Team">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="card-icon text-success me-3">
+                                    <i class="bx bx-palette fs-2"></i>
+                                </div>
+                                <div>
+                                    <h6 class="card-title mb-1">Graphic Team</h6>
+                                    <p class="card-text mb-0 text-muted">Design requests, creatives, and branding materials</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bx bx-chevron-right fs-4"></i>
+                                </div>
                             </div>
-                            <div class="ms-auto">
-                                <i class="bx bx-chevron-right fs-4"></i>
+                        </div>
+
+                        <!-- Social Media Team Card -->
+                        <div class="card assign-card" data-team="Social Media Team">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="card-icon text-info me-3">
+                                    <i class="bx bxl-instagram fs-2"></i>
+                                </div>
+                                <div>
+                                    <h6 class="card-title mb-1">Social Media Team</h6>
+                                    <p class="card-text mb-0 text-muted">Posts, campaigns, promotions, and engagement</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bx bx-chevron-right fs-4"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Accounts Team Card -->
+                        <div class="card assign-card" data-team="Accounts Team">
+                            <div class="card-body d-flex align-items-center">
+                                <div class="card-icon text-warning me-3">
+                                    <i class="bx bx-credit-card fs-2"></i>
+                                </div>
+                                <div>
+                                    <h6 class="card-title mb-1">Accounts Team</h6>
+                                    <p class="card-text mb-0 text-muted">Invoices, payments, and billing related matters</p>
+                                </div>
+                                <div class="ms-auto">
+                                    <i class="bx bx-chevron-right fs-4"></i>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <!-- Sales Card -->
-                    <div class="card assign-card" data-department="sales">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="card-icon text-success me-3">
-                                <i class="bx bx-dollar fs-2"></i>
-                            </div>
-                            <div>
-                                <h6 class="card-title mb-1">Sales</h6>
-                                <p class="card-text mb-0 text-muted">Sales inquiries and commercial discussions</p>
-                            </div>
-                            <div class="ms-auto">
-                                <i class="bx bx-chevron-right fs-4"></i>
-                            </div>
-                        </div>
+
+                    <input type="hidden" name="team_name" id="team_name">
+
+                    <div class="mt-3">
+                        <label for="assigned_to" class="form-label">Assign To Staff</label>
+                        <select class="form-select" id="assigned_to" name="assigned_to">
+                            <option value="">Select Staff</option>
+                            @foreach($staff as $member)
+                                <option value="{{ $member->id }}" data-team="{{ $member->team ?? '' }}">
+                                    {{ $member->first_name }} {{ $member->last_name }}@if($member->team) ({{ $member->team }}) @endif
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
-                    <!-- Account Card -->
-                    <div class="card assign-card" data-department="account">
-                        <div class="card-body d-flex align-items-center">
-                            <div class="card-icon text-warning me-3">
-                                <i class="bx bx-user fs-2"></i>
-                            </div>
-                            <div>
-                                <h6 class="card-title mb-1">Account</h6>
-                                <p class="card-text mb-0 text-muted">Account management and billing concerns</p>
-                            </div>
-                            <div class="ms-auto">
-                                <i class="bx bx-chevron-right fs-4"></i>
-                            </div>
-                        </div>
+
+                    <div class="mt-3">
+                        <label for="assignNote" class="form-label">Add a note (optional):</label>
+                        <textarea class="form-control" id="assignNote" name="note" rows="3" placeholder="Enter any additional notes..."></textarea>
                     </div>
-                </div>
-                <div class="mt-4">
-                    <label for="assignNote" class="form-label">Add a note (optional):</label>
-                    <textarea class="form-control" id="assignNote" rows="3" placeholder="Enter any additional notes..."></textarea>
-                </div>
+                </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" id="assignBtn">
+                <button type="submit" class="btn btn-primary" id="assignBtn" form="assignForm">
                     <i class="bx bx-check"></i> Assign
                 </button>
             </div>
@@ -1759,23 +1850,69 @@ document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.assign-card').forEach(c => c.classList.remove('selected'));
             // Add selected class to clicked card
             this.classList.add('selected');
+
+            const team = this.getAttribute('data-team');
+            const teamInput = document.getElementById('team_name');
+            teamInput.value = team;
+
+            const staffSelect = document.getElementById('assigned_to');
+            if (staffSelect) {
+                const options = Array.from(staffSelect.options);
+                const matches = options.filter(option => {
+                    if (!option.value) return false;
+                    const optionTeam = option.getAttribute('data-team') || '';
+                    return optionTeam === team;
+                });
+                const hasMatches = matches.length > 0;
+
+                Array.from(staffSelect.options).forEach(option => {
+                    if (!option.value) {
+                        option.hidden = false;
+                        option.disabled = false;
+                        return;
+                    }
+                    const optionTeam = option.getAttribute('data-team') || '';
+                    const show = hasMatches ? (optionTeam === team) : true;
+                    option.hidden = !show;
+                    option.disabled = !show;
+                    if (!show && option.selected) {
+                        option.selected = false;
+                    }
+                });
+            }
         });
     });
 
-    // Assign button handler
-    document.getElementById('assignBtn').addEventListener('click', function() {
-        const selectedCard = document.querySelector('.assign-card.selected');
-        if (!selectedCard) {
-            alert('Please select a department first');
-            return;
+    // Assign form validation
+    const assignForm = document.getElementById('assignForm');
+    if (assignForm) {
+        const staffSelect = document.getElementById('assigned_to');
+        if (staffSelect) {
+            staffSelect.addEventListener('change', function() {
+                const selectedOption = staffSelect.options[staffSelect.selectedIndex];
+                const teamInput = document.getElementById('team_name');
+                const optionTeam = selectedOption ? (selectedOption.getAttribute('data-team') || '') : '';
+                if (!teamInput.value && optionTeam) {
+                    teamInput.value = optionTeam;
+                }
+            });
         }
-        const department = selectedCard.getAttribute('data-department');
-        const note = document.getElementById('assignNote').value;
-        console.log('Assigning to department:', department, 'Note:', note);
-        // Here you can add your assignment logic
-        // Close the modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('assignModal'));
-        modal.hide();
+
+        assignForm.addEventListener('submit', function(e) {
+            const teamInput = document.getElementById('team_name');
+            if (!teamInput.value) {
+                const selectedOption = staffSelect ? staffSelect.options[staffSelect.selectedIndex] : null;
+                const fallbackTeam = selectedOption ? (selectedOption.getAttribute('data-team') || '') : '';
+                if (fallbackTeam) {
+                    teamInput.value = fallbackTeam;
+                }
+            }
+            if (!staffSelect.value) {
+                e.preventDefault();
+                alert('Please select a staff member');
+                return;
+            }
+        });
     });
 </script>
 

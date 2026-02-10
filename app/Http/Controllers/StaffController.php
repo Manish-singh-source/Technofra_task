@@ -54,6 +54,7 @@ class StaffController extends Controller
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
             'status' => 'required|in:active,inactive',
+            'team' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -63,6 +64,7 @@ class StaffController extends Controller
         }
 
         $staff = Staff::findOrFail($id);
+        $team = $request->has('team') ? $request->team : $staff->team;
         
         // Get old role and email to update user later
         $oldRole = $staff->role;
@@ -77,6 +79,7 @@ class StaffController extends Controller
                 'phone' => $request->phone,
                 'role' => $request->role,
                 'status' => $request->status,
+                'team' => $team,
             ]);
 
             // Update associated user
@@ -122,6 +125,7 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
+            'team' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -167,6 +171,7 @@ class StaffController extends Controller
                 'password' => Hash::make($request->password),
                 'status' => 'active',
                 'departments' => $request->departments,
+                'team' => $request->team,
             ]);
 
             // Clear permission cache
@@ -235,6 +240,7 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
+            'team' => 'nullable|string|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -270,6 +276,7 @@ class StaffController extends Controller
                 'password' => Hash::make($request->password),
                 'status' => 'active',
                 'departments' => $request->departments,
+                'team' => $request->team,
             ]);
 
             // Clear permission cache

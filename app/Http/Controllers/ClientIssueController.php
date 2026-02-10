@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientIssue;
+use App\Models\ClientIssueTeamAssignment;
 use App\Models\ClientIssueTask;
 use App\Models\Customer;
 use App\Models\Project;
+use App\Models\Staff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -39,7 +41,7 @@ class ClientIssueController extends Controller
     public function index()
     {
         $customer = $this->getLoggedInCustomer();
-        
+
         if ($customer) {
             // Customer can only see issues for their own projects
             $clientIssues = ClientIssue::with(['project', 'customer'])
@@ -51,8 +53,18 @@ class ClientIssueController extends Controller
             $projects = Project::where('customer_id', $customer->id)->get();
             $customers = collect([$customer]);
         } else {
-            // Admin/Staff can see all issues
-            $clientIssues = ClientIssue::with(['project', 'customer'])->get();
+            $user = Auth::user();
+            if ($user && $user->isStaff()) {
+                $staffId = optional($user->staff)->id;
+                $clientIssues = ClientIssue::with(['project', 'customer'])
+                    ->whereHas('teamAssignments', function ($query) use ($staffId) {
+                        $query->where('assigned_to', $staffId);
+                    })
+                    ->get();
+            } else {
+                // Admin can see all issues
+                $clientIssues = ClientIssue::with(['project', 'customer'])->get();
+            }
             // Admin/Staff can see all projects and customers
             $projects = Project::all();
             $customers = Customer::all();
@@ -95,6 +107,11 @@ class ClientIssueController extends Controller
             'status' => $request->status ?? 'open',
         ]);
 
+        $redirectTo = $request->input('redirect_to');
+        if ($redirectTo) {
+            return redirect($redirectTo)->with('success', 'Client issue created successfully!');
+        }
+
         return redirect()->route('client-issue')->with('success', 'Client issue created successfully!');
     }
 
@@ -123,15 +140,79 @@ class ClientIssueController extends Controller
      */
     public function show($id)
     {
-        $clientIssue = ClientIssue::with(['project', 'customer', 'tasks'])->findOrFail($id);
+        $clientIssue = ClientIssue::with([
+            'project',
+            'customer',
+            'tasks',
+            'teamAssignments.assignedBy',
+            'teamAssignments.assignedStaff',
+        ])->findOrFail($id);
         
         // If user is a customer, verify they own this issue's project
         $customer = $this->getLoggedInCustomer();
         if ($customer && $clientIssue->project->customer_id !== $customer->id) {
             abort(403, 'You are not authorized to view this issue.');
         }
+
+        $user = Auth::user();
+        if ($user && $user->isStaff()) {
+            $staffId = optional($user->staff)->id;
+            $isAssigned = $clientIssue->teamAssignments()
+                ->where('assigned_to', $staffId)
+                ->exists();
+            if (!$isAssigned) {
+                abort(403, 'You are not authorized to view this issue.');
+            }
+        }
+
+        $staff = Staff::orderBy('first_name')->orderBy('last_name')->get();
+        $teams = ['Web Team', 'Graphic Team', 'Social Media Team', 'Accounts Team'];
         
-        return view('client-issue-details', compact('clientIssue'));
+        return view('client-issue-details', compact('clientIssue', 'staff', 'teams'));
+    }
+
+    /**
+     * Assign a team/staff to a client issue.
+     */
+    public function assignTeam(Request $request, $clientIssueId)
+    {
+        $validator = Validator::make($request->all(), [
+            'team_name' => 'nullable|in:Web Team,Graphic Team,Social Media Team,Accounts Team,Unassigned',
+            'assigned_to' => 'required|exists:staff,id',
+            'note' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $clientIssue = ClientIssue::findOrFail($clientIssueId);
+
+        $customer = $this->getLoggedInCustomer();
+        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to assign this issue.');
+        }
+
+        $allowedTeams = ['Web Team', 'Graphic Team', 'Social Media Team', 'Accounts Team', 'Unassigned'];
+        $teamName = $request->team_name;
+        if (!$teamName) {
+            $assignedStaff = Staff::find($request->assigned_to);
+            $teamName = $assignedStaff && $assignedStaff->team ? $assignedStaff->team : 'Unassigned';
+        }
+        if (!in_array($teamName, $allowedTeams, true)) {
+            $teamName = 'Unassigned';
+        }
+
+        ClientIssueTeamAssignment::create([
+            'client_issue_id' => $clientIssueId,
+            'team_name' => $teamName,
+            'assigned_to' => (string) $request->assigned_to,
+            'note' => $request->note,
+            'assigned_by' => Auth::id(),
+        ]);
+
+        return redirect()->route('client-issue.show', $clientIssueId)
+            ->with('success', 'Issue assigned successfully!');
     }
 
     /**
