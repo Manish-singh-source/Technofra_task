@@ -173,17 +173,26 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-project', [ProjectController::class, 'create'])->name('add-project')->middleware('permission:create_projects');
         Route::post('/add-project', [ProjectController::class, 'store'])->name('store-project')->middleware('permission:create_projects');
         Route::get('/project-details/{id}', [ProjectController::class, 'show'])->name('project-details')->middleware('permission:view_projects');
+        Route::post('/project/{projectId}/milestones', [ProjectController::class, 'storeMilestone'])->name('project.milestones.store')->middleware('permission:edit_projects');
+        Route::post('/project/{projectId}/issues', [ProjectController::class, 'storeIssue'])->name('project.issues.store')->middleware('permission:edit_projects');
+        Route::put('/project/{projectId}/issues/{issueId}', [ProjectController::class, 'updateIssue'])->name('project.issues.update')->middleware('permission:edit_projects');
+        Route::delete('/project/{projectId}/issues/{issueId}', [ProjectController::class, 'destroyIssue'])->name('project.issues.destroy')->middleware('permission:edit_projects');
         Route::delete('/project/delete/{id}', [ProjectController::class, 'destroy'])->name('project.destroy')->middleware('permission:delete_projects');
+        
+        // Project File Routes
+        Route::post('/project/{projectId}/upload-file', [ProjectController::class, 'uploadFile'])->name('project.upload-file')->middleware('permission:edit_projects');
+        Route::get('/project/file/{fileId}/download', [ProjectController::class, 'downloadFile'])->name('project.file.download')->middleware('permission:view_projects');
+        Route::delete('/project/file/{fileId}/delete', [ProjectController::class, 'deleteFile'])->name('project.file.delete')->middleware('permission:delete_projects');
     });
 
     // Task routes
     Route::middleware(['auth'])->group(function () {
         Route::get('/task', [TaskController::class, 'index'])->name('task')->middleware('permission:view_tasks');
-        Route::get('/add-task', function () {
-            return view('add-task');
-        })->name('add-task')->middleware('permission:create_tasks');
+        Route::get('/add-task', [TaskController::class, 'create'])->name('add-task')->middleware('permission:create_tasks');
         Route::post('/add-task', [TaskController::class, 'store'])->name('add-task.store')->middleware('permission:create_tasks');
         Route::get('/task-details/{id}', [TaskController::class, 'show'])->name('task-details')->middleware('permission:view_tasks');
+        Route::get('/edit-task/{id}', [TaskController::class, 'edit'])->name('edit-task')->middleware('permission:edit_tasks');
+        Route::put('/edit-task/{id}', [TaskController::class, 'update'])->name('edit-task.update')->middleware('permission:edit_tasks');
     });
 
     // Client issue routes

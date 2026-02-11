@@ -4,12 +4,26 @@
 <div class="page-wrapper">
     <div class="page-content">
 
+        @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        @endif
+
         <h6 class="text-uppercase">Edit Project</h6>
         <hr>
         <div class="card">
             <div class="card-body p-4">
                 <h5 class="mb-4">Project Details</h5>
-                <form action="{{ route('update-project', $project->id) }}" method="POST" class="row g-3">
+                <form action="{{ route('update-project', $project->id) }}" method="POST" class="row g-3" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
                     {{-- Basic Information --}}
@@ -160,9 +174,87 @@
                         @enderror
                     </div>
 
+                    {{-- Project Files --}}
+                    <div class="col-12 mt-5">
+                        <h6>Project Files</h6>
+                        <hr>
+                    </div>
                     <div class="col-12">
+                        <label for="project_files" class="form-label">Upload Additional Files (Images & PDFs)</label>
+                        <div class="file-upload-wrapper">
+                            <div class="file-upload-area" id="fileDropArea">
+                                <i class='bx bx-cloud-upload bx-lg text-primary mb-2'></i>
+                                <h6 class="mb-2">Drag & Drop files here or click to browse</h6>
+                                <p class="text-muted small mb-0">Supported: JPG, JPEG, PNG, GIF, SVG, WEBP, BMP, PDF (Max 10MB each)</p>
+                                <input type="file" name="project_files[]" class="form-control @error('project_files') is-invalid @enderror" id="project_files" multiple accept=".jpg,.jpeg,.png,.gif,.svg,.webp,.bmp,.pdf">
+                            </div>
+                            <div id="filePreviewContainer" class="mt-3">
+                                @if(old('project_files'))
+                                    @foreach(old('project_files') as $index => $file)
+                                        @if(is_object($file))
+                                        <div class="file-preview-item d-flex align-items-center justify-content-between p-2 border rounded mb-2">
+                                            <div class="d-flex align-items-center">
+                                                <i class='bx bx-file bx-sm text-primary me-2'></i>
+                                                <span>{{ $file->getClientOriginalName() }}</span>
+                                                <small class="text-muted ms-2">({{ number_format($file->getSize() / 1024, 2) }} KB)</small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(this)"><i class='bx bx-x'></i></button>
+                                        </div>
+                                        @endif
+                                    @endforeach
+                                @endif
+                            </div>
+                        </div>
+                        @error('project_files')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    {{-- Existing Files --}}
+                    @if(isset($projectFiles) && $projectFiles->count() > 0)
+                    <div class="col-12 mt-3">
+                        <h6>Existing Files</h6>
+                        <hr>
+                        <div class="row">
+                            @foreach($projectFiles as $file)
+                            <div class="col-md-3 mb-3">
+                                <div class="card border h-100">
+                                    <div class="card-body text-center d-flex flex-column justify-content-between">
+                                        <div>
+                                            @if($file->isImage())
+                                                @if(file_exists(public_path($file->file_path)))
+                                                    <img src="{{ asset($file->file_path) }}" class="mb-2" style="max-width: 100%; max-height: 80px; object-fit: contain;" alt="{{ $file->original_name }}">
+                                                @else
+                                                    <i class="bx bx-image bx-lg text-success mb-2"></i>
+                                                @endif
+                                            @elseif($file->isPdf())
+                                                <i class="bx bx-file-pdf bx-lg text-danger mb-2"></i>
+                                            @else
+                                                <i class="bx {{ $file->file_icon }} bx-lg text-primary mb-2"></i>
+                                            @endif
+                                            <h6 class="mb-1 small">{{ $file->original_name }}</h6>
+                                            <small class="text-muted">{{ $file->formatted_size }}</small>
+                                        </div>
+                                        <div class="mt-2">
+                                            <a href="{{ asset($file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class='bx bx-download'></i>
+                                            </a>
+                                            <a href="{{ route('project.file.delete', $file->id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this file?')">
+                                                <i class='bx bx-trash'></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    <div class="col-12 mt-4">
                         <div class="d-md-flex d-grid align-items-center gap-3">
-                            <button type="submit" class="btn btn-primary px-4">Update</button>
+                            <button type="submit" class="btn btn-primary px-4">Update Project</button>
+                            <a href="{{ route('project-details', $project->id) }}" class="btn btn-outline-secondary px-4">Cancel</a>
                         </div>
                     </div>
                 </form>
@@ -184,6 +276,49 @@
 
 <!-- CKEditor CDN -->
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<style>
+.file-upload-wrapper {
+    position: relative;
+}
+
+.file-upload-area {
+    border: 2px dashed #ced4da;
+    border-radius: 8px;
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #f8f9fa;
+}
+
+.file-upload-area:hover {
+    border-color: #0d6efd;
+    background-color: #e9ecef;
+}
+
+.file-upload-area.dragover {
+    border-color: #0d6efd;
+    background-color: #e7f1ff;
+}
+
+.file-upload-area input[type="file"] {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+.file-preview-item {
+    background-color: #f8f9fa;
+}
+
+.file-preview-item:hover {
+    background-color: #e9ecef;
+}
+</style>
 <script>
     // Initialize CKEditor
     ClassicEditor
@@ -216,6 +351,152 @@
             tags: true,
             allowClear: true
         });
+
+        // File Upload Drag & Drop
+        const fileDropArea = $('#fileDropArea');
+        const fileInput = $('#project_files');
+        const previewContainer = $('#filePreviewContainer');
+        
+        // Drag and drop events
+        fileDropArea.on('dragover', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).addClass('dragover');
+        });
+        
+        fileDropArea.on('dragleave', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+        });
+        
+        fileDropArea.on('drop', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('dragover');
+            
+            const files = e.originalEvent.dataTransfer.files;
+            if (files.length > 0) {
+                // Replace files with new selection
+                handleFiles(files, true);
+            }
+        });
+        
+        // File input change
+        fileInput.on('change', function() {
+            const files = this.files;
+            if (files.length > 0) {
+                // Replace files with new selection
+                handleFiles(files, true);
+            }
+        });
+        
+        // Handle selected files
+        function handleFiles(files, replace = false) {
+            if (replace) {
+                // Replace all files with new selection
+                const dataTransfer = new DataTransfer();
+                for (let i = 0; i < files.length; i++) {
+                    dataTransfer.items.add(files[i]);
+                }
+                fileInput[0].files = dataTransfer.files;
+            } else {
+                // Add to existing files
+                const currentFiles = fileInput[0].files;
+                const dataTransfer = new DataTransfer();
+                
+                // Add existing files
+                for (let i = 0; i < currentFiles.length; i++) {
+                    dataTransfer.items.add(currentFiles[i]);
+                }
+                
+                // Add new files
+                for (let i = 0; i < files.length; i++) {
+                    dataTransfer.items.add(files[i]);
+                }
+                
+                // Update file input
+                fileInput[0].files = dataTransfer.files;
+            }
+            
+            // Update preview
+            updateFilePreview();
+        }
+        
+        // Update file preview
+        function updateFilePreview() {
+            const files = fileInput[0].files;
+            previewContainer.empty();
+            
+            if (files.length === 0) {
+                return;
+            }
+            
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const fileSize = file.size >= 1048576 
+                    ? (file.size / 1048576).toFixed(2) + ' MB' 
+                    : (file.size / 1024).toFixed(2) + ' KB';
+                
+                const fileIcon = getFileIcon(file.name);
+                
+                const fileItem = `
+                    <div class="file-preview-item d-flex align-items-center justify-content-between p-2 border rounded mb-2">
+                        <div class="d-flex align-items-center">
+                            <i class="${fileIcon} bx-sm text-primary me-2"></i>
+                            <span>${file.name}</span>
+                            <small class="text-muted ms-2">(${fileSize})</small>
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeFile(this, ${i})">
+                            <i class='bx bx-x'></i>
+                        </button>
+                    </div>
+                `;
+                previewContainer.append(fileItem);
+            }
+        }
+        
+        // Get file icon based on extension
+        function getFileIcon(fileName) {
+            const ext = fileName.split('.').pop().toLowerCase();
+            const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp'];
+            
+            if (imageExts.includes(ext)) {
+                return 'bx bx-image';
+            } else if (ext === 'pdf') {
+                return 'bx bx-file-pdf';
+            } else if (['doc', 'docx'].includes(ext)) {
+                return 'bx bx-file-doc';
+            } else if (['xls', 'xlsx', 'csv'].includes(ext)) {
+                return 'bx bx-file';
+            } else if (['zip', 'rar', '7z'].includes(ext)) {
+                return 'bx bx-archive';
+            } else if (['ppt', 'pptx'].includes(ext)) {
+                return 'bx bx-file-present';
+            } else {
+                return 'bx bx-file-blank';
+            }
+        }
+        
+        // Remove file function (global)
+        window.removeFile = function(button, index) {
+            const files = fileInput[0].files;
+            const dataTransfer = new DataTransfer();
+            
+            for (let i = 0; i < files.length; i++) {
+                if (i !== index) {
+                    dataTransfer.items.add(files[i]);
+                }
+            }
+            
+            fileInput[0].files = dataTransfer.files;
+            updateFilePreview();
+        };
+        
+        // Initialize preview if files exist
+        if (fileInput[0].files.length > 0) {
+            updateFilePreview();
+        }
     });
 </script>
 @endsection

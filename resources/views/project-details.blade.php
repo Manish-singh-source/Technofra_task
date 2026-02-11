@@ -224,8 +224,8 @@
 						<div class="d-flex align-items-center">
 							<div>
 								<p class="mb-0 text-secondary">Time Spent</p>
-								<h4 class="my-1 text-primary">120h</h4>
-								<p class="mb-0 font-13">+5.2% from last month</p>
+								<h4 class="my-1 text-primary">{{ number_format($projectElapsedHours ?? 0, 1) }}h</h4>
+								<p class="mb-0 font-13">Working hours (Mon-Sat, 9:00-18:00)</p>
 							</div>
 							<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto"><i class='bx bx-time-five'></i></div>
 						</div>
@@ -266,8 +266,8 @@
 						<div class="d-flex align-items-center">
 							<div>
 								<p class="mb-0 text-secondary">Utilization</p>
-								<h4 class="my-1 text-info">85%</h4>
-								<p class="mb-0 font-13">+7.8% from last month</p>
+								<h4 class="my-1 text-info">{{ number_format($projectUtilization ?? 0, 1) }}%</h4>
+								<p class="mb-0 font-13">Against full deadline working window</p>
 							</div>
 							<div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto"><i class='bx bx-bar-chart'></i></div>
 						</div>
@@ -287,9 +287,7 @@
 			<li class="nav-item" role="presentation">
 				<button class="nav-link" id="files-tab" data-bs-toggle="tab" data-bs-target="#files" type="button" role="tab" aria-controls="files" aria-selected="false">Files</button>
 			</li>
-			<li class="nav-item" role="presentation">
-				<button class="nav-link" id="screenshots-tab" data-bs-toggle="tab" data-bs-target="#screenshots" type="button" role="tab" aria-controls="screenshots" aria-selected="false">Screenshots</button>
-			</li>
+			
 			<li class="nav-item" role="presentation">
 				<button class="nav-link" id="usage-tab" data-bs-toggle="tab" data-bs-target="#usage" type="button" role="tab" aria-controls="usage" aria-selected="false">Usage</button>
 			</li>
@@ -341,13 +339,13 @@
 													<td>{{ $staff[$memberId]->team->team_name ?? 'N/A' }}</td>
 													<td>{{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}</td>
 													<td>{{ $project->deadline ? $project->deadline->format('M d, Y') : 'N/A' }}</td>
-													<td>{{ $staff[$memberId]->total_hours ?? '0' }}h</td>
+													<td>{{ number_format($memberMetrics[$memberId]['total_hours'] ?? 0, 1) }}h</td>
 													<td>
 														<div class="d-flex align-items-center">
 															<div class="progress me-2" style="width: 100px;">
-																<div class="progress-bar bg-{{ $staff[$memberId]->utilization >= 80 ? 'success' : ($staff[$memberId]->utilization >= 50 ? 'warning' : 'danger') }}" style="width: {{ $staff[$memberId]->utilization ?? 0 }}%"></div>
+																<div class="progress-bar bg-{{ ($memberMetrics[$memberId]['utilization'] ?? 0) >= 80 ? 'success' : (($memberMetrics[$memberId]['utilization'] ?? 0) >= 50 ? 'warning' : 'danger') }}" style="width: {{ $memberMetrics[$memberId]['utilization'] ?? 0 }}%"></div>
 															</div>
-															<span>{{ $staff[$memberId]->utilization ?? 0 }}%</span>
+															<span>{{ number_format($memberMetrics[$memberId]['utilization'] ?? 0, 1) }}%</span>
 														</div>
 													</td>
 												</tr>
@@ -366,65 +364,73 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Tasks</h5>
-							
+							<a href="{{ route('add-task', ['project_id' => $project->id]) }}" class="btn btn-primary radius-30 btn-sm"><i class='bx bx-plus'></i> Create Task</a>
 						</div>
 					</div>
 					<div class="card-body">
+						@if($tasks && $tasks->count() > 0)
 						<div class="table-responsive">
 							<table class="table mb-0">
 								<thead class="table-light">
 									<tr>
 										<th>Task ID</th>
-										<th>Project & Task</th>
+										<th>Task</th>
 										<th>Created On</th>
-										<th>Total Hours</th>
 										<th>Priority</th>
+										<th>Status</th>
 										<th>Assignee</th>
 									</tr>
 								</thead>
 								<tbody>
+									@foreach($tasks as $task)
 									<tr>
-										<td>#T001</td>
-										<td>{{ $project->project_name }} - Design Homepage</td>
-										<td>2024-07-15</td>
-										<td>25</td>
-										<td><span class="badge bg-danger">High</span></td>
+										<td>#T{{ $task->id }}</td>
 										<td>
-											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/32x32" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
-												John Doe
-											</div>
+											<a href="{{ route('task-details', $task->id) }}" class="text-decoration-none">
+												{{ $task->title }}
+											</a>
+										</td>
+										<td>{{ $task->created_at->format('M d, Y') }}</td>
+										<td>
+											<span class="badge @if($task->priority == 'high') bg-danger @elseif($task->priority == 'medium') bg-warning @else bg-success @endif">
+												{{ ucfirst($task->priority) }}
+											</span>
+										</td>
+										<td>
+											<span class="badge @if($task->status == 'completed') bg-success @elseif($task->status == 'in_progress') bg-primary @elseif($task->status == 'pending') bg-warning @else bg-secondary @endif">
+												{{ ucfirst(str_replace('_', ' ', $task->status)) }}
+											</span>
+										</td>
+										<td>
+											@if($task->assignees && is_array($task->assignees) && count($task->assignees) > 0)
+												@php $firstAssigneeId = $task->assignees[0]; @endphp
+												@if(isset($staff[$firstAssigneeId]))
+												<div class="d-flex align-items-center">
+													<img src="{{ $staff[$firstAssigneeId]->profile_image ? asset('uploads/staff/' . $staff[$firstAssigneeId]->profile_image) : 'https://placehold.co/32x32' }}" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
+													<span>{{ $staff[$firstAssigneeId]->first_name }} {{ $staff[$firstAssigneeId]->last_name }}</span>
+												</div>
+												@if(count($task->assignees) > 1)
+													<span class="badge bg-light text-dark ms-1">+{{ count($task->assignees) - 1 }} more</span>
+												@endif
+												@else
+													<span class="text-muted">Unassigned</span>
+												@endif
+											@else
+												<span class="text-muted">Unassigned</span>
+											@endif
 										</td>
 									</tr>
-									<tr>
-										<td>#T002</td>
-										<td>{{ $project->project_name }} - Develop Login Screen</td>
-										<td>2024-07-16</td>
-										<td>18</td>
-										<td><span class="badge bg-warning text-dark">Medium</span></td>
-										<td>
-											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/32x32" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
-												Jane Smith
-											</div>
-										</td>
-									</tr>
-									<tr>
-										<td>#T003</td>
-										<td>{{ $project->project_name }} - API Integration</td>
-										<td>2024-07-17</td>
-										<td>32</td>
-										<td><span class="badge bg-danger">High</span></td>
-										<td>
-											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/32x32" class="rounded-circle me-2" alt="Assignee" width="32" height="32">
-												Peter Jones
-											</div>
-										</td>
-									</tr>
+									@endforeach
 								</tbody>
 							</table>
 						</div>
+						@else
+						<div class="text-center py-4">
+							<i class='bx bx-task bx-lg text-muted mb-3'></i>
+							<p class="text-muted">No tasks created for this project yet.</p>
+							<a href="{{ route('add-task', ['project_id' => $project->id]) }}" class="btn btn-primary radius-30">Create First Task</a>
+						</div>
+						@endif
 					</div>
 				</div>
 			</div>
@@ -434,153 +440,55 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Files & Documents</h5>
-							<button class="btn btn-primary radius-30 btn-sm">Upload File</button>
+							<button class="btn btn-primary radius-30 btn-sm" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+								<i class='bx bx-upload'></i> Upload File
+							</button>
 						</div>
 					</div>
 					<div class="card-body">
+						@if($projectFiles && $projectFiles->count() > 0)
 						<div class="row">
+							@foreach($projectFiles as $file)
 							<div class="col-md-4 mb-3">
 								<div class="card border h-100">
 									<div class="card-body text-center d-flex flex-column justify-content-between">
 										<div>
-											<i class="bx bx-file-text bx-lg text-primary mb-2"></i>
-											<h6>Project_Requirements.pdf</h6>
-											<small class="text-muted">2.3 MB • Uploaded: Jan 5, 2023</small>
+											@if($file->isImage())
+												@if(file_exists(public_path($file->file_path)))
+													<img src="{{ asset($file->file_path) }}" class="mb-2" style="max-width: 100%; max-height: 120px; object-fit: contain;" alt="{{ $file->original_name }}">
+												@else
+													<i class="bx bx-image bx-lg text-success mb-2"></i>
+												@endif
+											@elseif($file->isPdf())
+												<i class="bx bx-file-pdf bx-lg text-danger mb-2"></i>
+											@else
+												<i class="bx {{ $file->file_icon }} bx-lg text-primary mb-2"></i>
+											@endif
+											<h6 class="mb-1">{{ $file->original_name }}</h6>
+											<small class="text-muted">{{ $file->formatted_size }} • Uploaded: {{ $file->created_at->format('M d, Y') }}</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
-											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
+											<a href="{{ asset($file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary radius-30">
+												<i class='bx bx-download'></i> Download
+											</a>
+											<button class="btn btn-sm btn-outline-danger radius-30" onclick="deleteFile({{ $file->id }})">
+												<i class='bx bx-trash'></i>
+											</button>
 										</div>
 									</div>
 								</div>
 							</div>
-							<div class="col-md-4 mb-3">
-								<div class="card border h-100">
-									<div class="card-body text-center d-flex flex-column justify-content-between">
-										<div>
-											<i class="bx bxs-file-image bx-lg text-success mb-2"></i>
-											<h6>Wireframes.zip</h6>
-											<small class="text-muted">15.7 MB • Uploaded: Jan 10, 2023</small>
-										</div>
-										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
-											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-4 mb-3">
-								<div class="card border h-100">
-									<div class="card-body text-center d-flex flex-column justify-content-between">
-										<div>
-											<i class="bx bx-code-alt bx-lg text-info mb-2"></i>
-											<h6>API_Documentation.pdf</h6>
-											<small class="text-muted">1.8 MB • Uploaded: Jan 15, 2023</small>
-										</div>
-										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
-											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-4 mb-3">
-								<div class="card border h-100">
-									<div class="card-body text-center d-flex flex-column justify-content-between">
-										<div>
-											<i class="bx bx-file-doc bx-lg text-warning mb-2"></i>
-											<h6>SRS_Document.pdf</h6>
-											<small class="text-muted">3.2 MB • Uploaded: Jan 20, 2023</small>
-										</div>
-										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
-											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-4 mb-3">
-								<div class="card border h-100">
-									<div class="card-body text-center d-flex flex-column justify-content-between">
-										<div>
-											<i class="bx bx-image bx-lg text-secondary mb-2"></i>
-											<h6>Design_Mockups.psd</h6>
-											<small class="text-muted">45.6 MB • Uploaded: Jan 25, 2023</small>
-										</div>
-										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
-											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
-										</div>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-4 mb-3">
-								<div class="card border h-100">
-									<div class="card-body text-center d-flex flex-column justify-content-between">
-										<div>
-											<i class="bx bx-file-find bx-lg text-danger mb-2"></i>
-											<h6>Test_Cases.xlsx</h6>
-											<small class="text-muted">520 KB • Uploaded: Feb 1, 2023</small>
-										</div>
-										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
-											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
-										</div>
-									</div>
-								</div>
-							</div>
+							@endforeach
 						</div>
-					</div>
-				</div>
-			</div>
-			<div class="tab-pane fade" id="screenshots" role="tabpanel" aria-labelledby="screenshots-tab">
-				<!-- Screenshots -->
-				<div class="card radius-10">
-					<div class="card-header">
-						<div class="d-flex justify-content-between align-items-center">
-							<h5>Screenshots</h5>
-							<button class="btn btn-primary radius-30 btn-sm">Upload Screenshot</button>
+						@else
+						<div class="text-center py-4">
+							<i class='bx bx-folder-open bx-lg text-muted mb-3'></i>
+							<p class="text-muted">No files uploaded for this project yet.</p>
+							<button class="btn btn-primary radius-30" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
+								<i class='bx bx-upload'></i> Upload First File
+							</button>
 						</div>
-					</div>
-					<div class="card-body">
-						<div class="row">
-							<div class="col-md-3 mb-3">
-								<div class="card border h-100">
-									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 1">
-									<div class="card-body">
-										<h6>Homepage</h6>
-										<small class="text-muted">Taken: Jan 15, 2023 10:30 AM</small>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-3 mb-3">
-								<div class="card border h-100">
-									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 2">
-									<div class="card-body">
-										<h6>Dashboard</h6>
-										<small class="text-muted">Taken: Jan 20, 2023 2:15 PM</small>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-3 mb-3">
-								<div class="card border h-100">
-									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 3">
-									<div class="card-body">
-										<h6>User Profile</h6>
-										<small class="text-muted">Taken: Jan 25, 2023 11:45 AM</small>
-									</div>
-								</div>
-							</div>
-							<div class="col-md-3 mb-3">
-								<div class="card border h-100">
-									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 4">
-									<div class="card-body">
-										<h6>Settings</h6>
-										<small class="text-muted">Taken: Feb 1, 2023 3:30 PM</small>
-									</div>
-								</div>
-							</div>
-						</div>
+						@endif
 					</div>
 				</div>
 			</div>
@@ -632,90 +540,86 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Milestones</h5>
-							<button class="btn btn-primary radius-30 btn-sm">Add Milestone</button>
+							@can('edit_projects')
+								<button class="btn btn-primary radius-30 btn-sm" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
+									<i class="bx bx-plus"></i> Add Milestone
+								</button>
+							@endcan
 						</div>
 					</div>
 					<div class="card-body">
-						<div class="timeline">
-							<div class="timeline-item completed">
-								<div class="timeline-marker"></div>
-								<div class="timeline-content">
-									<div class="d-flex justify-content-between align-items-start">
-										<div>
-											<h6 class="mb-1">Project Kickoff</h6>
-											<p>Initial project planning and requirement gathering completed successfully.</p>
-											<small class="text-muted">Jan 5, 2023</small>
-										</div>
-										<span class="badge bg-success">Completed</span>
-									</div>
+						<div class="row g-3 mb-4">
+							<div class="col-md-3 col-6">
+								<div class="milestone-stat-box">
+									<small class="text-muted d-block">Total</small>
+									<h5 class="mb-0">{{ $milestoneStats['total'] ?? 0 }}</h5>
 								</div>
 							</div>
-							<div class="timeline-item completed">
-								<div class="timeline-marker"></div>
-								<div class="timeline-content">
-									<div class="d-flex justify-content-between align-items-start">
-										<div>
-											<h6 class="mb-1">Design Phase Completion</h6>
-											<p>All UI/UX designs approved and finalized.</p>
-											<small class="text-muted">Jan 30, 2023</small>
-										</div>
-										<span class="badge bg-success">Completed</span>
-									</div>
+							<div class="col-md-3 col-6">
+								<div class="milestone-stat-box">
+									<small class="text-muted d-block">Completed</small>
+									<h5 class="mb-0 text-success">{{ $milestoneStats['completed'] ?? 0 }}</h5>
 								</div>
 							</div>
-							<div class="timeline-item active">
-								<div class="timeline-marker"></div>
-								<div class="timeline-content">
-									<div class="d-flex justify-content-between align-items-start">
-										<div>
-											<h6 class="mb-1">Development Phase</h6>
-											<p>Core functionality implementation in progress. Current sprint focuses on user authentication and dashboard features.</p>
-											<small class="text-muted">Feb 1, 2023 - Mar 15, 2023</small>
-										</div>
-										<span class="badge bg-primary">In Progress</span>
-									</div>
+							<div class="col-md-3 col-6">
+								<div class="milestone-stat-box">
+									<small class="text-muted d-block">In Progress</small>
+									<h5 class="mb-0 text-primary">{{ $milestoneStats['in_progress'] ?? 0 }}</h5>
 								</div>
 							</div>
-							<div class="timeline-item">
-								<div class="timeline-marker"></div>
-								<div class="timeline-content">
-									<div class="d-flex justify-content-between align-items-start">
-										<div>
-											<h6 class="mb-1">Testing & QA</h6>
-											<p>Comprehensive testing phase including unit tests, integration tests, and user acceptance testing.</p>
-											<small class="text-muted">Mar 16, 2023 - Apr 15, 2023</small>
-										</div>
-										<span class="badge bg-secondary">Pending</span>
-									</div>
-								</div>
-							</div>
-							<div class="timeline-item">
-								<div class="timeline-marker"></div>
-								<div class="timeline-content">
-									<div class="d-flex justify-content-between align-items-start">
-										<div>
-											<h6 class="mb-1">Production Release</h6>
-											<p>Final deployment to production environment with all features and bug fixes.</p>
-											<small class="text-muted">Apr 16, 2023</small>
-										</div>
-										<span class="badge bg-secondary">Pending</span>
-									</div>
-								</div>
-							</div>
-							<div class="timeline-item">
-								<div class="timeline-marker"></div>
-								<div class="timeline-content">
-									<div class="d-flex justify-content-between align-items-start">
-										<div>
-											<h6 class="mb-1">Project Closure</h6>
-											<p>Final delivery and project closure.</p>
-											<small class="text-muted">Dec 31, 2023</small>
-										</div>
-										<span class="badge bg-secondary">Pending</span>
-									</div>
+							<div class="col-md-3 col-6">
+								<div class="milestone-stat-box">
+									<small class="text-muted d-block">Pending</small>
+									<h5 class="mb-0 text-secondary">{{ $milestoneStats['pending'] ?? 0 }}</h5>
 								</div>
 							</div>
 						</div>
+
+						@if($milestones->count() > 0)
+							<div class="timeline">
+								@foreach($milestones as $milestone)
+									@php
+										$itemClass = $milestone->status === 'completed' ? 'completed' : ($milestone->status === 'in_progress' ? 'active' : 'pending');
+										$statusBadgeClass = $milestone->status === 'completed' ? 'bg-success' : ($milestone->status === 'in_progress' ? 'bg-primary' : 'bg-secondary');
+										$statusLabel = $milestone->status === 'in_progress' ? 'In Progress' : ucfirst($milestone->status);
+									@endphp
+									<div class="timeline-item {{ $itemClass }}">
+										<div class="timeline-marker"></div>
+										<div class="timeline-content">
+											<div class="d-flex justify-content-between align-items-start gap-3">
+												<div>
+													<h6 class="mb-1">{{ $milestone->title }}</h6>
+													@if($milestone->description)
+														<p class="mb-1">{{ $milestone->description }}</p>
+													@endif
+													<small class="text-muted">
+														@if($milestone->due_date)
+															Due: {{ $milestone->due_date->format('M d, Y') }}
+														@else
+															No due date
+														@endif
+														@if($milestone->completed_at)
+															| Completed: {{ $milestone->completed_at->format('M d, Y h:i A') }}
+														@endif
+													</small>
+												</div>
+												<span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
+											</div>
+										</div>
+									</div>
+								@endforeach
+							</div>
+						@else
+							<div class="text-center py-4">
+								<i class='bx bx-flag bx-lg text-muted mb-3'></i>
+								<p class="text-muted mb-2">No milestones added for this project yet.</p>
+								@can('edit_projects')
+									<button class="btn btn-primary radius-30 btn-sm" data-bs-toggle="modal" data-bs-target="#addMilestoneModal">
+										<i class="bx bx-plus"></i> Create First Milestone
+									</button>
+								@endcan
+							</div>
+						@endif
 					</div>
 				</div>
 			</div>
@@ -725,63 +629,93 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Issues & Risks</h5>
-							<button class="btn btn-danger radius-30 btn-sm">Report New Issue</button>
+							<button class="btn btn-danger radius-30 btn-sm" data-bs-toggle="modal" data-bs-target="#addIssueModal">
+								<i class="bx bx-plus me-1"></i>Report New Issue
+							</button>
 						</div>
 					</div>
 					<div class="card-body">
-						<div class="accordion" id="issuesAccordion">
-							<div class="accordion-item">
-								<h2 class="accordion-header" id="headingOne">
-									<button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-										<span class="badge bg-danger me-2">High</span> Database Performance Issues
-									</button>
-								</h2>
-								<div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#issuesAccordion">
-									<div class="accordion-body">
-										<p><strong>Description:</strong> Slow query performance affecting user experience during peak hours.</p>
-										<p><strong>Impact:</strong> High - Users experiencing delays of 5-10 seconds for common operations.</p>
-										<p><strong>Status:</strong> <span class="badge bg-warning">In Progress</span></p>
-										<p><strong>Assigned to:</strong> John Doe</p>
-										<p><strong>Resolution Plan:</strong> Optimize database queries, implement caching, and add database indexes.</p>
-										<small class="text-muted">Reported: Aug 1, 2023 | Updated: Aug 10, 2023</small>
-									</div>
+						@if($issues && $issues->count() > 0)
+						<div class="row mb-3">
+							<div class="col-md-3 col-6">
+								<div class="issue-stat-box">
+									<small class="text-muted d-block">Total</small>
+									<h5 class="mb-0">{{ $issueStats['total'] ?? 0 }}</h5>
 								</div>
 							</div>
-							<div class="accordion-item">
-								<h2 class="accordion-header" id="headingTwo">
-									<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-										<span class="badge bg-warning me-2">Medium</span> Third-party API Integration Delay
-									</button>
-								</h2>
-								<div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#issuesAccordion">
-									<div class="accordion-body">
-										<p><strong>Description:</strong> Payment gateway integration delayed due to API changes from provider.</p>
-										<p><strong>Impact:</strong> Medium - Affects payment processing functionality.</p>
-										<p><strong>Status:</strong> <span class="badge bg-info">Monitoring</span></p>
-										<p><strong>Assigned to:</strong> Jane Smith</p>
-										<p><strong>Resolution Plan:</strong> Coordinate with payment provider for updated API documentation and testing.</p>
-										<small class="text-muted">Reported: Jul 15, 2023 | Updated: Aug 5, 2023</small>
-									</div>
+							<div class="col-md-3 col-6">
+								<div class="issue-stat-box">
+									<small class="text-muted d-block">Open</small>
+									<h5 class="mb-0 text-warning">{{ $issueStats['open'] ?? 0 }}</h5>
 								</div>
 							</div>
-							<div class="accordion-item">
-								<h2 class="accordion-header" id="headingThree">
-									<button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-										<span class="badge bg-info me-2">Low</span> Mobile Responsiveness Issues
-									</button>
-								</h2>
-								<div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#issuesAccordion">
-									<div class="accordion-body">
-										<p><strong>Description:</strong> Minor layout issues on mobile devices for certain screen sizes.</p>
-										<p><strong>Impact:</strong> Low - Affects user experience on mobile but doesn't break functionality.</p>
-										<p><strong>Status:</strong> <span class="badge bg-success">Resolved</span></p>
-										<p><strong>Assigned to:</strong> Bob Johnson</p>
-										<p><strong>Resolution:</strong> Updated CSS media queries and tested across multiple devices.</p>
-										<small class="text-muted">Reported: Jun 20, 2023 | Resolved: Aug 8, 2023</small>
-									</div>
+							<div class="col-md-3 col-6">
+								<div class="issue-stat-box">
+									<small class="text-muted d-block">In Progress</small>
+									<h5 class="mb-0 text-primary">{{ $issueStats['in_progress'] ?? 0 }}</h5>
+								</div>
+							</div>
+							<div class="col-md-3 col-6">
+								<div class="issue-stat-box">
+									<small class="text-muted d-block">Resolved</small>
+									<h5 class="mb-0 text-success">{{ $issueStats['resolved'] ?? 0 }}</h5>
 								</div>
 							</div>
 						</div>
+
+						<div class="accordion" id="issuesAccordion">
+							@foreach($issues as $issue)
+							<div class="accordion-item">
+								<h2 class="accordion-header" id="heading{{ $issue->id }}">
+									<button class="accordion-button {{ !$loop->first ? 'collapsed' : '' }}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ $issue->id }}" aria-expanded="{{ $loop->first ? 'true' : 'false' }}" aria-controls="collapse{{ $issue->id }}">
+										<span class="badge @if($issue->priority == 'high') bg-danger @elseif($issue->priority == 'medium') bg-warning @else bg-info @endif me-2">{{ ucfirst($issue->priority) }}</span>
+										Issue #{{ $issue->id }}
+										<span class="badge @if($issue->status == 'open') bg-warning @elseif($issue->status == 'in_progress') bg-primary @elseif($issue->status == 'resolved') bg-success @else bg-secondary @endif ms-2">{{ ucfirst(str_replace('_', ' ', $issue->status)) }}</span>
+									</button>
+								</h2>
+								<div id="collapse{{ $issue->id }}" class="accordion-collapse collapse {{ $loop->first ? 'show' : '' }}" aria-labelledby="heading{{ $issue->id }}" data-bs-parent="#issuesAccordion">
+									<div class="accordion-body">
+										<p><strong>Description:</strong> {{ $issue->issue_description }}</p>
+										<p><strong>Status:</strong>
+											<span class="badge @if($issue->status == 'open') bg-warning @elseif($issue->status == 'in_progress') bg-primary @elseif($issue->status == 'resolved') bg-success @else bg-secondary @endif">
+												{{ ucfirst(str_replace('_', ' ', $issue->status)) }}
+											</span>
+										</p>
+										<p><strong>Priority:</strong>
+											<span class="badge @if($issue->priority == 'high') bg-danger @elseif($issue->priority == 'medium') bg-warning @else bg-info @endif">
+												{{ ucfirst($issue->priority) }}
+											</span>
+										</p>
+										@if($issue->tasks && $issue->tasks->count() > 0)
+										<p><strong>Tasks:</strong> {{ $issue->tasks->count() }}</p>
+										@endif
+										<small class="text-muted">Reported: {{ $issue->created_at->format('M d, Y') }} | Updated: {{ $issue->updated_at->format('M d, Y') }}</small>
+										<div class="mt-3">
+											<button class="btn btn-sm btn-outline-primary radius-30 me-2" onclick="editIssue({{ $issue->id }}, '{{ addslashes($issue->issue_description) }}', '{{ $issue->priority }}', '{{ $issue->status }}')">
+												<i class="bx bx-edit"></i> Edit
+											</button>
+											<form action="{{ route('project.issues.destroy', [$project->id, $issue->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this issue?')">
+												@csrf
+												@method('DELETE')
+												<button type="submit" class="btn btn-sm btn-outline-danger radius-30">
+													<i class="bx bx-trash"></i> Delete
+												</button>
+											</form>
+										</div>
+									</div>
+								</div>
+							</div>
+							@endforeach
+						</div>
+						@else
+						<div class="text-center py-4">
+							<i class='bx bx-error bx-lg text-muted mb-3'></i>
+							<p class="text-muted">No issues reported for this project yet.</p>
+							<button class="btn btn-danger radius-30" data-bs-toggle="modal" data-bs-target="#addIssueModal">
+								<i class="bx bx-plus me-1"></i>Report First Issue
+							</button>
+						</div>
+						@endif
 					</div>
 				</div>
 			</div>
@@ -888,7 +822,7 @@
 										</div>
 										<p class="mt-2">Updated the mobile responsive design. All layouts now work properly on devices with screen sizes from 320px to 1440px. Ready for QA testing.</p>
 										<div class="comment-actions">
-											<button class="btn btn-sm btn-outline-primary me-2">Like</button>
+											<button class="btn btn-sm btn-outline-secondary me-2">Like</button>
 											<button class="btn btn-sm btn-outline-secondary">Reply</button>
 										</div>
 									</div>
@@ -903,6 +837,216 @@
 	</div>
 </div>
 <!--end page wrapper -->
+
+<!-- Add Milestone Modal -->
+<div class="modal fade" id="addMilestoneModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Add Milestone</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form action="{{ route('project.milestones.store', $project->id) }}" method="POST">
+				@csrf
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="milestone_title" class="form-label">Title</label>
+						<input type="text" name="title" id="milestone_title" class="form-control @error('title') is-invalid @enderror" value="{{ old('title') }}" placeholder="Enter milestone title" required>
+						@error('title')
+							<div class="invalid-feedback">{{ $message }}</div>
+						@enderror
+					</div>
+					<div class="mb-3">
+						<label for="milestone_description" class="form-label">Description</label>
+						<textarea name="description" id="milestone_description" rows="3" class="form-control @error('description') is-invalid @enderror" placeholder="Add milestone details...">{{ old('description') }}</textarea>
+						@error('description')
+							<div class="invalid-feedback">{{ $message }}</div>
+						@enderror
+					</div>
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label for="milestone_due_date" class="form-label">Due Date</label>
+							<input type="date" name="due_date" id="milestone_due_date" class="form-control @error('due_date') is-invalid @enderror" value="{{ old('due_date') }}">
+							@error('due_date')
+								<div class="invalid-feedback">{{ $message }}</div>
+							@enderror
+						</div>
+						<div class="col-md-6">
+							<label for="milestone_status" class="form-label">Status</label>
+							<select name="status" id="milestone_status" class="form-select @error('status') is-invalid @enderror" required>
+								<option value="pending" {{ old('status') === 'pending' ? 'selected' : '' }}>Pending</option>
+								<option value="in_progress" {{ old('status') === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+								<option value="completed" {{ old('status') === 'completed' ? 'selected' : '' }}>Completed</option>
+							</select>
+							@error('status')
+								<div class="invalid-feedback">{{ $message }}</div>
+							@enderror
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-primary">Save Milestone</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Upload File Modal -->
+<div class="modal fade" id="uploadFileModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Upload File</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form action="{{ route('project.upload-file', $project->id) }}" method="POST" enctype="multipart/form-data" id="uploadFileForm">
+				@csrf
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="file_upload" class="form-label">Select File</label>
+						<input type="file" name="file" class="form-control @error('file') is-invalid @enderror" id="file_upload" accept=".jpg,.jpeg,.png,.gif,.svg,.webp,.bmp,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar" required>
+						<small class="text-muted">Supported formats: JPG, JPEG, PNG, GIF, SVG, WEBP, BMP, PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, ZIP, RAR (Max 10MB)</small>
+						@error('file')
+							<div class="invalid-feedback">{{ $message }}</div>
+						@enderror
+					</div>
+					<div class="mb-3">
+						<label for="file_description" class="form-label">Description (Optional)</label>
+						<textarea class="form-control" name="description" id="file_description" rows="3" placeholder="Add a description for this file..."></textarea>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-primary" id="uploadBtn">
+						<i class='bx bx-upload'></i> Upload
+					</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteFileModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Delete File</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body">
+				<p>Are you sure you want to delete this file? This action cannot be undone.</p>
+				<input type="hidden" id="deleteFileId">
+			</div>
+			<div class="modal-footer">
+				<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+				<button type="button" class="btn btn-danger" onclick="confirmDelete()">
+					<i class='bx bx-trash'></i> Delete
+				</button>
+			</div>
+		</div>
+	</div>
+</div>
+
+<!-- Add Issue Modal -->
+<div class="modal fade" id="addIssueModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Report New Issue</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form action="{{ route('project.issues.store', $project->id) }}" method="POST">
+				@csrf
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="issue_description" class="form-label">Issue Description</label>
+						<textarea name="issue_description" id="issue_description" class="form-control @error('issue_description') is-invalid @enderror" rows="4" placeholder="Describe the issue in detail..." required>{{ old('issue_description') }}</textarea>
+						@error('issue_description')
+							<div class="invalid-feedback">{{ $message }}</div>
+						@enderror
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<label for="priority" class="form-label">Priority</label>
+							<select name="priority" id="priority" class="form-select @error('priority') is-invalid @enderror" required>
+								<option value="low" {{ old('priority') === 'low' ? 'selected' : '' }}>Low</option>
+								<option value="medium" {{ old('priority') === 'medium' || !old('priority') ? 'selected' : '' }}>Medium</option>
+								<option value="high" {{ old('priority') === 'high' ? 'selected' : '' }}>High</option>
+							</select>
+							@error('priority')
+								<div class="invalid-feedback">{{ $message }}</div>
+							@enderror
+						</div>
+						<div class="col-md-6">
+							<label for="status" class="form-label">Status</label>
+							<select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+								<option value="open" {{ old('status') === 'open' || !old('status') ? 'selected' : '' }}>Open</option>
+								<option value="in_progress" {{ old('status') === 'in_progress' ? 'selected' : '' }}>In Progress</option>
+								<option value="resolved" {{ old('status') === 'resolved' ? 'selected' : '' }}>Resolved</option>
+								<option value="closed" {{ old('status') === 'closed' ? 'selected' : '' }}>Closed</option>
+							</select>
+							@error('status')
+								<div class="invalid-feedback">{{ $message }}</div>
+							@enderror
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-danger">Report Issue</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+<!-- Edit Issue Modal -->
+<div class="modal fade" id="editIssueModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Edit Issue</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form id="editIssueForm" method="POST">
+				@csrf
+				@method('PUT')
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="edit_issue_description" class="form-label">Issue Description</label>
+						<textarea name="issue_description" id="edit_issue_description" class="form-control" rows="4" placeholder="Describe the issue in detail..." required></textarea>
+					</div>
+					<div class="row">
+						<div class="col-md-6">
+							<label for="edit_priority" class="form-label">Priority</label>
+							<select name="priority" id="edit_priority" class="form-select" required>
+								<option value="low">Low</option>
+								<option value="medium">Medium</option>
+								<option value="high">High</option>
+							</select>
+						</div>
+						<div class="col-md-6">
+							<label for="edit_status" class="form-label">Status</label>
+							<select name="status" id="edit_status" class="form-select" required>
+								<option value="open">Open</option>
+								<option value="in_progress">In Progress</option>
+								<option value="resolved">Resolved</option>
+								<option value="closed">Closed</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-primary">Update Issue</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
 
 <style>
 .timeline {
@@ -944,6 +1088,10 @@
 	background-color: #0d6efd;
 }
 
+.timeline-item.pending .timeline-marker {
+	background-color: #6c757d;
+}
+
 .timeline-content {
 	background: #f8f9fa;
 	padding: 15px;
@@ -957,6 +1105,17 @@
 
 .timeline-item.active .timeline-content {
 	border-left-color: #0d6efd;
+}
+
+.timeline-item.pending .timeline-content {
+	border-left-color: #6c757d;
+}
+
+.milestone-stat-box {
+	background: #f8f9fa;
+	border: 1px solid #e9ecef;
+	border-radius: 10px;
+	padding: 12px 14px;
 }
 
 .comments-list .comment-item {
@@ -974,6 +1133,13 @@
 .comment-actions {
 	margin-top: 10px;
 }
+
+.issue-stat-box {
+	background: #f8f9fa;
+	border: 1px solid #e9ecef;
+	border-radius: 10px;
+	padding: 12px 14px;
+}
 </style>
 
 @push('scripts')
@@ -982,6 +1148,10 @@
 <script>
 $(function() {
     "use strict";
+
+    @if($errors->has('title') || $errors->has('description') || $errors->has('status') || $errors->has('due_date'))
+        $('#addMilestoneModal').modal('show');
+    @endif
 
     // Time Distribution Chart (Doughnut)
     if (document.getElementById("timeChart")) {
@@ -1104,7 +1274,85 @@ $(function() {
         .catch(error => {
             console.error('Error initializing CKEditor:', error);
         });
+
+    // Refresh timer values every minute on project details page.
+    setInterval(function() {
+        window.location.reload();
+    }, 60000);
+
+    // File upload form submission
+    $('#uploadFileForm').on('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+        var btn = $('#uploadBtn');
+        btn.prop('disabled', true);
+        btn.html('<span class="spinner-border spinner-border-sm"></span> Uploading...');
+        
+        $.ajax({
+            url: $(this).attr('action'),
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                $('#uploadFileModal').modal('hide');
+                $('#uploadFileForm')[0].reset();
+                toastr.success('File uploaded successfully!');
+                setTimeout(function() {
+                    window.location.reload();
+                }, 1000);
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false);
+                btn.html('<i class=\'bx bx-upload\'></i> Upload');
+                if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    $.each(xhr.responseJSON.errors, function(key, value) {
+                        toastr.error(value[0]);
+                    });
+                } else {
+                    toastr.error('Error uploading file. Please try again.');
+                }
+            }
+        });
+    });
 });
+
+// Delete file function
+function deleteFile(fileId) {
+    $('#deleteFileId').val(fileId);
+    $('#deleteFileModal').modal('show');
+}
+
+// Confirm delete
+function confirmDelete() {
+    var fileId = $('#deleteFileId').val();
+    $.ajax({
+        url: '/project/file/' + fileId + '/delete',
+        type: 'DELETE',
+        data: {
+            '_token': '{{ csrf_token() }}'
+        },
+        success: function(response) {
+            $('#deleteFileModal').modal('hide');
+            toastr.success('File deleted successfully!');
+            setTimeout(function() {
+                window.location.reload();
+            }, 1000);
+        },
+        error: function(xhr) {
+            toastr.error('Error deleting file. Please try again.');
+        }
+    });
+}
+
+// Edit issue function
+function editIssue(issueId, description, priority, status) {
+    $('#edit_issue_description').val(description);
+    $('#edit_priority').val(priority);
+    $('#edit_status').val(status);
+    $('#editIssueForm').attr('action', '{{ route("project.issues.update", [$project->id, ":issueId"]) }}'.replace(':issueId', issueId));
+    $('#editIssueModal').modal('show');
+}
 </script>
 @endpush
 

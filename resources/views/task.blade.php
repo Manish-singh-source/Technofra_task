@@ -132,6 +132,7 @@
                                     <th>Priority</th>
                                     <th>Assignee</th>
                                     <th>Attachments</th>
+                                    <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -177,16 +178,38 @@
                                         @endif
                                     </td>
                                     <td>
+                                        @php
+                                            $isLate = $task->deadline
+                                                && $task->deadline->isPast()
+                                                && !in_array($task->status, ['completed', 'cancelled', 'on_hold'], true);
+                                        @endphp
+                                        @if($isLate)
+                                            <span class="badge bg-warning text-dark">Late</span>
+                                        @elseif($task->status == 'in_progress')
+                                            <span class="badge bg-primary">Running</span>
+                                        @elseif($task->status == 'completed')
+                                            <span class="badge bg-success">Completed</span>
+                                        @elseif($task->status == 'on_hold')
+                                            <span class="badge bg-danger">Delayed</span>
+                                        @elseif($task->status == 'not_started')
+                                            <span class="badge bg-secondary">Not Started</span>
+                                        @elseif($task->status == 'cancelled')
+                                            <span class="badge bg-dark">Cancelled</span>
+                                        @else
+                                            <span class="badge bg-secondary">{{ ucfirst($task->status) }}</span>
+                                        @endif
+                                    </td>
+                                    <td>
                                         <div class="d-flex order-actions">
                                             <a href="{{ route('task-details', $task->id) }}"><i class='bx bxs-show'></i></a>
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-edit'></i></a>
+                                            <a href="{{ route('edit-task', $task->id) }}" class="ms-2"><i class='bx bxs-edit'></i></a>
                                             <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
                                         </div>
                                     </td>
                                 </tr>
                                 @empty
                                 <tr>
-                                    <td colspan="9" class="text-center">No tasks found.</td>
+                                    <td colspan="10" class="text-center">No tasks found.</td>
                                 </tr>
                                 @endforelse
                             </tbody>

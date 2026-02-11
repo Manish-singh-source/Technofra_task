@@ -48,4 +48,14 @@ class Project extends Model
     {
         return $this->hasMany(Task::class);
     }
+
+    public function statusLogs()
+    {
+        return $this->hasMany(ProjectStatusLog::class);
+    }
+
+    public function milestones()
+    {
+        return $this->hasMany(ProjectMilestone::class);
+    }
 }
