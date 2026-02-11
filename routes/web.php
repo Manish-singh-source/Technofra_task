@@ -15,6 +15,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\SettingController;
+use App\Http\Controllers\TagController;
 use App\Http\Controllers\VendorServiceController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -222,6 +224,27 @@ Route::middleware('auth')->group(function () {
         Route::post('/lead/toggle-status', [LeadController::class, 'toggleStatus'])->name('lead.toggleStatus');
         Route::post('/lead/delete-selected', [LeadController::class, 'deleteSelected'])->name('lead.delete-selected');
         Route::get('/lead/export', [LeadController::class, 'export'])->name('lead.export');
+    });
+
+    // Settings routes
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/settings', [SettingController::class, 'index'])->name('settings');
+        Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('settings.update.general');
+        Route::put('/settings/company', [SettingController::class, 'updateCompany'])->name('settings.update.company');
+        Route::put('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email');
+        Route::post('/settings/test-email', [SettingController::class, 'sendTestEmail'])->name('settings.test.email');
+        Route::get('/settings/search-tags', [SettingController::class, 'searchTags'])->name('settings.search.tags');
+    });
+
+    // Tag routes
+    Route::middleware(['auth'])->group(function () {
+        Route::get('/tags', [TagController::class, 'index'])->name('tags.index');
+        Route::post('/tags', [TagController::class, 'store'])->name('tags.store');
+        Route::put('/tags/{id}', [TagController::class, 'update'])->name('tags.update');
+        Route::delete('/tags/{id}', [TagController::class, 'destroy'])->name('tags.destroy');
+        Route::get('/tags/search', [TagController::class, 'search'])->name('tags.search');
+        Route::get('/tags/all', [TagController::class, 'getAllTags'])->name('tags.all');
+        Route::post('/tags/{id}/toggle-status', [TagController::class, 'toggleStatus'])->name('tags.toggle-status');
     });
 });
 

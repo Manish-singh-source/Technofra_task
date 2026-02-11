@@ -7,7 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!--favicon-->
-    <link rel="icon" href="assets/images/favicon-32x32.png" type="image/png" />
+    @if(!empty($globalSettings['favicon']) && Storage::exists('public/settings/' . $globalSettings['favicon']))
+        <link rel="icon" href="{{ Storage::url('public/settings/' . $globalSettings['favicon']) }}" type="image/png" />
+    @else
+        <link rel="icon" href="assets/images/favicon-32x32.png" type="image/png" />
+    @endif
     <!--plugins-->
     <link href="{{ asset('assets/plugins/vectormap/jquery-jvectormap-2.0.2.css') }}" rel="stylesheet" />
     <link href="{{ asset('assets/plugins/bs-stepper/css/bs-stepper.css') }}" rel="stylesheet" />
@@ -132,7 +136,7 @@
         }
     </style>
 
-    <title>Technofra Renewal</title>
+    <title>{{ $globalSettings['company_name'] ?? 'Technofra Renewal' }}</title>
 </head>
 
 <body>
@@ -142,10 +146,14 @@
         <div class="sidebar-wrapper" data-simplebar="true">
             <div class="sidebar-header">
                 <div>
-                    <img src="{{ asset('assets/images/logo-icon.png') }}" class="logo-icon" alt="logo icon">
+                    @if(!empty($globalSettings['crm_logo']) && Storage::exists('public/settings/' . $globalSettings['crm_logo']))
+                        <img src="{{ Storage::url('public/settings/' . $globalSettings['crm_logo']) }}" class="logo-icon" alt="logo">
+                    @else
+                        <img src="{{ asset('assets/images/logo-icon.png') }}" class="logo-icon" alt="logo icon">
+                    @endif
                 </div>
                 <div>
-                    <h4 class="logo-text">Technofra</h4>
+                    <h4 class="logo-text">{{ $globalSettings['company_name'] ?? 'Technofra' }}</h4>
                 </div>
                 <div class="toggle-icon ms-auto"><i class='bx bx-arrow-back'></i>
                 </div>
@@ -296,6 +304,13 @@
                             <div class="parent-icon"><i class="bx bx-user-check"></i>
                             </div>
                             <div class="menu-title">Client</div>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ route('settings') }}">
+                             <div class="parent-icon"><i class="bx bx-user-check"></i>
+                            </div>
+                            <div class="menu-title">Settings</div>
                         </a>
                     </li>
                     @endcan

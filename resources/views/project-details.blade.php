@@ -321,112 +321,39 @@
 									<tr>
 										<th>Name</th>
 										<th>Team</th>
+										<th>Start Date</th>
+										<th>Deadline</th>
 										<th>Total Time (H)</th>
-										<th>Clocked Time (H)</th>
-										<th>Computer (H)</th>
-										<th>Manual (H)</th>
-										<th>Productive (H)</th>
 										<th>Utilization</th>
-										<th>Actions</th>
 									</tr>
 								</thead>
 								<tbody>
-									<tr>
-										<td>
-											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
-												<span>John Doe</span>
-											</div>
-										</td>
-										<td>Development</td>
-										<td>160</td>
-										<td>140</td>
-										<td>120</td>
-										<td>20</td>
-										<td>110</td>
-										<td>
-											<div class="d-flex align-items-center">
-												<div class="progress me-2" style="width: 100px;">
-													<div class="progress-bar" style="width: 80%"></div>
-												</div>
-												80%
-											</div>
-										</td>
-										<td>
-											<div class="dropdown">
-												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Actions</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#">View Profile</a></li>
-													<li><a class="dropdown-item" href="#">Edit</a></li>
-													<li><a class="dropdown-item" href="#">Remove</a></li>
-												</ul>
-											</div>
-										</td>
-									</tr>
-									<tr>
-										<td>
-											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
-												<span>Jane Smith</span>
-											</div>
-										</td>
-										<td>Design</td>
-										<td>150</td>
-										<td>130</td>
-										<td>100</td>
-										<td>30</td>
-										<td>95</td>
-										<td>
-											<div class="d-flex align-items-center">
-												<div class="progress me-2" style="width: 100px;">
-													<div class="progress-bar" style="width: 70%"></div>
-												</div>
-												70%
-											</div>
-										</td>
-										<td>
-											<div class="dropdown">
-												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Actions</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#">View Profile</a></li>
-													<li><a class="dropdown-item" href="#">Edit</a></li>
-													<li><a class="dropdown-item" href="#">Remove</a></li>
-												</ul>
-											</div>
-										</td>
-									</tr>
-									<tr>
-										<td>
-											<div class="d-flex align-items-center">
-												<img src="https://placehold.co/40x40" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
-												<span>Bob Johnson</span>
-											</div>
-										</td>
-										<td>QA</td>
-										<td>140</td>
-										<td>120</td>
-										<td>90</td>
-										<td>30</td>
-										<td>80</td>
-										<td>
-											<div class="d-flex align-items-center">
-												<div class="progress me-2" style="width: 100px;">
-													<div class="progress-bar" style="width: 60%"></div>
-												</div>
-												60%
-											</div>
-										</td>
-										<td>
-											<div class="dropdown">
-												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">Actions</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#">View Profile</a></li>
-													<li><a class="dropdown-item" href="#">Edit</a></li>
-													<li><a class="dropdown-item" href="#">Remove</a></li>
-												</ul>
-											</div>
-										</td>
-									</tr>
+									@if($project->members)
+										@foreach($project->members as $memberId)
+											@if(isset($staff[$memberId]))
+												<tr>
+													<td>
+														<div class="d-flex align-items-center">
+															<img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/40x40' }}" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
+															<span>{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}</span>
+														</div>
+													</td>
+													<td>{{ $staff[$memberId]->team->team_name ?? 'N/A' }}</td>
+													<td>{{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}</td>
+													<td>{{ $project->deadline ? $project->deadline->format('M d, Y') : 'N/A' }}</td>
+													<td>{{ $staff[$memberId]->total_hours ?? '0' }}h</td>
+													<td>
+														<div class="d-flex align-items-center">
+															<div class="progress me-2" style="width: 100px;">
+																<div class="progress-bar bg-{{ $staff[$memberId]->utilization >= 80 ? 'success' : ($staff[$memberId]->utilization >= 50 ? 'warning' : 'danger') }}" style="width: {{ $staff[$memberId]->utilization ?? 0 }}%"></div>
+															</div>
+															<span>{{ $staff[$memberId]->utilization ?? 0 }}%</span>
+														</div>
+													</td>
+												</tr>
+											@endif
+										@endforeach
+									@endif
 								</tbody>
 							</table>
 						</div>
@@ -439,12 +366,7 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Tasks</h5>
-							<div>
-								<button class="btn btn-primary me-2" type="button" data-bs-toggle="collapse" data-bs-target="#addTaskForm" aria-expanded="false" aria-controls="addTaskForm">
-									<i class="bx bx-plus"></i> Add Task
-								</button>
-								<input type="text" class="form-control w-25 radius-30" placeholder="Search tasks..." id="searchTasks">
-							</div>
+							
 						</div>
 					</div>
 					<div class="card-body">
@@ -526,8 +448,8 @@
 											<small class="text-muted">2.3 MB • Uploaded: Jan 5, 2023</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-1">Download</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">View</button>
+											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
+											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
 										</div>
 									</div>
 								</div>
@@ -536,13 +458,13 @@
 								<div class="card border h-100">
 									<div class="card-body text-center d-flex flex-column justify-content-between">
 										<div>
-											<i class="bx bx-image bx-lg text-success mb-2"></i>
-											<h6>UI_Mockups.zip</h6>
-											<small class="text-muted">15.7 MB • Uploaded: Feb 10, 2023</small>
+											<i class="bx bxs-file-image bx-lg text-success mb-2"></i>
+											<h6>Wireframes.zip</h6>
+											<small class="text-muted">15.7 MB • Uploaded: Jan 10, 2023</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-1">Download</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">View</button>
+											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
+											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
 										</div>
 									</div>
 								</div>
@@ -551,13 +473,13 @@
 								<div class="card border h-100">
 									<div class="card-body text-center d-flex flex-column justify-content-between">
 										<div>
-											<i class="bx bx-spreadsheet bx-lg text-warning mb-2"></i>
-											<h6>Budget_Tracking.xlsx</h6>
-											<small class="text-muted">1.2 MB • Uploaded: Mar 15, 2023</small>
+											<i class="bx bx-code-alt bx-lg text-info mb-2"></i>
+											<h6>API_Documentation.pdf</h6>
+											<small class="text-muted">1.8 MB • Uploaded: Jan 15, 2023</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-1">Download</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">View</button>
+											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
+											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
 										</div>
 									</div>
 								</div>
@@ -566,13 +488,13 @@
 								<div class="card border h-100">
 									<div class="card-body text-center d-flex flex-column justify-content-between">
 										<div>
-											<i class="bx bx-code bx-lg text-info mb-2"></i>
-											<h6>Source_Code_v1.0.zip</h6>
-											<small class="text-muted">45.8 MB • Uploaded: Jul 20, 2023</small>
+											<i class="bx bx-file-doc bx-lg text-warning mb-2"></i>
+											<h6>SRS_Document.pdf</h6>
+											<small class="text-muted">3.2 MB • Uploaded: Jan 20, 2023</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-1">Download</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">View</button>
+											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
+											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
 										</div>
 									</div>
 								</div>
@@ -581,13 +503,13 @@
 								<div class="card border h-100">
 									<div class="card-body text-center d-flex flex-column justify-content-between">
 										<div>
-											<i class="bx bx-video bx-lg text-danger mb-2"></i>
-											<h6>Demo_Video.mp4</h6>
-											<small class="text-muted">125.3 MB • Uploaded: Aug 5, 2023</small>
+											<i class="bx bx-image bx-lg text-secondary mb-2"></i>
+											<h6>Design_Mockups.psd</h6>
+											<small class="text-muted">45.6 MB • Uploaded: Jan 25, 2023</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-1">Download</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">View</button>
+											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
+											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
 										</div>
 									</div>
 								</div>
@@ -596,13 +518,13 @@
 								<div class="card border h-100">
 									<div class="card-body text-center d-flex flex-column justify-content-between">
 										<div>
-											<i class="bx bx-file-blank bx-lg text-secondary mb-2"></i>
-											<h6>Test_Reports.docx</h6>
-											<small class="text-muted">3.1 MB • Uploaded: Aug 10, 2023</small>
+											<i class="bx bx-file-find bx-lg text-danger mb-2"></i>
+											<h6>Test_Cases.xlsx</h6>
+											<small class="text-muted">520 KB • Uploaded: Feb 1, 2023</small>
 										</div>
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-1">Download</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">View</button>
+											<button class="btn btn-sm btn-outline-primary radius-30">Download</button>
+											<button class="btn btn-sm btn-outline-danger radius-30"><i class="bx bx-trash"></i></button>
 										</div>
 									</div>
 								</div>
@@ -612,157 +534,92 @@
 				</div>
 			</div>
 			<div class="tab-pane fade" id="screenshots" role="tabpanel" aria-labelledby="screenshots-tab">
-				<p>Screenshots content here.</p>
-			</div>
-			<div class="tab-pane fade" id="usage" role="tabpanel" aria-labelledby="usage-tab">
-				<!-- Usage Analytics -->
-				<div class="row">
-					<div class="col-md-6">
-						<div class="card radius-10 h-100">
-							<div class="card-header">
-								<h5>Time Distribution</h5>
-							</div>
-							<div class="card-body">
-								<div class="chart-container-1">
-									<canvas id="timeChart" width="400" height="300"></canvas>
-								</div>
-								<div class="mt-3">
-									<div class="d-flex justify-content-between">
-										<span>Development</span>
-										<span>45%</span>
-									</div>
-									<div class="progress mb-2">
-										<div class="progress-bar bg-primary" style="width: 45%"></div>
-									</div>
-									<div class="d-flex justify-content-between">
-										<span>Design</span>
-										<span>25%</span>
-									</div>
-									<div class="progress mb-2">
-										<div class="progress-bar bg-info" style="width: 25%"></div>
-									</div>
-									<div class="d-flex justify-content-between">
-										<span>Testing</span>
-										<span>20%</span>
-									</div>
-									<div class="progress mb-2">
-										<div class="progress-bar bg-success" style="width: 20%"></div>
-									</div>
-									<div class="d-flex justify-content-between">
-										<span>Meetings</span>
-										<span>10%</span>
-									</div>
-									<div class="progress">
-										<div class="progress-bar bg-warning" style="width: 10%"></div>
-									</div>
-								</div>
-							</div>
+				<!-- Screenshots -->
+				<div class="card radius-10">
+					<div class="card-header">
+						<div class="d-flex justify-content-between align-items-center">
+							<h5>Screenshots</h5>
+							<button class="btn btn-primary radius-30 btn-sm">Upload Screenshot</button>
 						</div>
 					</div>
-					<div class="col-md-6">
-						<div class="card radius-10 h-100">
-							<div class="card-header">
-								<h5>Weekly Activity</h5>
-							</div>
-							<div class="card-body">
-								<div class="chart-container-1">
-									<canvas id="activityChart" width="400" height="300"></canvas>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-3 mb-3">
+								<div class="card border h-100">
+									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 1">
+									<div class="card-body">
+										<h6>Homepage</h6>
+										<small class="text-muted">Taken: Jan 15, 2023 10:30 AM</small>
+									</div>
 								</div>
-								<div class="mt-3">
-									<div class="row text-center">
-										<div class="col-2">
-											<small>Mon</small>
-											<h6 class="text-primary">8.5h</h6>
-										</div>
-										<div class="col-2">
-											<small>Tue</small>
-											<h6 class="text-primary">7.2h</h6>
-										</div>
-										<div class="col-2">
-											<small>Wed</small>
-											<h6 class="text-primary">9.1h</h6>
-										</div>
-										<div class="col-2">
-											<small>Thu</small>
-											<h6 class="text-primary">6.8h</h6>
-										</div>
-										<div class="col-2">
-											<small>Fri</small>
-											<h6 class="text-primary">8.3h</h6>
-										</div>
-										<div class="col-2">
-											<small>Sat</small>
-											<h6 class="text-muted">0h</h6>
-										</div>
+							</div>
+							<div class="col-md-3 mb-3">
+								<div class="card border h-100">
+									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 2">
+									<div class="card-body">
+										<h6>Dashboard</h6>
+										<small class="text-muted">Taken: Jan 20, 2023 2:15 PM</small>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-3 mb-3">
+								<div class="card border h-100">
+									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 3">
+									<div class="card-body">
+										<h6>User Profile</h6>
+										<small class="text-muted">Taken: Jan 25, 2023 11:45 AM</small>
+									</div>
+								</div>
+							</div>
+							<div class="col-md-3 mb-3">
+								<div class="card border h-100">
+									<img src="https://placehold.co/400x300" class="card-img-top" alt="Screenshot 4">
+									<div class="card-body">
+										<h6>Settings</h6>
+										<small class="text-muted">Taken: Feb 1, 2023 3:30 PM</small>
 									</div>
 								</div>
 							</div>
 						</div>
 					</div>
 				</div>
-				<div class="row mt-4">
-					<div class="col-12">
-						<div class="card radius-10">
-							<div class="card-header">
-								<h5>Resource Utilization</h5>
+			</div>
+			<div class="tab-pane fade" id="usage" role="tabpanel" aria-labelledby="usage-tab">
+				<!-- Usage Statistics -->
+				<div class="card radius-10">
+					<div class="card-header">
+						<h5>Project Usage Statistics</h5>
+					</div>
+					<div class="card-body">
+						<div class="row">
+							<div class="col-md-6">
+								<h6>Time Distribution</h6>
+								<div class="chart-container" style="position: relative; height:300px;">
+									<canvas id="timeChart"></canvas>
+								</div>
+								<div class="row text-center mt-3">
+									<div class="col-3">
+										<span class="badge bg-primary p-2">Development</span>
+										<p class="mt-2 font-20">45%</p>
+									</div>
+									<div class="col-3">
+										<span class="badge bg-info p-2">Design</span>
+										<p class="mt-2 font-20">25%</p>
+									</div>
+									<div class="col-3">
+										<span class="badge bg-danger p-2">Testing</span>
+										<p class="mt-2 font-20">20%</p>
+									</div>
+									<div class="col-3">
+										<span class="badge bg-warning p-2">Meetings</span>
+										<p class="mt-2 font-20">10%</p>
+									</div>
+								</div>
 							</div>
-							<div class="card-body">
-								<div class="table-responsive">
-									<table class="table table-striped">
-										<thead>
-											<tr>
-												<th>Resource</th>
-												<th>Allocated</th>
-												<th>Used</th>
-												<th>Utilization</th>
-												<th>Status</th>
-											</tr>
-										</thead>
-										<tbody>
-											<tr>
-												<td>Development Team</td>
-												<td>5 members</td>
-												<td>4.5 FTE</td>
-												<td>
-													<div class="d-flex align-items-center">
-														<div class="progress me-2" style="width: 100px;">
-															<div class="progress-bar bg-success" style="width: 90%"></div>
-														</div>
-														90%
-													</div>
-												</td>
-												<td><span class="badge bg-success">Optimal</span></td>
-											</tr>
-											<tr>
-												<td>Design Team</td>
-												<td>2 members</td>
-												<td>1.8 FTE</td>
-												<td>
-													<div class="d-flex align-items-center">
-														<div class="progress me-2" style="width: 100px;">
-															<div class="progress-bar bg-warning" style="width: 75%"></div>
-														</div>
-														75%
-													</div>
-												</td>
-												<td><span class="badge bg-warning">Good</span></td>
-											</tr>
-											<tr>
-												<td>QA Team</td>
-												<td>3 members</td>
-												<td>2.2 FTE</td>
-												<td>
-													<div class="d-flex align-items-center">
-														<div class="progress me-2" style="width: 100px;">
-															<div class="progress-bar bg-info" style="width: 60%"></div>
-														</div>
-														60%
-													</div>
-												</td>
-												<td><span class="badge bg-info">Moderate</span></td>
-											</tr>
-										</tbody>
-									</table>
+							<div class="col-md-6">
+								<h6>Weekly Activity</h6>
+								<div class="chart-container" style="position: relative; height:300px;">
+									<canvas id="activityChart"></canvas>
 								</div>
 							</div>
 						</div>
@@ -770,67 +627,92 @@
 				</div>
 			</div>
 			<div class="tab-pane fade" id="milestones" role="tabpanel" aria-labelledby="milestones-tab">
-				<!-- Milestones Timeline -->
+				<!-- Milestones -->
 				<div class="card radius-10">
 					<div class="card-header">
-						<h5>Project Milestones</h5>
+						<div class="d-flex justify-content-between align-items-center">
+							<h5>Project Milestones</h5>
+							<button class="btn btn-primary radius-30 btn-sm">Add Milestone</button>
+						</div>
 					</div>
 					<div class="card-body">
 						<div class="timeline">
 							<div class="timeline-item completed">
-								<div class="timeline-marker bg-success"></div>
+								<div class="timeline-marker"></div>
 								<div class="timeline-content">
-									<h6>Project Kickoff</h6>
-									<p>Initial planning and requirements gathering completed.</p>
-									<small class="text-muted">Jan 1, 2023</small>
+									<div class="d-flex justify-content-between align-items-start">
+										<div>
+											<h6 class="mb-1">Project Kickoff</h6>
+											<p>Initial project planning and requirement gathering completed successfully.</p>
+											<small class="text-muted">Jan 5, 2023</small>
+										</div>
+										<span class="badge bg-success">Completed</span>
+									</div>
 								</div>
 							</div>
 							<div class="timeline-item completed">
-								<div class="timeline-marker bg-success"></div>
+								<div class="timeline-marker"></div>
 								<div class="timeline-content">
-									<h6>Design Phase Complete</h6>
-									<p>UI/UX designs and system architecture finalized.</p>
-									<small class="text-muted">Feb 15, 2023</small>
-								</div>
-							</div>
-							<div class="timeline-item completed">
-								<div class="timeline-marker bg-success"></div>
-								<div class="timeline-content">
-									<h6>Development Started</h6>
-									<p>Backend and frontend development initiated.</p>
-									<small class="text-muted">Mar 1, 2023</small>
+									<div class="d-flex justify-content-between align-items-start">
+										<div>
+											<h6 class="mb-1">Design Phase Completion</h6>
+											<p>All UI/UX designs approved and finalized.</p>
+											<small class="text-muted">Jan 30, 2023</small>
+										</div>
+										<span class="badge bg-success">Completed</span>
+									</div>
 								</div>
 							</div>
 							<div class="timeline-item active">
-								<div class="timeline-marker bg-primary"></div>
+								<div class="timeline-marker"></div>
 								<div class="timeline-content">
-									<h6>Core Features Implementation</h6>
-									<p>Implementing main functionalities and integrations.</p>
-									<small class="text-muted">Current - Aug 15, 2023</small>
+									<div class="d-flex justify-content-between align-items-start">
+										<div>
+											<h6 class="mb-1">Development Phase</h6>
+											<p>Core functionality implementation in progress. Current sprint focuses on user authentication and dashboard features.</p>
+											<small class="text-muted">Feb 1, 2023 - Mar 15, 2023</small>
+										</div>
+										<span class="badge bg-primary">In Progress</span>
+									</div>
 								</div>
 							</div>
 							<div class="timeline-item">
-								<div class="timeline-marker bg-secondary"></div>
+								<div class="timeline-marker"></div>
 								<div class="timeline-content">
-									<h6>Testing Phase</h6>
-									<p>QA testing and bug fixing.</p>
-									<small class="text-muted">Oct 1, 2023</small>
+									<div class="d-flex justify-content-between align-items-start">
+										<div>
+											<h6 class="mb-1">Testing & QA</h6>
+											<p>Comprehensive testing phase including unit tests, integration tests, and user acceptance testing.</p>
+											<small class="text-muted">Mar 16, 2023 - Apr 15, 2023</small>
+										</div>
+										<span class="badge bg-secondary">Pending</span>
+									</div>
 								</div>
 							</div>
 							<div class="timeline-item">
-								<div class="timeline-marker bg-secondary"></div>
+								<div class="timeline-marker"></div>
 								<div class="timeline-content">
-									<h6>Deployment</h6>
-									<p>System deployment and user training.</p>
-									<small class="text-muted">Nov 15, 2023</small>
+									<div class="d-flex justify-content-between align-items-start">
+										<div>
+											<h6 class="mb-1">Production Release</h6>
+											<p>Final deployment to production environment with all features and bug fixes.</p>
+											<small class="text-muted">Apr 16, 2023</small>
+										</div>
+										<span class="badge bg-secondary">Pending</span>
+									</div>
 								</div>
 							</div>
 							<div class="timeline-item">
-								<div class="timeline-marker bg-secondary"></div>
+								<div class="timeline-marker"></div>
 								<div class="timeline-content">
-									<h6>Project Completion</h6>
-									<p>Final delivery and project closure.</p>
-									<small class="text-muted">Dec 31, 2023</small>
+									<div class="d-flex justify-content-between align-items-start">
+										<div>
+											<h6 class="mb-1">Project Closure</h6>
+											<p>Final delivery and project closure.</p>
+											<small class="text-muted">Dec 31, 2023</small>
+										</div>
+										<span class="badge bg-secondary">Pending</span>
+									</div>
 								</div>
 							</div>
 						</div>
