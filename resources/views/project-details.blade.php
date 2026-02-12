@@ -297,9 +297,7 @@
 			<li class="nav-item" role="presentation">
 				<button class="nav-link" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues" type="button" role="tab" aria-controls="issues" aria-selected="false">Issues</button>
 			</li>
-			<li class="nav-item" role="presentation">
-				<button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab" aria-controls="comments" aria-selected="false">Comments</button>
-			</li>
+			
 		</ul>
 
 		<div class="tab-content" id="projectTabsContent">
@@ -719,119 +717,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
-				<!-- Comments and Notes -->
-				<div class="card radius-10">
-					<div class="card-header">
-						<h5>Project Comments & Notes</h5>
-					</div>
-					<div class="card-body">
-						<!-- Add Comment Form -->
-						<div class="mb-4">
-							<div class="d-flex">
-								<img src="https://placehold.co/40x40" alt="Current User" class="rounded-circle me-3" width="40" height="40">
-								<div class="flex-grow-1">
-									<textarea class="form-control" rows="3" placeholder="Add a comment or note..."></textarea>
-									<div class="mt-2">
-										<button class="btn btn-primary radius-30 btn-sm">Post Comment</button>
-										<button class="btn btn-outline-secondary radius-30 btn-sm ms-2">Attach File</button>
-									</div>
-								</div>
-							</div>
-						</div>
-
-						<!-- Comments List -->
-						<div class="comments-list">
-							<div class="comment-item mb-4">
-								<div class="d-flex">
-									<img src="https://placehold.co/40x40" alt="User" class="rounded-circle me-3" width="40" height="40">
-									<div class="flex-grow-1">
-										<div class="d-flex justify-content-between align-items-start">
-											<div>
-												<h6 class="mb-1">Sarah Johnson</h6>
-												<small class="text-muted">Project Manager • Aug 15, 2023 at 2:30 PM</small>
-											</div>
-											<div class="dropdown">
-												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-													<i class="bx bx-dots-horizontal-rounded"></i>
-												</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#">Edit</a></li>
-													<li><a class="dropdown-item" href="#">Delete</a></li>
-												</ul>
-											</div>
-										</div>
-										<p class="mt-2">Great progress on the core features! The team has been working efficiently. Let's schedule a review meeting for next week to discuss the testing phase preparations.</p>
-										<div class="comment-actions">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-2">Like</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">Reply</button>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div class="comment-item mb-4">
-								<div class="d-flex">
-									<img src="https://placehold.co/40x40" alt="User" class="rounded-circle me-3" width="40" height="40">
-									<div class="flex-grow-1">
-										<div class="d-flex justify-content-between align-items-start">
-											<div>
-												<h6 class="mb-1">John Doe</h6>
-												<small class="text-muted">Lead Developer • Aug 14, 2023 at 10:15 AM</small>
-											</div>
-											<div class="dropdown">
-												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-													<i class="bx bx-dots-horizontal-rounded"></i>
-												</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#">Edit</a></li>
-													<li><a class="dropdown-item" href="#">Delete</a></li>
-												</ul>
-											</div>
-										</div>
-										<p class="mt-2">Database optimization completed. Query performance improved by 40%. Attached the performance report for review.</p>
-										<div class="mt-2">
-											<span class="badge bg-info">Performance_Report.pdf</span>
-										</div>
-										<div class="comment-actions">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-2">Like</button>
-											<button class="btn btn-sm btn-outline-secondary radius-30">Reply</button>
-										</div>
-									</div>
-								</div>
-							</div>
-
-							<div class="comment-item">
-								<div class="d-flex">
-									<img src="https://placehold.co/40x40" alt="User" class="rounded-circle me-3" width="40" height="40">
-									<div class="flex-grow-1">
-										<div class="d-flex justify-content-between align-items-start">
-											<div>
-												<h6 class="mb-1">Jane Smith</h6>
-												<small class="text-muted">UI/UX Designer • Aug 12, 2023 at 4:45 PM</small>
-											</div>
-											<div class="dropdown">
-												<button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
-													<i class="bx bx-dots-horizontal-rounded"></i>
-												</button>
-												<ul class="dropdown-menu">
-													<li><a class="dropdown-item" href="#">Edit</a></li>
-													<li><a class="dropdown-item" href="#">Delete</a></li>
-												</ul>
-											</div>
-										</div>
-										<p class="mt-2">Updated the mobile responsive design. All layouts now work properly on devices with screen sizes from 320px to 1440px. Ready for QA testing.</p>
-										<div class="comment-actions">
-											<button class="btn btn-sm btn-outline-secondary me-2">Like</button>
-											<button class="btn btn-sm btn-outline-secondary">Reply</button>
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-				</div>
-			</div>
+			
 		</div>
 
 	</div>

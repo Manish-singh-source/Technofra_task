@@ -199,28 +199,25 @@
                         <h5 class="card-title mb-0">Comments</h5>
                     </div>
                     <div class="card-body">
-                        <div class="mb-3">
-                            <div class="d-flex align-items-start mb-3">
-                                <img src="https://placehold.co/40x40" class="rounded-circle me-3" alt="User">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">John Doe</h6>
-                                    <p class="mb-1">Great progress on the homepage design! The new layout looks amazing.</p>
-                                    <small class="text-muted">2 hours ago</small>
+                        <div id="comments-list" class="mb-3">
+                            @forelse($task->comments as $comment)
+                                <div class="d-flex align-items-start mb-3 comment-item">
+                                    <img src="{{ $comment->user && $comment->user->staff && $comment->user->staff->profile_image ? asset('uploads/staff/' . $comment->user->staff->profile_image) : 'https://placehold.co/40x40' }}" class="rounded-circle me-3" alt="User" width="40" height="40">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ $comment->user->name ?? 'Unknown User' }}</h6>
+                                        <p class="mb-1">{{ $comment->comment }}</p>
+                                        <small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="d-flex align-items-start">
-                                <img src="https://placehold.co/40x40" class="rounded-circle me-3" alt="User">
-                                <div class="flex-grow-1">
-                                    <h6 class="mb-1">Jane Smith</h6>
-                                    <p class="mb-1">Can we add a call-to-action button in the hero section?</p>
-                                    <small class="text-muted">1 hour ago</small>
-                                </div>
-                            </div>
+                            @empty
+                                <p class="text-muted">No comments yet.</p>
+                            @endforelse
                         </div>
                         <div class="border-top pt-3">
-                            <form>
+                            <form action="{{ route('task.comment.store', $task->id) }}" method="POST">
+                                @csrf
                                 <div class="mb-3">
-                                    <textarea class="form-control" rows="3" placeholder="Add a comment..."></textarea>
+                                    <textarea class="form-control" name="comment" rows="3" placeholder="Add a comment..." required></textarea>
                                 </div>
                                 <button type="submit" class="btn btn-primary">Post Comment</button>
                             </form>
@@ -232,4 +229,7 @@
     </div>
 </div>
 <!--end page wrapper -->
+
+
+
 @endsection

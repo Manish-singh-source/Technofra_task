@@ -81,6 +81,13 @@
                                             </select>
                                         </div>
                                         <div class="col-12">
+                                            <label for="status" class="form-label">Status</label>
+                                            <select class="form-select" id="status" name="status">
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-12">
                                             <label for="team" class="form-label">Team (Optional)</label>
                                             <select class="form-select" id="team" name="team">
                                                 <option value="">Select Team</option>

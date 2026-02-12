@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\Project;
 use App\Models\Staff;
 use App\Models\TaskAttachment;
+use App\Models\TaskComment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -103,7 +104,7 @@ class TaskController extends Controller
 
     public function show($id)
     {
-        $task = Task::with('project', 'attachments')->findOrFail($id);
+        $task = Task::with('project', 'attachments', 'comments')->findOrFail($id);
         $staff = Staff::all()->keyBy('id');
 
         return view('task-details', compact('task', 'staff'));
@@ -162,5 +163,22 @@ class TaskController extends Controller
         ]);
 
         return redirect()->route('task')->with('success', 'Task updated successfully!');
+    }
+
+    public function storeComment(Request $request, $id)
+    {
+        $request->validate([
+            'comment' => 'required|string|max:1000',
+        ]);
+
+        $task = Task::findOrFail($id);
+
+        TaskComment::create([
+            'task_id' => $task->id,
+            'user_id' => auth()->id(),
+            'comment' => $request->comment,
+        ]);
+
+        return redirect()->back()->with('success', 'Comment added successfully!');
     }
 }

@@ -191,6 +191,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/add-task', [TaskController::class, 'create'])->name('add-task')->middleware('permission:create_tasks');
         Route::post('/add-task', [TaskController::class, 'store'])->name('add-task.store')->middleware('permission:create_tasks');
         Route::get('/task-details/{id}', [TaskController::class, 'show'])->name('task-details')->middleware('permission:view_tasks');
+        Route::post('/task-details/{id}/comment', [TaskController::class, 'storeComment'])->name('task.comment.store')->middleware('permission:view_tasks');
         Route::get('/edit-task/{id}', [TaskController::class, 'edit'])->name('edit-task')->middleware('permission:edit_tasks');
         Route::put('/edit-task/{id}', [TaskController::class, 'update'])->name('edit-task.update')->middleware('permission:edit_tasks');
     });

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Staff;
+use App\Models\Project;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -39,7 +40,9 @@ class StaffController extends Controller
     {
         $staff = Staff::with('user')->findOrFail($id);
         $roles = Role::all();
-        return view('view-staff', compact('staff', 'roles'));
+        $projects = $staff->projects()->latest()->get();
+        $tasks = $staff->tasks()->with('project')->latest()->get();
+        return view('view-staff', compact('staff', 'roles', 'projects', 'tasks'));
     }
 
     /**
@@ -55,6 +58,7 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'status' => 'required|in:active,inactive',
             'team' => 'nullable|string|max:255',
+            'departments' => 'nullable|array',
         ]);
 
         if ($validator->fails()) {
@@ -64,7 +68,6 @@ class StaffController extends Controller
         }
 
         $staff = Staff::findOrFail($id);
-        $team = $request->has('team') ? $request->team : $staff->team;
         
         // Get old role and email to update user later
         $oldRole = $staff->role;
@@ -79,7 +82,8 @@ class StaffController extends Controller
                 'phone' => $request->phone,
                 'role' => $request->role,
                 'status' => $request->status,
-                'team' => $team,
+                'team' => $request->team,
+                'departments' => $request->departments,
             ]);
 
             // Update associated user

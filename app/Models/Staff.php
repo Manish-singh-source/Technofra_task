@@ -28,6 +28,22 @@ class Staff extends Model
     ];
 
     /**
+     * Get the projects where this staff is a member.
+     */
+    public function projects()
+    {
+        return Project::whereJsonContains('members', (string) $this->id);
+    }
+
+    /**
+     * Get the tasks assigned to this staff member.
+     */
+    public function tasks()
+    {
+        return Task::whereJsonContains('assignees', (string) $this->id)->orWhereJsonContains('followers', (string) $this->id);
+    }
+
+    /**
      * Get the user associated with the staff member.
      */
     public function user()
