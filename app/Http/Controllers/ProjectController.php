@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ClientIssue;
 use App\Models\Customer;
 use App\Models\Project;
+use App\Models\ProjectComment;
 use App\Models\ProjectFile;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectStatusLog;
@@ -357,6 +358,12 @@ class ProjectController extends Controller
             'closed' => $issues->where('status', 'closed')->count(),
         ];
 
+        // Get project comments
+        $projectComments = ProjectComment::where('project_id', $id)
+            ->with('user')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return view('project-details', compact(
             'project',
             'staff',
@@ -369,7 +376,8 @@ class ProjectController extends Controller
             'milestones',
             'milestoneStats',
             'issues',
-            'issueStats'
+            'issueStats',
+            'projectComments'
         ));
     }
 
@@ -477,6 +485,30 @@ class ProjectController extends Controller
         return redirect()
             ->route('project-details', $projectId)
             ->with('success', 'Issue deleted successfully.');
+    }
+
+    public function storeComment(Request $request, $projectId)
+    {
+        $project = Project::findOrFail($projectId);
+        $customer = $this->getLoggedInCustomer();
+
+        if ($customer && $project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to comment on this project.');
+        }
+
+        $validated = $request->validate([
+            'comment' => 'required|string',
+        ]);
+
+        ProjectComment::create([
+            'project_id' => $projectId,
+            'user_id' => Auth::id(),
+            'comment' => $validated['comment'],
+        ]);
+
+        return redirect()
+            ->route('project-details', $projectId)
+            ->with('success', 'Comment added successfully.');
     }
 
     private function createInitialStatusLog(Project $project): void

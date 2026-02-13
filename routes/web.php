@@ -183,6 +183,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/project/{projectId}/upload-file', [ProjectController::class, 'uploadFile'])->name('project.upload-file')->middleware('permission:edit_projects');
         Route::get('/project/file/{fileId}/download', [ProjectController::class, 'downloadFile'])->name('project.file.download')->middleware('permission:view_projects');
         Route::delete('/project/file/{fileId}/delete', [ProjectController::class, 'deleteFile'])->name('project.file.delete')->middleware('permission:delete_projects');
+        Route::post('/project-details/{id}/comment', [ProjectController::class, 'storeComment'])->name('project.comment.store')->middleware('permission:view_projects');
     });
 
     // Task routes

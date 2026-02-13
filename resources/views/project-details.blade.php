@@ -107,7 +107,7 @@
 						<h5 class="mb-0">Project Description</h5>
 					</div>
 					<div class="card-body">
-						<p class="mb-3">{{ strip_tags($project->description) ?? 'No description available.' }}</p>
+						<p class="mb-3">{!! $project->description ?? 'No description available.' !!}</p>
 						<div class="row">
 							<div class="col-md-6">
 								@if($project->tags)
@@ -296,6 +296,9 @@
 			</li>
 			<li class="nav-item" role="presentation">
 				<button class="nav-link" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues" type="button" role="tab" aria-controls="issues" aria-selected="false">Issues</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab" aria-controls="comments" aria-selected="false">Comments</button>
 			</li>
 			
 		</ul>
@@ -714,6 +717,39 @@
 							</button>
 						</div>
 						@endif
+					</div>
+				</div>
+			</div>
+			<!-- Comments Tab -->
+			<div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
+				<div class="card radius-10">
+					<div class="card-header">
+						<h5 class="mb-0">Comments</h5>
+					</div>
+					<div class="card-body">
+						<div id="comments-list" class="mb-3">
+							@forelse($projectComments as $comment)
+								<div class="d-flex align-items-start mb-3 comment-item">
+									<img src="{{ $comment->user && $comment->user->staff && $comment->user->staff->profile_image ? asset('uploads/staff/' . $comment->user->staff->profile_image) : 'https://placehold.co/40x40' }}" class="rounded-circle me-3" alt="User" width="40" height="40">
+									<div class="flex-grow-1">
+										<h6 class="mb-1">{{ $comment->user->name ?? 'Unknown User' }}</h6>
+										<p class="mb-1">{{ $comment->comment }}</p>
+										<small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
+									</div>
+								</div>
+							@empty
+								<p class="text-muted">No comments yet.</p>
+							@endforelse
+						</div>
+						<div class="border-top pt-3">
+							<form action="{{ route('project.comment.store', $project->id) }}" method="POST">
+								@csrf
+								<div class="mb-3">
+									<textarea class="form-control" name="comment" rows="3" placeholder="Add a comment..." required></textarea>
+								</div>
+								<button type="submit" class="btn btn-primary">Post Comment</button>
+							</form>
+						</div>
 					</div>
 				</div>
 			</div>
