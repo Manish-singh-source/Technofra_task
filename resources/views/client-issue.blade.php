@@ -4,7 +4,6 @@
 <div class="page-wrapper">
     <div class="page-content">
         <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-            <div class="breadcrumb-title pe-3">Client Issue</div>
             <div class="ps-3">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0 p-0">
@@ -13,6 +12,18 @@
                         <li class="breadcrumb-item active" aria-current="page">Client Issue Management</li>
                     </ol>
                 </nav>
+            </div>
+            <div class="ms-auto">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-primary">Settings</button>
+                    <button type="button"
+                        class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
+                        data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
+                        <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -33,18 +44,20 @@
         <div class="row">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">Client Issues</h5>
-                        <button type="button" class="btn btn-primary ms-auto" data-bs-toggle="modal" data-bs-target="#addIssueModal">
-                            <i class="bx bx-plus"></i> Add New Project Issue
-                        </button>
-                    </div>
                     <div class="card-body">
+                        <div class="d-lg-flex align-items-center mb-4 gap-3">
+                            <div class="ms-auto">
+                                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIssueModal">
+                                    <i class="bx bx-plus"></i> Add New Project Issue
+                                </button>
+                            </div>
+                        </div>
                         <div class="table-responsive">
-                            <table class="table table-hover table-bordered">
+                            <table id="example" class="table table-striped table-bordered" style="width:100%">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Sr. No.</th>
+                                        <th><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                        <th>ID</th>
                                         <th>Project Name</th>
                                         <th>Client Name</th>
                                         <th>Issue</th>
@@ -54,9 +67,14 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($clientIssues as $index => $issue)
+                                    @forelse($clientIssues as $issue)
                                     <tr>
-                                        <td>{{ $index + 1 }}</td>
+                                        <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $issue->id }}"></td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <h6 class="mb-0 font-14">{{ $issue->id }}</h6>
+                                            </div>
+                                        </td>
                                         <td>{{ $issue->project->project_name ?? 'N/A' }}</td>
                                         <td>{{ $issue->customer->client_name ?? 'N/A' }}</td>
                                         <td>{{ Str::limit($issue->issue_description, 50) }}</td>
@@ -83,21 +101,21 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <a href="{{ route('client-issue.show', $issue->id) }}" class="btn btn-sm btn-info text-white me-1">
-                                                <i class="bx bx-eye"></i> View
-                                            </a>
-                                            <form action="{{ route('client-issue.destroy', $issue->id) }}" method="POST" class="d-inline">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this issue?')">
-                                                    <i class="bx bx-trash"></i> Delete
-                                                </button>
-                                            </form>
+                                            <div class="d-flex order-actions">
+                                                <a href="{{ route('client-issue.show', $issue->id) }}"><i class='bx bxs-show'></i></a>
+                                                <form action="{{ route('client-issue.destroy', $issue->id) }}" method="POST" class="d-inline ms-3" onsubmit="return confirm('Are you sure you want to delete this issue?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" style="border: none; background: none; color: #f54242;">
+                                                        <i class='bx bxs-trash'></i>
+                                                    </button>
+                                                </form>
+                                            </div>
                                         </td>
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="7" class="text-center">No client issues found.</td>
+                                        <td colspan="8" class="text-center">No client issues found.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -204,6 +222,38 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Select All functionality
+    const selectAll = document.getElementById('select-all');
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    selectAll.addEventListener('change', function() {
+        checkboxes.forEach(cb => cb.checked = selectAll.checked);
+    });
+
+    // Delete Selected functionality
+    document.getElementById('delete-selected').addEventListener('click', function() {
+        let selected = [];
+        document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+            selected.push(cb.value);
+        });
+        if (selected.length === 0) {
+            alert('Please select at least one record.');
+            return;
+        }
+        if (confirm('Are you sure you want to delete selected records?')) {
+            // Create a form and submit
+            let form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route('delete.selected.client-issue') }}';
+            form.innerHTML = `
+                @csrf
+                <input type="hidden" name="_method" value="DELETE">
+                <input type="hidden" name="ids" value="${selected.join(',')}">
+            `;
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+
     // Save button click handler
     document.getElementById('saveIssueBtn').addEventListener('click', function() {
         var form = document.getElementById('addIssueForm');

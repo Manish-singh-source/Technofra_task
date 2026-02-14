@@ -224,15 +224,28 @@ class SettingController extends Controller
             $settings = Setting::getAllSettings();
 
             // Configure mail settings dynamically
-            $config = [
-                'driver' => $settings['email_protocol'] ?? 'smtp',
-                'host' => $settings['smtp_host'] ?? '',
-                'port' => $settings['smtp_port'] ?? 587,
-                'username' => $settings['smtp_username'] ?? '',
-                'password' => $settings['smtp_password'] ?? '',
-                'encryption' => $settings['email_encryption'] ?? 'tls',
-                'charset' => $settings['email_charset'] ?? 'utf-8',
-            ];
+            $protocol = $settings['email_protocol'] ?? 'smtp';
+            $encryption = $settings['email_encryption'] ?? 'tls';
+            if ($encryption === 'none') {
+                $encryption = null;
+            }
+
+            // Set the mailer configuration at runtime
+            config([
+                'mail.mailer' => $protocol,
+                'mail.default' => $protocol,
+                'mail.mailers.smtp.host' => $settings['smtp_host'] ?? '',
+                'mail.mailers.smtp.port' => $settings['smtp_port'] ?? 587,
+                'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
+                'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
+                'mail.mailers.smtp.encryption' => $encryption,
+                'mail.from.address' => $settings['email'] ?? '',
+                'mail.from.name' => $settings['company_name'] ?? 'CRM System',
+            ]);
+
+            // Clear the mailer instance to use new config
+            app()->forgetInstance('mailer');
+            Mail::purge();
 
             // Send test email
             Mail::to($request->test_email)->send(new TestMail($settings));

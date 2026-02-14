@@ -136,6 +136,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('/staff', [StaffController::class, 'index'])->name('staff')->middleware('permission:view_staff');
         Route::delete('/staff/delete/{id}', [StaffController::class, 'destroy'])->name('staff.destroy')->middleware('permission:delete_staff');
+        Route::delete('/staff/delete-selected', [StaffController::class, 'deleteSelected'])->name('delete.selected.staff')->middleware('permission:delete_staff');
         Route::get('/add-staff', [StaffController::class, 'create'])->name('add-staff')->middleware('permission:create_staff');
         Route::get('/view-staff/{id}', [StaffController::class, 'show'])->name('view-staff')->middleware('permission:view_staff');
         Route::post('/store-staff', [StaffController::class, 'store'])->name('staff.store')->middleware('permission:create_staff');
@@ -150,6 +151,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/edit-role/{id}', [RoleController::class, 'edit'])->name('role.edit')->middleware('permission:edit_roles');
         Route::put('/edit-role/{id}', [RoleController::class, 'update'])->name('role.update')->middleware('permission:edit_roles');
         Route::delete('/role/delete/{id}', [RoleController::class, 'destroy'])->name('role.delete')->middleware('permission:delete_roles');
+        Route::delete('/role/delete-selected', [RoleController::class, 'deleteSelected'])->name('delete.selected.role')->middleware('permission:delete_roles');
     });
 
     // Permission routes
@@ -195,6 +197,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/task-details/{id}/comment', [TaskController::class, 'storeComment'])->name('task.comment.store')->middleware('permission:view_tasks');
         Route::get('/edit-task/{id}', [TaskController::class, 'edit'])->name('edit-task')->middleware('permission:edit_tasks');
         Route::put('/edit-task/{id}', [TaskController::class, 'update'])->name('edit-task.update')->middleware('permission:edit_tasks');
+        Route::delete('/task/delete-selected', [TaskController::class, 'deleteSelected'])->name('delete.selected.task')->middleware('permission:delete_tasks');
     });
 
     // Client issue routes
@@ -205,6 +208,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/client-issue/{id}', [ClientIssueController::class, 'show'])->name('client-issue.show');
         Route::post('/client-issue/{clientIssue}/assign', [ClientIssueController::class, 'assignTeam'])->name('client-issue.assign');
         Route::delete('/client-issue/{id}', [ClientIssueController::class, 'destroy'])->name('client-issue.destroy');
+        Route::delete('/client-issue/delete-selected', [ClientIssueController::class, 'deleteSelected'])->name('delete.selected.client-issue');
         
         // Client issue task routes
         Route::post('/client-issue/{clientIssue}/task', [ClientIssueController::class, 'taskStore'])->name('client-issue.task.store');
@@ -218,6 +222,7 @@ Route::middleware('auth')->group(function () {
     Route::middleware(['auth'])->group(function () {
         Route::get('/clients', [CustomerController::class, 'index'])->name('clients')->middleware('permission:view_clients');
         Route::delete('/clients/{id}', [CustomerController::class, 'delete'])->name('clients.delete')->middleware('permission:delete_clients');
+        Route::delete('/clients/delete-selected', [CustomerController::class, 'deleteSelected'])->name('delete.selected.clients')->middleware('permission:delete_clients');
         Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('permission:create_clients');
         Route::get('/clients-details/{id}', [CustomerController::class, 'show'])->name('clients-details')->middleware('permission:view_clients');
         Route::put('/clients-details/{id}', [CustomerController::class, 'update'])->name('clients.update')->middleware('permission:edit_clients');

@@ -250,6 +250,43 @@ class CustomerController extends Controller
     }
 
     /**
+     * Delete selected customers.
+     */
+    public function deleteSelected(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        
+        if (empty($ids)) {
+            return redirect()->route('clients')->with('error', 'No customers selected for deletion.');
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($ids as $id) {
+                $customer = Customer::find($id);
+                if ($customer) {
+                    // Delete associated user if exists
+                    if ($customer->user) {
+                        $customer->user->delete();
+                    } else {
+                        $user = User::where('email', $customer->email)->first();
+                        if ($user) {
+                            $user->delete();
+                        }
+                    }
+                    $customer->delete();
+                }
+            }
+            
+            DB::commit();
+            return redirect()->route('clients')->with('success', 'Selected customers deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('clients')->with('error', 'Failed to delete selected customers: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * API: Get all customers.
      */
     public function apiIndex()

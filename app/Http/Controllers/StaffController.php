@@ -220,6 +220,44 @@ class StaffController extends Controller
     }
 
     /**
+     * Delete selected staff members.
+     */
+    public function deleteSelected(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        
+        if (empty($ids)) {
+            return redirect()->route('staff')->with('error', 'No staff selected for deletion.');
+        }
+
+        DB::beginTransaction();
+        try {
+            foreach ($ids as $id) {
+                $staff = Staff::find($id);
+                if ($staff) {
+                    // Delete associated user if exists
+                    if ($staff->user) {
+                        $staff->user->delete();
+                    } else {
+                        // Fallback: find user by email
+                        $user = User::where('email', $staff->email)->first();
+                        if ($user) {
+                            $user->delete();
+                        }
+                    }
+                    $staff->delete();
+                }
+            }
+            
+            DB::commit();
+            return redirect()->route('staff')->with('success', 'Selected staff members deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->route('staff')->with('error', 'Failed to delete selected staff: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * API: Get all staff members.
      */
     public function apiIndex()

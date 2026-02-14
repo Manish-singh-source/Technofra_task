@@ -10,7 +10,7 @@
     @if(!empty($globalSettings['favicon']) && Storage::exists('public/settings/' . $globalSettings['favicon']))
         <link rel="icon" href="{{ Storage::url('public/settings/' . $globalSettings['favicon']) }}" type="image/png" />
     @else
-        <link rel="icon" href="assets/images/favicon-32x32.png" type="image/png" />
+        <link rel="icon" href="{{ asset('assets/images/favicon-32x32.png') }}"  type="image/png" />
     @endif
     <!--plugins-->
     <link href="{{ asset('assets/plugins/vectormap/jquery-jvectormap-2.0.2.css') }}" rel="stylesheet" />

@@ -86,4 +86,32 @@ class RoleController extends Controller
 
         return redirect()->route('roles')->with('success', 'Role deleted successfully.');
     }
+
+    /**
+     * Delete selected roles.
+     */
+    public function deleteSelected(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        
+        if (empty($ids)) {
+            return redirect()->route('roles')->with('error', 'No roles selected for deletion.');
+        }
+
+        try {
+            foreach ($ids as $id) {
+                $role = Role::find($id);
+                if ($role) {
+                    $role->delete();
+                }
+            }
+            
+            // Clear permission cache
+            Cache::forget('spatie.permission.cache');
+            
+            return redirect()->route('roles')->with('success', 'Selected roles deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('roles')->with('error', 'Failed to delete selected roles: ' . $e->getMessage());
+        }
+    }
 }

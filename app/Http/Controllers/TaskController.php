@@ -181,4 +181,34 @@ class TaskController extends Controller
 
         return redirect()->back()->with('success', 'Comment added successfully!');
     }
+
+    /**
+     * Delete selected tasks.
+     */
+    public function deleteSelected(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        
+        if (empty($ids)) {
+            return redirect()->route('task')->with('error', 'No tasks selected for deletion.');
+        }
+
+        try {
+            foreach ($ids as $id) {
+                $task = Task::find($id);
+                if ($task) {
+                    // Delete attachments
+                    $task->attachments()->delete();
+                    // Delete comments
+                    $task->comments()->delete();
+                    // Delete the task
+                    $task->delete();
+                }
+            }
+            
+            return redirect()->route('task')->with('success', 'Selected tasks deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('task')->with('error', 'Failed to delete selected tasks: ' . $e->getMessage());
+        }
+    }
 }

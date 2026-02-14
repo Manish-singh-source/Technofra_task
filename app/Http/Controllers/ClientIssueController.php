@@ -449,4 +449,34 @@ class ClientIssueController extends Controller
         
         return redirect()->route('client-issue')->with('success', 'Client issue deleted successfully!');
     }
+
+    /**
+     * Delete selected client issues.
+     */
+    public function deleteSelected(Request $request)
+    {
+        $ids = explode(',', $request->ids);
+        
+        if (empty($ids)) {
+            return redirect()->route('client-issue')->with('error', 'No client issues selected for deletion.');
+        }
+
+        try {
+            foreach ($ids as $id) {
+                $clientIssue = ClientIssue::find($id);
+                if ($clientIssue) {
+                    // Delete related tasks
+                    $clientIssue->tasks()->delete();
+                    // Delete team assignments
+                    $clientIssue->teamAssignments()->delete();
+                    // Delete the issue
+                    $clientIssue->delete();
+                }
+            }
+            
+            return redirect()->route('client-issue')->with('success', 'Selected client issues deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('client-issue')->with('error', 'Failed to delete selected client issues: ' . $e->getMessage());
+        }
+    }
 }

@@ -4,9 +4,22 @@
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if(session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
             <!--breadcrumb-->
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-                <div class="breadcrumb-title pe-3">Roles</div>
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0 p-0">
@@ -23,12 +36,8 @@
                             class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
                             data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end"> <a class="dropdown-item"
-                                href="javascript:;">Action</a>
-                            <a class="dropdown-item" href="javascript:;">Another action</a>
-                            <a class="dropdown-item" href="javascript:;">Something else here</a>
-                            <div class="dropdown-divider"></div> <a class="dropdown-item" href="javascript:;">Separated
-                                link</a>
+                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
+                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
                         </div>
                     </div>
                 </div>
@@ -121,26 +130,18 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
-                        <div class="position-relative">
-                            <input type="text" class="form-control ps-5 radius-30" placeholder="Search Roles"> <span
-                                class="position-absolute top-50 product-show translate-middle-y"><i
-                                    class="bx bx-search"></i></span>
-                        </div>
                         <div class="ms-auto">
-                            <a href="{{route('add-role')}}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                        class="bx bxs-plus-square"></i>Add New Role</a>
-                            <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 ms-2" id="deleteSelected" style="display: none;">
-                                <i class="bx bxs-trash"></i> Delete Selected
-                            </button>
+                            <a href="{{route('add-role')}}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                                <i class="bx bxs-plus-square"></i>Add New Role
+                            </a>
                         </div>
                     </div>
                     <div class="table-responsive">
-                        <table class="table mb-0">
+                        <table id="example" class="table table-striped table-bordered" style="width:100%">
                             <thead class="table-light">
                                 <tr>
-                                    <th>
-                                        <input type="checkbox" id="selectAll" class="form-check-input">
-                                    </th>
+                                    <th><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                    <th>ID</th>
                                     <th>Role Name</th>
                                     <th>Description</th>
                                     <th>Permissions</th>
@@ -151,8 +152,11 @@
                             <tbody>
                                 @foreach($roles as $role)
                                 <tr>
+                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $role->id }}"></td>
                                     <td>
-                                        <input type="checkbox" class="form-check-input role-checkbox" value="{{ $role->id }}">
+                                        <div class="d-flex align-items-center">
+                                            <h6 class="mb-0 font-14">{{ $role->id }}</h6>
+                                        </div>
                                     </td>
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -189,38 +193,40 @@
 
         </div>
     </div>
-    <!--end page wrapper -->
-
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Select All functionality
-            const selectAllCheckbox = document.getElementById('selectAll');
-            const roleCheckboxes = document.querySelectorAll('.role-checkbox');
-            const deleteSelectedBtn = document.getElementById('deleteSelected');
-
-            selectAllCheckbox.addEventListener('change', function() {
-                roleCheckboxes.forEach(function(checkbox) {
-                    checkbox.checked = selectAllCheckbox.checked;
-                });
-                toggleDeleteButton();
+            const selectAll = document.getElementById('select-all');
+            const checkboxes = document.querySelectorAll('.row-checkbox');
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
             });
 
-            roleCheckboxes.forEach(function(checkbox) {
-                checkbox.addEventListener('change', function() {
-                    // Check if all checkboxes are checked
-                    const allChecked = Array.from(roleCheckboxes).every(cb => cb.checked);
-                    selectAllCheckbox.checked = allChecked;
-                    // Check if at least one checkbox is checked
-                    const anyChecked = Array.from(roleCheckboxes).some(cb => cb.checked);
-                    selectAllCheckbox.indeterminate = anyChecked && !allChecked;
-                    toggleDeleteButton();
+            // Delete Selected functionality
+            document.getElementById('delete-selected').addEventListener('click', function() {
+                let selected = [];
+                document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+                    selected.push(cb.value);
                 });
+                if (selected.length === 0) {
+                    alert('Please select at least one record.');
+                    return;
+                }
+                if (confirm('Are you sure you want to delete selected records?')) {
+                    // Create a form and submit
+                    let form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ route('delete.selected.role') }}';
+                    form.innerHTML = `
+                        @csrf
+                        <input type="hidden" name="_method" value="DELETE">
+                        <input type="hidden" name="ids" value="${selected.join(',')}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
             });
-
-            function toggleDeleteButton() {
-                const anyChecked = Array.from(roleCheckboxes).some(cb => cb.checked);
-                deleteSelectedBtn.style.display = anyChecked ? 'inline-block' : 'none';
-            }
         });
     </script>
+    <!--end page wrapper -->
 @endsection
