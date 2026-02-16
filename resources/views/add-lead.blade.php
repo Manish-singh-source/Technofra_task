@@ -71,7 +71,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-6 mb-3">
-                                            <label for="assigned" class="form-label">Assigned (Multi-select)</label>
+                                            <label for="assigned" class="form-label">Assigned</label>
                                             <select class="form-select" id="assigned" name="assigned[]" multiple data-placeholder="Select staff members">
                                                 @foreach($staff as $member)
                                                     <option value="{{ $member->id }}" {{ in_array($member->id, old('assigned', [])) ? 'selected' : '' }}>
@@ -84,7 +84,7 @@
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
-                                            <label for="tags" class="form-label">Tags (Multi-select)</label>
+                                            <label for="tags" class="form-label">Tags</label>
                                             <select class="form-select" id="tags" name="tags[]" multiple data-placeholder="Select or add tags">
                                                 <option value="hot" {{ in_array('hot', old('tags', [])) ? 'selected' : '' }}>Hot</option>
                                                 <option value="warm" {{ in_array('warm', old('tags', [])) ? 'selected' : '' }}>Warm</option>

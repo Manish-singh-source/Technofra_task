@@ -5,11 +5,14 @@ namespace App\Http\Controllers;
 use App\Models\Staff;
 use App\Models\Project;
 use App\Models\User;
+use App\Mail\StaffInviteMail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 
@@ -181,8 +184,17 @@ class StaffController extends Controller
             // Clear permission cache
             Cache::forget('spatie.permission.cache');
 
+            // Send invitation email with login credentials
+            $staffName = $request->firstName . ' ' . $request->lastName;
+            try {
+                Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+            } catch (\Exception $mailException) {
+                // Log the mail error but don't fail the staff creation
+                Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+            }
+
             DB::commit();
-            return redirect()->route('staff')->with('success', 'Staff added successfully.');
+            return redirect()->route('staff')->with('success', 'Staff added successfully. Invitation email sent to ' . $request->email);
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
@@ -324,11 +336,20 @@ class StaffController extends Controller
             // Clear permission cache
             Cache::forget('spatie.permission.cache');
 
+            // Send invitation email with login credentials
+            $staffName = $request->first_name . ' ' . $request->last_name;
+            try {
+                Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+            } catch (\Exception $mailException) {
+                // Log the mail error but don't fail the staff creation
+                Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+            }
+
             DB::commit();
             
             return response()->json([
                 'success' => true,
-                'message' => 'Staff created successfully.',
+                'message' => 'Staff created successfully. Invitation email sent.',
                 'data' => $staff->load('user.roles'),
             ], 201);
         } catch (\Exception $e) {
