@@ -51,6 +51,9 @@ class PermissionSeeder extends Seeder
         $additionalPermissions = [
             'manage_users',
             'manage_settings',
+            'view_general_settings',
+            'view_company_information',
+            'view_email_settings',
             'view_reports',
             'export_data',
             'import_data',

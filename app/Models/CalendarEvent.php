@@ -138,8 +138,8 @@ class CalendarEvent extends Model
         $eventDateTime = $this->event_date_time;
         $now = Carbon::now();
 
-        // Send notification if event time has arrived (within 1 minute window)
-        return $now->greaterThanOrEqualTo($eventDateTime) && $now->lessThanOrEqualTo($eventDateTime->copy()->addMinutes(1));
+        // Keep a short grace window to avoid missing notifications due to cron/queue delays.
+        return $now->greaterThanOrEqualTo($eventDateTime) && $now->lessThanOrEqualTo($eventDateTime->copy()->addMinutes(5));
     }
 
     /**

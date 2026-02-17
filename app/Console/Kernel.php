@@ -15,8 +15,8 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // Check for calendar event notifications every 5 minutes
-        $schedule->command('calendar:send-notifications')->everyFiveMinutes();
+        // Check notifications every minute so selected event time is not missed.
+        $schedule->command('calendar:send-notifications')->everyMinute();
 
         // Send daily renewal notifications
         $schedule->command('notifications:send-daily')->dailyAt('09:00');

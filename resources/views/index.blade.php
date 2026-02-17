@@ -492,13 +492,13 @@
 
             <!-- Calendar Widget -->
             <div class="row mt-4">
-                <div class="col-8">
+                <div class="col-12">
                     <div class="card radius-10">
-                        <div class="card-header">
+                        <div class="card-header appointment-header">
                             <div class="d-flex align-items-center">
                                 <div>
-                                    <h6 class="mb-0">Calendar Notification</h6>
-                                    <p class="mb-0 text-muted font-13">Schedule and manage your appointments</p>
+                                    <h6 class="mb-0">Calendar Appointments</h6>
+                                    <p class="mb-0 text-muted font-13">Create meetings and auto-send WhatsApp message on selected time</p>
                                 </div>
                                 <div class="ms-auto">
                                     <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
@@ -506,6 +506,10 @@
                                         <i class="bx bx-plus"></i> Add Appointments
                                     </button>
                                 </div>
+                            </div>
+                            <div class="appointment-meta mt-3">
+                                <span class="badge bg-light text-dark border">Exact event-time alert</span>
+                                <span class="badge bg-light text-dark border">K3 WhatsApp template based</span>
                             </div>
                         </div>
                         <div class="card-body">
@@ -534,7 +538,7 @@
 
     <!-- Add Event Modal -->
     <div class="modal fade" id="addEventModal" tabindex="-1" aria-labelledby="addEventModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="addEventModalLabel">Add Calendar Appointments</h5>
@@ -543,6 +547,9 @@
                 <div class="modal-body">
                     <form id="addEventForm">
                         @csrf
+                        <div class="appointment-tip mb-3">
+                            <strong>Notification Flow:</strong> WhatsApp template message automatically at selected meeting time.
+                        </div>
                         <div class="mb-3">
                             <label for="event_title" class="form-label">Title <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="event_title" name="title" required>
@@ -568,27 +575,25 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="email_recipients" class="form-label">Email Recipients <span
-                                    class="text-danger">*</span></label>
+                            <label for="email_recipients" class="form-label">Email Recipients (Optional)</label>
                             <input type="text" class="form-control" id="email_recipients" name="email_recipients"
-                                placeholder="email1@example.com, email2@example.com" required>
-                            <small class="form-text text-muted">Enter comma-separated email addresses</small>
+                                placeholder="email1@example.com, email2@example.com">
+                            <small class="form-text text-muted">Comma-separated emails. You can keep this empty if WhatsApp numbers are added.</small>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone
-                                Numbers)</label>
+                                Numbers) <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="whatsapp_recipients"
-                                name="whatsapp_recipients" placeholder="+919876543210, +919876543211">
-                            <small class="form-text text-muted">Enter comma-separated phone numbers with country code
-                                (e.g., +91 for India)</small>
+                                name="whatsapp_recipients" placeholder="919876543210, 919876543211">
+                            <small class="form-text text-muted">Use international format. Multiple numbers comma separated.</small>
                             <div class="invalid-feedback"></div>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveEventBtn">Save Event</button>
+                    <button type="button" class="btn btn-primary" id="saveEventBtn">Save Appointment</button>
                 </div>
             </div>
         </div>
@@ -597,7 +602,7 @@
     <!-- Edit Event Modal -->
     <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel"
         aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="editEventModalLabel">Edit Calendar Event</h5>
@@ -635,25 +640,21 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="edit_email_recipients" class="form-label">Email Recipients <span
-                                    class="text-danger">*</span></label>
+                            <label for="edit_email_recipients" class="form-label">Email Recipients (Optional)</label>
                             <input type="text" class="form-control" id="edit_email_recipients"
-                                name="email_recipients" placeholder="email1@example.com, email2@example.com" required>
-                            <small class="form-text text-muted">Enter comma-separated email addresses</small>
+                                name="email_recipients" placeholder="email1@example.com, email2@example.com">
+                            <small class="form-text text-muted">Comma-separated emails. Optional when WhatsApp numbers exist.</small>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
                             <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone
-                                Numbers)</label>
+                                Numbers) <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="edit_whatsapp_recipients"
-                                name="whatsapp_recipients" placeholder="+919876543210, +919876543211">
-                            <small class="form-text text-muted">Enter comma-separated phone numbers with country code
-                                (e.g., +91 for India)</small>
+                                name="whatsapp_recipients" placeholder="919876543210, 919876543211">
+                            <small class="form-text text-muted">International format. Multiple numbers comma separated.</small>
                             <div class="invalid-feedback"></div>
                         </div>
                         <div class="mb-3">
-                            <p class="mb-1"><strong>10-Min Reminder:</strong> <span id="reminder_10min_status"></span>
-                            </p>
                             <p class="mb-1"><strong>Event-Time Notification:</strong> <span
                                     id="event_time_status"></span></p>
                             <p class="mb-0"><strong>Created By:</strong> <span id="created_by"></span></p>
@@ -678,12 +679,38 @@
             margin: 0 auto;
         }
 
+        .appointment-header {
+            background: linear-gradient(135deg, #f7fbff 0%, #eef5ff 100%);
+            border-bottom: 1px solid #dde8fb;
+        }
+
+        .appointment-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .appointment-tip {
+            border: 1px solid #d8e7ff;
+            background: #f2f7ff;
+            color: #173d75;
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.875rem;
+        }
+
         .fc-event {
             cursor: pointer;
         }
 
         .fc-daygrid-day:hover {
             background-color: #f8f9fa;
+        }
+
+        @media (max-width: 768px) {
+            .appointment-meta .badge {
+                font-size: 0.72rem;
+            }
         }
     </style>
 @endpush
@@ -739,6 +766,11 @@
                 // Clear previous validation errors
                 $('.is-invalid').removeClass('is-invalid');
                 $('.invalid-feedback').text('');
+
+                if (!hasAnyRecipient($('#email_recipients').val(), $('#whatsapp_recipients').val())) {
+                    showAlert('error', 'Please add at least one email or WhatsApp recipient.');
+                    return;
+                }
 
                 var formData = {
                     title: $('#event_title').val(),
@@ -798,7 +830,7 @@
                     },
                     complete: function() {
                         // Re-enable button
-                        $('#saveEventBtn').prop('disabled', false).text('Save Event');
+                        $('#saveEventBtn').prop('disabled', false).text('Save Appointment');
                     }
                 });
             });
@@ -818,9 +850,6 @@
                             $('#edit_event_time').val(event.event_time);
                             $('#edit_email_recipients').val(event.email_recipients);
                             $('#edit_whatsapp_recipients').val(event.whatsapp_recipients || '');
-                            $('#reminder_10min_status').html(event.reminder_10min_sent ?
-                                '<span class="badge bg-success">Sent</span>' :
-                                '<span class="badge bg-warning">Pending</span>');
                             $('#event_time_status').html(event.event_time_notification_sent ?
                                 '<span class="badge bg-success">Sent</span>' :
                                 '<span class="badge bg-warning">Pending</span>');
@@ -839,6 +868,11 @@
                 // Clear previous validation errors
                 $('.is-invalid').removeClass('is-invalid');
                 $('.invalid-feedback').text('');
+
+                if (!hasAnyRecipient($('#edit_email_recipients').val(), $('#edit_whatsapp_recipients').val())) {
+                    showAlert('error', 'Please add at least one email or WhatsApp recipient.');
+                    return;
+                }
 
                 var eventId = $('#edit_event_id').val();
                 var formData = {
@@ -963,6 +997,11 @@
                         $(this).remove();
                     });
                 }, 5000);
+            }
+
+            function hasAnyRecipient(emailRecipients, whatsappRecipients) {
+                return (emailRecipients && emailRecipients.trim().length > 0) ||
+                    (whatsappRecipients && whatsappRecipients.trim().length > 0);
             }
 
             // Clear validation errors when modal is closed

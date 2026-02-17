@@ -2,89 +2,131 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\{Log, Http};
 use Exception;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class WhatsAppService
 {
-    protected $accountSid;
-    protected $authToken;
-    protected $fromNumber;
+    protected $baseUrl;
+    protected $businessId;
+    protected $apiKey;
+    protected $defaultCountryCode;
+    protected $defaultLanguage;
+    protected $reminderTemplate;
+    protected $eventTimeTemplate;
 
     public function __construct()
     {
-        $this->accountSid = env('TWILIO_ACCOUNT_SID');
-        $this->authToken = env('TWILIO_AUTH_TOKEN');
-        $this->fromNumber = env('TWILIO_WHATSAPP_FROM');
+        $this->baseUrl = rtrim((string) config('services.k3_whatsapp.base_url'), '/');
+        $this->businessId = (string) config('services.k3_whatsapp.business_id');
+        $this->apiKey = (string) config('services.k3_whatsapp.api_key');
+        $this->defaultCountryCode = (string) config('services.k3_whatsapp.default_country_code', '91');
+        $this->defaultLanguage = (string) config('services.k3_whatsapp.default_language', 'en');
+        $this->reminderTemplate = (string) config('services.k3_whatsapp.reminder_template', 'calendar_appointment_reminder');
+        $this->eventTimeTemplate = (string) config('services.k3_whatsapp.event_time_template', 'calendar_appointment_reminder');
     }
 
     /**
-     * Send WhatsApp message via Twilio API
-     *
-     * @param string $to Phone number in format: +919876543210
-     * @param string $message Message content
-     * @return bool
+     * Send WhatsApp template message via K3 API.
      */
-    public function sendMessage($to, $message)
+    public function sendTemplateMessage($to, $templateName, array $templateParameters = [], $languageCode = null)
     {
         try {
-            // Validate configuration
-            if (empty($this->accountSid) || empty($this->authToken) || empty($this->fromNumber)) {
-                Log::error('WhatsApp configuration missing in .env file');
+            if (empty($this->baseUrl) || empty($this->businessId) || empty($this->apiKey)) {
+                Log::error('K3 WhatsApp configuration missing in .env file');
                 return false;
             }
 
-            // Format phone number
             $to = $this->formatPhoneNumber($to);
-            
             if (!$to) {
-                Log::error('Invalid phone number format: ' . $to);
+                Log::error('Invalid WhatsApp phone number format');
                 return false;
             }
 
-            // Twilio API endpoint
-            $url = "https://api.twilio.com/2010-04-01/Accounts/{$this->accountSid}/Messages.json";
+            if (empty($templateName)) {
+                Log::error('K3 template name is required');
+                return false;
+            }
 
-            // Send request to Twilio
-            $response = Http::withBasicAuth($this->accountSid, $this->authToken)
-                ->asForm()
-                ->post($url, [
-                    'From' => 'whatsapp:' . $this->fromNumber,
-                    'To' => 'whatsapp:' . $to,
-                    'Body' => $message,
-                ]);
+            $components = [];
+            if (!empty($templateParameters)) {
+                $components[] = [
+                    'type' => 'body',
+                    'parameters' => array_map(function ($value) {
+                        return [
+                            'type' => 'text',
+                            'text' => (string) $value,
+                        ];
+                    }, array_values($templateParameters)),
+                ];
+            }
+
+            $payload = [
+                'messaging_product' => 'whatsapp',
+                'recipient_type' => 'individual',
+                'to' => $to,
+                'type' => 'template',
+                'template' => [
+                    'name' => $templateName,
+                    'language' => [
+                        'code' => $languageCode ?: $this->defaultLanguage,
+                    ],
+                    'components' => $components,
+                ],
+            ];
+
+            $url = "{$this->baseUrl}/v3/{$this->businessId}/messages";
+
+            $response = Http::withHeaders([
+                'apikey' => $this->apiKey,
+                'Content-Type' => 'application/json',
+            ])->post($url, $payload);
 
             if ($response->successful()) {
-                Log::info("WhatsApp message sent successfully to: {$to}");
+                Log::info("K3 WhatsApp template sent successfully to: {$to}");
                 return true;
-            } else {
-                Log::error("Failed to send WhatsApp message to {$to}: " . $response->body());
-                return false;
             }
+
+            Log::error("Failed to send K3 WhatsApp template to {$to}: " . $response->body());
+            return false;
         } catch (Exception $e) {
-            Log::error("WhatsApp send error: " . $e->getMessage());
+            Log::error("K3 WhatsApp send error: " . $e->getMessage());
             return false;
         }
     }
 
     /**
-     * Format phone number to international format
-     *
-     * @param string $phone
-     * @return string|null
+     * Backward compatible alias.
+     */
+    public function sendMessage($to, $message)
+    {
+        return $this->sendTemplateMessage(
+            $to,
+            $this->reminderTemplate,
+            [
+                (string) $message,
+                now()->format('d M Y'),
+                now()->format('h:i A'),
+            ]
+        );
+    }
+
+    /**
+     * Format phone number in international format without plus.
      */
     protected function formatPhoneNumber($phone)
     {
-        // Remove all non-numeric characters except +
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
-
-        // If doesn't start with +, add +91 for India (you can change this)
-        if (!str_starts_with($phone, '+')) {
-            $phone = '+91' . $phone;
+        $phone = preg_replace('/\D+/', '', (string) $phone);
+        if (empty($phone)) {
+            return null;
         }
 
-        // Validate format
-        if (preg_match('/^\+[1-9]\d{1,14}$/', $phone)) {
+        if (strlen($phone) === 10) {
+            $phone = $this->defaultCountryCode . $phone;
+        }
+
+        if (preg_match('/^[1-9]\d{7,14}$/', $phone)) {
             return $phone;
         }
 
@@ -92,22 +134,20 @@ class WhatsAppService
     }
 
     /**
-     * Send calendar event reminder via WhatsApp
-     *
-     * @param object $event Calendar event object
-     * @param array $recipients Array of phone numbers
-     * @param string $type 'reminder' or 'event_time'
-     * @return array ['success' => count, 'failed' => count]
+     * Send calendar reminder/event notification via configured K3 template.
      */
     public function sendCalendarEventNotification($event, $recipients, $type = 'reminder')
     {
         $successCount = 0;
         $failedCount = 0;
 
+        $templateName = $type === 'event_time'
+            ? $this->eventTimeTemplate
+            : $this->reminderTemplate;
+        $templateParams = $this->buildTemplateParameters($event, $type);
+
         foreach ($recipients as $phone) {
-            $message = $this->buildEventMessage($event, $type);
-            
-            if ($this->sendMessage($phone, $message)) {
+            if ($this->sendTemplateMessage($phone, $templateName, $templateParams)) {
                 $successCount++;
             } else {
                 $failedCount++;
@@ -121,37 +161,14 @@ class WhatsAppService
     }
 
     /**
-     * Build WhatsApp message for calendar event
-     *
-     * @param object $event
-     * @param string $type
-     * @return string
+     * Build 3 body parameters: event title, date and time.
      */
-    protected function buildEventMessage($event, $type)
+    protected function buildTemplateParameters($event, $type)
     {
-        $emoji = $type === 'reminder' ? '⏰' : '📅';
-        $title = $type === 'reminder' ? '*Reminder: Event in 10 Minutes!*' : '*Event Starting Now!*';
-
-        $message = "{$emoji} {$title}\n\n";
-        $message .= "📌 *{$event->title}*\n\n";
-        
-        if ($event->description) {
-            $message .= "📝 {$event->description}\n\n";
-        }
-        
-        $message .= "📅 Date: {$event->event_date->format('l, F d, Y')}\n";
-        $message .= "🕐 Time: {$event->event_time->format('h:i A')}\n\n";
-        
-        if ($type === 'reminder') {
-            $message .= "⚠️ This event will start in 10 minutes. Please be prepared!\n\n";
-        } else {
-            $message .= "✅ This event is starting now!\n\n";
-        }
-        
-        $message .= "---\n";
-        $message .= "_Technofra Renewal Master_";
-
-        return $message;
+        return [
+            (string) $event->title,
+            $event->event_date->format('d M Y'),
+            $event->event_time->format('h:i A'),
+        ];
     }
 }
-

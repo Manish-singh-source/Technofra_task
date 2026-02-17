@@ -31,4 +31,14 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'k3_whatsapp' => [
+        'base_url' => env('K3_WHATSAPP_BASE_URL', 'https://partnersv1.pinbot.ai'),
+        'business_id' => env('K3_WHATSAPP_BUSINESS_ID'),
+        'api_key' => env('K3_WHATSAPP_API_KEY'),
+        'default_country_code' => env('K3_WHATSAPP_DEFAULT_COUNTRY_CODE', '91'),
+        'default_language' => env('K3_WHATSAPP_DEFAULT_LANGUAGE', 'en'),
+        'reminder_template' => env('K3_WHATSAPP_REMINDER_TEMPLATE', 'calendar_appointment_reminder'),
+        'event_time_template' => env('K3_WHATSAPP_EVENT_TIME_TEMPLATE', 'calendar_appointment_reminder'),
+    ],
+
 ];

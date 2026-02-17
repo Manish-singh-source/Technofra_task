@@ -57,7 +57,7 @@ class CalendarEventController extends Controller
             'description' => 'nullable|string',
             'event_date' => 'required|date',
             'event_time' => 'required|date_format:H:i',
-            'email_recipients' => 'required|string',
+            'email_recipients' => 'nullable|string',
             'whatsapp_recipients' => 'nullable|string',
         ]);
 
@@ -68,8 +68,16 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
+        // At least one recipient channel is required.
+        if (empty(trim((string) $request->email_recipients)) && empty(trim((string) $request->whatsapp_recipients))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please add at least one email or WhatsApp recipient.'
+            ], 422);
+        }
+
         // Validate email recipients
-        $emails = array_filter(array_map('trim', explode(',', $request->email_recipients)));
+        $emails = array_filter(array_map('trim', explode(',', (string) $request->email_recipients)));
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return response()->json([
@@ -83,9 +91,8 @@ class CalendarEventController extends Controller
         if ($request->whatsapp_recipients) {
             $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
             foreach ($phones as $phone) {
-                // Remove all non-numeric characters except +
-                $cleanPhone = preg_replace('/[^0-9+]/', '', $phone);
-                if (strlen($cleanPhone) < 10) {
+                $cleanPhone = preg_replace('/\D+/', '', $phone);
+                if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
                     return response()->json([
                         'success' => false,
                         'message' => "Invalid phone number: {$phone}"
@@ -185,7 +192,7 @@ class CalendarEventController extends Controller
             'description' => 'nullable|string',
             'event_date' => 'required|date',
             'event_time' => 'required|date_format:H:i',
-            'email_recipients' => 'required|string',
+            'email_recipients' => 'nullable|string',
             'whatsapp_recipients' => 'nullable|string',
         ]);
 
@@ -196,8 +203,16 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
+        // At least one recipient channel is required.
+        if (empty(trim((string) $request->email_recipients)) && empty(trim((string) $request->whatsapp_recipients))) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Please add at least one email or WhatsApp recipient.'
+            ], 422);
+        }
+
         // Validate email recipients
-        $emails = array_filter(array_map('trim', explode(',', $request->email_recipients)));
+        $emails = array_filter(array_map('trim', explode(',', (string) $request->email_recipients)));
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return response()->json([
@@ -211,9 +226,8 @@ class CalendarEventController extends Controller
         if ($request->whatsapp_recipients) {
             $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
             foreach ($phones as $phone) {
-                // Remove all non-numeric characters except +
-                $cleanPhone = preg_replace('/[^0-9+]/', '', $phone);
-                if (strlen($cleanPhone) < 10) {
+                $cleanPhone = preg_replace('/\D+/', '', $phone);
+                if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
                     return response()->json([
                         'success' => false,
                         'message' => "Invalid phone number: {$phone}"
