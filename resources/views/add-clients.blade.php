@@ -209,7 +209,7 @@
                         <div class="row mt-3">
                             <div class="col-lg-12">
                                 <div class="border border-3 p-4 rounded">
-                                    <h6>Login Information (Optional)</h6>
+                                    <h6>Login Information</h6>
                                     <div class="row g-3">
                                         <div class="col-12">
                                             <label for="role" class="form-label">Role</label>
@@ -222,7 +222,7 @@
                                         </div>
                                         <div class="col-12">
                                             <label for="password" class="form-label">Password</label>
-                                            <input type="password" class="form-control" id="password" name="password"
+                                            <input type="password" class="form-control" id="password" name="password" required
                                                 placeholder="Enter password (minimum 6 characters)">
                                             @error('password')
                                                 <span class="text-danger">{{ $message }}</span>
@@ -230,7 +230,7 @@
                                         </div>
                                         <div class="col-12">
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="sendWelcomeEmail" id="sendWelcomeEmail">
+                                                <input class="form-check-input" type="checkbox" name="sendWelcomeEmail" id="sendWelcomeEmail" checked>
                                                 <label class="form-check-label" for="sendWelcomeEmail">
                                                     Send Welcome Email
                                                 </label>

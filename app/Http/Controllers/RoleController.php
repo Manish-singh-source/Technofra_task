@@ -19,7 +19,12 @@ class RoleController extends Controller
     {
         $permissions = Permission::all();
         $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard'];
-        return view('add-role', compact('permissions', 'modules'));
+        $settingsPermissions = [
+            'view_general_settings',
+            'view_company_information',
+            'view_email_settings'
+        ];
+        return view('add-role', compact('permissions', 'modules', 'settingsPermissions'));
     }
 
     public function store(Request $request)
@@ -47,9 +52,14 @@ class RoleController extends Controller
         $role = Role::with('permissions')->findOrFail($id);
         $permissions = Permission::all();
         $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard'];
+        $settingsPermissions = [
+            'view_general_settings',
+            'view_company_information',
+            'view_email_settings'
+        ];
         $rolePermissions = $role->permissions->pluck('id')->toArray();
         
-        return view('edit-role', compact('role', 'permissions', 'modules', 'rolePermissions'));
+        return view('edit-role', compact('role', 'permissions', 'modules', 'settingsPermissions', 'rolePermissions'));
     }
 
     public function update(Request $request, $id)

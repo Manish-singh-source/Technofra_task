@@ -306,6 +306,8 @@
                             <div class="menu-title">Client</div>
                         </a>
                     </li>
+                    @endcan
+                    @can('view_general_settings')
                     <li>
                         <a href="{{ route('settings') }}">
                              <div class="parent-icon"><i class="bx bx-user-check"></i>
@@ -313,8 +315,8 @@
                             <div class="menu-title">Settings</div>
                         </a>
                     </li>
-                    @endcan
                     
+                    @endcan
                     
                 
 

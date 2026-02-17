@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ClientInviteMail;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -9,6 +10,8 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Spatie\Permission\Models\Role;
 
 class CustomerController extends Controller
@@ -56,7 +59,7 @@ class CustomerController extends Controller
             'default_due_days' => 'nullable|integer',
             'billing_type' => 'nullable|in:Hourly,Fixed,Retainer',
             'role' => 'nullable|string|max:255',
-            'password' => 'nullable|string|min:6',
+            'password' => 'required|string|min:6',
         ]);
 
         if ($validator->fails()) {
@@ -123,8 +126,17 @@ class CustomerController extends Controller
             $customer->password = $request->password ? Hash::make($request->password) : null;
             $customer->save();
 
+            // Send invitation email with login credentials
+            $clientName = $request->contact_person ?: $request->client_name;
+            try {
+                Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
+            } catch (\Exception $mailException) {
+                // Log mail failure but keep customer creation successful
+                Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
+            }
+
             DB::commit();
-            return redirect()->route('clients')->with('success', 'Customer added successfully.');
+            return redirect()->route('clients')->with('success', 'Customer added successfully. Invitation email sent to ' . $request->email);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to create customer: ' . $e->getMessage());
@@ -368,10 +380,19 @@ class CustomerController extends Controller
 
             Cache::forget('spatie.permission.cache');
 
+            // Send invitation email with login credentials
+            $clientName = $request->contact_person ?: $request->client_name;
+            try {
+                Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
+            } catch (\Exception $mailException) {
+                // Log mail failure but keep API creation successful
+                Log::error('Failed to send client invitation email via API: ' . $mailException->getMessage());
+            }
+
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => 'Customer created successfully.',
+                'message' => 'Customer created successfully. Invitation email sent.',
                 'data' => $customer->load('user.roles'),
             ], 201);
         } catch (\Exception $e) {

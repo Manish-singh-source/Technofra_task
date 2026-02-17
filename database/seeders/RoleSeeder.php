@@ -75,6 +75,11 @@ class RoleSeeder extends Seeder
             'create_tasks',
             'edit_tasks',
             'delete_tasks',
+            
+            // Settings Management
+            'view_general_settings',
+            'view_company_information',
+            'view_email_settings',
         ];
 
         // Create permissions if they don't exist
@@ -123,6 +128,9 @@ class RoleSeeder extends Seeder
                 'create_tasks',
                 'edit_tasks',
                 'delete_tasks',
+                'view_general_settings',
+                'view_company_information',
+                'view_email_settings',
             ],
             'admin' => [
                 'view_users',
@@ -154,6 +162,9 @@ class RoleSeeder extends Seeder
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
+                'view_general_settings',
+                'view_company_information',
+                'view_email_settings',
             ],
             'manager' => [
                 'view_projects',
@@ -173,6 +184,9 @@ class RoleSeeder extends Seeder
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
+                'view_general_settings',
+                'view_company_information',
+                'view_email_settings',
             ],
             'customer' => [
                 'view_renewals',

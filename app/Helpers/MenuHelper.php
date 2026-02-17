@@ -146,6 +146,16 @@ class MenuHelper
             ];
         }
 
+        // Settings
+        if (self::hasAnyPermission($permissions, ['view_general_settings', 'view_company_information', 'view_email_settings'])) {
+            $menu[] = [
+                'name' => 'Settings',
+                'route' => 'settings',
+                'icon' => 'bx bx-cog',
+                'active' => request()->routeIs('settings*'),
+            ];
+        }
+
         return $menu;
     }
 

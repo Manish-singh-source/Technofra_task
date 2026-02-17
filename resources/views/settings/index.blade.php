@@ -43,18 +43,21 @@
                         <div class="card-body">
                             <h5 class="card-title mb-4">Settings Menu</h5>
                             <div class="nav flex-column nav-pills" id="settingsTabs" role="tablist" aria-orientation="vertical">
+                                @if(auth()->user()->hasPermissionTo('view_general_settings'))
                                 <button class="nav-link active text-start py-3 px-3 mb-2" id="general-tab" data-bs-toggle="pill" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">
                                     <i class="bx bx-cog me-2"></i> General
                                 </button>
+                                @endif
+                                @if(auth()->user()->hasPermissionTo('view_company_information'))
                                 <button class="nav-link text-start py-3 px-3 mb-2" id="company-tab" data-bs-toggle="pill" data-bs-target="#company" type="button" role="tab" aria-controls="company" aria-selected="false">
                                     <i class="bx bx-building me-2"></i> Company Information
                                 </button>
-                                <button class="nav-link text-start py-3 px-3 mb-2" id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="false">
+                                @endif
+                                @if(auth()->user()->hasPermissionTo('view_email_settings'))
+                                <button class="nav-link text-start py-3 px-3" id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="false">
                                     <i class="bx bx-envelope me-2"></i> Email Settings
                                 </button>
-                                <button class="nav-link text-start py-3 px-3" id="tags-tab" data-bs-toggle="pill" data-bs-target="#tags" type="button" role="tab" aria-controls="tags" aria-selected="false">
-                                    <i class="bx bx-tag me-2"></i> Tags
-                                </button>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -71,10 +74,6 @@
                                 <li class="mb-2">
                                     <i class="bx bx-check-circle text-success me-2"></i>
                                     File Storage Configured
-                                </li>
-                                <li class="mb-2">
-                                    <i class="bx bx-check-circle text-success me-2"></i>
-                                    {{ $tags->total() }} Tags Defined
                                 </li>
                             </ul>
                         </div>
@@ -390,80 +389,7 @@
                                     </form>
                                 </div>
 
-                                <!-- TAB 4: TAGS -->
-                                <div class="tab-pane fade" id="tags" role="tabpanel">
-                                    <h5 class="card-title">Tag Management</h5>
-                                    <hr />
-                                    
-                                    <div class="row mb-4">
-                                        <div class="col-md-8">
-                                            <input type="text" class="form-control" id="tagSearch" placeholder="Search tags...">
-                                        </div>
-                                        <div class="col-md-4">
-                                            <button type="button" class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addTagModal">
-                                                <i class="bx bx-plus"></i> Add New Tag
-                                            </button>
-                                        </div>
-                                    </div>
 
-                                    <!-- Tags Table -->
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-hover" id="tagsTable">
-                                            <thead>
-                                                <tr>
-                                                    <th>Name</th>
-                                                    <th>Slug</th>
-                                                    <th>Color</th>
-                                                    <th>Status</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @forelse($tags as $tag)
-                                                <tr>
-                                                    <td>
-                                                        <span class="badge" style="background-color: {{ $tag->color }}; color: white;">
-                                                            {{ $tag->name }}
-                                                        </span>
-                                                    </td>
-                                                    <td><code>{{ $tag->slug }}</code></td>
-                                                    <td>
-                                                        <input type="color" class="form-control form-control-color" value="{{ $tag->color }}" disabled>
-                                                    </td>
-                                                    <td>
-                                                        @if($tag->is_active)
-                                                            <span class="badge bg-success">Active</span>
-                                                        @else
-                                                            <span class="badge bg-secondary">Inactive</span>
-                                                        @endif
-                                                    </td>
-                                                    <td>
-                                                        <div class="d-flex gap-2">
-                                                            <button type="button" class="btn btn-sm btn-primary edit-tag" data-id="{{ $tag->id }}" data-name="{{ $tag->name }}" data-color="{{ $tag->color }}" data-description="{{ $tag->description }}">
-                                                                <i class="bx bx-edit"></i>
-                                                            </button>
-                                                            <button type="button" class="btn btn-sm btn-danger delete-tag" data-id="{{ $tag->id }}" data-name="{{ $tag->name }}">
-                                                                <i class="bx bx-trash"></i>
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                @empty
-                                                <tr>
-                                                    <td colspan="5" class="text-center py-4">
-                                                        <div class="text-muted">
-                                                            <i class="bx bx-tag-alt fs-1"></i>
-                                                            <p class="mt-2">No tags found. Create your first tag!</p>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                                @endforelse
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    
-                                    {{ $tags->links() }}
-                                </div>
                             </div>
                         </div>
                     </div>

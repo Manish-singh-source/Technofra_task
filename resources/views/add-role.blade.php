@@ -80,6 +80,23 @@
                                                         </td>
                                                     </tr>
                                                     @endforeach
+                                                    <!-- Settings Permissions -->
+                                                    <tr>
+                                                        <td>Settings</td>
+                                                        <td>
+                                                            @foreach($settingsPermissions as $permissionName)
+                                                                @php
+                                                                    $permission = $permissions->where('name', $permissionName)->first();
+                                                                @endphp
+                                                                @if($permission)
+                                                                <div class="form-check">
+                                                                    <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ $permission->id }}" id="{{ $permissionName }}">
+                                                                    <label class="form-check-label" for="{{ $permissionName }}">{{ ucfirst(str_replace('_', ' ', $permissionName)) }}</label>
+                                                                </div>
+                                                                @endif
+                                                            @endforeach
+                                                        </td>
+                                                    </tr>
                                                
                                                
                                                

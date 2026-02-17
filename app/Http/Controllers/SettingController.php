@@ -19,8 +19,7 @@ class SettingController extends Controller
     public function index()
     {
         $settings = Setting::getAllSettings();
-        $tags = \App\Models\Tag::orderBy('name')->paginate(20);
-        return view('settings.index', compact('settings', 'tags'));
+        return view('settings.index', compact('settings'));
     }
 
     /**

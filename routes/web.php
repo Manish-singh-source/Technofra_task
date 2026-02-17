@@ -242,15 +242,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/lead/export', [LeadController::class, 'export'])->name('lead.export')->middleware('permission:view_leads');
     });
 
-    // Settings routes
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/settings', [SettingController::class, 'index'])->name('settings');
-        Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('settings.update.general');
-        Route::put('/settings/company', [SettingController::class, 'updateCompany'])->name('settings.update.company');
-        Route::put('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email');
-        Route::post('/settings/test-email', [SettingController::class, 'sendTestEmail'])->name('settings.test.email');
-        Route::get('/settings/search-tags', [SettingController::class, 'searchTags'])->name('settings.search.tags');
-    });
+     // Settings routes
+     Route::middleware(['auth'])->group(function () {
+         Route::get('/settings', [SettingController::class, 'index'])->name('settings')->middleware('permission:view_general_settings|view_company_information|view_email_settings');
+         Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('settings.update.general')->middleware('permission:view_general_settings');
+         Route::put('/settings/company', [SettingController::class, 'updateCompany'])->name('settings.update.company')->middleware('permission:view_company_information');
+         Route::put('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email')->middleware('permission:view_email_settings');
+         Route::post('/settings/test-email', [SettingController::class, 'sendTestEmail'])->name('settings.test.email')->middleware('permission:view_email_settings');
+         Route::get('/settings/search-tags', [SettingController::class, 'searchTags'])->name('settings.search.tags');
+     });
 
     // Tag routes
     Route::middleware(['auth'])->group(function () {
