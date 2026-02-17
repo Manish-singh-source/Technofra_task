@@ -112,19 +112,25 @@
                                     class="bx bx-search"></i></span>
                         </div>
                         <div class="ms-auto">
+                            @can('view_leads')
                             <a href="{{ route('lead.export') }}" class="btn btn-success radius-30 mt-2 mt-lg-0 me-2">
                                 <i class='bx bxs-download'></i>Download Excel
                             </a>
+                            @endcan
+                            @can('create_leads')
                             <a href="{{ route('add-lead') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Lead
                             </a>
+                            @endcan
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table id="leadsTable" class="table mb-0">
                             <thead class="table-light">
                                 <tr>
+                                    @can('delete_leads')
                                     <th><input type="checkbox" id="selectAll"></th>
+                                    @endcan
                                     <th>ID</th>
                                     <th>Name</th>
                                     <th>Company</th>
@@ -142,7 +148,9 @@
                             <tbody>
                                 @forelse($leads as $lead)
                                     <tr>
+                                        @can('delete_leads')
                                         <td><input type="checkbox" class="lead-checkbox" value="{{ $lead->id }}"></td>
+                                        @endcan
                                         <td>#{{ $lead->id }}</td>
                                         <td>
                                             <a href="{{ route('lead.show', $lead->id) }}" class="text-decoration-none">
@@ -196,8 +204,13 @@
                                         <td>{{ $lead->created_at->format('Y-m-d') }}</td>
                                         <td>
                                             <div class="d-flex order-actions">
+                                                @can('view_leads')
                                                 <a href="{{ route('lead.show', $lead->id) }}" class="text-primary" title="View"><i class='bx bxs-show'></i></a>
+                                                @endcan
+                                                @can('edit_leads')
                                                 <a href="{{ route('lead.edit', $lead->id) }}" class="text-warning ms-3" title="Edit"><i class='bx bxs-edit'></i></a>
+                                                @endcan
+                                                @can('delete_leads')
                                                 <form action="{{ route('lead.destroy', $lead->id) }}" method="POST" class="d-inline ms-3" onsubmit="return confirm('Are you sure you want to delete this lead?')">
                                                     @csrf
                                                     @method('DELETE')
@@ -205,6 +218,7 @@
                                                         <i class='bx bxs-trash'></i>
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>
@@ -217,11 +231,13 @@
                         </table>
                     </div>
                     <!-- Delete Selected Button -->
+                    @can('delete_leads')
                     <div class="mt-3">
                         <button type="button" id="deleteSelectedLeads" class="btn btn-danger" style="display: none;">
                             <i class='bx bxs-trash'></i> Delete Selected
                         </button>
                     </div>
+                    @endcan
                 </div>
             </div>
 

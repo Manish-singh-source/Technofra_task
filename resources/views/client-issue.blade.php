@@ -14,6 +14,7 @@
                 </nav>
             </div>
             <div class="ms-auto">
+                @can('delete_raise_issue')
                 <div class="btn-group">
                     <button type="button" class="btn btn-primary">Settings</button>
                     <button type="button"
@@ -24,6 +25,7 @@
                         <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
                     </div>
                 </div>
+                @endcan
             </div>
         </div>
 
@@ -47,9 +49,11 @@
                     <div class="card-body">
                         <div class="d-lg-flex align-items-center mb-4 gap-3">
                             <div class="ms-auto">
+                                @can('create_raise_issue')
                                 <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIssueModal">
                                     <i class="bx bx-plus"></i> Add New Project Issue
                                 </button>
+                                @endcan
                             </div>
                         </div>
                         <div class="table-responsive">
@@ -102,7 +106,10 @@
                                         </td>
                                         <td>
                                             <div class="d-flex order-actions">
+                                                @can('view_raise_issue')
                                                 <a href="{{ route('client-issue.show', $issue->id) }}"><i class='bx bxs-show'></i></a>
+                                                @endcan
+                                                @can('delete_raise_issue')
                                                 <form action="{{ route('client-issue.destroy', $issue->id) }}" method="POST" class="d-inline ms-3" onsubmit="return confirm('Are you sure you want to delete this issue?')">
                                                     @csrf
                                                     @method('DELETE')
@@ -110,6 +117,7 @@
                                                         <i class='bx bxs-trash'></i>
                                                     </button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

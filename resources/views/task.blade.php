@@ -21,9 +21,11 @@
                             class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
                             data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
                         </button>
+                        @can('delete_tasks')
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
                             <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
                         </div>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -115,16 +117,20 @@
                                     </a></li>
                                 </ul>
                             </div>
+                            @can('create_tasks')
                             <a href="{{route('add-task')}}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Task
                             </a>
+                            @endcan
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table id="tasksTable" class="table table-striped table-bordered" style="width:100%">
                             <thead class="table-light">
                                 <tr>
+                                    @can('delete_tasks')
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                    @endcan
                                     <th>Task ID</th>
                                     <th>Project & Task</th>
                                     <th>Created On</th>
@@ -139,7 +145,9 @@
                             <tbody>
                                 @forelse($tasks as $task)
                                 <tr>
+                                    @can('delete_tasks')
                                     <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $task->id }}"></td>
+                                    @endcan
                                     <td>#T{{ str_pad($task->id, 3, '0', STR_PAD_LEFT) }}</td>
                                     <td>
                                         <strong>Project:</strong> {{ $task->project->project_name ?? 'N/A' }} <br>
@@ -201,9 +209,15 @@
                                     </td>
                                     <td>
                                         <div class="d-flex order-actions">
+                                            @can('view_tasks')
                                             <a href="{{ route('task-details', $task->id) }}"><i class='bx bxs-show'></i></a>
+                                            @endcan
+                                            @can('edit_tasks')
                                             <a href="{{ route('edit-task', $task->id) }}" class="ms-2"><i class='bx bxs-edit'></i></a>
+                                            @endcan
+                                            @can('delete_tasks')
                                             <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>
@@ -244,34 +258,39 @@
             // Select All functionality
             const selectAll = document.getElementById('select-all');
             const checkboxes = document.querySelectorAll('.row-checkbox');
-            selectAll.addEventListener('change', function() {
-                checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            });
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    checkboxes.forEach(cb => cb.checked = selectAll.checked);
+                });
+            }
 
             // Delete Selected functionality
-            document.getElementById('delete-selected').addEventListener('click', function() {
-                let selected = [];
-                document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-                    selected.push(cb.value);
+            const deleteSelectedBtn = document.getElementById('delete-selected');
+            if (deleteSelectedBtn) {
+                deleteSelectedBtn.addEventListener('click', function() {
+                    let selected = [];
+                    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+                        selected.push(cb.value);
+                    });
+                    if (selected.length === 0) {
+                        alert('Please select at least one record.');
+                        return;
+                    }
+                    if (confirm('Are you sure you want to delete selected records?')) {
+                        // Create a form and submit
+                        let form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '{{ route('delete.selected.task') }}';
+                        form.innerHTML = `
+                            @csrf
+                            <input type="hidden" name="_method" value="DELETE">
+                            <input type="hidden" name="ids" value="${selected.join(',')}">
+                        `;
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
                 });
-                if (selected.length === 0) {
-                    alert('Please select at least one record.');
-                    return;
-                }
-                if (confirm('Are you sure you want to delete selected records?')) {
-                    // Create a form and submit
-                    let form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ route('delete.selected.task') }}';
-                    form.innerHTML = `
-                        @csrf
-                        <input type="hidden" name="_method" value="DELETE">
-                        <input type="hidden" name="ids" value="${selected.join(',')}">
-                    `;
-                    document.body.appendChild(form);
-                    form.submit();
-                }
-            });
+            }
         });
     </script>
 @endsection

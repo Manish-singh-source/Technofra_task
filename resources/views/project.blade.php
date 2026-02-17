@@ -278,8 +278,10 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
+                            @can('create_projects')
                             <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
                                             class="bx bxs-plus-square"></i>Add New Project</a></div>
+                            @endcan
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
@@ -357,8 +359,10 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                <div class="ms-auto"><a href="#" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                @can('create_projects')
+                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
                                             class="bx bxs-plus-square"></i>Add New Project</a></div>
+                                @endcan
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
@@ -436,8 +440,10 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                <div class="ms-auto"><a href="#" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                @can('create_projects')
+                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
                                             class="bx bxs-plus-square"></i>Add New Project</a></div>
+                                @endcan
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
@@ -537,8 +543,10 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                <div class="ms-auto"><a href="#" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                @can('create_projects')
+                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
                                             class="bx bxs-plus-square"></i>Add New Project</a></div>
+                                @endcan
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
@@ -616,8 +624,10 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                <div class="ms-auto"><a href="#" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                @can('create_projects')
+                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
                                             class="bx bxs-plus-square"></i>Add New Project</a></div>
+                                @endcan
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">

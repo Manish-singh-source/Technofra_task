@@ -228,18 +228,18 @@ Route::middleware('auth')->group(function () {
         Route::put('/clients-details/{id}', [CustomerController::class, 'update'])->name('clients.update')->middleware('permission:edit_clients');
     });
 
-    // Lead CRUD routes - removed lead permissions from routes
+    // Lead CRUD routes
     Route::middleware(['auth'])->group(function () {
-        Route::get('/leads', [LeadController::class, 'index'])->name('leads');
-        Route::get('/add-lead', [LeadController::class, 'create'])->name('add-lead');
-        Route::post('/store-lead', [LeadController::class, 'store'])->name('lead.store');
-        Route::get('/view-lead/{id}', [LeadController::class, 'show'])->name('lead.show');
-        Route::get('/edit-lead/{id}', [LeadController::class, 'edit'])->name('lead.edit');
-        Route::put('/update-lead/{id}', [LeadController::class, 'update'])->name('lead.update');
-        Route::delete('/delete-lead/{id}', [LeadController::class, 'destroy'])->name('lead.destroy');
-        Route::post('/lead/toggle-status', [LeadController::class, 'toggleStatus'])->name('lead.toggleStatus');
-        Route::post('/lead/delete-selected', [LeadController::class, 'deleteSelected'])->name('lead.delete-selected');
-        Route::get('/lead/export', [LeadController::class, 'export'])->name('lead.export');
+        Route::get('/leads', [LeadController::class, 'index'])->name('leads')->middleware('permission:view_leads');
+        Route::get('/add-lead', [LeadController::class, 'create'])->name('add-lead')->middleware('permission:create_leads');
+        Route::post('/store-lead', [LeadController::class, 'store'])->name('lead.store')->middleware('permission:create_leads');
+        Route::get('/view-lead/{id}', [LeadController::class, 'show'])->name('lead.show')->middleware('permission:view_leads');
+        Route::get('/edit-lead/{id}', [LeadController::class, 'edit'])->name('lead.edit')->middleware('permission:edit_leads');
+        Route::put('/update-lead/{id}', [LeadController::class, 'update'])->name('lead.update')->middleware('permission:edit_leads');
+        Route::delete('/delete-lead/{id}', [LeadController::class, 'destroy'])->name('lead.destroy')->middleware('permission:delete_leads');
+        Route::post('/lead/toggle-status', [LeadController::class, 'toggleStatus'])->name('lead.toggleStatus')->middleware('permission:edit_leads');
+        Route::post('/lead/delete-selected', [LeadController::class, 'deleteSelected'])->name('lead.delete-selected')->middleware('permission:delete_leads');
+        Route::get('/lead/export', [LeadController::class, 'export'])->name('lead.export')->middleware('permission:view_leads');
     });
 
     // Settings routes

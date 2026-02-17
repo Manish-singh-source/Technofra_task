@@ -98,13 +98,15 @@ class MenuHelper
             ];
         }
 
-        // Leads - always visible
-        $menu[] = [
-            'name' => 'Leads',
-            'route' => 'leads',
-            'icon' => 'bx bx-user-voice',
-            'active' => request()->routeIs('leads*') || request()->routeIs('add-lead') || request()->routeIs('lead.*'),
-        ];
+        // Leads
+        if (in_array('view_leads', $permissions)) {
+            $menu[] = [
+                'name' => 'Leads',
+                'route' => 'leads',
+                'icon' => 'bx bx-user-voice',
+                'active' => request()->routeIs('leads*') || request()->routeIs('add-lead') || request()->routeIs('lead.*'),
+            ];
+        }
 
         // Projects
         if (in_array('view_projects', $permissions)) {

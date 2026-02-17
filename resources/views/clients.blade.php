@@ -4,14 +4,14 @@
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
-            @if(session('success'))
+            @if (session('success'))
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     {{ session('success') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
 
-            @if(session('error'))
+            @if (session('error'))
                 <div class="alert alert-danger alert-dismissible fade show" role="alert">
                     {{ session('error') }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
@@ -30,6 +30,7 @@
                     </nav>
                 </div>
                 <div class="ms-auto">
+                    @can('delete_clients')
                     <div class="btn-group">
                         <button type="button" class="btn btn-primary">Settings</button>
                         <button type="button"
@@ -40,6 +41,7 @@
                             <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
                         </div>
                     </div>
+                    @endcan
                 </div>
             </div>
             <!--end breadcrumb-->
@@ -48,16 +50,20 @@
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
                         <div class="ms-auto">
-                            <a href="{{route('add-clients')}}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                            @can('create_clients')
+                            <a href="{{ route('add-clients') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Client
                             </a>
+                            @endcan
                         </div>
                     </div>
                     <div class="table-responsive">
                         <table id="example" class="table table-striped table-bordered" style="width:100%">
                             <thead class="table-light">
                                 <tr>
+                                    @can('delete_clients')
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                    @endcan
                                     <th>ID</th>
                                     <th>Client Name</th>
                                     <th>Email</th>
@@ -69,47 +75,66 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($customers as $customer)
-                                <tr>
-                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $customer->id }}"></td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <h6 class="mb-0 font-14">{{ $customer->id }}</h6>
-                                        </div>
-                                    </td>
-                                    <td>{{ $customer->client_name }}</td>
-                                    <td>{{ $customer->email }}</td>
-                                    <td>{{ $customer->industry }}</td>
-                                    <td>{{ $customer->website }}</td>
-                                    <td>{{ $customer->role }}</td>
-                                    <td>
-                                        @if($customer->status == 'Active')
-                                        <div class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
-                                        </div>
-                                        @elseif($customer->status == 'Inactive')
-                                        <div class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
-                                        </div>
-                                        @else
-                                        <div class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
-                                        </div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="{{ route('clients-details', $customer->id) }}"><i class='bx bxs-show'></i></a>
-                                            <form id="delete-form-{{$customer->id}}" action="{{ route('clients.delete', $customer->id) }}" method="POST" class="d-inline ms-3" onsubmit="return confirm('Are you sure you want to delete this client?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" style="border: none; background: none; color: #f54242;">
-                                                    <i class='bx bxs-trash'></i>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
+                                @foreach ($customers as $customer)
+                                    <tr>
+                                        @can('delete_clients')
+                                        <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
+                                                value="{{ $customer->id }}"></td>
+                                        @endcan
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <h6 class="mb-0 font-14">{{ $customer->id }}</h6>
+                                            </div>
+                                        </td>
+                                        <td>{{ $customer->client_name }}</td>
+                                        <td>{{ $customer->email }}</td>
+                                        <td>{{ $customer->industry }}</td>
+                                        <td>{{ $customer->website }}</td>
+                                        <td>{{ $customer->role }}</td>
+                                        <td>
+                                            @if ($customer->status == 'Active')
+                                                <div
+                                                    class="badge rounded-pill text-success bg-light-success p-2 text-uppercase px-3">
+                                                    <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
+                                                </div>
+                                            @elseif($customer->status == 'Inactive')
+                                                <div
+                                                    class="badge rounded-pill text-warning bg-light-warning p-2 text-uppercase px-3">
+                                                    <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
+                                                </div>
+                                            @else
+                                                <div
+                                                    class="badge rounded-pill text-danger bg-light-danger p-2 text-uppercase px-3">
+                                                    <i class='bx bxs-circle me-1'></i>{{ $customer->status }}
+                                                </div>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            <div class="d-flex order-actions">
+                                                @can('view_clients')
+                                                <a href="{{ route('clients-details', $customer->id) }}"><i
+                                                        class='bx bxs-show'></i></a>
+                                                @endcan
+                                                @can('edit_clients')
+                                                <a href="{{ route('client.edit', $customer->id) }}" class="ms-2"><i
+                                                        class='bx bxs-edit'></i></a>
+                                                @endcan
+                                                @can('delete_clients')
+                                                    <form id="delete-form-{{ $customer->id }}"
+                                                        action="{{ route('clients.delete', $customer->id) }}" method="POST"
+                                                        class="d-inline ms-3"
+                                                        onsubmit="return confirm('Are you sure you want to delete this client?')">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit"
+                                                            style="border: none; background: none; color: #f54242;">
+                                                            <i class='bx bxs-trash'></i>
+                                                        </button>
+                                                    </form>
+                                                @endcan
+                                            </div>
+                                        </td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                         </table>

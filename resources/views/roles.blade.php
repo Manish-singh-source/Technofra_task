@@ -107,6 +107,7 @@
                                                 'Role Management' => ['view_roles', 'create_roles', 'edit_roles', 'delete_roles'],
                                                 'Project Management' => ['view_projects', 'create_projects', 'edit_projects', 'delete_projects'],
                                                 'Client Management' => ['view_clients', 'create_clients', 'edit_clients', 'delete_clients'],
+                                                'Lead Management' => ['view_leads', 'create_leads', 'edit_leads', 'delete_leads'],
                                             ];
                                         @endphp
                                         @foreach($permissionCategories as $category => $perms)

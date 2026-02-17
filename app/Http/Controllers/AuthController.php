@@ -114,7 +114,8 @@ class AuthController extends Controller
                 'user_type' => $user->user_type,
             ]);
             
-            return redirect()->intended(route('dashboard'))
+            // Always redirect to dashboard after login
+            return redirect()->route('dashboard')
                 ->with('success', 'Welcome back, ' . Auth::user()->name . '!');
         }
 
@@ -532,12 +533,14 @@ class AuthController extends Controller
         }
 
         // Leads
-        $menuItems[] = [
-            'name' => 'Leads',
-            'route' => 'leads',
-            'icon' => 'bx-user-voice',
-            'permission' => null, // Always visible
-        ];
+        if (in_array('view_leads', $permissions)) {
+            $menuItems[] = [
+                'name' => 'Leads',
+                'route' => 'leads',
+                'icon' => 'bx-user-voice',
+                'permission' => 'view_leads',
+            ];
+        }
 
         // Projects
         if (in_array('view_projects', $permissions)) {

@@ -52,9 +52,11 @@ use Illuminate\Support\Facades\Storage;
                 </nav>
             </div>
             <div class="ms-auto">
+                @can('edit_raise_issue')
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal">
                     <i class="bx bx-user-plus"></i> Assign
                 </button>
+                @endcan
             </div>
         </div>
 
@@ -178,9 +180,11 @@ use Illuminate\Support\Facades\Storage;
         <div class="row align-items-center">
             <div class="col-12 d-flex justify-content-between align-items-center">
                 <h5 class="mb-3">Tasks</h5>
+                @can('create_raise_issue')
                 <button class="btn btn-outline-primary mb-3 add-task-btn" data-status="todo">
                     <i class="bx bx-plus"></i> Add Task
                 </button>
+                @endcan
             </div>
         </div>
 
@@ -237,15 +241,25 @@ use Illuminate\Support\Facades\Storage;
                                             <h6 class="task-card-title">{{ $task->title }}</h6>
                                         </div>
                                         <div class="task-card-actions">
+                                            @can('view_raise_issue')
+                                                
+                                            
                                             <a class="btn btn-sm btn-outline-success" href="{{ route('client-issue.task.show', ['clientIssue' => $clientIssue->id, 'task' => $task->id]) }}" title="View Task">
                                                 <i class="bx bx-show"></i>
                                             </a>
+                                            @endcan
+                                            @can('edit_raise_issue')
                                             <button class="btn btn-sm btn-outline-primary edit-task-btn" data-task-id="{{ $task->id }}" title="Edit Task">
                                                 <i class="bx bx-edit"></i>
                                             </button>
+                                            @endcan
+                                            @can('delete_raise_issue')
+                                                
+                                            
                                             <button class="btn btn-sm btn-outline-danger delete-task-btn" data-task-id="{{ $task->id }}" title="Delete Task">
                                                 <i class="bx bx-trash"></i>
                                             </button>
+                                            @endcan
                                         </div>
                                     </div>
                                     

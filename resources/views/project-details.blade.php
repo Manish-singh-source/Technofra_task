@@ -17,7 +17,10 @@
 			</div>
 			<div class="ms-auto">
 				<a href="{{ route('project') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-arrow-back"></i> Back</a>
+				@can('view_raise_issue')
 				<a href="{{ route('client-issue') }}" class="btn btn-outline-secondary me-2"><i class="bx bx-plus"></i> Raise Issue</a>
+				@endcan
+				@can('edit_projects')
 				<div class="btn-group">
 					<a href="{{ route('edit-project', $project->id) }}" class="btn btn-primary">Edit Project</a>
 					<button type="button" class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span></button>
@@ -27,6 +30,7 @@
 						<a class="dropdown-item" href="javascript:;">Delete</a>
 					</div>
 				</div>
+				@endcan
 			</div>
 		</div>
 		<!--end breadcrumb-->
@@ -365,7 +369,9 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Tasks</h5>
+							@can('create_tasks')
 							<a href="{{ route('add-task', ['project_id' => $project->id]) }}" class="btn btn-primary radius-30 btn-sm"><i class='bx bx-plus'></i> Create Task</a>
+							@endcan
 						</div>
 					</div>
 					<div class="card-body">
@@ -429,7 +435,9 @@
 						<div class="text-center py-4">
 							<i class='bx bx-task bx-lg text-muted mb-3'></i>
 							<p class="text-muted">No tasks created for this project yet.</p>
+							@can('create_tasks')
 							<a href="{{ route('add-task', ['project_id' => $project->id]) }}" class="btn btn-primary radius-30">Create First Task</a>
+							@endcan
 						</div>
 						@endif
 					</div>
@@ -441,9 +449,11 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Files & Documents</h5>
+							@can('edit_projects')
 							<button class="btn btn-primary radius-30 btn-sm" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
 								<i class='bx bx-upload'></i> Upload File
 							</button>
+							@endcan
 						</div>
 					</div>
 					<div class="card-body">
@@ -472,9 +482,11 @@
 											<a href="{{ asset($file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary radius-30">
 												<i class='bx bx-download'></i> Download
 											</a>
+											@can('delete_projects')
 											<button class="btn btn-sm btn-outline-danger radius-30" onclick="deleteFile({{ $file->id }})">
 												<i class='bx bx-trash'></i>
 											</button>
+											@endcan
 										</div>
 									</div>
 								</div>
@@ -485,9 +497,11 @@
 						<div class="text-center py-4">
 							<i class='bx bx-folder-open bx-lg text-muted mb-3'></i>
 							<p class="text-muted">No files uploaded for this project yet.</p>
+							@can('edit_projects')
 							<button class="btn btn-primary radius-30" data-bs-toggle="modal" data-bs-target="#uploadFileModal">
 								<i class='bx bx-upload'></i> Upload First File
 							</button>
+							@endcan
 						</div>
 						@endif
 					</div>
@@ -630,9 +644,11 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Issues & Risks</h5>
+							@can('edit_projects')
 							<button class="btn btn-danger radius-30 btn-sm" data-bs-toggle="modal" data-bs-target="#addIssueModal">
 								<i class="bx bx-plus me-1"></i>Report New Issue
 							</button>
+							@endcan
 						</div>
 					</div>
 					<div class="card-body">
@@ -691,6 +707,7 @@
 										<p><strong>Tasks:</strong> {{ $issue->tasks->count() }}</p>
 										@endif
 										<small class="text-muted">Reported: {{ $issue->created_at->format('M d, Y') }} | Updated: {{ $issue->updated_at->format('M d, Y') }}</small>
+										@can('edit_projects')
 										<div class="mt-3">
 											<button class="btn btn-sm btn-outline-primary radius-30 me-2" onclick="editIssue({{ $issue->id }}, '{{ addslashes($issue->issue_description) }}', '{{ $issue->priority }}', '{{ $issue->status }}')">
 												<i class="bx bx-edit"></i> Edit
@@ -703,6 +720,7 @@
 												</button>
 											</form>
 										</div>
+										@endcan
 									</div>
 								</div>
 							</div>
@@ -712,9 +730,11 @@
 						<div class="text-center py-4">
 							<i class='bx bx-error bx-lg text-muted mb-3'></i>
 							<p class="text-muted">No issues reported for this project yet.</p>
+							@can('edit_projects')
 							<button class="btn btn-danger radius-30" data-bs-toggle="modal" data-bs-target="#addIssueModal">
 								<i class="bx bx-plus me-1"></i>Report First Issue
 							</button>
+							@endcan
 						</div>
 						@endif
 					</div>
@@ -761,6 +781,7 @@
 <!--end page wrapper -->
 
 <!-- Add Milestone Modal -->
+@can('edit_projects')
 <div class="modal fade" id="addMilestoneModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
 		<div class="modal-content">
@@ -814,8 +835,10 @@
 		</div>
 	</div>
 </div>
+@endcan
 
 <!-- Upload File Modal -->
+@can('edit_projects')
 <div class="modal fade" id="uploadFileModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
 		<div class="modal-content">
@@ -849,8 +872,10 @@
 		</div>
 	</div>
 </div>
+@endcan
 
 <!-- Delete Confirmation Modal -->
+@can('delete_projects')
 <div class="modal fade" id="deleteFileModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
 		<div class="modal-content">
@@ -871,8 +896,10 @@
 		</div>
 	</div>
 </div>
+@endcan
 
 <!-- Add Issue Modal -->
+@can('edit_projects')
 <div class="modal fade" id="addIssueModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
 		<div class="modal-content">
@@ -924,8 +951,10 @@
 		</div>
 	</div>
 </div>
+@endcan
 
 <!-- Edit Issue Modal -->
+@can('edit_projects')
 <div class="modal fade" id="editIssueModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
 		<div class="modal-content">
@@ -969,6 +998,7 @@
 		</div>
 	</div>
 </div>
+@endcan
 
 <style>
 .timeline {

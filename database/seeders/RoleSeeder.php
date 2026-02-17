@@ -42,6 +42,12 @@ class RoleSeeder extends Seeder
             'edit_clients',
             'delete_clients',
             
+            // Lead Management
+            'view_leads',
+            'create_leads',
+            'edit_leads',
+            'delete_leads',
+            
             // Dashboard
             'view_dashboard',
             'view_renewals',
@@ -95,6 +101,10 @@ class RoleSeeder extends Seeder
                 'create_clients',
                 'edit_clients',
                 'delete_clients',
+                'view_leads',
+                'create_leads',
+                'edit_leads',
+                'delete_leads',
                 'view_dashboard',
                 'view_renewals',
                 'view_vendors',
@@ -127,6 +137,9 @@ class RoleSeeder extends Seeder
                 'view_clients',
                 'create_clients',
                 'edit_clients',
+                'view_leads',
+                'create_leads',
+                'edit_leads',
                 'view_dashboard',
                 'view_renewals',
                 'view_vendors',
@@ -149,6 +162,9 @@ class RoleSeeder extends Seeder
                 'view_clients',
                 'create_clients',
                 'edit_clients',
+                'view_leads',
+                'create_leads',
+                'edit_leads',
                 'view_dashboard',
                 'view_renewals',
                 'view_vendors',
@@ -166,6 +182,7 @@ class RoleSeeder extends Seeder
             'staff' => [
                 'view_projects',
                 'view_clients',
+                'view_leads',
                 'view_dashboard',
                 'view_tasks',
                 'create_tasks',
