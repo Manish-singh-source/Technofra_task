@@ -7,7 +7,6 @@ use App\Models\ClientIssueTeamAssignment;
 use App\Models\ClientIssueTask;
 use App\Models\Customer;
 use App\Models\Project;
-use App\Models\Staff;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -15,6 +14,8 @@ use Illuminate\Support\Facades\Validator;
 
 class ClientIssueController extends Controller
 {
+    private const TEAM_NAMES = ['Web Team', 'Graphic Team', 'Social Media Team', 'Accounts Team'];
+
     /**
      * Get the logged-in customer
      */
@@ -43,24 +44,22 @@ class ClientIssueController extends Controller
         $customer = $this->getLoggedInCustomer();
 
         if ($customer) {
-            // Customer can only see issues for their own projects
-            $clientIssues = ClientIssue::with(['project', 'customer'])
-                ->whereHas('project', function ($query) use ($customer) {
-                    $query->where('customer_id', $customer->id);
-                })
-                ->get();
-            // Customer can only see their own projects
+            // Client users should not see client issue listing items.
+            $clientIssues = collect();
             $projects = Project::where('customer_id', $customer->id)->get();
             $customers = collect([$customer]);
         } else {
             $user = Auth::user();
             if ($user && $user->isStaff()) {
+                $staff = $user->staff;
                 $staffId = optional($user->staff)->id;
-                $clientIssues = ClientIssue::with(['project', 'customer'])
-                    ->whereHas('teamAssignments', function ($query) use ($staffId) {
-                        $query->where('assigned_to', $staffId);
-                    })
+                $staffTeam = trim((string) optional($staff)->team);
+
+                $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments'])
                     ->get();
+                $clientIssues = $clientIssues
+                    ->filter(fn($issue) => $this->staffCanAccessIssue($issue, $staffId, $staffTeam))
+                    ->values();
             } else {
                 // Admin can see all issues
                 $clientIssues = ClientIssue::with(['project', 'customer'])->get();
@@ -148,27 +147,25 @@ class ClientIssueController extends Controller
             'teamAssignments.assignedStaff',
         ])->findOrFail($id);
         
-        // If user is a customer, verify they own this issue's project
+        // Client users should not be able to access issue detail pages.
         $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+        if ($customer) {
             abort(403, 'You are not authorized to view this issue.');
         }
 
         $user = Auth::user();
         if ($user && $user->isStaff()) {
+            $staff = $user->staff;
             $staffId = optional($user->staff)->id;
-            $isAssigned = $clientIssue->teamAssignments()
-                ->where('assigned_to', $staffId)
-                ->exists();
-            if (!$isAssigned) {
+            $staffTeam = trim((string) optional($staff)->team);
+            if (!$this->staffCanAccessIssue($clientIssue, $staffId, $staffTeam)) {
                 abort(403, 'You are not authorized to view this issue.');
             }
         }
 
-        $staff = Staff::orderBy('first_name')->orderBy('last_name')->get();
-        $teams = ['Web Team', 'Graphic Team', 'Social Media Team', 'Accounts Team'];
+        $teams = self::TEAM_NAMES;
         
-        return view('client-issue-details', compact('clientIssue', 'staff', 'teams'));
+        return view('client-issue-details', compact('clientIssue', 'teams'));
     }
 
     /**
@@ -177,9 +174,7 @@ class ClientIssueController extends Controller
     public function assignTeam(Request $request, $clientIssueId)
     {
         $validator = Validator::make($request->all(), [
-            'team_name' => 'nullable|in:Web Team,Graphic Team,Social Media Team,Accounts Team,Unassigned',
-            'assigned_to' => 'required|exists:staff,id',
-            'note' => 'nullable|string',
+            'team_name' => 'required|in:Web Team,Graphic Team,Social Media Team,Accounts Team',
         ]);
 
         if ($validator->fails()) {
@@ -189,30 +184,47 @@ class ClientIssueController extends Controller
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
 
         $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+        if ($customer) {
             abort(403, 'You are not authorized to assign this issue.');
         }
 
-        $allowedTeams = ['Web Team', 'Graphic Team', 'Social Media Team', 'Accounts Team', 'Unassigned'];
-        $teamName = $request->team_name;
-        if (!$teamName) {
-            $assignedStaff = Staff::find($request->assigned_to);
-            $teamName = $assignedStaff && $assignedStaff->team ? $assignedStaff->team : 'Unassigned';
-        }
-        if (!in_array($teamName, $allowedTeams, true)) {
-            $teamName = 'Unassigned';
-        }
+        $staffId = optional(Auth::user()->staff)->id;
 
         ClientIssueTeamAssignment::create([
             'client_issue_id' => $clientIssueId,
-            'team_name' => $teamName,
-            'assigned_to' => (string) $request->assigned_to,
-            'note' => $request->note,
+            'team_name' => $request->team_name,
+            'assigned_to' => $staffId ? (string) $staffId : null,
+            'note' => null,
             'assigned_by' => Auth::id(),
         ]);
 
         return redirect()->route('client-issue.show', $clientIssueId)
             ->with('success', 'Issue assigned successfully!');
+    }
+
+    private function staffCanAccessIssue(ClientIssue $clientIssue, $staffId, string $staffTeam): bool
+    {
+        if (!$staffId) {
+            return false;
+        }
+
+        $latestAssignment = $clientIssue->teamAssignments
+            ->sortByDesc('id')
+            ->first();
+
+        if (!$latestAssignment) {
+            return false;
+        }
+
+        if (!empty($latestAssignment->assigned_to) && (int) $latestAssignment->assigned_to === (int) $staffId) {
+            return true;
+        }
+
+        if ($staffTeam === '') {
+            return false;
+        }
+
+        return strcasecmp((string) $latestAssignment->team_name, $staffTeam) === 0;
     }
 
     /**

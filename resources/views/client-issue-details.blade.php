@@ -158,7 +158,7 @@ use Illuminate\Support\Facades\Storage;
                                             <tr>
                                                 <td>{{ $assignment->team_name }}</td>
                                                 <td>
-                                                    {{ $assignment->assignedStaff ? $assignment->assignedStaff->first_name . ' ' . $assignment->assignedStaff->last_name : 'N/A' }}
+                                                    {{ $assignment->assignedStaff ? $assignment->assignedStaff->first_name . ' ' . $assignment->assignedStaff->last_name : ('All ' . $assignment->team_name . ' Staff') }}
                                                 </td>
                                                 <td>{{ $assignment->assignedBy->name ?? 'System' }}</td>
                                                 <td>{{ $assignment->note ?? '-' }}</td>
@@ -1827,23 +1827,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
 
                     <input type="hidden" name="team_name" id="team_name">
-
-                    <div class="mt-3">
-                        <label for="assigned_to" class="form-label">Assign To Staff</label>
-                        <select class="form-select" id="assigned_to" name="assigned_to">
-                            <option value="">Select Staff</option>
-                            @foreach($staff as $member)
-                                <option value="{{ $member->id }}" data-team="{{ $member->team ?? '' }}">
-                                    {{ $member->first_name }} {{ $member->last_name }}@if($member->team) ({{ $member->team }}) @endif
-                                </option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="mt-3">
-                        <label for="assignNote" class="form-label">Add a note (optional):</label>
-                        <textarea class="form-control" id="assignNote" name="note" rows="3" placeholder="Enter any additional notes..."></textarea>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
@@ -1868,66 +1851,21 @@ document.addEventListener('DOMContentLoaded', function() {
             const team = this.getAttribute('data-team');
             const teamInput = document.getElementById('team_name');
             teamInput.value = team;
-
-            const staffSelect = document.getElementById('assigned_to');
-            if (staffSelect) {
-                const options = Array.from(staffSelect.options);
-                const matches = options.filter(option => {
-                    if (!option.value) return false;
-                    const optionTeam = option.getAttribute('data-team') || '';
-                    return optionTeam === team;
-                });
-                const hasMatches = matches.length > 0;
-
-                Array.from(staffSelect.options).forEach(option => {
-                    if (!option.value) {
-                        option.hidden = false;
-                        option.disabled = false;
-                        return;
-                    }
-                    const optionTeam = option.getAttribute('data-team') || '';
-                    const show = hasMatches ? (optionTeam === team) : true;
-                    option.hidden = !show;
-                    option.disabled = !show;
-                    if (!show && option.selected) {
-                        option.selected = false;
-                    }
-                });
-            }
         });
     });
 
     // Assign form validation
     const assignForm = document.getElementById('assignForm');
     if (assignForm) {
-        const staffSelect = document.getElementById('assigned_to');
-        if (staffSelect) {
-            staffSelect.addEventListener('change', function() {
-                const selectedOption = staffSelect.options[staffSelect.selectedIndex];
-                const teamInput = document.getElementById('team_name');
-                const optionTeam = selectedOption ? (selectedOption.getAttribute('data-team') || '') : '';
-                if (!teamInput.value && optionTeam) {
-                    teamInput.value = optionTeam;
-                }
-            });
-        }
-
         assignForm.addEventListener('submit', function(e) {
             const teamInput = document.getElementById('team_name');
             if (!teamInput.value) {
-                const selectedOption = staffSelect ? staffSelect.options[staffSelect.selectedIndex] : null;
-                const fallbackTeam = selectedOption ? (selectedOption.getAttribute('data-team') || '') : '';
-                if (fallbackTeam) {
-                    teamInput.value = fallbackTeam;
-                }
-            }
-            if (!staffSelect.value) {
                 e.preventDefault();
-                alert('Please select a staff member');
+                alert('Please select a team');
                 return;
             }
         });
-    });
+    }
 </script>
 
 @endsection
