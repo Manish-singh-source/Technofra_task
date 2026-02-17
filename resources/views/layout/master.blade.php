@@ -310,7 +310,7 @@
                     @can('view_general_settings')
                     <li>
                         <a href="{{ route('settings') }}">
-                             <div class="parent-icon"><i class="bx bx-user-check"></i>
+                             <div class="parent-icon"><i class="bx bx-cog"></i>
                             </div>
                             <div class="menu-title">Settings</div>
                         </a>

@@ -56,6 +56,11 @@ use Illuminate\Support\Facades\Storage;
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#assignModal">
                     <i class="bx bx-user-plus"></i> Assign
                 </button>
+                @if($clientIssue->status != 'closed')
+                <button class="btn btn-success ms-2" id="closeIssueBtn">
+                    <i class="bx bx-check-circle"></i> Close Issue
+                </button>
+                @endif
                 @endcan
             </div>
         </div>
@@ -1761,69 +1766,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     @csrf
                     <p class="text-muted mb-4">Select a team to assign this issue:</p>
                     <div class="d-flex flex-column gap-3">
-                        <!-- Web Team Card -->
-                        <div class="card assign-card" data-team="Web Team">
-                            <div class="card-body d-flex align-items-center">
-                                <div class="card-icon text-primary me-3">
-                                    <i class="bx bx-code-alt fs-2"></i>
-                                </div>
-                                <div>
-                                    <h6 class="card-title mb-1">Web Team</h6>
-                                    <p class="card-text mb-0 text-muted">Website development, bugs, and technical changes</p>
-                                </div>
-                                <div class="ms-auto">
-                                    <i class="bx bx-chevron-right fs-4"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Graphic Team Card -->
-                        <div class="card assign-card" data-team="Graphic Team">
-                            <div class="card-body d-flex align-items-center">
-                                <div class="card-icon text-success me-3">
-                                    <i class="bx bx-palette fs-2"></i>
-                                </div>
-                                <div>
-                                    <h6 class="card-title mb-1">Graphic Team</h6>
-                                    <p class="card-text mb-0 text-muted">Design requests, creatives, and branding materials</p>
-                                </div>
-                                <div class="ms-auto">
-                                    <i class="bx bx-chevron-right fs-4"></i>
+                        @foreach($teams as $team)
+                            @php
+                                $teamName = $team['name'] ?? '';
+                                $teamDescription = $team['description'] ?? '';
+                                $teamIconPath = $team['icon_path'] ?? '';
+                            @endphp
+                            <div class="card assign-card" data-team="{{ $teamName }}">
+                                <div class="card-body d-flex align-items-center">
+                                    @if($teamIconPath)
+                                        <div class="me-3">
+                                            <img src="{{ Storage::url($teamIconPath) }}" alt="{{ $teamName }}" style="height: 46px; width: 46px; object-fit: cover;" class="rounded border">
+                                        </div>
+                                    @else
+                                        <div class="card-icon text-secondary me-3">
+                                            <i class="bx bx-group fs-2"></i>
+                                        </div>
+                                    @endif
+                                    <div>
+                                        <h6 class="card-title mb-1">{{ $teamName }}</h6>
+                                        <p class="card-text mb-0 text-muted">{{ $teamDescription !== '' ? $teamDescription : 'Team assignment' }}</p>
+                                    </div>
+                                    <div class="ms-auto">
+                                        <i class="bx bx-chevron-right fs-4"></i>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <!-- Social Media Team Card -->
-                        <div class="card assign-card" data-team="Social Media Team">
-                            <div class="card-body d-flex align-items-center">
-                                <div class="card-icon text-info me-3">
-                                    <i class="bx bxl-instagram fs-2"></i>
-                                </div>
-                                <div>
-                                    <h6 class="card-title mb-1">Social Media Team</h6>
-                                    <p class="card-text mb-0 text-muted">Posts, campaigns, promotions, and engagement</p>
-                                </div>
-                                <div class="ms-auto">
-                                    <i class="bx bx-chevron-right fs-4"></i>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Accounts Team Card -->
-                        <div class="card assign-card" data-team="Accounts Team">
-                            <div class="card-body d-flex align-items-center">
-                                <div class="card-icon text-warning me-3">
-                                    <i class="bx bx-credit-card fs-2"></i>
-                                </div>
-                                <div>
-                                    <h6 class="card-title mb-1">Accounts Team</h6>
-                                    <p class="card-text mb-0 text-muted">Invoices, payments, and billing related matters</p>
-                                </div>
-                                <div class="ms-auto">
-                                    <i class="bx bx-chevron-right fs-4"></i>
-                                </div>
-                            </div>
-                        </div>
+                        @endforeach
+                        @if(count($teams) === 0)
+                            <p class="mb-0 text-muted">No team configured yet. Please add teams from Settings.</p>
+                        @endif
                     </div>
 
                     <input type="hidden" name="team_name" id="team_name">
@@ -1865,6 +1837,62 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
         });
+    }
+
+    // Close Issue Button Handler
+    document.getElementById('closeIssueBtn')?.addEventListener('click', function() {
+        if (confirm('Are you sure you want to close this issue?')) {
+            const issueId = {{ $clientIssue->id }};
+            const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+
+            fetch(`/client-issue/${issueId}/status`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    status: 'closed'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showAlert('success', data.message);
+                    // Reload page after 1.5 seconds
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showAlert('error', data.message || 'Failed to close issue');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'Error closing issue');
+            });
+        }
+    });
+
+    // Alert helper function
+    function showAlert(type, message) {
+        const alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+        const iconClass = type === 'success' ? 'bx bx-check-circle' : 'bx bx-error-circle';
+        
+        const alertHtml = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+            <i class="${iconClass} me-2"></i>
+            <strong>${message}</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>`;
+        
+        const pageContent = document.querySelector('.page-content');
+        const existingAlert = pageContent.querySelector('.alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+        pageContent.insertAdjacentHTML('afterbegin', alertHtml);
     }
 </script>
 

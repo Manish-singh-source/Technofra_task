@@ -1,6 +1,26 @@
 @extends('layout.master')
 
 @section('content')
+    @php
+        $activeSettingsTab = session('active_settings_tab', 'general');
+        if ($errors->any() && old('teams')) {
+            $activeSettingsTab = 'teams';
+        }
+
+        $availableTabs = [];
+        if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'general';
+        if (auth()->user()->hasPermissionTo('view_company_information')) $availableTabs[] = 'company';
+        if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'email';
+        if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'teams';
+        if (!in_array($activeSettingsTab, $availableTabs, true)) {
+            $activeSettingsTab = $availableTabs[0] ?? 'general';
+        }
+
+        $teamRows = old('teams', $teams ?? []);
+        if (!is_array($teamRows) || count($teamRows) === 0) {
+            $teamRows = [['name' => '', 'description' => '', 'icon_path' => '']];
+        }
+    @endphp
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
@@ -44,18 +64,23 @@
                             <h5 class="card-title mb-4">Settings Menu</h5>
                             <div class="nav flex-column nav-pills" id="settingsTabs" role="tablist" aria-orientation="vertical">
                                 @if(auth()->user()->hasPermissionTo('view_general_settings'))
-                                <button class="nav-link active text-start py-3 px-3 mb-2" id="general-tab" data-bs-toggle="pill" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="true">
+                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'general' ? 'active' : '' }}" id="general-tab" data-bs-toggle="pill" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="{{ $activeSettingsTab === 'general' ? 'true' : 'false' }}">
                                     <i class="bx bx-cog me-2"></i> General
                                 </button>
                                 @endif
                                 @if(auth()->user()->hasPermissionTo('view_company_information'))
-                                <button class="nav-link text-start py-3 px-3 mb-2" id="company-tab" data-bs-toggle="pill" data-bs-target="#company" type="button" role="tab" aria-controls="company" aria-selected="false">
+                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'company' ? 'active' : '' }}" id="company-tab" data-bs-toggle="pill" data-bs-target="#company" type="button" role="tab" aria-controls="company" aria-selected="{{ $activeSettingsTab === 'company' ? 'true' : 'false' }}">
                                     <i class="bx bx-building me-2"></i> Company Information
                                 </button>
                                 @endif
                                 @if(auth()->user()->hasPermissionTo('view_email_settings'))
-                                <button class="nav-link text-start py-3 px-3" id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="false">
+                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'email' ? 'active' : '' }}" id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="{{ $activeSettingsTab === 'email' ? 'true' : 'false' }}">
                                     <i class="bx bx-envelope me-2"></i> Email Settings
+                                </button>
+                                @endif
+                                @if(auth()->user()->hasPermissionTo('view_general_settings'))
+                                <button class="nav-link text-start py-3 px-3 {{ $activeSettingsTab === 'teams' ? 'active' : '' }}" id="teams-tab" data-bs-toggle="pill" data-bs-target="#teams" type="button" role="tab" aria-controls="teams" aria-selected="{{ $activeSettingsTab === 'teams' ? 'true' : 'false' }}">
+                                    <i class="bx bx-group me-2"></i> Teams
                                 </button>
                                 @endif
                             </div>
@@ -86,7 +111,7 @@
                         <div class="card-body p-4">
                             <div class="tab-content" id="settingsTabContent">
                                 <!-- TAB 1: GENERAL -->
-                                <div class="tab-pane fade show active" id="general" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'general' ? 'show active' : '' }}" id="general" role="tabpanel">
                                     <h5 class="card-title">General Settings</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.general') }}" method="POST" enctype="multipart/form-data">
@@ -140,7 +165,7 @@
                                 </div>
 
                                 <!-- TAB 2: COMPANY INFORMATION -->
-                                <div class="tab-pane fade" id="company" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'company' ? 'show active' : '' }}" id="company" role="tabpanel">
                                     <h5 class="card-title">Company Information</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.company') }}" method="POST">
@@ -246,7 +271,7 @@
                                 </div>
 
                                 <!-- TAB 3: EMAIL SETTINGS -->
-                                <div class="tab-pane fade" id="email" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'email' ? 'show active' : '' }}" id="email" role="tabpanel">
                                     <h5 class="card-title">Email Settings / SMTP</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.email') }}" method="POST">
@@ -389,6 +414,70 @@
                                     </form>
                                 </div>
 
+                                <!-- TAB 4: TEAMS -->
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'teams' ? 'show active' : '' }}" id="teams" role="tabpanel">
+                                    <h5 class="card-title">Team Settings</h5>
+                                    <hr />
+                                    <form action="{{ route('settings.update.teams') }}" method="POST" enctype="multipart/form-data">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label">Teams</label>
+                                                <div id="teams-rows" class="d-flex flex-column gap-2">
+                                                    @foreach($teamRows as $index => $teamRow)
+                                                        <div class="team-row border rounded p-3">
+                                                            <div class="row g-2 align-items-end">
+                                                                <div class="col-md-4">
+                                                                    <label class="form-label mb-1">Team Name</label>
+                                                                    <input type="text" class="form-control" name="teams[{{ $index }}][name]" value="{{ $teamRow['name'] ?? '' }}" placeholder="Enter team name" required>
+                                                                </div>
+                                                                <div class="col-md-5">
+                                                                    <label class="form-label mb-1">Description</label>
+                                                                    <input type="text" class="form-control" name="teams[{{ $index }}][description]" value="{{ $teamRow['description'] ?? '' }}" placeholder="Enter team description">
+                                                                </div>
+                                                                <div class="col-md-2">
+                                                                    <label class="form-label mb-1">Icon</label>
+                                                                    <input type="file" class="form-control" name="teams[{{ $index }}][icon]" accept="image/*">
+                                                                    <input type="hidden" name="teams[{{ $index }}][existing_icon_path]" value="{{ $teamRow['icon_path'] ?? '' }}">
+                                                                </div>
+                                                                <div class="col-md-1 d-grid">
+                                                                    <button type="button" class="btn btn-outline-danger remove-team-row">
+                                                                        <i class="bx bx-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                            @if(!empty($teamRow['icon_path']))
+                                                                <div class="mt-2">
+                                                                    <img src="{{ Storage::url($teamRow['icon_path']) }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
+                                                                </div>
+                                                            @endif
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                @error('teams')
+                                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @error('teams.*.name')
+                                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @error('teams.*.icon')
+                                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                                @enderror
+                                                <small class="text-muted d-block mt-2">These teams will appear in staff forms and client issue assignment popup.</small>
+                                            </div>
+
+                                            <div class="col-12 d-flex gap-2">
+                                                <button type="button" class="btn btn-light border" id="add-team-row">
+                                                    <i class="bx bx-plus"></i> Add Team
+                                                </button>
+                                                <button type="submit" class="btn btn-primary">
+                                                    Save Teams
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
 
                             </div>
                         </div>
@@ -543,6 +632,45 @@ $(document).ready(function() {
     });
     $('#editTagColorText').on('input', function() {
         $('#editTagColor').val($(this).val());
+    });
+
+    $('#add-team-row').on('click', function() {
+        const nextIndex = Date.now();
+        $('#teams-rows').append(`
+            <div class="team-row border rounded p-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1">Team Name</label>
+                        <input type="text" class="form-control" name="teams[${nextIndex}][name]" placeholder="Enter team name" required>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label mb-1">Description</label>
+                        <input type="text" class="form-control" name="teams[${nextIndex}][description]" placeholder="Enter team description">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label mb-1">Icon</label>
+                        <input type="file" class="form-control" name="teams[${nextIndex}][icon]" accept="image/*">
+                        <input type="hidden" name="teams[${nextIndex}][existing_icon_path]" value="">
+                    </div>
+                    <div class="col-md-1 d-grid">
+                        <button type="button" class="btn btn-outline-danger remove-team-row">
+                            <i class="bx bx-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `);
+    });
+
+    $(document).on('click', '.remove-team-row', function() {
+        const rows = $('#teams-rows .team-row');
+        if (rows.length <= 1) {
+            rows.find('input[type=\"text\"]').val('');
+            rows.find('input[type=\"file\"]').val('');
+            rows.find('input[type=\"hidden\"]').val('');
+            return;
+        }
+        $(this).closest('.team-row').remove();
     });
 
     // Add Tag Form Submit

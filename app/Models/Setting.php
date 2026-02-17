@@ -59,4 +59,5 @@ class Setting extends Model
     {
         return self::where('group', $group)->get();
     }
+
 }

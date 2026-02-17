@@ -34,10 +34,18 @@
 							<div class="card-body">
 								<div class="p-4">
 									<div class="mb-3 text-center">
-										<img src="assets/images/technofra.png" width="150" alt="" />
+										<div>
+                    @if(!empty($globalSettings['crm_logo']) && Storage::exists('public/settings/' . $globalSettings['crm_logo']))
+                        <img src="{{ Storage::url('public/settings/' . $globalSettings['crm_logo']) }}" class="logo-icon" alt="logo">
+                    @else
+                        <img src="{{ asset('assets/images/logo-icon.png') }}" class="logo-icon" alt="logo icon">
+                    @endif
+                </div>
+                <div>
+                    <h3 class="logo-text pt-2">{{ $globalSettings['company_name'] ?? 'Technofra' }}</h3>
+                </div>
 									</div>
 									<div class="text-center mb-4">
-										<h5 class="">Technofra Admin</h5>
 										<p class="mb-0">Please log in to your account</p>
 									</div>
 									<div class="form-body">

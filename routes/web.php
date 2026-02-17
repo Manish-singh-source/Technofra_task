@@ -207,6 +207,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/client-issue', [ClientIssueController::class, 'store'])->name('client-issue.store');
         Route::get('/client-issue/{id}', [ClientIssueController::class, 'show'])->name('client-issue.show');
         Route::post('/client-issue/{clientIssue}/assign', [ClientIssueController::class, 'assignTeam'])->name('client-issue.assign');
+        Route::patch('/client-issue/{id}/status', [ClientIssueController::class, 'updateStatus'])->name('client-issue.update-status');
         Route::delete('/client-issue/{id}', [ClientIssueController::class, 'destroy'])->name('client-issue.destroy');
         Route::delete('/client-issue/delete-selected', [ClientIssueController::class, 'deleteSelected'])->name('delete.selected.client-issue');
         
@@ -248,6 +249,7 @@ Route::middleware('auth')->group(function () {
          Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('settings.update.general')->middleware('permission:view_general_settings');
          Route::put('/settings/company', [SettingController::class, 'updateCompany'])->name('settings.update.company')->middleware('permission:view_company_information');
          Route::put('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email')->middleware('permission:view_email_settings');
+         Route::put('/settings/teams', [SettingController::class, 'updateTeams'])->name('settings.update.teams')->middleware('permission:view_general_settings');
          Route::post('/settings/test-email', [SettingController::class, 'sendTestEmail'])->name('settings.test.email')->middleware('permission:view_email_settings');
          Route::get('/settings/search-tags', [SettingController::class, 'searchTags'])->name('settings.search.tags');
      });

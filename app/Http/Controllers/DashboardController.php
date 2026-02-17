@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Service;
+use App\Models\ClientIssue;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 
@@ -38,6 +39,12 @@ class DashboardController extends Controller
             ->orderByRaw('CASE WHEN end_date < ? THEN 0 ELSE 1 END, end_date ASC', [$today])
             ->get();
 
+        // Get support tickets (client issues) - Recent 10
+        $supportTickets = ClientIssue::with(['project', 'customer'])
+            ->orderBy('created_at', 'DESC')
+            ->limit(10)
+            ->get();
+
         // Get notification data
         $renewalNotifications = NotificationService::getUrgentNotifications(10);
         $notificationCounts = NotificationService::getNotificationCounts();
@@ -48,6 +55,7 @@ class DashboardController extends Controller
             'renewalsDueThisWeek',
             'overdueRenewals',
             'criticalRenewals',
+            'supportTickets',
             'renewalNotifications',
             'notificationCounts',
             'hasCriticalNotifications'

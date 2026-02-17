@@ -423,53 +423,67 @@
                                             class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
                                     </a>
                                     <ul class="dropdown-menu">
-                                        <li><a class="dropdown-item" href="javascript:;">Action</a>
+                                        <li><a class="dropdown-item" href="javascript:;">Refresh</a>
                                         </li>
-                                        <li><a class="dropdown-item" href="javascript:;">Another action</a>
+                                        <li><a class="dropdown-item" href="javascript:;">Export</a>
                                         </li>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>
-                                        <li><a class="dropdown-item" href="javascript:;">Something else here</a>
+                                        <li><a class="dropdown-item" href="javascript:;">View All</a>
                                         </li>
                                     </ul>
                                 </div>
                             </div>
                         </div>
-                         <div class="card-body">
-                            <div class="card radius-10 border shadow-none">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <p class="mb-0 text-secondary">Texon Corporation</p>
-                                            <h5 class="my-1">Product Page Changes</h5>
-                                            <p class="mb-0 font-13">Replace the Product name to product category</p>
+                         <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                            @forelse($supportTickets as $ticket)
+                                <div class="card radius-10 border shadow-none mb-2">
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-start justify-content-between">
+                                            <div style="flex: 1;">
+                                                <p class="mb-1 text-secondary font-11">{{ $ticket->customer->client_name ?? 'N/A' }}</p>
+                                                <h6 class="mb-1" title="{{ $ticket->issue_description }}">
+                                                    {{ Str::limit($ticket->issue_description, 50) }}
+                                                </h6>
+                                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                                    <small class="text-muted">
+                                                        📁 {{ $ticket->project->project_name ?? 'N/A' }}
+                                                    </small>
+                                                    <small class="text-muted">
+                                                        <i class='bx bx-time-five'></i> {{ $ticket->created_at->format('M d, Y H:i') }}
+                                                    </small>
+                                                </div>
+                                                <div class="d-flex gap-1 flex-wrap">
+                                                    @if($ticket->status == 'open')
+                                                        <span class="badge bg-danger">Open</span>
+                                                    @elseif($ticket->status == 'in_progress')
+                                                        <span class="badge bg-warning text-dark">In Progress</span>
+                                                    @elseif($ticket->status == 'resolved')
+                                                        <span class="badge bg-info">Resolved</span>
+                                                    @elseif($ticket->status == 'closed')
+                                                        <span class="badge bg-success">Closed</span>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                            <div class="ms-2">
+                                                @if($ticket->priority == 'high')
+                                                    <span class="badge bg-danger">High</span>
+                                                @elseif($ticket->priority == 'medium')
+                                                    <span class="badge bg-warning text-dark">Med</span>
+                                                @else
+                                                    <span class="badge bg-info">Low</span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card radius-10 border shadow-none">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <p class="mb-0 text-secondary">Texon Corporation</p>
-                                            <h5 class="my-1">Product Page Changes</h5>
-                                            <p class="mb-0 font-13">Replace the Product name to product category</p>
-                                        </div>
-                                    </div>
+                            @empty
+                                <div class="text-center py-3">
+                                    <i class='bx bx-check-circle' style="font-size: 32px; color: #28a745;"></i>
+                                    <p class="mt-2 text-muted">No support tickets raised</p>
                                 </div>
-                            </div>
-                            <div class="card radius-10 border shadow-none">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <p class="mb-0 text-secondary">Texon Corporation</p>
-                                            <h5 class="my-1">Product Page Changes</h5>
-                                            <p class="mb-0 font-13">Replace the Product name to product category</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            @endforelse
                         </div>
                     </div>
                 </div>

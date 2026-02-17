@@ -110,7 +110,7 @@
                                 <div class="card-body">
                                     <div class="d-flex flex-column align-items-center text-center">
                                         <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Admin"
-                                            class="rounded-circle p-1 bg-primary" width="110">
+                                            class="rounded-circle p-1 bg-primary" width="100" height="100">
                                         <div class="mt-3">
                                             <h4>{{ $staff->first_name . ' ' . $staff->last_name }}</h4>
                                             <p class="text-secondary mb-1">
@@ -232,10 +232,9 @@
                                             <div class="col-sm-9 text-secondary">
                                                 <select name="team" class="form-control">
                                                     <option value="">Select Team</option>
-                                                    <option value="Web Team" {{ $staff->team == 'Web Team' ? 'selected' : '' }}>Web Team</option>
-                                                    <option value="Graphic Team" {{ $staff->team == 'Graphic Team' ? 'selected' : '' }}>Graphic Team</option>
-                                                    <option value="Social Media Team" {{ $staff->team == 'Social Media Team' ? 'selected' : '' }}>Social Media Team</option>
-                                                    <option value="Accounts Team" {{ $staff->team == 'Accounts Team' ? 'selected' : '' }}>Accounts Team</option>
+                                                    @foreach($teams as $team)
+                                                    <option value="{{ $team }}" {{ $staff->team == $team ? 'selected' : '' }}>{{ $team }}</option>
+                                                    @endforeach
                                                 </select>
                                             </div>
                                         </div>

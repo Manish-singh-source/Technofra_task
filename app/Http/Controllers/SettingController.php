@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -19,7 +20,19 @@ class SettingController extends Controller
     public function index()
     {
         $settings = Setting::getAllSettings();
-        return view('settings.index', compact('settings'));
+        $teams = Team::query()
+            ->orderBy('name')
+            ->get(['name', 'description', 'icon_path'])
+            ->map(function ($team) {
+                return [
+                    'name' => (string) $team->name,
+                    'description' => (string) ($team->description ?? ''),
+                    'icon_path' => (string) ($team->icon_path ?? ''),
+                ];
+            })
+            ->values()
+            ->all();
+        return view('settings.index', compact('settings', 'teams'));
     }
 
     /**
@@ -254,6 +267,95 @@ class SettingController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('settings')
                 ->with('error', 'Failed to send test email: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update team settings.
+     */
+    public function updateTeams(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'teams' => 'required|array|min:1',
+            'teams.*.name' => 'required|string|max:255|distinct',
+            'teams.*.description' => 'nullable|string|max:1000',
+            'teams.*.icon' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp,svg|max:2048',
+            'teams.*.existing_icon_path' => 'nullable|string|max:255',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('active_settings_tab', 'teams');
+        }
+
+        try {
+            $rows = $request->input('teams', []);
+            $teams = [];
+            foreach ($rows as $index => $row) {
+                $name = trim((string) ($row['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $description = trim((string) ($row['description'] ?? ''));
+                $iconPath = trim((string) ($row['existing_icon_path'] ?? ''));
+
+                if ($request->hasFile("teams.$index.icon")) {
+                    $iconFile = $request->file("teams.$index.icon");
+                    if ($iconFile && $iconFile->isValid()) {
+                        $iconPath = $iconFile->store('team-icons', 'public');
+                    }
+                }
+
+                $teams[] = [
+                    'name' => $name,
+                    'description' => $description !== '' ? $description : null,
+                    'icon_path' => $iconPath !== '' ? $iconPath : null,
+                    'is_active' => true,
+                ];
+            }
+
+            if (count($teams) === 0) {
+                return redirect()->back()
+                    ->with('error', 'At least one team is required.')
+                    ->withInput()
+                    ->with('active_settings_tab', 'teams');
+            }
+
+            DB::beginTransaction();
+            $oldIconPaths = Team::query()
+                ->whereNotNull('icon_path')
+                ->pluck('icon_path')
+                ->toArray();
+
+            Team::query()->delete();
+            foreach ($teams as $teamData) {
+                Team::create($teamData);
+            }
+            DB::commit();
+
+            $usedIconPaths = collect($teams)
+                ->pluck('icon_path')
+                ->filter()
+                ->values()
+                ->all();
+            foreach ($oldIconPaths as $oldPath) {
+                if (!in_array($oldPath, $usedIconPaths, true) && Storage::disk('public')->exists($oldPath)) {
+                    Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            return redirect()->route('settings')
+                ->with('success', 'Teams updated successfully.')
+                ->with('active_settings_tab', 'teams');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Failed to update teams: ' . $e->getMessage())
+                ->withInput()
+                ->with('active_settings_tab', 'teams');
         }
     }
 

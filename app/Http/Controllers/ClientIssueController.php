@@ -7,15 +7,15 @@ use App\Models\ClientIssueTeamAssignment;
 use App\Models\ClientIssueTask;
 use App\Models\Customer;
 use App\Models\Project;
+use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ClientIssueController extends Controller
 {
-    private const TEAM_NAMES = ['Web Team', 'Graphic Team', 'Social Media Team', 'Accounts Team'];
-
     /**
      * Get the logged-in customer
      */
@@ -163,7 +163,7 @@ class ClientIssueController extends Controller
             }
         }
 
-        $teams = self::TEAM_NAMES;
+        $teams = Team::getTeamCards();
         
         return view('client-issue-details', compact('clientIssue', 'teams'));
     }
@@ -173,8 +173,9 @@ class ClientIssueController extends Controller
      */
     public function assignTeam(Request $request, $clientIssueId)
     {
+        $teams = Team::getTeamOptions();
         $validator = Validator::make($request->all(), [
-            'team_name' => 'required|in:Web Team,Graphic Team,Social Media Team,Accounts Team',
+            'team_name' => ['required', Rule::in($teams)],
         ]);
 
         if ($validator->fails()) {
@@ -489,6 +490,58 @@ class ClientIssueController extends Controller
             return redirect()->route('client-issue')->with('success', 'Selected client issues deleted successfully.');
         } catch (\Exception $e) {
             return redirect()->route('client-issue')->with('error', 'Failed to delete selected client issues: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update the status of a client issue
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        try {
+            $validated = $request->validate([
+                'status' => 'required|in:open,in_progress,resolved,closed',
+            ]);
+
+            $clientIssue = ClientIssue::findOrFail($id);
+            
+            // Check authorization - allow if user can edit issues or is admin
+            if (!Auth::user()->can('edit_raise_issue') && 
+                !Auth::user()->hasAnyRole(['super_admin', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized - You do not have permission to close issues'
+                ], 403);
+            }
+
+            $clientIssue->update($validated);
+
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Issue status updated to ' . ucfirst(str_replace('_', ' ', $validated['status'])),
+                    'status' => $validated['status']
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'Issue status updated successfully');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation error',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            return redirect()->back()->withErrors($e->errors());
+        } catch (\Exception $e) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error updating issue status: ' . $e->getMessage()
+                ], 500);
+            }
+            return redirect()->back()->with('error', 'Error updating issue status: ' . $e->getMessage());
         }
     }
 }

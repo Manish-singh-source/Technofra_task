@@ -91,10 +91,9 @@
                                             <label for="team" class="form-label">Team (Optional)</label>
                                             <select class="form-select" id="team" name="team">
                                                 <option value="">Select Team</option>
-                                                <option value="Web Team">Web Team</option>
-                                                <option value="Graphic Team">Graphic Team</option>
-                                                <option value="Social Media Team">Social Media Team</option>
-                                                <option value="Accounts Team">Accounts Team</option>
+                                                @foreach($teams as $team)
+                                                <option value="{{ $team }}" {{ old('team') == $team ? 'selected' : '' }}>{{ $team }}</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         <div class="col-12">

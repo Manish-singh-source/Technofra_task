@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Staff;
+use App\Models\Team;
 use App\Models\Project;
 use App\Models\User;
 use App\Mail\StaffInviteMail;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
 
 class StaffController extends Controller
@@ -24,7 +26,8 @@ class StaffController extends Controller
     public function create()
     {
         $roles = Role::all();
-        return view('add-staff', compact('roles'));
+        $teams = Team::getTeamOptions();
+        return view('add-staff', compact('roles', 'teams'));
     }
 
     /**
@@ -43,9 +46,10 @@ class StaffController extends Controller
     {
         $staff = Staff::with('user')->findOrFail($id);
         $roles = Role::all();
+        $teams = Team::getTeamOptions();
         $projects = $staff->projects()->latest()->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
-        return view('view-staff', compact('staff', 'roles', 'projects', 'tasks'));
+        return view('view-staff', compact('staff', 'roles', 'teams', 'projects', 'tasks'));
     }
 
     /**
@@ -53,6 +57,7 @@ class StaffController extends Controller
      */
     public function update(Request $request, $id)
     {
+        $teams = Team::getTeamOptions();
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -60,7 +65,7 @@ class StaffController extends Controller
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
             'status' => 'required|in:active,inactive',
-            'team' => 'nullable|string|max:255',
+            'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
             'departments' => 'nullable|array',
         ]);
 
@@ -85,7 +90,7 @@ class StaffController extends Controller
                 'phone' => $request->phone,
                 'role' => $request->role,
                 'status' => $request->status,
-                'team' => $request->team,
+                'team' => $request->team ?: null,
                 'departments' => $request->departments,
             ]);
 
@@ -123,6 +128,7 @@ class StaffController extends Controller
      */
     public function store(Request $request)
     {
+        $teams = Team::getTeamOptions();
         $validator = Validator::make($request->all(), [
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'firstName' => 'required|string|max:255',
@@ -132,7 +138,7 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
-            'team' => 'nullable|string|max:255',
+            'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
         ]);
 
         if ($validator->fails()) {
@@ -178,7 +184,7 @@ class StaffController extends Controller
                 'password' => Hash::make($request->password),
                 'status' => 'active',
                 'departments' => $request->departments,
-                'team' => $request->team,
+                'team' => $request->team ?: null,
             ]);
 
             // Clear permission cache
@@ -286,6 +292,7 @@ class StaffController extends Controller
      */
     public function apiStore(Request $request)
     {
+        $teams = Team::getTeamOptions();
         $validator = Validator::make($request->all(), [
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
@@ -294,7 +301,7 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
-            'team' => 'nullable|string|max:255',
+            'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
         ]);
 
         if ($validator->fails()) {
@@ -330,7 +337,7 @@ class StaffController extends Controller
                 'password' => Hash::make($request->password),
                 'status' => 'active',
                 'departments' => $request->departments,
-                'team' => $request->team,
+                'team' => $request->team ?: null,
             ]);
 
             // Clear permission cache
