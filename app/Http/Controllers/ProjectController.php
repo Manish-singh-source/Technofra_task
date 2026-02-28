@@ -20,7 +20,7 @@ use Illuminate\Support\Facades\Validator;
 
 class ProjectController extends Controller
 {
-    private const BUSINESS_TZ = 'UTC';
+    private const DEFAULT_BUSINESS_TZ = 'UTC';
 
     /**
      * Get the logged-in customer
@@ -221,104 +221,32 @@ class ProjectController extends Controller
         $staff = Staff::all()->keyBy('id');
         $memberIds = collect($project->members ?? [])->filter()->values();
 
-        $elapsedBoundary = $this->getElapsedBoundary($project);
-        $elapsedMinutes = 0;
-        $firstActiveStartPoint = null;
-
-        $inProgressLogs = $project->statusLogs->where('status', 'in_progress')->values();
-        foreach ($inProgressLogs as $log) {
-            $logStart = $this->toBusinessTz($log->started_at);
-            if (!$logStart) {
-                continue;
-            }
-
-            $logEnd = $log->ended_at
-                ? $this->toBusinessTz($log->ended_at)
-                : $elapsedBoundary->copy();
-
-            $intervalEnd = $logEnd->lt($elapsedBoundary) ? $logEnd : $elapsedBoundary->copy();
-            if ($intervalEnd->lte($logStart)) {
-                continue;
-            }
-
-            if (!$firstActiveStartPoint || $logStart->lt($firstActiveStartPoint)) {
-                $firstActiveStartPoint = $logStart->copy();
-            }
-
-            $elapsedMinutes += $this->calculateWorkingMinutes($logStart, $intervalEnd);
-        }
-
-        if ($inProgressLogs->isEmpty() && $project->status === 'in_progress') {
-            $fallbackStart = $this->getFallbackActiveStart($project);
-            if ($fallbackStart && $elapsedBoundary->gt($fallbackStart)) {
-                $firstActiveStartPoint = $fallbackStart->copy();
-                $elapsedMinutes += $this->calculateWorkingMinutes($fallbackStart, $elapsedBoundary);
-            }
-        }
-
-        if (!$firstActiveStartPoint) {
-            $firstActiveStartPoint = $this->getFallbackActiveStart($project);
-        }
-
-        $deadlineWindowMinutes = 0;
-        if ($project->deadline && $firstActiveStartPoint) {
-            $deadlineAtEndOfWork = Carbon::parse(
-                $project->deadline->format('Y-m-d') . ' 18:00:00',
-                self::BUSINESS_TZ
-            );
-
-            if ($deadlineAtEndOfWork->gt($firstActiveStartPoint)) {
-                $deadlineWindowMinutes = $this->calculateWorkingMinutes($firstActiveStartPoint, $deadlineAtEndOfWork);
-            }
-        }
-
-        $projectElapsedHours = round($elapsedMinutes / 60, 1);
-        $projectUtilization = $deadlineWindowMinutes > 0
-            ? min(100.0, round(($elapsedMinutes / $deadlineWindowMinutes) * 100, 1))
-            : 0.0;
+        $elapsedBoundary = $this->getElapsedBoundary();
+        $inProgressIntervals = $this->getProjectActiveIntervals($project, $elapsedBoundary);
+        $projectElapsedMinutes = $this->calculateIntervalsElapsedMinutes($inProgressIntervals);
+        $projectElapsedHours = round($projectElapsedMinutes / 60, 1);
 
         // Fetch tasks for this project before member-level metrics calculation.
         $tasks = Task::where('project_id', $id)->with('project')->orderBy('created_at', 'desc')->get();
 
-        // Build member weights from task assignees so total project time can be split per member.
-        $memberWeights = [];
-        foreach ($memberIds as $memberId) {
-            $memberWeights[$memberId] = 0.0;
-        }
-
-        foreach ($tasks as $task) {
-            $assignees = collect($task->assignees ?? [])
-                ->filter(fn ($assigneeId) => isset($memberWeights[$assigneeId]))
-                ->values();
-
-            if ($assignees->isEmpty()) {
-                continue;
-            }
-
-            $share = 1 / $assignees->count();
-            foreach ($assignees as $assigneeId) {
-                $memberWeights[$assigneeId] += $share;
-            }
-        }
-
-        $totalWeight = array_sum($memberWeights);
-        if ($totalWeight <= 0 && count($memberWeights) > 0) {
-            // Fallback: when tasks have no assignees, split equally across project members.
-            foreach ($memberWeights as $memberId => $weight) {
-                $memberWeights[$memberId] = 1.0;
-            }
-            $totalWeight = array_sum($memberWeights);
-        }
-
         $memberMetrics = [];
         foreach ($memberIds as $memberId) {
-            $ratio = $totalWeight > 0 ? ($memberWeights[$memberId] / $totalWeight) : 0;
-            $memberElapsedMinutes = $elapsedMinutes * $ratio;
+            $memberAssignmentStart = $tasks
+                ->filter(function ($task) use ($memberId) {
+                    return collect($task->assignees ?? [])
+                        ->map(fn ($assigneeId) => (int) $assigneeId)
+                        ->contains((int) $memberId);
+                })
+                ->min('created_at');
+
+            $assignmentStartAt = $this->toBusinessTz($memberAssignmentStart);
+            $memberElapsedMinutes = $assignmentStartAt
+                ? $this->calculateIntervalsElapsedMinutesWithinRange($inProgressIntervals, $assignmentStartAt, $elapsedBoundary)
+                : 0;
+
             $memberMetrics[$memberId] = [
                 'total_hours' => round($memberElapsedMinutes / 60, 1),
-                'utilization' => $deadlineWindowMinutes > 0
-                    ? min(100.0, round(($memberElapsedMinutes / $deadlineWindowMinutes) * 100, 1))
-                    : 0.0,
+                'assignment_started_at' => $assignmentStartAt?->toDateTimeString(),
             ];
         }
         
@@ -370,7 +298,6 @@ class ProjectController extends Controller
             'allProjects',
             'memberMetrics',
             'projectElapsedHours',
-            'projectUtilization',
             'tasks',
             'projectFiles',
             'milestones',
@@ -398,7 +325,7 @@ class ProjectController extends Controller
         ]);
 
         $nextSortOrder = (int) ProjectMilestone::where('project_id', $projectId)->max('sort_order') + 1;
-        $completedAt = $validated['status'] === 'completed' ? now(self::BUSINESS_TZ) : null;
+        $completedAt = $validated['status'] === 'completed' ? now($this->businessTimezone()) : null;
 
         ProjectMilestone::create([
             'project_id' => $projectId,
@@ -516,7 +443,7 @@ class ProjectController extends Controller
         ProjectStatusLog::create([
             'project_id' => $project->id,
             'status' => $project->status,
-            'started_at' => now(self::BUSINESS_TZ),
+            'started_at' => now($this->businessTimezone()),
             'ended_at' => null,
         ]);
     }
@@ -533,7 +460,7 @@ class ProjectController extends Controller
                 ProjectStatusLog::create([
                     'project_id' => $project->id,
                     'status' => $newStatus,
-                    'started_at' => now(self::BUSINESS_TZ),
+                    'started_at' => now($this->businessTimezone()),
                     'ended_at' => null,
                 ]);
             }
@@ -542,31 +469,87 @@ class ProjectController extends Controller
 
         if ($openLog) {
             $openLog->update([
-                'ended_at' => now(self::BUSINESS_TZ),
+                'ended_at' => now($this->businessTimezone()),
             ]);
         }
 
         ProjectStatusLog::create([
             'project_id' => $project->id,
             'status' => $newStatus,
-            'started_at' => now(self::BUSINESS_TZ),
+            'started_at' => now($this->businessTimezone()),
             'ended_at' => null,
         ]);
     }
 
-    private function getElapsedBoundary(Project $project): Carbon
+    private function getElapsedBoundary(): Carbon
     {
-        $now = now(self::BUSINESS_TZ);
-        if (!$project->deadline) {
-            return $now;
+        return now($this->businessTimezone());
+    }
+
+    private function getProjectActiveIntervals(Project $project, Carbon $elapsedBoundary): array
+    {
+        $intervals = [];
+
+        $inProgressLogs = $project->statusLogs->where('status', 'in_progress')->values();
+        foreach ($inProgressLogs as $log) {
+            $logStart = $this->toBusinessTz($log->started_at);
+            if (!$logStart) {
+                continue;
+            }
+
+            $logEnd = $log->ended_at
+                ? $this->toBusinessTz($log->ended_at)
+                : $elapsedBoundary->copy();
+
+            $intervalEnd = $logEnd->lt($elapsedBoundary) ? $logEnd : $elapsedBoundary->copy();
+            if ($intervalEnd->lte($logStart)) {
+                continue;
+            }
+
+            $intervals[] = [$logStart, $intervalEnd];
         }
 
-        $deadlineAtEndOfWork = Carbon::parse(
-            $project->deadline->format('Y-m-d') . ' 18:00:00',
-            self::BUSINESS_TZ
-        );
+        if ($inProgressLogs->isEmpty() && $project->status === 'in_progress') {
+            $fallbackStart = $this->getFallbackActiveStart($project);
+            if ($fallbackStart && $elapsedBoundary->gt($fallbackStart)) {
+                $intervals[] = [$fallbackStart, $elapsedBoundary->copy()];
+            }
+        }
 
-        return $deadlineAtEndOfWork->lt($now) ? $deadlineAtEndOfWork : $now;
+        return $intervals;
+    }
+
+    private function calculateIntervalsElapsedMinutes(array $intervals): int
+    {
+        $minutes = 0;
+        foreach ($intervals as [$start, $end]) {
+            if ($end->gt($start)) {
+                $minutes += $start->diffInMinutes($end);
+            }
+        }
+
+        return $minutes;
+    }
+
+    private function calculateIntervalsElapsedMinutesWithinRange(array $intervals, Carbon $rangeStart, Carbon $rangeEnd): int
+    {
+        if ($rangeEnd->lte($rangeStart)) {
+            return 0;
+        }
+
+        $minutes = 0;
+        foreach ($intervals as [$start, $end]) {
+            $overlapStart = $start->gt($rangeStart) ? $start : $rangeStart;
+            $overlapEnd = $end->lt($rangeEnd) ? $end : $rangeEnd;
+
+            if ($overlapEnd->lte($overlapStart)) {
+                continue;
+            }
+
+            $minutes += $overlapStart->diffInMinutes($overlapEnd);
+        }
+
+        return $minutes;
     }
 
     private function getFallbackActiveStart(Project $project): ?Carbon
@@ -576,16 +559,16 @@ class ProjectController extends Controller
             return $createdAt;
         }
 
-        $startDateAtWorkStart = Carbon::parse(
-            $project->start_date->format('Y-m-d') . ' 09:00:00',
-            self::BUSINESS_TZ
+        $startDateAtDayStart = Carbon::parse(
+            $project->start_date->format('Y-m-d') . ' 00:00:00',
+            $this->businessTimezone()
         );
 
         if (!$createdAt) {
-            return $startDateAtWorkStart;
+            return $startDateAtDayStart;
         }
 
-        return $createdAt->gt($startDateAtWorkStart) ? $createdAt : $startDateAtWorkStart;
+        return $createdAt->gt($startDateAtDayStart) ? $createdAt : $startDateAtDayStart;
     }
 
     private function toBusinessTz($value): ?Carbon
@@ -594,49 +577,12 @@ class ProjectController extends Controller
             return null;
         }
 
-        return Carbon::parse($value)->setTimezone(self::BUSINESS_TZ);
+        return Carbon::parse($value)->setTimezone($this->businessTimezone());
     }
 
-    private function calculateWorkingMinutes(Carbon $from, Carbon $to): int
+    private function businessTimezone(): string
     {
-        if ($to->lte($from)) {
-            return 0;
-        }
-
-        $start = $from->copy()->setTimezone(self::BUSINESS_TZ);
-        $end = $to->copy()->setTimezone(self::BUSINESS_TZ);
-        $cursor = $start->copy()->startOfDay();
-        $lastDay = $end->copy()->startOfDay();
-        $minutes = 0;
-
-        while ($cursor->lte($lastDay)) {
-            if ($cursor->dayOfWeek !== Carbon::SUNDAY) {
-                $dayDate = $cursor->format('Y-m-d');
-                $workMorningStart = Carbon::parse($dayDate . ' 09:00:00', self::BUSINESS_TZ);
-                $workMorningEnd = Carbon::parse($dayDate . ' 13:00:00', self::BUSINESS_TZ);
-                $workEveningStart = Carbon::parse($dayDate . ' 14:00:00', self::BUSINESS_TZ);
-                $workEveningEnd = Carbon::parse($dayDate . ' 18:00:00', self::BUSINESS_TZ);
-
-                $minutes += $this->calculateOverlapMinutes($start, $end, $workMorningStart, $workMorningEnd);
-                $minutes += $this->calculateOverlapMinutes($start, $end, $workEveningStart, $workEveningEnd);
-            }
-
-            $cursor->addDay();
-        }
-
-        return $minutes;
-    }
-
-    private function calculateOverlapMinutes(Carbon $aStart, Carbon $aEnd, Carbon $bStart, Carbon $bEnd): int
-    {
-        $start = $aStart->gt($bStart) ? $aStart : $bStart;
-        $end = $aEnd->lt($bEnd) ? $aEnd : $bEnd;
-
-        if ($end->lte($start)) {
-            return 0;
-        }
-
-        return $start->diffInMinutes($end);
+        return (string) config('app.timezone', self::DEFAULT_BUSINESS_TZ);
     }
 
     public function destroy($id)

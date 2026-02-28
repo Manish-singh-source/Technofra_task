@@ -114,12 +114,32 @@ class SettingController extends Controller
             'country' => 'nullable|string|max:100',
             'website' => 'nullable|string|max:255',
             'gst_number' => 'nullable|string|max:50',
+            'office_start_time' => 'required|date_format:H:i',
+            'lunch_start_time' => 'required|date_format:H:i',
+            'lunch_end_time' => 'required|date_format:H:i',
+            'office_end_time' => 'required|date_format:H:i',
         ]);
+
+        $validator->after(function ($validator) use ($request) {
+            $officeStart = strtotime((string) $request->office_start_time);
+            $lunchStart = strtotime((string) $request->lunch_start_time);
+            $lunchEnd = strtotime((string) $request->lunch_end_time);
+            $officeEnd = strtotime((string) $request->office_end_time);
+
+            if ($officeStart === false || $lunchStart === false || $lunchEnd === false || $officeEnd === false) {
+                return;
+            }
+
+            if (!($officeStart < $lunchStart && $lunchStart < $lunchEnd && $lunchEnd < $officeEnd)) {
+                $validator->errors()->add('office_start_time', 'Office timings must follow: Office Start < Lunch Start < Lunch End < Office End.');
+            }
+        });
 
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
-                ->withInput();
+                ->withInput()
+                ->with('active_settings_tab', 'company');
         }
 
         try {
@@ -136,6 +156,10 @@ class SettingController extends Controller
                 'country' => 'text',
                 'website' => 'text',
                 'gst_number' => 'text',
+                'office_start_time' => 'text',
+                'lunch_start_time' => 'text',
+                'lunch_end_time' => 'text',
+                'office_end_time' => 'text',
             ];
 
             foreach ($fields as $field => $type) {
@@ -145,12 +169,14 @@ class SettingController extends Controller
             DB::commit();
 
             return redirect()->route('settings')
-                ->with('success', 'Company information updated successfully.');
+                ->with('success', 'Company information updated successfully.')
+                ->with('active_settings_tab', 'company');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Failed to update company information: ' . $e->getMessage())
-                ->withInput();
+                ->withInput()
+                ->with('active_settings_tab', 'company');
         }
     }
 

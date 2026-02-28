@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Mail\RenewalMail;
 use App\Models\Service;
+use App\Services\WhatsAppService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
@@ -77,6 +78,48 @@ class MailController extends Controller
             return redirect()->back()
                 ->withErrors(['error' => 'Failed to send email. Please try again.'])
                 ->withInput();
+        }
+    }
+
+    /**
+     * Send renewal reminder over WhatsApp for a specific service.
+     *
+     * @param int $service_id
+     * @return \Illuminate\Http\Response
+     */
+    public function sendWhatsAppReminder($service_id)
+    {
+        try {
+            $service = Service::with(['client', 'vendor'])->findOrFail($service_id);
+            $recipientPhone = optional($service->client)->phone;
+
+            if (empty($recipientPhone)) {
+                return redirect()->back()->withErrors([
+                    'error' => 'Client phone number not found for this service.',
+                ]);
+            }
+
+            $templateName = (string) config('services.k3_whatsapp.renewal_template', 'renewal_reminder_upcoming');
+            $templateParams = [
+                (string) (optional($service->client)->cname ?: 'Client'),
+                (string) $service->service_name,
+                $service->end_date->format('d M Y'),
+            ];
+
+            $whatsAppService = new WhatsAppService();
+            $sent = $whatsAppService->sendTemplateMessage($recipientPhone, $templateName, $templateParams);
+
+            if (!$sent) {
+                return redirect()->back()->withErrors([
+                    'error' => 'Failed to send WhatsApp reminder. Please check logs.',
+                ]);
+            }
+
+            return redirect()->back()->with('success', 'WhatsApp renewal reminder sent successfully.');
+        } catch (\Exception $e) {
+            return redirect()->back()->withErrors([
+                'error' => 'Failed to send WhatsApp reminder. Please try again.',
+            ]);
         }
     }
 }

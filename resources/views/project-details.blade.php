@@ -229,7 +229,7 @@
 							<div>
 								<p class="mb-0 text-secondary">Time Spent</p>
 								<h4 class="my-1 text-primary">{{ number_format($projectElapsedHours ?? 0, 1) }}h</h4>
-								<p class="mb-0 font-13">Working hours (Mon-Sat, 9:00-18:00)</p>
+								<p class="mb-0 font-13">Elapsed while project is in progress</p>
 							</div>
 							<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto"><i class='bx bx-time-five'></i></div>
 						</div>
@@ -260,20 +260,6 @@
 								<p class="mb-0 font-13">+3.1% from last month</p>
 							</div>
 							<div class="widgets-icons-2 rounded-circle bg-gradient-blooker text-white ms-auto"><i class='bx bx-money'></i></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-md-3 col-sm-6">
-				<div class="card radius-10 border-start border-0 border-4 border-info">
-					<div class="card-body">
-						<div class="d-flex align-items-center">
-							<div>
-								<p class="mb-0 text-secondary">Utilization</p>
-								<h4 class="my-1 text-info">{{ number_format($projectUtilization ?? 0, 1) }}%</h4>
-								<p class="mb-0 font-13">Against full deadline working window</p>
-							</div>
-							<div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto"><i class='bx bx-bar-chart'></i></div>
 						</div>
 					</div>
 				</div>
@@ -327,7 +313,6 @@
 										<th>Start Date</th>
 										<th>Deadline</th>
 										<th>Total Time (H)</th>
-										<th>Utilization</th>
 									</tr>
 								</thead>
 								<tbody>
@@ -345,14 +330,6 @@
 													<td>{{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}</td>
 													<td>{{ $project->deadline ? $project->deadline->format('M d, Y') : 'N/A' }}</td>
 													<td>{{ number_format($memberMetrics[$memberId]['total_hours'] ?? 0, 1) }}h</td>
-													<td>
-														<div class="d-flex align-items-center">
-															<div class="progress me-2" style="width: 100px;">
-																<div class="progress-bar bg-{{ ($memberMetrics[$memberId]['utilization'] ?? 0) >= 80 ? 'success' : (($memberMetrics[$memberId]['utilization'] ?? 0) >= 50 ? 'warning' : 'danger') }}" style="width: {{ $memberMetrics[$memberId]['utilization'] ?? 0 }}%"></div>
-															</div>
-															<span>{{ number_format($memberMetrics[$memberId]['utilization'] ?? 0, 1) }}%</span>
-														</div>
-													</td>
 												</tr>
 											@endif
 										@endforeach
@@ -1226,11 +1203,6 @@ $(function() {
         .catch(error => {
             console.error('Error initializing CKEditor:', error);
         });
-
-    // Refresh timer values every minute on project details page.
-    setInterval(function() {
-        window.location.reload();
-    }, 60000);
 
     // File upload form submission
     $('#uploadFileForm').on('submit', function(e) {

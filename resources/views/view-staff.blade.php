@@ -42,7 +42,7 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Logged Time</p>
-                                    <h4 class="my-1 text-primary">29:23</h4>
+                                    <h4 class="my-1 text-primary">{{ $loggedTimeStats['total_formatted'] ?? '00:00' }}</h4>
                                     <p class="mb-0 font-13">All time tracking</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
@@ -58,7 +58,7 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Last Month Logged Time</p>
-                                    <h4 class="my-1 text-info">00:00</h4>
+                                    <h4 class="my-1 text-info">{{ $loggedTimeStats['last_month_formatted'] ?? '00:00' }}</h4>
                                     <p class="mb-0 font-13">Previous month</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto">
@@ -74,7 +74,7 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">This Month Logged Time</p>
-                                    <h4 class="my-1 text-success">29:23</h4>
+                                    <h4 class="my-1 text-success">{{ $loggedTimeStats['this_month_formatted'] ?? '00:00' }}</h4>
                                     <p class="mb-0 font-13">Current month</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
@@ -90,7 +90,7 @@
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">This Week Logged Time</p>
-                                    <h4 class="my-1 text-warning">00:00</h4>
+                                    <h4 class="my-1 text-warning">{{ $loggedTimeStats['this_week_formatted'] ?? '00:00' }}</h4>
                                     <p class="mb-0 font-13">Current week</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
@@ -285,22 +285,11 @@
             </div>
 
                 <div class="row">
-                    <div class="col-sm-12">
+                    <div class="col-12">
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="d-flex align-items-center mb-3">Recent Projects
-                                    <div class="ms-auto">
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
-                                                <i class='bx bx-filter-alt'></i> Filter
-                                            </button>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <a class="dropdown-item filter-option" href="javascript:;" data-filter="weekly">Weekly</a>
-                                                <a class="dropdown-item filter-option" href="javascript:;" data-filter="monthly">Monthly</a>
-                                                <a class="dropdown-item filter-option" href="javascript:;" data-filter="yearly">Yearly</a>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    
                                 </h5>
                                 <div class="table-responsive">
                                     <table id="table" class="table table-striped">
@@ -354,18 +343,7 @@
                         <div class="card">
                             <div class="card-body">
                                 <h5 class="d-flex align-items-center mb-3">Recent Tasks
-                                    <div class="ms-auto">
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="dropdown">
-                                                <i class='bx bx-filter-alt'></i> Filter
-                                            </button>
-                                            <div class="dropdown-menu dropdown-menu-end">
-                                                <a class="dropdown-item filter-option" href="javascript:;" data-filter="weekly">Weekly</a>
-                                                <a class="dropdown-item filter-option" href="javascript:;" data-filter="monthly">Monthly</a>
-                                                <a class="dropdown-item filter-option" href="javascript:;" data-filter="yearly">Yearly</a>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    
                                 </h5>
                                 <div class="table-responsive">
                                     <table id="tasks-table" class="table table-striped">
@@ -437,66 +415,38 @@
             </div>
 
             <!-- Performance Metrics Cards -->
+            @php
+                $completedProjectsCount = collect($projects ?? [])->where('status', 'completed')->count();
+                $completedTasksCount = collect($tasks ?? [])->where('status', 'completed')->count();
+            @endphp
             <div class="row mb-4">
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-primary h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
-                                    <p class="mb-0 text-secondary">Productivity Score</p>
-                                    <h4 class="my-1 text-primary">85%</h4>
-                                    <p class="mb-0 font-13">+5.2% from last month</p>
+                                    <p class="mb-0 text-secondary">Total Project Complete</p>
+                                    <h4 class="my-1 text-primary">{{ $completedProjectsCount }}</h4>
+                                    <p class="mb-0 font-13">Completed projects count</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
-                                    <i class='bx bx-trending-up'></i>
+                                    <i class='bx bx-briefcase-alt-2'></i>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3 col-sm-6">
+                <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-success h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
-                                    <p class="mb-0 text-secondary">Tasks Completed</p>
-                                    <h4 class="my-1 text-success">47</h4>
-                                    <p class="mb-0 font-13">+12.5% from last month</p>
+                                    <p class="mb-0 text-secondary">Total Task Completed</p>
+                                    <h4 class="my-1 text-success">{{ $completedTasksCount }}</h4>
+                                    <p class="mb-0 font-13">Completed tasks count</p>
                                 </div>
                                 <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
                                     <i class='bx bx-check-circle'></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="card radius-10 border-start border-0 border-4 border-warning h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Average Response Time</p>
-                                    <h4 class="my-1 text-warning">2.3h</h4>
-                                    <p class="mb-0 font-13">-8.1% improvement</p>
-                                </div>
-                                <div class="widgets-icons-2 rounded-circle bg-gradient-blooker text-white ms-auto">
-                                    <i class='bx bx-time-five'></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6">
-                    <div class="card radius-10 border-start border-0 border-4 border-info h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Code Quality Score</p>
-                                    <h4 class="my-1 text-info">92%</h4>
-                                    <p class="mb-0 font-13">+3.7% from last month</p>
-                                </div>
-                                <div class="widgets-icons-2 rounded-circle bg-gradient-scooter text-white ms-auto">
-                                    <i class='bx bx-star'></i>
                                 </div>
                             </div>
                         </div>

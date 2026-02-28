@@ -47,6 +47,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/client', [ClientController::class, 'client'])->name('client')->middleware('permission:view_renewals');
     Route::post('/client/toggle-status',  [ClientController::class, 'toggleStatus'])->name('client.toggleStatus')->middleware('permission:edit_renewals');
     Route::get('/add-client', [ClientController::class, 'addclient'])->name('add-client')->middleware('permission:create_renewals');
+    Route::post('/client/store', [ClientController::class, 'storeclient'])->name('client.store')->middleware('permission:create_renewals');
     Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('permission:create_renewals');
     Route::post('/store-client', [CustomerController::class, 'storeclient'])->name('store-client')->middleware('permission:create_clients');
     Route::get('/edit-client/{id}', [ClientController::class, 'editclient'])->name('client.edit')->middleware('permission:edit_renewals');
@@ -105,6 +106,7 @@ Route::middleware('auth')->group(function () {
     // Mail routes for sending renewal emails
     Route::get('/send-mail/{service_id}', [MailController::class, 'sendMailForm'])->name('send-mail');
     Route::post('/send-mail', [MailController::class, 'sendMail'])->name('send-mail.send');
+    Route::post('/send-whatsapp-renewal/{service_id}', [MailController::class, 'sendWhatsAppReminder'])->name('send-whatsapp-renewal');
 
     // Notification routes
     Route::prefix('notifications')->name('notifications.')->group(function () {

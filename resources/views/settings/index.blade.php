@@ -260,6 +260,47 @@
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
+
+                                            <div class="col-12">
+                                                <h6 class="mb-2 mt-2">Office Work Time</h6>
+                                                <small class="text-muted d-block mb-2">Working slots will use: Office Start to Lunch Start, and Lunch End to Office End. Weekly off remains Sunday.</small>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="office_start_time" class="form-label">Office Start Time *</label>
+                                                <input type="time" class="form-control" id="office_start_time" name="office_start_time"
+                                                    value="{{ old('office_start_time', $settings['office_start_time'] ?? '09:00') }}" required>
+                                                @error('office_start_time')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="office_end_time" class="form-label">Office End Time *</label>
+                                                <input type="time" class="form-control" id="office_end_time" name="office_end_time"
+                                                    value="{{ old('office_end_time', $settings['office_end_time'] ?? '18:00') }}" required>
+                                                @error('office_end_time')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="lunch_start_time" class="form-label">Lunch Start Time *</label>
+                                                <input type="time" class="form-control" id="lunch_start_time" name="lunch_start_time"
+                                                    value="{{ old('lunch_start_time', $settings['lunch_start_time'] ?? '13:00') }}" required>
+                                                @error('lunch_start_time')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="lunch_end_time" class="form-label">Lunch End Time *</label>
+                                                <input type="time" class="form-control" id="lunch_end_time" name="lunch_end_time"
+                                                    value="{{ old('lunch_end_time', $settings['lunch_end_time'] ?? '14:00') }}" required>
+                                                @error('lunch_end_time')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
                                             
                                             <div class="col-12">
                                                 <div class="d-grid">

@@ -28,7 +28,7 @@
 
 				<div class="card-body p-4">
 					<h5 class="mb-4">Add Client</h5>
-					<form action="{{ route('store-client')}}" method="POST" class="row g-3">
+					<form action="{{ route('client.store')}}" method="POST" class="row g-3">
 						@csrf
 						<div class="col-md-6">
 							<label for="input1" class="form-label">Client Name

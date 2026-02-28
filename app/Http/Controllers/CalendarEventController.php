@@ -9,6 +9,8 @@ use Carbon\Carbon;
 
 class CalendarEventController extends Controller
 {
+    private const APPOINTMENT_BUFFER_MINUTES = 30;
+
     /**
      * Get all calendar events for FullCalendar display.
      *
@@ -105,6 +107,13 @@ class CalendarEventController extends Controller
         try {
             $eventDateTime = Carbon::parse($request->event_date . ' ' . $request->event_time);
 
+            if ($this->hasSchedulingConflict($eventDateTime)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Another appointment already exists within 30 minutes of this time. Please choose a different slot.'
+                ], 422);
+            }
+
             $event = CalendarEvent::create([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -118,10 +127,7 @@ class CalendarEventController extends Controller
 
             DB::commit();
 
-            activity()
-                ->performedOn($event)
-                ->causedBy(Auth::user())
-                ->log('Calendar event created: ' . $event->title);
+            $this->logActivity('Calendar event created: ' . $event->title, $event);
 
             return response()->json([
                 'success' => true,
@@ -241,6 +247,13 @@ class CalendarEventController extends Controller
             $event = CalendarEvent::findOrFail($id);
             $eventDateTime = Carbon::parse($request->event_date . ' ' . $request->event_time);
 
+            if ($this->hasSchedulingConflict($eventDateTime, $event->id)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Another appointment already exists within 30 minutes of this time. Please choose a different slot.'
+                ], 422);
+            }
+
             $event->update([
                 'title' => $request->title,
                 'description' => $request->description,
@@ -252,10 +265,7 @@ class CalendarEventController extends Controller
 
             DB::commit();
 
-            activity()
-                ->performedOn($event)
-                ->causedBy(Auth::user())
-                ->log('Calendar event updated: ' . $event->title);
+            $this->logActivity('Calendar event updated: ' . $event->title, $event);
 
             return response()->json([
                 'success' => true,
@@ -296,9 +306,7 @@ class CalendarEventController extends Controller
 
             DB::commit();
 
-            activity()
-                ->causedBy(Auth::user())
-                ->log('Calendar event deleted: ' . $eventTitle);
+            $this->logActivity('Calendar event deleted: ' . $eventTitle);
 
             return response()->json([
                 'success' => true,
@@ -339,16 +347,50 @@ class CalendarEventController extends Controller
 
             DB::commit();
 
-            activity()
-                ->performedOn($event)
-                ->causedBy(Auth::user())
-                ->log('Calendar event status changed: ' . $event->title);
+            $this->logActivity('Calendar event status changed: ' . $event->title, $event);
 
             return response()->json(['success' => true]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error toggling event status: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    private function hasSchedulingConflict(Carbon $eventDateTime, ?int $exceptEventId = null): bool
+    {
+        return CalendarEvent::query()
+            ->where('status', 1)
+            ->when($exceptEventId, function ($query, $exceptEventId) {
+                $query->where('id', '!=', $exceptEventId);
+            })
+            ->whereRaw('ABS(TIMESTAMPDIFF(MINUTE, event_time, ?)) < ?', [
+                $eventDateTime->toDateTimeString(),
+                self::APPOINTMENT_BUFFER_MINUTES,
+            ])
+            ->exists();
+    }
+
+    private function logActivity(string $message, ?CalendarEvent $event = null): void
+    {
+        if (!function_exists('activity')) {
+            return;
+        }
+
+        try {
+            $logger = activity();
+
+            if ($event) {
+                $logger->performedOn($event);
+            }
+
+            if (Auth::check()) {
+                $logger->causedBy(Auth::user());
+            }
+
+            $logger->log($message);
+        } catch (\Throwable $e) {
+            Log::warning('Activity log skipped: ' . $e->getMessage());
         }
     }
 }

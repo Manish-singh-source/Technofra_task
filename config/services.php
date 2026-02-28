@@ -39,6 +39,8 @@ return [
         'default_language' => env('K3_WHATSAPP_DEFAULT_LANGUAGE', 'en'),
         'reminder_template' => env('K3_WHATSAPP_REMINDER_TEMPLATE', 'calendar_appointment_reminder'),
         'event_time_template' => env('K3_WHATSAPP_EVENT_TIME_TEMPLATE', 'calendar_appointment_reminder'),
+        'renewal_template' => env('K3_WHATSAPP_RENEWAL_TEMPLATE', 'renewal_reminder_upcoming'),
+        'admin_phone' => env('K3_WHATSAPP_ADMIN_PHONE'),
     ],
 
 ];

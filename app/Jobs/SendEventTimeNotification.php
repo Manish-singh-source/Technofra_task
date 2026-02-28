@@ -95,9 +95,11 @@ class SendEventTimeNotification implements ShouldQueue
 
             DB::commit();
 
-            activity()
-                ->performedOn($this->event)
-                ->log('Event-time notification sent for event: ' . $this->event->title);
+            if (function_exists('activity')) {
+                activity()
+                    ->performedOn($this->event)
+                    ->log('Event-time notification sent for event: ' . $this->event->title);
+            }
 
             Log::info("Event-time notification completed for event: {$this->event->title} (Email: " . ($emailSent ? 'Yes' : 'No') . ", WhatsApp: " . ($whatsappSent ? 'Yes' : 'No') . ")");
 

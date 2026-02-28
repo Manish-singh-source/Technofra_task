@@ -196,6 +196,15 @@
                                                     title="Send Renewal Email">
                                                     <i class='bx bx-mail-send'></i>
                                                 </a>
+                                                <form action="{{ route('send-whatsapp-renewal', $service->id) }}"
+                                                    method="POST" class="ms-2">
+                                                    @csrf
+                                                    <button type="submit" class="btn btn-link text-success p-0 m-0"
+                                                        title="Send WhatsApp Reminder"
+                                                        onclick="return confirm('Send WhatsApp renewal reminder to client?')">
+                                                        <i class='bx bxl-whatsapp'></i>
+                                                    </button>
+                                                </form>
                                                 @if ($isOverdue)
                                                     <a href="{{ route('services.edit', $service->id) }}"
                                                         class="ms-2 text-success" title="Renew Service">
@@ -510,6 +519,7 @@
                             <div class="appointment-meta mt-3">
                                 <span class="badge bg-light text-dark border">Exact event-time alert</span>
                                 <span class="badge bg-light text-dark border">K3 WhatsApp template based</span>
+                                <span class="badge bg-light text-dark border">30-minute slot protection</span>
                             </div>
                         </div>
                         <div class="card-body">
@@ -549,6 +559,8 @@
                         @csrf
                         <div class="appointment-tip mb-3">
                             <strong>Notification Flow:</strong> WhatsApp template message automatically at selected meeting time.
+                            <br>
+                            <small>Note: Same day meetings require at least 30 minutes gap between time slots.</small>
                         </div>
                         <div class="mb-3">
                             <label for="event_title" class="form-label">Title <span class="text-danger">*</span></label>
@@ -571,6 +583,7 @@
                                 <label for="event_time" class="form-label">Time <span
                                         class="text-danger">*</span></label>
                                 <input type="time" class="form-control" id="event_time" name="event_time" required>
+                                <small class="form-text text-muted">Choose a slot with minimum 30 minutes difference from existing meetings.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -636,6 +649,7 @@
                                         class="text-danger">*</span></label>
                                 <input type="time" class="form-control" id="edit_event_time" name="event_time"
                                     required>
+                                <small class="form-text text-muted">30 minutes gap rule applies while rescheduling too.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -772,6 +786,12 @@
                     return;
                 }
 
+                if (hasCalendarConflict($('#event_date').val(), $('#event_time').val())) {
+                    showAlert('error',
+                        'Another meeting is already scheduled within 30 minutes of this slot. Please select another time.');
+                    return;
+                }
+
                 var formData = {
                     title: $('#event_title').val(),
                     description: $('#event_description').val(),
@@ -875,6 +895,13 @@
                 }
 
                 var eventId = $('#edit_event_id').val();
+
+                if (hasCalendarConflict($('#edit_event_date').val(), $('#edit_event_time').val(), eventId)) {
+                    showAlert('error',
+                        'Another meeting is already scheduled within 30 minutes of this slot. Please select another time.');
+                    return;
+                }
+
                 var formData = {
                     title: $('#edit_event_title').val(),
                     description: $('#edit_event_description').val(),
@@ -1002,6 +1029,33 @@
             function hasAnyRecipient(emailRecipients, whatsappRecipients) {
                 return (emailRecipients && emailRecipients.trim().length > 0) ||
                     (whatsappRecipients && whatsappRecipients.trim().length > 0);
+            }
+
+            function hasCalendarConflict(dateValue, timeValue, excludeEventId = null) {
+                if (!dateValue || !timeValue) {
+                    return false;
+                }
+
+                var selectedDateTime = new Date(dateValue + 'T' + timeValue + ':00');
+                if (isNaN(selectedDateTime.getTime())) {
+                    return false;
+                }
+
+                var bufferMs = 30 * 60 * 1000;
+                var events = calendar.getEvents();
+
+                return events.some(function(event) {
+                    if (!event.start) {
+                        return false;
+                    }
+
+                    if (excludeEventId !== null && String(event.id) === String(excludeEventId)) {
+                        return false;
+                    }
+
+                    var diff = Math.abs(event.start.getTime() - selectedDateTime.getTime());
+                    return diff < bufferMs;
+                });
             }
 
             // Clear validation errors when modal is closed

@@ -90,9 +90,11 @@ class Send10MinReminderNotification implements ShouldQueue
 
             DB::commit();
 
-            activity()
-                ->performedOn($this->event)
-                ->log('10-minute reminder sent for event: ' . $this->event->title);
+            if (function_exists('activity')) {
+                activity()
+                    ->performedOn($this->event)
+                    ->log('10-minute reminder sent for event: ' . $this->event->title);
+            }
 
             Log::info("10-min reminder completed for event: {$this->event->title} (Email: " . ($emailSent ? 'Yes' : 'No') . ", WhatsApp: " . ($whatsappSent ? 'Yes' : 'No') . ")");
 

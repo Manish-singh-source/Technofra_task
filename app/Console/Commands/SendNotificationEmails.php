@@ -2,12 +2,12 @@
 
 namespace App\Console\Commands;
 
-use App\Mail\NotificationMail;
 use App\Models\Service;
 use App\Models\VendorService;
+use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 
 class SendNotificationEmails extends Command
 {
@@ -23,7 +23,7 @@ class SendNotificationEmails extends Command
      *
      * @var string
      */
-    protected $description = 'Send daily notification emails for critical services and vendor services to admin only';
+    protected $description = 'Send daily WhatsApp notifications for critical services';
 
     /**
      * Execute the console command.
@@ -32,7 +32,7 @@ class SendNotificationEmails extends Command
      */
     public function handle()
     {
-        $this->info('Sending daily notification emails...');
+        $this->info('Sending daily WhatsApp notifications...');
 
         $today = Carbon::today();
         $fiveDaysFromNow = $today->copy()->addDays(5);
@@ -56,28 +56,56 @@ class SendNotificationEmails extends Command
             ->get();
 
         if ($criticalServices->isEmpty() && $criticalVendorServices->isEmpty()) {
-            $this->info('No critical services or vendor services found. No emails sent.');
+            $this->info('No critical services or vendor services found. No WhatsApp reminders sent.');
             return 0;
         }
 
-        // Get admin email from env
-        $adminEmail = config('app.admin_email');
+        $adminPhone = (string) config('services.k3_whatsapp.admin_phone');
+        $renewalTemplate = (string) config('services.k3_whatsapp.renewal_template', 'renewal_reminder_upcoming');
+        $hasFiveDayFlag = Schema::hasColumn('services', 'five_days_notified');
+        $adminReminderServicesQuery = Service::with('client')
+            ->whereDate('end_date', $fiveDaysFromNow);
 
-        if (!$adminEmail) {
-            $this->error('Admin email not configured in .env');
-            return 1;
+        if ($hasFiveDayFlag) {
+            $adminReminderServicesQuery->where(function ($query) {
+                $query->whereNull('five_days_notified')
+                    ->orWhere('five_days_notified', false);
+            });
         }
 
-        // Send email to admin email directly
-        try {
-            Mail::to($adminEmail)->send(new NotificationMail($criticalServices, $criticalVendorServices));
-            $this->info("Email sent to admin: {$adminEmail}");
-        } catch (\Exception $e) {
-            $this->error("Failed to send email to admin {$adminEmail}: {$e->getMessage()}");
-            return 1;
+        $adminReminderServices = $adminReminderServicesQuery->get();
+
+        $whatsAppSent = 0;
+        $whatsAppFailed = 0;
+        $whatsAppSkipped = 0;
+
+        if (empty($adminPhone)) {
+            $this->warn('K3_WHATSAPP_ADMIN_PHONE is not configured. Skipping admin WhatsApp reminders.');
+            $whatsAppSkipped = $adminReminderServices->count();
+        } else {
+            $whatsAppService = new WhatsAppService();
+
+            foreach ($adminReminderServices as $service) {
+                $params = [
+                    (string) (optional($service->client)->cname ?: 'Client'),
+                    (string) $service->service_name,
+                    $service->end_date->format('d M Y'),
+                ];
+
+                if ($whatsAppService->sendTemplateMessage($adminPhone, $renewalTemplate, $params)) {
+                    if ($hasFiveDayFlag) {
+                        $service->five_days_notified = true;
+                        $service->save();
+                    }
+                    $whatsAppSent++;
+                } else {
+                    $whatsAppFailed++;
+                }
+            }
         }
 
-        $this->info('Successfully sent notification email to admin.');
+        $this->info('Daily notification run completed.');
+        $this->info("Admin WhatsApp (5-day) summary: sent {$whatsAppSent}, failed {$whatsAppFailed}, skipped {$whatsAppSkipped}.");
         return 0;
     }
 }

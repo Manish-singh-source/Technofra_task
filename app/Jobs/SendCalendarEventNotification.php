@@ -74,9 +74,11 @@ class SendCalendarEventNotification implements ShouldQueue
 
             DB::commit();
 
-            activity()
-                ->performedOn($this->event)
-                ->log('Calendar event notification sent: ' . $this->event->title);
+            if (function_exists('activity')) {
+                activity()
+                    ->performedOn($this->event)
+                    ->log('Calendar event notification sent: ' . $this->event->title);
+            }
 
             Log::info("Successfully sent notifications for event: {$this->event->title}");
         } catch (\Exception $e) {
