@@ -269,7 +269,10 @@
                                         style="color: #ffc107"></i>Tasks</span>
                             </div>
                             <div class="chart-container-1">
-                                <canvas id="chart1" width="1031" height="260"
+                                <canvas id="chart1"
+                                    data-dashboard-labels='@json($projectSummaryLabels ?? [])'
+                                    data-dashboard-projects='@json($projectSummaryProjects ?? [])'
+                                    data-dashboard-tasks='@json($projectSummaryTasks ?? [])' width="1031" height="260"
                                     style="display: block; box-sizing: border-box; height: 260px; width: 1031px;"></canvas>
                             </div>
                         </div>

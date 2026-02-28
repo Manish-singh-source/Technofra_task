@@ -4,7 +4,9 @@ $(function() {
 	
 // chart 1
 
-  var ctx = document.getElementById("chart1").getContext('2d');
+  var chart1El = document.getElementById("chart1");
+  if (chart1El) {
+  var ctx = chart1El.getContext('2d');
    
   var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
       gradientStroke1.addColorStop(0, '#6078ea');  
@@ -14,13 +16,38 @@ $(function() {
       gradientStroke2.addColorStop(0, '#ff8359');
       gradientStroke2.addColorStop(1, '#ffdf40');
 
+      var fallbackLabels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      var fallbackProjects = [65, 59, 80, 81, 65, 59, 80, 81, 59, 80, 81, 65];
+      var fallbackTasks = [28, 48, 40, 19, 28, 48, 40, 19, 40, 19, 28, 48];
+
+      function readDashboardArrayData(attributeName, fallback) {
+        try {
+          var raw = chart1El.getAttribute(attributeName);
+          if (!raw) return fallback;
+          var parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      var labels = readDashboardArrayData('data-dashboard-labels', fallbackLabels);
+      var projectsData = readDashboardArrayData('data-dashboard-projects', fallbackProjects);
+      var tasksData = readDashboardArrayData('data-dashboard-tasks', fallbackTasks);
+
+      if (projectsData.length !== labels.length || tasksData.length !== labels.length) {
+        labels = fallbackLabels;
+        projectsData = fallbackProjects;
+        tasksData = fallbackTasks;
+      }
+
       var myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+          labels: labels,
           datasets: [{
-            label: 'Laptops',
-            data: [65, 59, 80, 81,65, 59, 80, 81,59, 80, 81,65],
+            label: 'Projects',
+            data: projectsData,
             borderColor: gradientStroke1,
             backgroundColor: gradientStroke1,
             hoverBackgroundColor: gradientStroke1,
@@ -29,8 +56,8 @@ $(function() {
             borderRadius: 20,
             borderWidth: 0
           }, {
-            label: 'Mobiles',
-            data: [28, 48, 40, 19,28, 48, 40, 19,40, 19,28, 48],
+            label: 'Tasks',
+            data: tasksData,
             borderColor: gradientStroke2,
             backgroundColor: gradientStroke2,
             hoverBackgroundColor: gradientStroke2,
@@ -57,6 +84,7 @@ $(function() {
 				  }
 			  }
       });
+      }
 	  
 	 
 // chart 2

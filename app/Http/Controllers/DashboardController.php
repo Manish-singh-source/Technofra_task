@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Service;
 use App\Models\ClientIssue;
+use App\Models\Project;
+use App\Models\Task;
 use App\Services\NotificationService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
@@ -20,6 +23,39 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $weekFromNow = $today->copy()->addWeek();
         $fiveDaysFromNow = $today->copy()->addDays(5);
+
+        // Build monthly project/task summary for last 12 months
+        $startMonth = $today->copy()->startOfMonth()->subMonths(11);
+        $endMonth = $today->copy()->endOfMonth();
+
+        $projectCountsByMonth = Project::select(
+                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month_key"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->whereBetween('created_at', [$startMonth, $endMonth])
+            ->groupBy('month_key')
+            ->pluck('total', 'month_key');
+
+        $taskCountsByMonth = Task::select(
+                DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month_key"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->whereBetween('created_at', [$startMonth, $endMonth])
+            ->groupBy('month_key')
+            ->pluck('total', 'month_key');
+
+        $projectSummaryLabels = [];
+        $projectSummaryProjects = [];
+        $projectSummaryTasks = [];
+
+        for ($i = 0; $i < 12; $i++) {
+            $month = $startMonth->copy()->addMonths($i);
+            $monthKey = $month->format('Y-m');
+
+            $projectSummaryLabels[] = $month->format('M');
+            $projectSummaryProjects[] = (int) ($projectCountsByMonth[$monthKey] ?? 0);
+            $projectSummaryTasks[] = (int) ($taskCountsByMonth[$monthKey] ?? 0);
+        }
 
         // Calculate renewal statistics
         $totalRenewals = Service::count();
@@ -56,6 +92,9 @@ class DashboardController extends Controller
             'overdueRenewals',
             'criticalRenewals',
             'supportTickets',
+            'projectSummaryLabels',
+            'projectSummaryProjects',
+            'projectSummaryTasks',
             'renewalNotifications',
             'notificationCounts',
             'hasCriticalNotifications'
