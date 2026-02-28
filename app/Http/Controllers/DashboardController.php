@@ -57,6 +57,44 @@ class DashboardController extends Controller
             $projectSummaryTasks[] = (int) ($taskCountsByMonth[$monthKey] ?? 0);
         }
 
+        // Build task status summary for dashboard doughnut chart
+        $taskStatusOrder = ['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled'];
+        $taskStatusLabels = [
+            'not_started' => 'Not Started',
+            'in_progress' => 'In Progress',
+            'on_hold' => 'On Hold',
+            'completed' => 'Completed',
+            'cancelled' => 'Cancelled',
+        ];
+        $taskStatusBadges = [
+            'not_started' => 'bg-secondary',
+            'in_progress' => 'bg-primary',
+            'on_hold' => 'bg-warning text-dark',
+            'completed' => 'bg-success',
+            'cancelled' => 'bg-danger',
+        ];
+
+        $taskCountsByStatus = Task::select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $taskSummaryLabels = [];
+        $taskSummaryCounts = [];
+        $taskSummaryBreakdown = [];
+
+        foreach ($taskStatusOrder as $status) {
+            $count = (int) ($taskCountsByStatus[$status] ?? 0);
+            $label = $taskStatusLabels[$status];
+
+            $taskSummaryLabels[] = $label;
+            $taskSummaryCounts[] = $count;
+            $taskSummaryBreakdown[] = [
+                'label' => $label,
+                'count' => $count,
+                'badge' => $taskStatusBadges[$status],
+            ];
+        }
+
         // Calculate renewal statistics
         $totalRenewals = Service::count();
 
@@ -95,6 +133,9 @@ class DashboardController extends Controller
             'projectSummaryLabels',
             'projectSummaryProjects',
             'projectSummaryTasks',
+            'taskSummaryLabels',
+            'taskSummaryCounts',
+            'taskSummaryBreakdown',
             'renewalNotifications',
             'notificationCounts',
             'hasCriticalNotifications'

@@ -329,24 +329,24 @@
                         </div>
                         <div class="card-body">
                             <div class="chart-container-2">
-                                <canvas id="chart2" width="487" height="220"
+                                <canvas id="chart2" data-task-summary-labels='@json($taskSummaryLabels ?? [])'
+                                    data-task-summary-counts='@json($taskSummaryCounts ?? [])' width="487" height="220"
                                     style="display: block; box-sizing: border-box; height: 220px; width: 487px;"></canvas>
                             </div>
                         </div>
                         <ul class="list-group list-group-flush">
-                            <li
-                                class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
-                                Manish <span class="badge bg-success rounded-pill">25</span>
-                            </li>
-                            <li class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-                                Saurabh <span class="badge bg-danger rounded-pill">10</span>
-                            </li>
-                            <li class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-                                Pradnya <span class="badge bg-primary rounded-pill">65</span>
-                            </li>
-                            <li class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-                                Roshan <span class="badge bg-warning text-dark rounded-pill">14</span>
-                            </li>
+                            @forelse ($taskSummaryBreakdown ?? [] as $statusItem)
+                                <li
+                                    class="list-group-item d-flex bg-transparent justify-content-between align-items-center {{ $loop->first ? 'border-top' : '' }}">
+                                    {{ $statusItem['label'] }}
+                                    <span class="badge {{ $statusItem['badge'] }} rounded-pill">{{ $statusItem['count'] }}</span>
+                                </li>
+                            @empty
+                                <li
+                                    class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
+                                    No Tasks <span class="badge bg-secondary rounded-pill">0</span>
+                                </li>
+                            @endforelse
                         </ul>
                     </div>
                 </div>

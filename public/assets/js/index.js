@@ -89,7 +89,9 @@ $(function() {
 	 
 // chart 2
 
- var ctx = document.getElementById("chart2").getContext('2d');
+ var chart2El = document.getElementById("chart2");
+ if (chart2El) {
+ var ctx = chart2El.getContext('2d');
 
   var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
       gradientStroke1.addColorStop(0, '#fc4a1a');
@@ -108,25 +110,53 @@ $(function() {
       gradientStroke4.addColorStop(0, '#42e695');
       gradientStroke4.addColorStop(1, '#3bb2b8');
 
+  var gradientStroke5 = ctx.createLinearGradient(0, 0, 0, 300);
+      gradientStroke5.addColorStop(0, '#ff6a88');
+      gradientStroke5.addColorStop(1, '#ff99ac');
+
+      var fallbackTaskSummaryLabels = ["Not Started", "In Progress", "On Hold", "Completed", "Cancelled"];
+      var fallbackTaskSummaryData = [0, 0, 0, 0, 0];
+
+      function readTaskSummaryArrayData(attributeName, fallback) {
+        try {
+          var raw = chart2El.getAttribute(attributeName);
+          if (!raw) return fallback;
+          var parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      var taskSummaryLabels = readTaskSummaryArrayData('data-task-summary-labels', fallbackTaskSummaryLabels);
+      var taskSummaryData = readTaskSummaryArrayData('data-task-summary-counts', fallbackTaskSummaryData);
+
+      if (taskSummaryLabels.length !== taskSummaryData.length) {
+        taskSummaryLabels = fallbackTaskSummaryLabels;
+        taskSummaryData = fallbackTaskSummaryData;
+      }
+
       var myChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-          labels: ["Jeans", "T-Shirts", "Shoes", "Lingerie"],
+          labels: taskSummaryLabels,
           datasets: [{
             backgroundColor: [
               gradientStroke1,
               gradientStroke2,
               gradientStroke3,
-              gradientStroke4
+              gradientStroke4,
+              gradientStroke5
             ],
             hoverBackgroundColor: [
               gradientStroke1,
               gradientStroke2,
               gradientStroke3,
-              gradientStroke4
+              gradientStroke4,
+              gradientStroke5
             ],
-            data: [25, 80, 25, 25],
-			borderWidth: [1, 1, 1, 1]
+            data: taskSummaryData,
+			borderWidth: 1
           }]
         },
         options: {
@@ -140,6 +170,7 @@ $(function() {
           
        }
       });
+      }
 
    
 
