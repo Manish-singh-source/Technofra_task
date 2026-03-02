@@ -358,19 +358,26 @@
                 <div class="col d-flex">
                     <div class="card radius-10 w-100">
                         <div class="card-body">
-                            <p class="font-weight-bold mb-1 text-secondary">Revenue Snapshot</p>
-                            <div class="d-flex align-items-center mb-4">
+                            
+                            <div class="d-flex align-items-center justify-content-between mb-3">
                                 <div>
-                                    <h4 class="mb-0">₹89,540</h4>
+                                    <h6 class="mb-0">Team Availability</h6>
                                 </div>
-                                <div class="">
-                                    <p class="mb-0 align-self-center font-weight-bold text-success ms-2">4.4% <i
-                                            class="bx bxs-up-arrow-alt mr-2"></i>
-                                    </p>
+                                <div class="btn-group btn-group-sm" role="group" aria-label="Team availability period">
+                                    <button type="button" class="btn btn-outline-primary team-period-btn active"
+                                        data-period="weekly">Weekly</button>
+                                    <button type="button" class="btn btn-outline-primary team-period-btn"
+                                        data-period="monthly">Monthly</button>
+                                    <button type="button" class="btn btn-outline-primary team-period-btn"
+                                        data-period="yearly">Yearly</button>
                                 </div>
                             </div>
+                            <p class="text-muted mb-2"><b>Completed tasks by staff</b></p>
                             <div class="chart-container-0 mt-5">
-                                <canvas id="chart3" width="487" height="320"
+                                <canvas id="chart3" data-team-labels='@json($teamAvailabilityLabels ?? [])'
+                                    data-team-weekly='@json($teamAvailabilityWeekly ?? [])'
+                                    data-team-monthly='@json($teamAvailabilityMonthly ?? [])'
+                                    data-team-yearly='@json($teamAvailabilityYearly ?? [])' width="487" height="320"
                                     style="display: block; box-sizing: border-box; height: 320px; width: 487px;"></canvas>
                             </div>
                         </div>
@@ -381,7 +388,7 @@
                         <div class="card-header bg-transparent">
                             <div class="d-flex align-items-center">
                                 <div>
-                                    <h6 class="mb-0">Team Availability</h6>
+                                    <h6 class="mb-0">Leads Overview</h6>
                                 </div>
                                 <div class="dropdown ms-auto">
                                     <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
@@ -404,21 +411,24 @@
                         </div>
                         <div class="card-body">
                             <div class="chart-container-1 mt-3">
-                                <canvas id="chart4" width="487" height="260"
+                                <canvas id="chart4" data-lead-summary-labels='@json($leadSummaryLabels ?? [])'
+                                    data-lead-summary-counts='@json($leadSummaryCounts ?? [])' width="487" height="260"
                                     style="display: block; box-sizing: border-box; height: 260px; width: 487px;"></canvas>
                             </div>
                         </div>
                         <ul class="list-group list-group-flush">
-                            <li
-                                class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
-                                Manish <span class="badge bg-gradient-quepal rounded-pill">25</span>
-                            </li>
-                            <li class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-                                Roshan <span class="badge bg-gradient-ibiza rounded-pill">10</span>
-                            </li>
-                            <li class="list-group-item d-flex bg-transparent justify-content-between align-items-center">
-                                Saurbh <span class="badge bg-gradient-deepblue rounded-pill">65</span>
-                            </li>
+                            @forelse ($leadSummaryBreakdown ?? [] as $leadStatusItem)
+                                <li
+                                    class="list-group-item d-flex bg-transparent justify-content-between align-items-center {{ $loop->first ? 'border-top' : '' }}">
+                                    {{ $leadStatusItem['label'] }}
+                                    <span class="badge {{ $leadStatusItem['badge'] }} rounded-pill">{{ $leadStatusItem['count'] }}</span>
+                                </li>
+                            @empty
+                                <li
+                                    class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
+                                    No Leads <span class="badge bg-secondary rounded-pill">0</span>
+                                </li>
+                            @endforelse
                         </ul>
                     </div>
                 </div>

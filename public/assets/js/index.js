@@ -218,36 +218,74 @@ jQuery('#geographic-map-2').vectorMap(
 
 // chart 3
 
- var ctx = document.getElementById('chart3').getContext('2d');
+ var chart3El = document.getElementById('chart3');
+ if (chart3El) {
+ var ctx = chart3El.getContext('2d');
 
   var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
       gradientStroke1.addColorStop(0, '#00b09b');
       gradientStroke1.addColorStop(1, '#96c93d');
 
-      var myChart = new Chart(ctx, {
-        type: 'line',
+      var fallbackTeamLabels = ['No Staff'];
+      var fallbackTeamData = [0];
+
+      function readTeamAvailabilityArray(attributeName, fallback) {
+        try {
+          var raw = chart3El.getAttribute(attributeName);
+          if (!raw) return fallback;
+          var parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      var teamLabels = readTeamAvailabilityArray('data-team-labels', fallbackTeamLabels);
+      var teamWeekly = readTeamAvailabilityArray('data-team-weekly', fallbackTeamData);
+      var teamMonthly = readTeamAvailabilityArray('data-team-monthly', fallbackTeamData);
+      var teamYearly = readTeamAvailabilityArray('data-team-yearly', fallbackTeamData);
+
+      function normalizeTeamSeries(series) {
+        return series.length === teamLabels.length ? series : new Array(teamLabels.length).fill(0);
+      }
+
+      if (!teamLabels.length) {
+        teamLabels = fallbackTeamLabels;
+        teamWeekly = fallbackTeamData;
+        teamMonthly = fallbackTeamData;
+        teamYearly = fallbackTeamData;
+      } else {
+        teamWeekly = normalizeTeamSeries(teamWeekly);
+        teamMonthly = normalizeTeamSeries(teamMonthly);
+        teamYearly = normalizeTeamSeries(teamYearly);
+      }
+
+      var teamPeriodSeries = {
+        weekly: teamWeekly,
+        monthly: teamMonthly,
+        yearly: teamYearly
+      };
+
+      var teamChart = new Chart(ctx, {
+        type: 'bar',
         data: {
-          labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          labels: teamLabels,
           datasets: [{
-                label: 'Facebook',
-                data: [5, 30, 16, 23, 8, 14, 2],
-                backgroundColor: [
-                  gradientStroke1
-                ],
-				fill: {
-					target: 'origin',
-					above: 'rgb(21 202 32 / 15%)',   // Area will be red above the origin
-					//below: 'rgb(21 202 32 / 100%)'   // And blue below the origin
-				  }, 
-                tension: 0.4,
-                borderColor: [
-                  gradientStroke1
-                ],
-                borderWidth: 3
+                label: 'Completed Tasks',
+                data: teamPeriodSeries.weekly,
+                borderColor: gradientStroke1,
+                backgroundColor: gradientStroke1,
+                hoverBackgroundColor: gradientStroke1,
+                pointRadius: 0,
+                fill: false,
+                borderRadius: 14,
+                borderWidth: 0
             }]
         },
         options: {
 				  maintainAspectRatio: false,
+          barPercentage: 0.5,
+          categoryPercentage: 0.8,
 				  plugins: {
 					  legend: {
 						  display: false,
@@ -255,17 +293,34 @@ jQuery('#geographic-map-2').vectorMap(
 				  },
 				  scales: {
 					  y: {
-						  beginAtZero: true
+						  beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
 					  }
 				  }
 			  }
       });
 
+      $('.team-period-btn').on('click', function() {
+        var selectedPeriod = $(this).data('period');
+        var selectedData = teamPeriodSeries[selectedPeriod] || teamPeriodSeries.weekly;
+
+        $('.team-period-btn').removeClass('active');
+        $(this).addClass('active');
+
+        teamChart.data.datasets[0].data = selectedData;
+        teamChart.update();
+      });
+      }
+
 
 
 // chart 4
 
-var ctx = document.getElementById("chart4").getContext('2d');
+var chart4El = document.getElementById("chart4");
+if (chart4El) {
+var ctx = chart4El.getContext('2d');
 
   var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
       gradientStroke1.addColorStop(0, '#ee0979');
@@ -279,25 +334,59 @@ var ctx = document.getElementById("chart4").getContext('2d');
       gradientStroke3.addColorStop(0, '#7f00ff');
       gradientStroke3.addColorStop(1, '#e100ff');
 
+  var gradientStroke4 = ctx.createLinearGradient(0, 0, 0, 300);
+      gradientStroke4.addColorStop(0, '#00b4db');
+      gradientStroke4.addColorStop(1, '#0083b0');
+
+  var gradientStroke5 = ctx.createLinearGradient(0, 0, 0, 300);
+      gradientStroke5.addColorStop(0, '#f85032');
+      gradientStroke5.addColorStop(1, '#e73827');
+
+      var fallbackLeadSummaryLabels = ["New", "Contacted", "Qualified", "Converted", "Lost"];
+      var fallbackLeadSummaryData = [0, 0, 0, 0, 0];
+
+      function readLeadSummaryArrayData(attributeName, fallback) {
+        try {
+          var raw = chart4El.getAttribute(attributeName);
+          if (!raw) return fallback;
+          var parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : fallback;
+        } catch (e) {
+          return fallback;
+        }
+      }
+
+      var leadSummaryLabels = readLeadSummaryArrayData('data-lead-summary-labels', fallbackLeadSummaryLabels);
+      var leadSummaryData = readLeadSummaryArrayData('data-lead-summary-counts', fallbackLeadSummaryData);
+
+      if (leadSummaryLabels.length !== leadSummaryData.length) {
+        leadSummaryLabels = fallbackLeadSummaryLabels;
+        leadSummaryData = fallbackLeadSummaryData;
+      }
+
       var myChart = new Chart(ctx, {
         type: 'pie',
         data: {
-          labels: ["Completed", "Pending", "Process"],
+          labels: leadSummaryLabels,
           datasets: [{
             backgroundColor: [
               gradientStroke1,
               gradientStroke2,
-              gradientStroke3
+              gradientStroke3,
+              gradientStroke4,
+              gradientStroke5
             ],
 
              hoverBackgroundColor: [
               gradientStroke1,
               gradientStroke2,
-              gradientStroke3
+              gradientStroke3,
+              gradientStroke4,
+              gradientStroke5
             ],
 
-            data: [50, 50, 50],
-      borderWidth: [1, 1, 1]
+            data: leadSummaryData,
+      borderWidth: 1
           }]
         },
         options: {
@@ -311,6 +400,7 @@ var ctx = document.getElementById("chart4").getContext('2d');
           
        }
       });
+      }
 
 	  
 

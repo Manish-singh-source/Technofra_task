@@ -68,8 +68,13 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/add-vendor', [VendorController::class, 'create'])->name('add-vendor')->middleware('permission:create_vendors');
 
+    Route::get('/to-do-list', function () {
+        return view('to-do-list');
+    })->name('to-do-list');
+
+    // Backward-compatible route (menu currently uses app-to-do)
     Route::get('/app-to-do', function () {
-        return view('app-to-do');
+        return redirect()->route('to-do-list');
     })->name('app-to-do');
 
     Route::get('/servies', function () {

@@ -6,6 +6,8 @@ use App\Models\Service;
 use App\Models\ClientIssue;
 use App\Models\Project;
 use App\Models\Task;
+use App\Models\Lead;
+use App\Models\Staff;
 use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -95,6 +97,107 @@ class DashboardController extends Controller
             ];
         }
 
+        // Build leads summary for Leads Overview chart
+        $leadStatusOrder = ['new', 'contacted', 'qualified', 'converted', 'lost'];
+        $leadStatusLabels = [
+            'new' => 'New',
+            'contacted' => 'Contacted',
+            'qualified' => 'Qualified',
+            'converted' => 'Converted',
+            'lost' => 'Lost',
+        ];
+        $leadStatusBadges = [
+            'new' => 'bg-primary',
+            'contacted' => 'bg-info',
+            'qualified' => 'bg-warning text-dark',
+            'converted' => 'bg-success',
+            'lost' => 'bg-danger',
+        ];
+
+        $leadCountsByStatus = Lead::select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status');
+
+        $leadSummaryLabels = [];
+        $leadSummaryCounts = [];
+        $leadSummaryBreakdown = [];
+
+        foreach ($leadStatusOrder as $status) {
+            $count = (int) ($leadCountsByStatus[$status] ?? 0);
+            $label = $leadStatusLabels[$status];
+
+            $leadSummaryLabels[] = $label;
+            $leadSummaryCounts[] = $count;
+            $leadSummaryBreakdown[] = [
+                'label' => $label,
+                'count' => $count,
+                'badge' => $leadStatusBadges[$status],
+            ];
+        }
+
+        // Team availability: completed tasks by staff (weekly / monthly / yearly)
+        $staffMembers = Staff::orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
+        $weekStart = $today->copy()->startOfWeek();
+        $monthStart = $today->copy()->startOfMonth();
+        $yearStart = $today->copy()->startOfYear();
+
+        $teamCountMap = [];
+        foreach ($staffMembers as $staff) {
+            $displayName = trim(($staff->first_name ?? '') . ' ' . ($staff->last_name ?? ''));
+            $teamCountMap[$staff->id] = [
+                'label' => $displayName !== '' ? $displayName : ('Staff #' . $staff->id),
+                'weekly' => 0,
+                'monthly' => 0,
+                'yearly' => 0,
+            ];
+        }
+
+        $completedTasks = Task::where('status', 'completed')
+            ->where('updated_at', '>=', $yearStart)
+            ->get(['assignees', 'updated_at']);
+
+        foreach ($completedTasks as $task) {
+            $completedAt = $task->updated_at;
+            $assignees = collect($task->assignees ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values();
+
+            foreach ($assignees as $assigneeId) {
+                if (!isset($teamCountMap[$assigneeId])) {
+                    continue;
+                }
+
+                $teamCountMap[$assigneeId]['yearly']++;
+
+                if ($completedAt && $completedAt->gte($monthStart)) {
+                    $teamCountMap[$assigneeId]['monthly']++;
+                }
+
+                if ($completedAt && $completedAt->gte($weekStart)) {
+                    $teamCountMap[$assigneeId]['weekly']++;
+                }
+            }
+        }
+
+        $teamAvailabilityLabels = array_values(array_map(
+            fn ($item) => $item['label'],
+            $teamCountMap
+        ));
+        $teamAvailabilityWeekly = array_values(array_map(
+            fn ($item) => $item['weekly'],
+            $teamCountMap
+        ));
+        $teamAvailabilityMonthly = array_values(array_map(
+            fn ($item) => $item['monthly'],
+            $teamCountMap
+        ));
+        $teamAvailabilityYearly = array_values(array_map(
+            fn ($item) => $item['yearly'],
+            $teamCountMap
+        ));
+
         // Calculate renewal statistics
         $totalRenewals = Service::count();
 
@@ -136,6 +239,13 @@ class DashboardController extends Controller
             'taskSummaryLabels',
             'taskSummaryCounts',
             'taskSummaryBreakdown',
+            'leadSummaryLabels',
+            'leadSummaryCounts',
+            'leadSummaryBreakdown',
+            'teamAvailabilityLabels',
+            'teamAvailabilityWeekly',
+            'teamAvailabilityMonthly',
+            'teamAvailabilityYearly',
             'renewalNotifications',
             'notificationCounts',
             'hasCriticalNotifications'
