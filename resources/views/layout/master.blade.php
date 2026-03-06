@@ -136,7 +136,7 @@
         }
     </style>
 
-    <title>{{ $globalSettings['company_name'] ?? 'Technofra Renewal' }}</title>
+    <title>{{ $globalSettings['company_name'] ?? 'My CRM' }}</title>
 </head>
 
 <body>
