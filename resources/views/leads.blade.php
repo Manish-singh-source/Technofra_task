@@ -160,7 +160,7 @@
                                         <td>{{ $lead->company ?? 'N/A' }}</td>
                                         <td>{{ $lead->email ?? 'N/A' }}</td>
                                         <td>{{ $lead->phone ?? 'N/A' }}</td>
-                                        <td>${{ number_format($lead->lead_value ?? 0, 2) }}</td>
+                                        <td>₹{{ number_format($lead->lead_value ?? 0, 2) }}</td>
                                         <td>
                                             @if($lead->tags)
                                                 @foreach($lead->tags as $tag)

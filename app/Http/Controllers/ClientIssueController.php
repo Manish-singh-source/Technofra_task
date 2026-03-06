@@ -55,14 +55,14 @@ class ClientIssueController extends Controller
                 $staffId = optional($user->staff)->id;
                 $staffTeam = trim((string) optional($staff)->team);
 
-                $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments'])
+                $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])
                     ->get();
                 $clientIssues = $clientIssues
                     ->filter(fn($issue) => $this->staffCanAccessIssue($issue, $staffId, $staffTeam))
                     ->values();
             } else {
                 // Admin can see all issues
-                $clientIssues = ClientIssue::with(['project', 'customer'])->get();
+                $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])->get();
             }
             // Admin/Staff can see all projects and customers
             $projects = Project::all();
@@ -545,3 +545,4 @@ class ClientIssueController extends Controller
         }
     }
 }
+

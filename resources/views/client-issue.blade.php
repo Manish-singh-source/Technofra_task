@@ -67,6 +67,7 @@
                                         <th>Issue</th>
                                         <th>Priority</th>
                                         <th>Status</th>
+                                        <th>Assigned To</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -103,7 +104,21 @@
                                             @elseif($issue->status == 'closed')
                                                 <span class="badge bg-info">Closed</span>
                                             @endif
+                                        </td>                                        <td>
+                                            @php
+                                                $latestAssignment = $issue->teamAssignments
+                                                    ->sortByDesc('created_at')
+                                                    ->first();
+                                                $assignedLabel = 'Unassigned';
+                                                if ($latestAssignment && $latestAssignment->assignedStaff) {
+                                                    $assignedLabel = $latestAssignment->assignedStaff->full_name;
+                                                } elseif ($latestAssignment && $latestAssignment->team_name) {
+                                                    $assignedLabel = $latestAssignment->team_name;
+                                                }
+                                            @endphp
+                                            {{ $assignedLabel }}
                                         </td>
+
                                         <td>
                                             <div class="d-flex order-actions">
                                                 @can('view_raise_issue')
@@ -123,7 +138,7 @@
                                     </tr>
                                     @empty
                                     <tr>
-                                        <td colspan="8" class="text-center">No client issues found.</td>
+                                        <td colspan="9" class="text-center">No client issues found.</td>
                                     </tr>
                                     @endforelse
                                 </tbody>
@@ -308,3 +323,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
+
+
+
