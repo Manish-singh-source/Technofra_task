@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ClientIssue;
+use App\Models\ProjectIssue;
 use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ProjectComment;
@@ -273,8 +273,8 @@ class ProjectController extends Controller
         ];
 
         // Get client issues for this project
-        $issues = ClientIssue::where('project_id', $id)
-            ->with(['customer', 'tasks'])
+        $issues = ProjectIssue::where('project_id', $id)
+            ->with(['customer'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -357,7 +357,7 @@ class ProjectController extends Controller
             'status' => 'required|in:open,in_progress,resolved,closed',
         ]);
 
-        ClientIssue::create([
+        ProjectIssue::create([
             'project_id' => $projectId,
             'customer_id' => $project->customer_id,
             'issue_description' => $validated['issue_description'],
@@ -373,7 +373,7 @@ class ProjectController extends Controller
     public function updateIssue(Request $request, $projectId, $issueId)
     {
         $project = Project::findOrFail($projectId);
-        $issue = ClientIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
+        $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
         $customer = $this->getLoggedInCustomer();
 
         if ($customer && $project->customer_id !== $customer->id) {
@@ -400,7 +400,7 @@ class ProjectController extends Controller
     public function destroyIssue($projectId, $issueId)
     {
         $project = Project::findOrFail($projectId);
-        $issue = ClientIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
+        $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
         $customer = $this->getLoggedInCustomer();
 
         if ($customer && $project->customer_id !== $customer->id) {
@@ -706,3 +706,7 @@ class ProjectController extends Controller
     }
 
 }
+
+
+
+

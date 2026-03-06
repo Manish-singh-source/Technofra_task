@@ -489,9 +489,13 @@
                                                                 </div>
                                                             </div>
                                                             @if(!empty($teamRow['icon_path']))
-                                                                <div class="mt-2">
-                                                                    <img src="{{ Storage::url($teamRow['icon_path']) }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
-                                                                </div>
+                                                                @if(Storage::disk('public')->exists($teamRow['icon_path']))
+                                                                    <div class="mt-2">
+                                                                        <img src="{{ Storage::url($teamRow['icon_path']) }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
+                                                                    </div>
+                                                                @else
+                                                                    <div class="mt-2 text-warning small">Team icon image not found. Please upload again.</div>
+                                                                @endif
                                                             @endif
                                                         </div>
                                                     @endforeach
@@ -885,3 +889,4 @@ $(document).ready(function() {
 });
 </script>
 @endpush
+

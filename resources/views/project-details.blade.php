@@ -309,7 +309,7 @@
 								<thead class="table-light">
 									<tr>
 										<th>Name</th>
-										<th>Team</th>
+										{{-- <th>Team</th> --}}
 										<th>Start Date</th>
 										<th>Deadline</th>
 										<th>Total Time (H)</th>
@@ -326,7 +326,7 @@
 															<span>{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}</span>
 														</div>
 													</td>
-													<td>{{ $staff[$memberId]->team->team_name ?? 'N/A' }}</td>
+													{{-- <td>{{ $staff[$memberId]->team->team_name ?? 'N/A' }}</td> --}}
 													<td>{{ $project->start_date ? $project->start_date->format('M d, Y') : 'N/A' }}</td>
 													<td>{{ $project->deadline ? $project->deadline->format('M d, Y') : 'N/A' }}</td>
 													<td>{{ number_format($memberMetrics[$memberId]['total_hours'] ?? 0, 1) }}h</td>
