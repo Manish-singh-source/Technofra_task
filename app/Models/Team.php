@@ -58,7 +58,7 @@ class Team extends Model
                 return [
                     'name' => trim((string) $team->name),
                     'description' => (string) ($team->description ?? ''),
-                    'icon_path' => (string) ($team->icon_path ?? ''),
+                    'icon_path' => self::normalizeIconPath((string) ($team->icon_path ?? '')),
                 ];
             })
             ->filter(function ($team) {
@@ -67,4 +67,43 @@ class Team extends Model
             ->values()
             ->all();
     }
+
+    private static function normalizeIconPath(string $iconPath): string
+    {
+        $normalized = trim(str_replace('\\', '/', $iconPath));
+        $normalized = ltrim($normalized, '/');
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (str_starts_with($normalized, 'public/')) {
+            $normalized = substr($normalized, 7);
+        }
+
+        if (str_starts_with($normalized, 'uploads/team-icons/')) {
+            return $normalized;
+        }
+
+        if (str_starts_with($normalized, 'team-icons/')) {
+            $legacyStoragePath = storage_path('app/public/' . $normalized);
+            $destinationPath = public_path('uploads/team-icons');
+            if (!is_dir($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $targetRelativePath = 'uploads/team-icons/' . basename($normalized);
+            $targetAbsolutePath = public_path($targetRelativePath);
+            if (is_file($legacyStoragePath) && !is_file($targetAbsolutePath)) {
+                copy($legacyStoragePath, $targetAbsolutePath);
+            }
+
+            if (is_file($targetAbsolutePath)) {
+                return $targetRelativePath;
+            }
+        }
+
+        return $normalized;
+    }
 }
+

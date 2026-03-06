@@ -1776,7 +1776,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="card-body d-flex align-items-center">
                                     @if($teamIconPath)
                                         <div class="me-3">
-                                            <img src="{{ Storage::url($teamIconPath) }}" alt="{{ $teamName }}" style="height: 46px; width: 46px; object-fit: cover;" class="rounded border">
+                                            <img src="{{ str_starts_with(ltrim(str_replace('\\', '/', $teamIconPath), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', $teamIconPath), '/')) : Storage::url($teamIconPath) }}" alt="{{ $teamName }}" style="height: 46px; width: 46px; object-fit: cover;" class="rounded border">
                                         </div>
                                     @else
                                         <div class="card-icon text-secondary me-3">
@@ -1897,3 +1897,6 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
+
+
+

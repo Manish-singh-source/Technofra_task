@@ -488,14 +488,27 @@
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            @if(!empty($teamRow['icon_path']))
-                                                                @if(Storage::disk('public')->exists($teamRow['icon_path']))
-                                                                    <div class="mt-2">
-                                                                        <img src="{{ Storage::url($teamRow['icon_path']) }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
-                                                                    </div>
-                                                                @else
-                                                                    <div class="mt-2 text-warning small">Team icon image not found. Please upload again.</div>
-                                                                @endif
+                                                            @php
+                                                                $teamIconPath = trim((string) ($teamRow['icon_path'] ?? ''));
+                                                                $teamIconPath = ltrim(str_replace('\\', '/', $teamIconPath), '/');
+                                                                $teamIconUrl = '';
+
+                                                                if ($teamIconPath !== '') {
+                                                                    if (str_starts_with($teamIconPath, 'uploads/') && file_exists(public_path($teamIconPath))) {
+                                                                        $teamIconUrl = asset($teamIconPath);
+                                                                    } elseif (str_starts_with($teamIconPath, 'team-icons/') && Storage::disk('public')->exists($teamIconPath)) {
+                                                                        $teamIconUrl = Storage::url($teamIconPath);
+                                                                    } elseif (file_exists(public_path($teamIconPath))) {
+                                                                        $teamIconUrl = asset($teamIconPath);
+                                                                    }
+                                                                }
+                                                            @endphp
+                                                            @if($teamIconUrl !== '')
+                                                                <div class="mt-2">
+                                                                    <img src="{{ $teamIconUrl }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
+                                                                </div>
+                                                            @elseif($teamIconPath !== '')
+                                                                <div class="mt-2 text-warning small">Team icon image not found. Please upload again.</div>
                                                             @endif
                                                         </div>
                                                     @endforeach
@@ -889,4 +902,5 @@ $(document).ready(function() {
 });
 </script>
 @endpush
+
 

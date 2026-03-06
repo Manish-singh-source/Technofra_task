@@ -24,10 +24,12 @@ class SettingController extends Controller
             ->orderBy('name')
             ->get(['name', 'description', 'icon_path'])
             ->map(function ($team) {
+                $iconPath = $this->normalizeTeamIconPath((string) ($team->icon_path ?? ''));
+
                 return [
                     'name' => (string) $team->name,
                     'description' => (string) ($team->description ?? ''),
-                    'icon_path' => (string) ($team->icon_path ?? ''),
+                    'icon_path' => $iconPath,
                 ];
             })
             ->values()
@@ -326,12 +328,12 @@ class SettingController extends Controller
                 }
 
                 $description = trim((string) ($row['description'] ?? ''));
-                $iconPath = trim((string) ($row['existing_icon_path'] ?? ''));
+                $iconPath = $this->normalizeTeamIconPath(trim((string) ($row['existing_icon_path'] ?? '')));
 
                 if ($request->hasFile("teams.$index.icon")) {
                     $iconFile = $request->file("teams.$index.icon");
                     if ($iconFile && $iconFile->isValid()) {
-                        $iconPath = $iconFile->store('team-icons', 'public');
+                        $iconPath = $this->storeTeamIcon($iconFile);
                     }
                 }
 
@@ -368,8 +370,8 @@ class SettingController extends Controller
                 ->values()
                 ->all();
             foreach ($oldIconPaths as $oldPath) {
-                if (!in_array($oldPath, $usedIconPaths, true) && Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
+                if (!in_array($oldPath, $usedIconPaths, true)) {
+                    $this->deleteTeamIcon($oldPath);
                 }
             }
 
@@ -385,6 +387,81 @@ class SettingController extends Controller
         }
     }
 
+    private function storeTeamIcon($iconFile): string
+    {
+        $destinationPath = public_path('uploads/team-icons');
+        if (!is_dir($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+
+        $fileName = uniqid('team_', true) . '.' . strtolower($iconFile->getClientOriginalExtension());
+        $iconFile->move($destinationPath, $fileName);
+
+        return 'uploads/team-icons/' . $fileName;
+    }
+
+    private function normalizeTeamIconPath(string $iconPath): string
+    {
+        $normalized = trim(str_replace('\\', '/', $iconPath));
+        $normalized = ltrim($normalized, '/');
+
+        if ($normalized === '') {
+            return '';
+        }
+
+        if (str_starts_with($normalized, 'public/')) {
+            $normalized = substr($normalized, 7);
+        }
+
+        if (str_starts_with($normalized, 'uploads/team-icons/')) {
+            return $normalized;
+        }
+
+        if (str_starts_with($normalized, 'team-icons/')) {
+            $legacyStoragePath = storage_path('app/public/' . $normalized);
+            $destinationPath = public_path('uploads/team-icons');
+            if (!is_dir($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+
+            $targetRelativePath = 'uploads/team-icons/' . basename($normalized);
+            $targetAbsolutePath = public_path($targetRelativePath);
+            if (is_file($legacyStoragePath) && !is_file($targetAbsolutePath)) {
+                copy($legacyStoragePath, $targetAbsolutePath);
+            }
+
+            if (is_file($targetAbsolutePath)) {
+                return $targetRelativePath;
+            }
+        }
+
+        return $normalized;
+    }
+
+    private function deleteTeamIcon(?string $iconPath): void
+    {
+        $raw = trim(str_replace('\\', '/', (string) $iconPath));
+        $raw = ltrim($raw, '/');
+
+        if ($raw === '') {
+            return;
+        }
+
+        if (str_starts_with($raw, 'public/')) {
+            $raw = substr($raw, 7);
+        }
+
+        $normalized = $this->normalizeTeamIconPath($raw);
+
+        $publicFile = public_path($normalized);
+        if (is_file($publicFile)) {
+            @unlink($publicFile);
+        }
+
+        if (str_starts_with($raw, 'team-icons/') && Storage::disk('public')->exists($raw)) {
+            Storage::disk('public')->delete($raw);
+        }
+    }
     /**
      * API: Search tags.
      */
@@ -399,3 +476,8 @@ class SettingController extends Controller
         ]);
     }
 }
+
+
+
+
+
