@@ -44,7 +44,7 @@
 
             <!-- Project Status Cards -->
             <div class="row mb-3">
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-4">
                     <div class="card radius-10 border-start border-0 border-4 border-info">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -60,7 +60,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-4">
                     <div class="card radius-10 border-start border-0 border-4 border-secondary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -76,7 +76,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-4">
                     <div class="card radius-10 border-start border-0 border-4 border-primary">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -92,7 +92,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-4">
                     <div class="card radius-10 border-start border-0 border-4 border-warning">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -108,7 +108,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-4">
                     <div class="card radius-10 border-start border-0 border-4 border-success">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -124,7 +124,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-4">
                     <div class="card radius-10 border-start border-0 border-4 border-danger">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
@@ -764,3 +764,4 @@
     });
 </script>
 @endsection
+

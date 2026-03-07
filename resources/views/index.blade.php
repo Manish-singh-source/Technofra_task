@@ -29,9 +29,9 @@
             <!--end summary row-->
 
             <!-- Renewal Statistics Cards -->
-            <div class="row">
-                <div class="col-lg-4">
-                    <div class="card radius-10 border-start border-0 border-4 border-info">
+            <div class="row g-3">
+                <div class="col-12 col-md-6 col-xl-4 d-flex">
+                    <div class="card radius-10 border-start border-0 border-4 border-info w-100 h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
@@ -46,8 +46,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card radius-10 border-start border-0 border-4 border-warning">
+                <div class="col-12 col-md-6 col-xl-4 d-flex">
+                    <div class="card radius-10 border-start border-0 border-4 border-warning w-100 h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
@@ -62,8 +62,8 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-lg-4">
-                    <div class="card radius-10 border-start border-0 border-4 border-danger">
+                <div class="col-12 col-md-6 col-xl-4 d-flex">
+                    <div class="card radius-10 border-start border-0 border-4 border-danger w-100 h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center">
                                 <div>
@@ -1079,3 +1079,4 @@
         });
     </script>
 @endpush
+

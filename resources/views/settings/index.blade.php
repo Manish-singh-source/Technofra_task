@@ -11,6 +11,7 @@
         if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'general';
         if (auth()->user()->hasPermissionTo('view_company_information')) $availableTabs[] = 'company';
         if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'email';
+        if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'renewal';
         if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'teams';
         if (!in_array($activeSettingsTab, $availableTabs, true)) {
             $activeSettingsTab = $availableTabs[0] ?? 'general';
@@ -76,6 +77,11 @@
                                 @if(auth()->user()->hasPermissionTo('view_email_settings'))
                                 <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'email' ? 'active' : '' }}" id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="{{ $activeSettingsTab === 'email' ? 'true' : 'false' }}">
                                     <i class="bx bx-envelope me-2"></i> Email Settings
+                                </button>
+                                @endif
+                                @if(auth()->user()->hasPermissionTo('view_email_settings'))
+                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'renewal' ? 'active' : '' }}" id="renewal-tab" data-bs-toggle="pill" data-bs-target="#renewal" type="button" role="tab" aria-controls="renewal" aria-selected="{{ $activeSettingsTab === 'renewal' ? 'true' : 'false' }}">
+                                    <i class="bx bx-bell me-2"></i> Renewal Manage
                                 </button>
                                 @endif
                                 @if(auth()->user()->hasPermissionTo('view_general_settings'))
@@ -455,6 +461,65 @@
                                     </form>
                                 </div>
 
+
+                                <!-- TAB 4: RENEWAL MANAGE -->
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'renewal' ? 'show active' : '' }}" id="renewal" role="tabpanel">
+                                    <h5 class="card-title">Renewal Manage</h5>
+                                    <hr />
+                                    @php
+                                        $renewalEnabledRaw = old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1');
+                                        $renewalEnabled = !in_array(strtolower((string) $renewalEnabledRaw), ['0', 'false', 'off', 'no'], true);
+                                    @endphp
+                                    <form action="{{ route('settings.update.renewal') }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="form-check form-switch">
+                                                    <input class="form-check-input" type="checkbox" id="renewal_notifications_enabled" name="renewal_notifications_enabled" value="1" {{ $renewalEnabled ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="renewal_notifications_enabled">Enable Daily Renewal Email Notifications</label>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="renewal_admin_email" class="form-label">Renewal Admin Email *</label>
+                                                <input type="email" class="form-control" id="renewal_admin_email" name="renewal_admin_email"
+                                                    value="{{ old('renewal_admin_email', $settings['renewal_admin_email'] ?? ($settings['company_email'] ?? '')) }}"
+                                                    placeholder="admin@example.com" required>
+                                                @error('renewal_admin_email')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="renewal_notification_time" class="form-label">Daily Notify Time *</label>
+                                                <input type="time" class="form-control" id="renewal_notification_time" name="renewal_notification_time"
+                                                    value="{{ old('renewal_notification_time', $settings['renewal_notification_time'] ?? '16:00') }}" required>
+                                                @error('renewal_notification_time')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <label for="renewal_notice_days" class="form-label">Notify Before (Days) *</label>
+                                                <input type="number" class="form-control" id="renewal_notice_days" name="renewal_notice_days" min="1" max="30"
+                                                    value="{{ old('renewal_notice_days', $settings['renewal_notice_days'] ?? 5) }}" required>
+                                                <small class="text-muted">Default 5 days means: 5, 4, 3, 2, 1, 0 days left par daily email.</small>
+                                                @error('renewal_notice_days')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+
+                                            <div class="col-12">
+                                                <small class="text-muted">Note: Server cron must run Laravel scheduler every minute for this timing to work exactly.</small>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-primary">Save Renewal Settings</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
                                 <!-- TAB 4: TEAMS -->
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'teams' ? 'show active' : '' }}" id="teams" role="tabpanel">
                                     <h5 class="card-title">Team Settings</h5>
@@ -902,5 +967,4 @@ $(document).ready(function() {
 });
 </script>
 @endpush
-
 

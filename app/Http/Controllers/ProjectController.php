@@ -229,6 +229,47 @@ class ProjectController extends Controller
         // Fetch tasks for this project before member-level metrics calculation.
         $tasks = Task::where('project_id', $id)->with('project')->orderBy('created_at', 'desc')->get();
 
+        $taskStatusMeta = [
+            'not_started' => ['label' => 'Not Started', 'badge_class' => 'bg-secondary'],
+            'in_progress' => ['label' => 'In Progress', 'badge_class' => 'bg-primary'],
+            'on_hold' => ['label' => 'On Hold', 'badge_class' => 'bg-warning'],
+            'completed' => ['label' => 'Completed', 'badge_class' => 'bg-success'],
+            'cancelled' => ['label' => 'Cancelled', 'badge_class' => 'bg-danger'],
+        ];
+
+        $totalTasks = $tasks->count();
+        $usageDistribution = [];
+        foreach ($taskStatusMeta as $status => $meta) {
+            $count = $tasks->where('status', $status)->count();
+            $usageDistribution[] = [
+                'status' => $status,
+                'label' => $meta['label'],
+                'badge_class' => $meta['badge_class'],
+                'count' => $count,
+                'percentage' => $totalTasks > 0 ? round(($count / $totalTasks) * 100, 1) : 0,
+            ];
+        }
+
+        $usageChartLabels = array_column($usageDistribution, 'label');
+        $usageChartData = array_column($usageDistribution, 'percentage');
+
+        $taskCreatedCountsByDate = $tasks
+            ->groupBy(function ($task) {
+                return $this->toBusinessTz($task->created_at)?->format('Y-m-d');
+            })
+            ->map(fn ($group) => $group->count());
+
+        $weeklyActivityLabels = [];
+        $weeklyActivityData = [];
+        $activityEndDate = now($this->businessTimezone())->startOfDay();
+        for ($dayOffset = 6; $dayOffset >= 0; $dayOffset--) {
+            $date = $activityEndDate->copy()->subDays($dayOffset);
+            $dateKey = $date->format('Y-m-d');
+
+            $weeklyActivityLabels[] = $date->format('D');
+            $weeklyActivityData[] = (int) ($taskCreatedCountsByDate[$dateKey] ?? 0);
+        }
+
         $memberMetrics = [];
         foreach ($memberIds as $memberId) {
             $memberAssignmentStart = $tasks
@@ -304,7 +345,13 @@ class ProjectController extends Controller
             'milestoneStats',
             'issues',
             'issueStats',
-            'projectComments'
+            'projectComments',
+            'usageDistribution',
+            'usageChartLabels',
+            'usageChartData',
+            'weeklyActivityLabels',
+            'weeklyActivityData',
+            'totalTasks'
         ));
     }
 

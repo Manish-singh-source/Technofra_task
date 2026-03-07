@@ -2,12 +2,13 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\NotificationMail;
 use App\Models\Service;
+use App\Models\Setting;
 use App\Models\VendorService;
-use App\Services\WhatsAppService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Mail;
 
 class SendNotificationEmails extends Command
 {
@@ -23,7 +24,7 @@ class SendNotificationEmails extends Command
      *
      * @var string
      */
-    protected $description = 'Send daily WhatsApp notifications for critical services';
+    protected $description = 'Send daily renewal notification email to admin for upcoming renewals';
 
     /**
      * Execute the console command.
@@ -32,80 +33,93 @@ class SendNotificationEmails extends Command
      */
     public function handle()
     {
-        $this->info('Sending daily WhatsApp notifications...');
+        $this->info('Sending daily renewal notification email...');
+
+        $settings = Setting::getAllSettings();
+        $enabledRaw = strtolower(trim((string) ($settings['renewal_notifications_enabled'] ?? '1')));
+        if (in_array($enabledRaw, ['0', 'false', 'off', 'no'], true)) {
+            $this->info('Renewal notifications are disabled in settings.');
+            return Command::SUCCESS;
+        }
+
+        $adminEmail = trim((string) ($settings['renewal_admin_email'] ?? ''));
+        if ($adminEmail === '') {
+            $adminEmail = trim((string) ($settings['company_email'] ?? ''));
+        }
+        if ($adminEmail === '') {
+            $adminEmail = (string) env('ADMIN_EMAIL', '');
+        }
+
+        if (!filter_var($adminEmail, FILTER_VALIDATE_EMAIL)) {
+            $this->error('Valid renewal admin email is not configured.');
+            return Command::FAILURE;
+        }
+
+        $noticeDays = (int) ($settings['renewal_notice_days'] ?? 5);
+        if ($noticeDays < 1) {
+            $noticeDays = 1;
+        }
+        if ($noticeDays > 30) {
+            $noticeDays = 30;
+        }
 
         $today = Carbon::today();
-        $fiveDaysFromNow = $today->copy()->addDays(5);
+        $windowEnd = $today->copy()->addDays($noticeDays);
 
-        // Get critical client services (overdue + expiring within next 5 days)
-        $criticalServices = Service::with(['client', 'vendor'])
-            ->where(function($query) use ($today, $fiveDaysFromNow) {
-                $query->where('end_date', '<', $today) // Overdue
-                      ->orWhereBetween('end_date', [$today, $fiveDaysFromNow]); // Upcoming
-            })
-            ->orderByRaw('CASE WHEN end_date < ? THEN 0 ELSE 1 END, end_date ASC', [$today])
+        $upcomingServices = Service::with(['client', 'vendor'])
+            ->whereBetween('end_date', [$today, $windowEnd])
+            ->orderBy('end_date')
             ->get();
 
-        // Get critical vendor services (overdue + expiring within next 5 days)
-        $criticalVendorServices = VendorService::with('vendor')
-            ->where(function($query) use ($today, $fiveDaysFromNow) {
-                $query->where('end_date', '<', $today) // Overdue
-                      ->orWhereBetween('end_date', [$today, $fiveDaysFromNow]); // Upcoming
-            })
-            ->orderByRaw('CASE WHEN end_date < ? THEN 0 ELSE 1 END, end_date ASC', [$today])
+        $upcomingVendorServices = VendorService::with('vendor')
+            ->whereBetween('end_date', [$today, $windowEnd])
+            ->orderBy('end_date')
             ->get();
 
-        if ($criticalServices->isEmpty() && $criticalVendorServices->isEmpty()) {
-            $this->info('No critical services or vendor services found. No WhatsApp reminders sent.');
-            return 0;
+        if ($upcomingServices->isEmpty() && $upcomingVendorServices->isEmpty()) {
+            $this->info("No services are due in the next {$noticeDays} day(s). No email sent.");
+            return Command::SUCCESS;
         }
 
-        $adminPhone = (string) config('services.k3_whatsapp.admin_phone');
-        $renewalTemplate = (string) config('services.k3_whatsapp.renewal_template', 'renewal_reminder_upcoming');
-        $hasFiveDayFlag = Schema::hasColumn('services', 'five_days_notified');
-        $adminReminderServicesQuery = Service::with('client')
-            ->whereDate('end_date', $fiveDaysFromNow);
+        try {
+            $this->applyMailSettings($settings);
+            Mail::to($adminEmail)->send(new NotificationMail($upcomingServices, $upcomingVendorServices));
 
-        if ($hasFiveDayFlag) {
-            $adminReminderServicesQuery->where(function ($query) {
-                $query->whereNull('five_days_notified')
-                    ->orWhere('five_days_notified', false);
-            });
+            $this->info("Renewal email sent to {$adminEmail}.");
+            $this->info("Client services: {$upcomingServices->count()}, Vendor services: {$upcomingVendorServices->count()}.");
+            return Command::SUCCESS;
+        } catch (\Throwable $e) {
+            $this->error('Failed to send renewal notification email: ' . $e->getMessage());
+            return Command::FAILURE;
+        }
+    }
+
+    private function applyMailSettings(array $settings): void
+    {
+        $protocol = (string) ($settings['email_protocol'] ?? config('mail.default', 'smtp'));
+        if (!in_array($protocol, ['smtp', 'sendmail', 'mail'], true)) {
+            $protocol = 'smtp';
         }
 
-        $adminReminderServices = $adminReminderServicesQuery->get();
-
-        $whatsAppSent = 0;
-        $whatsAppFailed = 0;
-        $whatsAppSkipped = 0;
-
-        if (empty($adminPhone)) {
-            $this->warn('K3_WHATSAPP_ADMIN_PHONE is not configured. Skipping admin WhatsApp reminders.');
-            $whatsAppSkipped = $adminReminderServices->count();
-        } else {
-            $whatsAppService = new WhatsAppService();
-
-            foreach ($adminReminderServices as $service) {
-                $params = [
-                    (string) (optional($service->client)->cname ?: 'Client'),
-                    (string) $service->service_name,
-                    $service->end_date->format('d M Y'),
-                ];
-
-                if ($whatsAppService->sendTemplateMessage($adminPhone, $renewalTemplate, $params)) {
-                    if ($hasFiveDayFlag) {
-                        $service->five_days_notified = true;
-                        $service->save();
-                    }
-                    $whatsAppSent++;
-                } else {
-                    $whatsAppFailed++;
-                }
-            }
+        $encryption = (string) ($settings['email_encryption'] ?? 'tls');
+        if ($encryption === 'none' || $encryption === '') {
+            $encryption = null;
         }
 
-        $this->info('Daily notification run completed.');
-        $this->info("Admin WhatsApp (5-day) summary: sent {$whatsAppSent}, failed {$whatsAppFailed}, skipped {$whatsAppSkipped}.");
-        return 0;
+        config([
+            'mail.default' => $protocol,
+            'mail.mailer' => $protocol,
+            'mail.mailers.smtp.host' => $settings['smtp_host'] ?? config('mail.mailers.smtp.host'),
+            'mail.mailers.smtp.port' => $settings['smtp_port'] ?? config('mail.mailers.smtp.port', 587),
+            'mail.mailers.smtp.username' => $settings['smtp_username'] ?? config('mail.mailers.smtp.username'),
+            'mail.mailers.smtp.password' => $settings['smtp_password'] ?? config('mail.mailers.smtp.password'),
+            'mail.mailers.smtp.encryption' => $encryption,
+            'mail.from.address' => $settings['email'] ?? config('mail.from.address'),
+            'mail.from.name' => $settings['company_name'] ?? config('mail.from.name', 'Technofra Renewal Master'),
+        ]);
+
+        app()->forgetInstance('mailer');
+        Mail::purge();
     }
 }
+

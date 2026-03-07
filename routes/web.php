@@ -256,6 +256,7 @@ Route::middleware('auth')->group(function () {
          Route::put('/settings/general', [SettingController::class, 'updateGeneral'])->name('settings.update.general')->middleware('permission:view_general_settings');
          Route::put('/settings/company', [SettingController::class, 'updateCompany'])->name('settings.update.company')->middleware('permission:view_company_information');
          Route::put('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email')->middleware('permission:view_email_settings');
+         Route::put('/settings/renewal', [SettingController::class, 'updateRenewal'])->name('settings.update.renewal')->middleware('permission:view_email_settings');
          Route::put('/settings/teams', [SettingController::class, 'updateTeams'])->name('settings.update.teams')->middleware('permission:view_general_settings');
          Route::post('/settings/test-email', [SettingController::class, 'sendTestEmail'])->name('settings.test.email')->middleware('permission:view_email_settings');
          Route::get('/settings/search-tags', [SettingController::class, 'searchTags'])->name('settings.search.tags');
@@ -291,3 +292,4 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+

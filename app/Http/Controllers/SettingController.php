@@ -244,6 +244,51 @@ class SettingController extends Controller
         }
     }
 
+
+    /**
+     * Update renewal notification settings.
+     */
+    public function updateRenewal(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'renewal_admin_email' => 'required|email|max:255',
+            'renewal_notification_time' => 'required|date_format:H:i',
+            'renewal_notice_days' => 'required|integer|min:1|max:30',
+            'renewal_notifications_enabled' => 'nullable|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('active_settings_tab', 'renewal');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            Setting::set('renewal_admin_email', $request->renewal_admin_email, 'text');
+            Setting::set('renewal_notification_time', $request->renewal_notification_time, 'text');
+            Setting::set('renewal_notice_days', (string) $request->renewal_notice_days, 'text');
+            Setting::set(
+                'renewal_notifications_enabled',
+                $request->boolean('renewal_notifications_enabled') ? '1' : '0',
+                'text'
+            );
+
+            DB::commit();
+
+            return redirect()->route('settings')
+                ->with('success', 'Renewal notification settings updated successfully.')
+                ->with('active_settings_tab', 'renewal');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Failed to update renewal notification settings: ' . $e->getMessage())
+                ->withInput()
+                ->with('active_settings_tab', 'renewal');
+        }
+    }
     /**
      * Send test email.
      */
@@ -476,8 +521,4 @@ class SettingController extends Controller
         ]);
     }
 }
-
-
-
-
 

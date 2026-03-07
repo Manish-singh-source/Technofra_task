@@ -220,51 +220,7 @@
 
 		<!-- Action Buttons -->
 		
-		<!-- Statistic Cards -->
-		<div class="row mb-4">
-			<div class="col-md-3 col-sm-6">
-				<div class="card radius-10 border-start border-0 border-4 border-primary">
-					<div class="card-body">
-						<div class="d-flex align-items-center">
-							<div>
-								<p class="mb-0 text-secondary">Time Spent</p>
-								<h4 class="my-1 text-primary">{{ number_format($projectElapsedHours ?? 0, 1) }}h</h4>
-								<p class="mb-0 font-13">Elapsed while project is in progress</p>
-							</div>
-							<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto"><i class='bx bx-time-five'></i></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-md-3 col-sm-6">
-				<div class="card radius-10 border-start border-0 border-4 border-success">
-					<div class="card-body">
-						<div class="d-flex align-items-center">
-							<div>
-								<p class="mb-0 text-secondary">Income</p>
-								<h4 class="my-1 text-success">₹50,000</h4>
-								<p class="mb-0 font-13">+12.5% from last month</p>
-							</div>
-							<div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto"><i class='bx bx-dollar'></i></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-md-3 col-sm-6">
-				<div class="card radius-10 border-start border-0 border-4 border-warning">
-					<div class="card-body">
-						<div class="d-flex align-items-center">
-							<div>
-								<p class="mb-0 text-secondary">Labor Cost</p>
-								<h4 class="my-1 text-warning">₹30,000</h4>
-								<p class="mb-0 font-13">+3.1% from last month</p>
-							</div>
-							<div class="widgets-icons-2 rounded-circle bg-gradient-blooker text-white ms-auto"><i class='bx bx-money'></i></div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
+
 
 		<!-- Navigation Tabs -->
 		<ul class="nav nav-tabs mb-4" id="projectTabs" role="tablist">
@@ -493,31 +449,22 @@
 					<div class="card-body">
 						<div class="row">
 							<div class="col-md-6">
-								<h6>Time Distribution</h6>
+								<h6>Task Status Distribution</h6>
 								<div class="chart-container" style="position: relative; height:300px;">
 									<canvas id="timeChart"></canvas>
 								</div>
-								<div class="row text-center mt-3">
-									<div class="col-3">
-										<span class="badge bg-primary p-2">Development</span>
-										<p class="mt-2 font-20">45%</p>
-									</div>
-									<div class="col-3">
-										<span class="badge bg-info p-2">Design</span>
-										<p class="mt-2 font-20">25%</p>
-									</div>
-									<div class="col-3">
-										<span class="badge bg-danger p-2">Testing</span>
-										<p class="mt-2 font-20">20%</p>
-									</div>
-									<div class="col-3">
-										<span class="badge bg-warning p-2">Meetings</span>
-										<p class="mt-2 font-20">10%</p>
-									</div>
-								</div>
+                                <div class="row text-center mt-3 g-2">
+                                    @foreach($usageDistribution as $usageItem)
+                                        <div class="col-6 col-md">
+                                            <span class="badge {{ $usageItem['badge_class'] }} p-2">{{ $usageItem['label'] }}</span>
+                                            <p class="mt-2 mb-1 font-20">{{ number_format($usageItem['percentage'], 1) }}%</p>
+                                            <small class="text-muted">{{ $usageItem['count'] }} tasks</small>
+                                        </div>
+                                    @endforeach
+                                </div>
 							</div>
 							<div class="col-md-6">
-								<h6>Weekly Activity</h6>
+								<h6>Last 7 Days Activity</h6>
 								<div class="chart-container" style="position: relative; height:300px;">
 									<canvas id="activityChart"></canvas>
 								</div>
@@ -1102,25 +1049,24 @@ $(function() {
         gradientStroke4.addColorStop(0, '#42e695');
         gradientStroke4.addColorStop(1, '#3bb2b8');
 
+        var gradientStroke5 = ctx.createLinearGradient(0, 0, 0, 300);
+        gradientStroke5.addColorStop(0, '#4facfe');
+        gradientStroke5.addColorStop(1, '#00f2fe');
+
+        var usageChartColors = [gradientStroke1, gradientStroke2, gradientStroke3, gradientStroke4, gradientStroke5];
+        var chartSegmentColors = @json($usageChartLabels).map(function(_, index) {
+            return usageChartColors[index % usageChartColors.length];
+        });
+
         var myChart = new Chart(ctx, {
             type: 'doughnut',
             data: {
-                labels: ["Development", "Design", "Testing", "Meetings"],
+                labels: @json($usageChartLabels),
                 datasets: [{
-                    backgroundColor: [
-                        gradientStroke1,
-                        gradientStroke2,
-                        gradientStroke3,
-                        gradientStroke4
-                    ],
-                    hoverBackgroundColor: [
-                        gradientStroke1,
-                        gradientStroke2,
-                        gradientStroke3,
-                        gradientStroke4
-                    ],
-                    data: [45, 25, 20, 10],
-                    borderWidth: [1, 1, 1, 1]
+                    backgroundColor: chartSegmentColors,
+                    hoverBackgroundColor: chartSegmentColors,
+                    data: @json($usageChartData),
+                    borderWidth: 1
                 }]
             },
             options: {
@@ -1146,10 +1092,10 @@ $(function() {
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                labels: @json($weeklyActivityLabels),
                 datasets: [{
-                    label: 'Hours',
-                    data: [8.5, 7.2, 9.1, 6.8, 8.3, 0],
+                    label: 'Tasks Created',
+                    data: @json($weeklyActivityData),
                     backgroundColor: [
                         gradientStroke1
                     ],

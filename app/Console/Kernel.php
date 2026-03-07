@@ -2,6 +2,7 @@
 
 namespace App\Console;
 
+use App\Models\Setting;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -18,8 +19,17 @@ class Kernel extends ConsoleKernel
         // Check notifications every minute so selected event time is not missed.
         $schedule->command('calendar:send-notifications')->everyMinute();
 
-        // Send daily renewal notifications
-        $schedule->command('notifications:send-daily')->dailyAt('09:00');
+        $dailyNotificationTime = '16:00';
+        try {
+            $configuredTime = (string) Setting::get('renewal_notification_time', '16:00');
+            if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $configuredTime)) {
+                $dailyNotificationTime = $configuredTime;
+            }
+        } catch (\Throwable $e) {
+            // Keep default schedule time if settings table is not yet available.
+        }
+
+        $schedule->command('notifications:send-daily')->dailyAt($dailyNotificationTime);
 
         // $schedule->command('inspire')->hourly();
     }
