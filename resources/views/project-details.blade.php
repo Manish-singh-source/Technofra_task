@@ -542,7 +542,31 @@
 														@endif
 													</small>
 												</div>
-												<span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
+												<div class="text-end">
+													<span class="badge {{ $statusBadgeClass }}">{{ $statusLabel }}</span>
+													@can('edit_projects')
+														<div class="mt-2">
+															<button
+																type="button"
+																class="btn btn-sm btn-outline-primary radius-30 me-1"
+																onclick="editMilestone(this)"
+																data-id="{{ $milestone->id }}"
+																data-title="{{ e($milestone->title) }}"
+																data-description="{{ e($milestone->description ?? '') }}"
+																data-status="{{ $milestone->status }}"
+																data-due-date="{{ $milestone->due_date ? $milestone->due_date->format('Y-m-d') : '' }}">
+																<i class="bx bx-edit"></i>
+															</button>
+															<form action="{{ route('project.milestones.destroy', [$project->id, $milestone->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this milestone?')">
+																@csrf
+																@method('DELETE')
+																<button type="submit" class="btn btn-sm btn-outline-danger radius-30">
+																	<i class="bx bx-trash"></i>
+																</button>
+															</form>
+														</div>
+													@endcan
+												</div>
 											</div>
 										</div>
 									</div>
@@ -633,7 +657,7 @@
 										<small class="text-muted">Reported: {{ $issue->created_at->format('M d, Y') }} | Updated: {{ $issue->updated_at->format('M d, Y') }}</small>
 										@can('edit_projects')
 										<div class="mt-3">
-											<button class="btn btn-sm btn-outline-primary radius-30 me-2" onclick="editIssue({{ $issue->id }}, '{{ addslashes($issue->issue_description) }}', '{{ $issue->priority }}', '{{ $issue->status }}')">
+											<button class="btn btn-sm btn-outline-primary radius-30 me-2" type="button" onclick="editIssue(this)" data-id="{{ $issue->id }}" data-description="{{ e($issue->issue_description) }}" data-priority="{{ $issue->priority }}" data-status="{{ $issue->status }}">
 												<i class="bx bx-edit"></i> Edit
 											</button>
 											<form action="{{ route('project.issues.destroy', [$project->id, $issue->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this issue?')">
@@ -754,6 +778,52 @@
 				<div class="modal-footer">
 					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
 					<button type="submit" class="btn btn-primary">Save Milestone</button>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+@endcan
+
+<!-- Edit Milestone Modal -->
+@can('edit_projects')
+<div class="modal fade" id="editMilestoneModal" tabindex="-1" aria-hidden="true">
+	<div class="modal-dialog modal-dialog-centered">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title">Edit Milestone</h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<form id="editMilestoneForm" method="POST">
+				@csrf
+				@method('PUT')
+				<div class="modal-body">
+					<div class="mb-3">
+						<label for="edit_milestone_title" class="form-label">Title</label>
+						<input type="text" name="title" id="edit_milestone_title" class="form-control" required>
+					</div>
+					<div class="mb-3">
+						<label for="edit_milestone_description" class="form-label">Description</label>
+						<textarea name="description" id="edit_milestone_description" rows="3" class="form-control" placeholder="Add milestone details..."></textarea>
+					</div>
+					<div class="row g-3">
+						<div class="col-md-6">
+							<label for="edit_milestone_due_date" class="form-label">Due Date</label>
+							<input type="date" name="due_date" id="edit_milestone_due_date" class="form-control">
+						</div>
+						<div class="col-md-6">
+							<label for="edit_milestone_status" class="form-label">Status</label>
+							<select name="status" id="edit_milestone_status" class="form-select" required>
+								<option value="pending">Pending</option>
+								<option value="in_progress">In Progress</option>
+								<option value="completed">Completed</option>
+							</select>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+					<button type="submit" class="btn btn-primary">Update Milestone</button>
 				</div>
 			</form>
 		</div>
@@ -1215,8 +1285,29 @@ function confirmDelete() {
     });
 }
 
+// Edit milestone function
+function editMilestone(button) {
+    var milestoneId = button.dataset.id;
+    var title = button.dataset.title || '';
+    var description = button.dataset.description || '';
+    var status = button.dataset.status || 'pending';
+    var dueDate = button.dataset.dueDate || '';
+
+    $('#edit_milestone_title').val(title);
+    $('#edit_milestone_description').val(description);
+    $('#edit_milestone_status').val(status);
+    $('#edit_milestone_due_date').val(dueDate);
+    $('#editMilestoneForm').attr('action', '{{ route("project.milestones.update", [$project->id, ":milestoneId"]) }}'.replace(':milestoneId', milestoneId));
+    $('#editMilestoneModal').modal('show');
+}
+
 // Edit issue function
-function editIssue(issueId, description, priority, status) {
+function editIssue(button) {
+    var issueId = button.dataset.id;
+    var description = button.dataset.description || '';
+    var priority = button.dataset.priority || 'medium';
+    var status = button.dataset.status || 'open';
+
     $('#edit_issue_description').val(description);
     $('#edit_priority').val(priority);
     $('#edit_status').val(status);
@@ -1227,3 +1318,4 @@ function editIssue(issueId, description, priority, status) {
 @endpush
 
 @endsection
+

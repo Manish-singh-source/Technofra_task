@@ -388,6 +388,56 @@ class ProjectController extends Controller
             ->route('project-details', $projectId)
             ->with('success', 'Milestone created successfully.');
     }
+    public function updateMilestone(Request $request, $projectId, $milestoneId)
+    {
+        $project = Project::findOrFail($projectId);
+        $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
+        $customer = $this->getLoggedInCustomer();
+
+        if ($customer && $project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to update this project.');
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'description' => 'nullable|string',
+            'status' => 'required|in:pending,in_progress,completed',
+            'due_date' => 'nullable|date',
+        ]);
+
+        $completedAt = $validated['status'] === 'completed'
+            ? ($milestone->completed_at ?? now($this->businessTimezone()))
+            : null;
+
+        $milestone->update([
+            'title' => $validated['title'],
+            'description' => $validated['description'] ?? null,
+            'status' => $validated['status'],
+            'due_date' => $validated['due_date'] ?? null,
+            'completed_at' => $completedAt,
+        ]);
+
+        return redirect()
+            ->route('project-details', $projectId)
+            ->with('success', 'Milestone updated successfully.');
+    }
+
+    public function destroyMilestone($projectId, $milestoneId)
+    {
+        $project = Project::findOrFail($projectId);
+        $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
+        $customer = $this->getLoggedInCustomer();
+
+        if ($customer && $project->customer_id !== $customer->id) {
+            abort(403, 'You are not authorized to update this project.');
+        }
+
+        $milestone->delete();
+
+        return redirect()
+            ->route('project-details', $projectId)
+            ->with('success', 'Milestone deleted successfully.');
+    }
 
     public function storeIssue(Request $request, $projectId)
     {
@@ -753,7 +803,4 @@ class ProjectController extends Controller
     }
 
 }
-
-
-
 

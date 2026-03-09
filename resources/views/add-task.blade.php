@@ -30,7 +30,7 @@
                     <div class="col-md-6">
                         <label for="project_related" class="form-label">Project Related To</label>
                         <select id="project_related" name="project_related" class="form-select">
-                            <option selected disabled value="">Choose...</option>
+                            <option value="" {{ old('project_related', $selectedProjectId) ? '' : 'selected' }}>No Project (Optional)</option>
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}" {{ (string) old('project_related', $selectedProjectId) === (string) $project->id ? 'selected' : '' }}>{{ $project->project_name }}</option>
                             @endforeach

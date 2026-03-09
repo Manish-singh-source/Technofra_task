@@ -183,6 +183,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/add-project', [ProjectController::class, 'store'])->name('store-project')->middleware('permission:create_projects');
         Route::get('/project-details/{id}', [ProjectController::class, 'show'])->name('project-details')->middleware('permission:view_projects');
         Route::post('/project/{projectId}/milestones', [ProjectController::class, 'storeMilestone'])->name('project.milestones.store')->middleware('permission:edit_projects');
+        Route::put('/project/{projectId}/milestones/{milestoneId}', [ProjectController::class, 'updateMilestone'])->name('project.milestones.update')->middleware('permission:edit_projects');
+        Route::delete('/project/{projectId}/milestones/{milestoneId}', [ProjectController::class, 'destroyMilestone'])->name('project.milestones.destroy')->middleware('permission:edit_projects');
         Route::post('/project/{projectId}/issues', [ProjectController::class, 'storeIssue'])->name('project.issues.store')->middleware('permission:edit_projects');
         Route::put('/project/{projectId}/issues/{issueId}', [ProjectController::class, 'updateIssue'])->name('project.issues.update')->middleware('permission:edit_projects');
         Route::delete('/project/{projectId}/issues/{issueId}', [ProjectController::class, 'destroyIssue'])->name('project.issues.destroy')->middleware('permission:edit_projects');
