@@ -31,7 +31,7 @@
                     <div class="col-md-6">
                         <label for="project_related" class="form-label">Project Related To</label>
                         <select id="project_related" name="project_related" class="form-select">
-                            <option selected disabled value="">Choose...</option>
+                            <option value="" {{ old('project_related', $task->project_id) ? '' : 'selected' }}>No Project (Optional)</option>
                             @foreach($projects as $project)
                                 <option value="{{ $project->id }}" {{ old('project_related', $task->project_id) == $project->id ? 'selected' : '' }}>{{ $project->project_name }}</option>
                             @endforeach
@@ -41,7 +41,7 @@
                     <div class="col-md-6">
                         <label for="priority" class="form-label">Priority</label>
                         <select id="priority" name="priority" class="form-select">
-                            <option selected disabled value="">Choose...</option>
+                            <option value="" {{ old('priority', $task->priority) ? '' : 'selected' }}>Choose...</option>
                             <option value="High" {{ old('priority', ucfirst($task->priority)) == 'High' ? 'selected' : '' }}>High</option>
                             <option value="Medium" {{ old('priority', ucfirst($task->priority)) == 'Medium' ? 'selected' : '' }}>Medium</option>
                             <option value="Low" {{ old('priority', ucfirst($task->priority)) == 'Low' ? 'selected' : '' }}>Low</option>
@@ -93,13 +93,33 @@
                     <div class="col-md-6">
                         <label for="status" class="form-label">Status</label>
                         <select id="status" name="status" class="form-select">
-                            <option selected disabled value="">Choose...</option>
+                            <option value="" {{ old('status', $task->status) ? '' : 'selected' }}>Choose...</option>
                             <option value="not_started" {{ old('status', $task->status) == 'not_started' ? 'selected' : '' }}>Not Started</option>
                             <option value="in_progress" {{ old('status', $task->status) == 'in_progress' ? 'selected' : '' }}>In Progress</option>
                             <option value="on_hold" {{ old('status', $task->status) == 'on_hold' ? 'selected' : '' }}>On Hold</option>
                             <option value="completed" {{ old('status', $task->status) == 'completed' ? 'selected' : '' }}>Completed</option>
                             <option value="cancelled" {{ old('status', $task->status) == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="attach_files" class="form-label">Attachment</label>
+                        <input type="file" name="attach_files[]" class="form-control" id="attach_files" multiple>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label">Existing Attachments</label>
+                        <div class="border rounded p-3 bg-light">
+                            @forelse($task->attachments as $attachment)
+                                <div>
+                                    <a href="{{ asset('storage/' . $attachment->file_path) }}" target="_blank">
+                                        {{ $attachment->file_name }}
+                                    </a>
+                                </div>
+                            @empty
+                                <span class="text-muted">No attachments uploaded.</span>
+                            @endforelse
+                        </div>
                     </div>
 
                     <div class="col-md-12">

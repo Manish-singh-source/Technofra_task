@@ -24,7 +24,7 @@
                     @endif
                     <div class="col-md-12">
                         <label for="task_title" class="form-label">Task Title <span class="text-danger">*</span></label>
-                        <input type="text" name="task_title" class="form-control" id="task_title" placeholder="Task Title">
+                        <input type="text" name="task_title" class="form-control" id="task_title" placeholder="Task Title" value="{{ old('task_title') }}">
                     </div>
 
                     <div class="col-md-6">
@@ -40,21 +40,33 @@
                     <div class="col-md-6">
                         <label for="priority" class="form-label">Priority</label>
                         <select id="priority" name="priority" class="form-select">
-                            <option selected disabled value="">Choose...</option>
-                            <option>High</option>
-                            <option>Medium</option>
-                            <option>Low</option>
+                            <option value="" {{ old('priority') ? '' : 'selected' }}>Choose...</option>
+                            <option value="High" {{ old('priority') == 'High' ? 'selected' : '' }}>High</option>
+                            <option value="Medium" {{ old('priority', 'Medium') == 'Medium' ? 'selected' : '' }}>Medium</option>
+                            <option value="Low" {{ old('priority') == 'Low' ? 'selected' : '' }}>Low</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label for="status" class="form-label">Main Status</label>
+                        <select id="status" name="status" class="form-select">
+                            <option value="" {{ old('status') ? '' : 'selected' }}>Choose...</option>
+                            <option value="not_started" {{ old('status', 'not_started') == 'not_started' ? 'selected' : '' }}>Not Started</option>
+                            <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
+                            <option value="on_hold" {{ old('status') == 'on_hold' ? 'selected' : '' }}>On Hold</option>
+                            <option value="completed" {{ old('status') == 'completed' ? 'selected' : '' }}>Completed</option>
+                            <option value="cancelled" {{ old('status') == 'cancelled' ? 'selected' : '' }}>Cancelled</option>
                         </select>
                     </div>
 
                     <div class="col-md-6">
                         <label for="start_date" class="form-label">Start Date</label>
-                        <input type="date" name="start_date" class="form-control" id="start_date">
+                        <input type="date" name="start_date" class="form-control" id="start_date" value="{{ old('start_date') }}">
                     </div>
 
                     <div class="col-md-6">
                         <label for="due_date" class="form-label">Due Date</label>
-                        <input type="date" name="due_date" class="form-control" id="due_date">
+                        <input type="date" name="due_date" class="form-control" id="due_date" value="{{ old('due_date') }}">
                     </div>
 
                     <div class="col-md-6">
@@ -91,7 +103,7 @@
 
                     <div class="col-md-12">
                         <label for="task_description" class="form-label">Task Description</label>
-                        <textarea class="form-control" name="task_description" id="task_description" rows="3" placeholder="Task Description"></textarea>
+                        <textarea class="form-control" name="task_description" id="task_description" rows="3" placeholder="Task Description">{{ old('task_description') }}</textarea>
                     </div>
 
                     <div class="col-md-12">

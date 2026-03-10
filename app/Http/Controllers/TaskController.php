@@ -46,6 +46,7 @@ class TaskController extends Controller
             'task_title' => 'required|string|max:255',
             'project_related' => 'nullable|exists:projects,id',
             'priority' => 'nullable|in:High,Medium,Low',
+            'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
             'start_date' => 'nullable|date',
             'due_date' => 'nullable|date|after_or_equal:start_date',
             'assignees' => 'nullable|array',
@@ -76,7 +77,7 @@ class TaskController extends Controller
             'followers' => $request->followers,
             'assignees' => $request->assignees,
             'tags' => $tags,
-            'status' => 'not_started',
+            'status' => $request->status ?? 'not_started',
             'priority' => $priority,
             'start_date' => $request->start_date,
             'deadline' => $request->due_date,
@@ -137,6 +138,8 @@ class TaskController extends Controller
             'tags.*' => 'string',
             'task_description' => 'nullable|string',
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
+            'attach_files' => 'nullable|array',
+            'attach_files.*' => 'file|max:10240',
         ]);
 
         if ($validator->fails()) {
@@ -161,6 +164,21 @@ class TaskController extends Controller
             'start_date' => $request->start_date,
             'deadline' => $request->due_date,
         ]);
+
+        if ($request->hasFile('attach_files')) {
+            foreach ($request->file('attach_files') as $file) {
+                $fileName = time() . '_' . $file->getClientOriginalName();
+                $filePath = $file->storeAs('task_attachments', $fileName, 'public');
+
+                TaskAttachment::create([
+                    'task_id' => $task->id,
+                    'file_name' => $file->getClientOriginalName(),
+                    'file_path' => $filePath,
+                    'file_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        }
 
         return redirect()->route('task')->with('success', 'Task updated successfully!');
     }
@@ -222,5 +240,3 @@ class TaskController extends Controller
         }
     }
 }
-
-
