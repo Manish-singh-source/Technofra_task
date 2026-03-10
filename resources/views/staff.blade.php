@@ -58,7 +58,6 @@
                             <thead class="table-light">
                                 <tr>
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
-                                    <th>ID</th>
                                     <th>Full Name</th>
                                     <th>Email</th>
                                     <th>Role</th>
@@ -71,11 +70,11 @@
                                 @foreach($staff as $member)
                                 <tr>
                                     <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $member->id }}"></td>
-                                    <td>
+                                    {{-- <td>
                                         <div class="d-flex align-items-center">
                                             <h6 class="mb-0 font-14">{{ $member->id }}</h6>
                                         </div>
-                                    </td>
+                                    </td> --}}
                                     <td>
                                         <div class="d-flex align-items-center">
                                             <a href="#" class="avatar online avatar-rounded">

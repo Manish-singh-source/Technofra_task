@@ -27,6 +27,7 @@
             <div class="card">
                 <div class="card-body p-4">
                     <h5 class="card-title">Add New Client</h5>
+                    <p class="text-muted mb-3">Fields marked with <span class="text-danger">*</span> are mandatory.</p>
                     <hr />
                     <div class="form-body mt-4">
                         <form action="{{ route('store-client') }}" method="POST" enctype="multipart/form-data">
@@ -37,7 +38,7 @@
                                     <h6>Basic Information</h6>
                                     <div class="row">
                                         <div class="col-6 mb-3">
-                                            <label for="client_name" class="form-label">Client Name</label>
+                                            <label for="client_name" class="form-label">Client Name <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="client_name" name="client_name"
                                                 placeholder="Enter client name" value="{{ old('client_name') }}">
                                             @error('client_name')
@@ -45,7 +46,7 @@
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
-                                            <label for="contact_person" class="form-label">Contact Person</label>
+                                            <label for="contact_person" class="form-label">Contact Person <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="contact_person" name="contact_person"
                                                 placeholder="Enter contact person name" value="{{ old('contact_person') }}">
                                             @error('contact_person')
@@ -55,7 +56,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-6 mb-3">
-                                            <label for="email" class="form-label">Email</label>
+                                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
                                             <input type="email" class="form-control" id="email" name="email" 
                                                 placeholder="Enter email" value="{{ old('email') }}">
                                             @error('email')
@@ -88,7 +89,7 @@
                                 <div class="border border-3 p-4 rounded">
                                     <h6>Address Information</h6>
                                     <div class="mb-3">
-                                        <label for="address_line1" class="form-label">Address Line 1</label>
+                                        <label for="address_line1" class="form-label">Address Line 1 <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="address_line1" name="address_line1"
                                             placeholder="Enter address line 1" value="{{ old('address_line1') }}">
                                         @error('address_line1')
@@ -102,7 +103,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-3 mb-3">
-                                            <label for="city" class="form-label">City</label>
+                                            <label for="city" class="form-label">City <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="city" name="city"
                                                 placeholder="City" value="{{ old('city') }}">
                                             @error('city')
@@ -110,7 +111,7 @@
                                             @enderror
                                         </div>
                                         <div class="col-3 mb-3">
-                                            <label for="state" class="form-label">State</label>
+                                            <label for="state" class="form-label">State <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="state" name="state"
                                                 placeholder="State" value="{{ old('state') }}">
                                             @error('state')
@@ -118,7 +119,7 @@
                                             @enderror
                                         </div>
                                         <div class="col-3 mb-3">
-                                            <label for="postal_code" class="form-label">Postal Code</label>
+                                            <label for="postal_code" class="form-label">Postal Code <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="postal_code" name="postal_code"
                                                 placeholder="Postal Code" value="{{ old('postal_code') }}">
                                             @error('postal_code')
@@ -126,7 +127,7 @@
                                             @enderror
                                         </div>
                                         <div class="col-3 mb-3">
-                                            <label for="country" class="form-label">Country</label>
+                                            <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="country" name="country"
                                                 placeholder="Country" value="{{ old('country') }}">
                                             @error('country')
@@ -144,7 +145,7 @@
                                     <h6>Business Information</h6>
                                     <div class="row">
                                         <div class="col-6 mb-3">
-                                            <label for="client_type" class="form-label">Client Type</label>
+                                            <label for="client_type" class="form-label">Client Type <span class="text-danger">*</span></label>
                                             <select class="form-select" id="client_type" name="client_type">
                                                 <option value="">Select Type</option>
                                                 <option value="Individual" {{ old('client_type') == 'Individual' ? 'selected' : '' }}>Individual</option>
@@ -156,7 +157,7 @@
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
-                                            <label for="industry" class="form-label">Industry</label>
+                                            <label for="industry" class="form-label">Industry <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="industry" name="industry"
                                                 placeholder="Enter industry" value="{{ old('industry') }}">
                                             @error('industry')
@@ -166,7 +167,7 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-6 mb-3">
-                                            <label for="status" class="form-label">Status</label>
+                                            <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                                             <select class="form-select" id="status" name="status">
                                                 <option value="Active" {{ old('status') == 'Active' ? 'selected' : '' }}>Active</option>
                                                 <option value="Inactive" {{ old('status') == 'Inactive' ? 'selected' : '' }}>Inactive</option>
@@ -221,9 +222,9 @@
                                             </select>
                                         </div>
                                         <div class="col-12">
-                                            <label for="password" class="form-label">Password</label>
+                                            <label for="password" class="form-label">Password <span class="text-danger">*</span> <small class="text-muted">(Minimum 8 characters)</small></label>
                                             <input type="password" class="form-control" id="password" name="password" required
-                                                placeholder="Enter password (minimum 6 characters)">
+                                                placeholder="Enter password (minimum 8 characters)">
                                             @error('password')
                                                 <span class="text-danger">{{ $message }}</span>
                                             @enderror
@@ -255,3 +256,4 @@
     </div>
     <!--end page wrapper -->
 @endsection
+

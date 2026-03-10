@@ -131,7 +131,6 @@
                                     @can('delete_tasks')
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                     @endcan
-                                    <th>Task ID</th>
                                     <th>Project & Task</th>
                                     <th>Created On</th>
                                     <th>Total Hours</th>
@@ -148,7 +147,7 @@
                                     @can('delete_tasks')
                                     <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $task->id }}"></td>
                                     @endcan
-                                    <td>#T{{ str_pad($task->id, 3, '0', STR_PAD_LEFT) }}</td>
+                                    {{-- <td>#T{{ str_pad($task->id, 3, '0', STR_PAD_LEFT) }}</td> --}}
                                     <td>
                                         <strong>Project:</strong> {{ $task->project->project_name ?? 'N/A' }} <br>
                                         <strong>Task:</strong> {{ $task->title }}
@@ -188,7 +187,7 @@
                                     <td>
                                         @php
                                             $isLate = $task->deadline
-                                                && $task->deadline->isPast()
+                                                && $task->deadline->lt(\Carbon\Carbon::today())
                                                 && !in_array($task->status, ['completed', 'cancelled', 'on_hold'], true);
                                         @endphp
                                         @if($isLate)
@@ -216,7 +215,13 @@
                                             <a href="{{ route('edit-task', $task->id) }}" class="ms-2"><i class='bx bxs-edit'></i></a>
                                             @endcan
                                             @can('delete_tasks')
-                                            <a href="javascript:;" class="ms-2"><i class='bx bxs-trash'></i></a>
+                                            <form action="{{ route('task.destroy', $task->id) }}" method="POST" class="d-inline ms-2" onsubmit="return confirm('Are you sure you want to delete this task?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-link p-0 border-0 text-danger" aria-label="Delete task">
+                                                    <i class='bx bxs-trash'></i>
+                                                </button>
+                                            </form>
                                             @endcan
                                         </div>
                                     </td>
@@ -294,3 +299,7 @@
         });
     </script>
 @endsection
+
+
+
+

@@ -31,7 +31,7 @@
                         <hr>
                     </div>
                     <div class="col-md-6">
-                        <label for="project_name" class="form-label">Project Name *</label>
+                        <label for="project_name" class="form-label">Project Name <span class="text-danger">*</span></label>
                         <input type="text" name="project_name" class="form-control @error('project_name') is-invalid @enderror" id="project_name" placeholder="Project Name" value="{{ old('project_name') }}" required>
                         @error('project_name')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -40,7 +40,7 @@
                     <div class="col-md-6">
                         <label for="customer" class="form-label">Customer</label>
                         <select id="customer" name="customer" class="form-select @error('customer') is-invalid @enderror">
-                            <option selected>Choose...</option>
+                            <option value="" selected disabled>Choose...</option>
                             @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}" {{ old('customer') == $customer->id ? 'selected' : '' }}>{{ $customer->client_name }}</option>
                             @endforeach
@@ -52,7 +52,7 @@
                     <div class="col-md-4">
                         <label for="status" class="form-label">Status</label>
                         <select id="status" name="status" class="form-select">
-                            <option selected>Choose...</option>
+                            <option value="" selected>Choose...</option>
                             <option value="not_started">Not Started</option>
                             <option value="in_progress">In Progress</option>
                             <option value="on_hold">On Hold</option>
@@ -63,7 +63,7 @@
                     <div class="col-md-4">
                         <label for="priority" class="form-label">Priority</label>
                         <select id="priority" name="priority" class="form-select @error('priority') is-invalid @enderror">
-                            <option selected>Choose...</option>
+                            <option value="" selected>Choose...</option>
                             <option value="low">Low</option>
                             <option value="medium">Medium</option>
                             <option value="high">High</option>
@@ -95,7 +95,7 @@
                     <div class="col-md-4">
                         <label for="billing_type" class="form-label">Billing Type</label>
                         <select id="billing_type" name="billing_type" class="form-select">
-                            <option selected>Choose...</option>
+                            <option value="" selected>Choose...</option>
                             <option value="fixed_rate">Fixed Rate</option>
                             <option value="hourly_rate">Hourly Rate</option>
                         </select>
@@ -443,3 +443,5 @@
     });
 </script>
 @endsection
+
+

@@ -26,6 +26,9 @@ class DashboardController extends Controller
         $weekFromNow = $today->copy()->addWeek();
         $fiveDaysFromNow = $today->copy()->addDays(5);
 
+        $totalProjects = Project::count();
+        $totalTasks = Task::count();
+
         // Build monthly project/task summary for last 12 months
         $startMonth = $today->copy()->startOfMonth()->subMonths(11);
         $endMonth = $today->copy()->endOfMonth();
@@ -228,6 +231,8 @@ class DashboardController extends Controller
         $hasCriticalNotifications = NotificationService::hasCriticalNotifications();
 
         return view('index', compact(
+            'totalProjects',
+            'totalTasks',
             'totalRenewals',
             'renewalsDueThisWeek',
             'overdueRenewals',

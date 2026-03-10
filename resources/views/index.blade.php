@@ -24,6 +24,8 @@
                 </div>
             @endauth
 
+
+            @can('view_dashboard')
             <!-- Summary Cards -->
 
             <!--end summary row-->
@@ -279,23 +281,14 @@
                         <div class="row row-cols-1 row-cols-md-3 row-cols-xl-3 g-0 row-group text-center border-top">
                             <div class="col">
                                 <div class="p-3">
-                                    <h5 class="mb-0">24.15M</h5>
-                                    <small class="mb-0">Overall Visitor <span> <i
-                                                class="bx bx-up-arrow-alt align-middle"></i> 2.43%</span></small>
+                                    <h5 class="mb-0">{{ $totalTasks ?? 0 }}</h5>
+                                    <small class="mb-0">Total Task</small>
                                 </div>
                             </div>
                             <div class="col">
                                 <div class="p-3">
-                                    <h5 class="mb-0">12:38</h5>
-                                    <small class="mb-0">Visitor Duration <span> <i
-                                                class="bx bx-up-arrow-alt align-middle"></i> 12.65%</span></small>
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="p-3">
-                                    <h5 class="mb-0">639.82</h5>
-                                    <small class="mb-0">Pages/Visit <span> <i
-                                                class="bx bx-up-arrow-alt align-middle"></i> 5.62%</span></small>
+                                    <h5 class="mb-0">{{ $totalProjects ?? 0 }}</h5>
+                                    <small class="mb-0">Total Project</small>
                                 </div>
                             </div>
                         </div>
@@ -470,7 +463,7 @@
                                                 </h6>
                                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                                     <small class="text-muted">
-                                                        📁 {{ $ticket->project->project_name ?? 'N/A' }}
+                                                        ðŸ“ {{ $ticket->project->project_name ?? 'N/A' }}
                                                     </small>
                                                     <small class="text-muted">
                                                         <i class='bx bx-time-five'></i> {{ $ticket->created_at->format('M d, Y H:i') }}
@@ -696,8 +689,10 @@
             </div>
         </div>
     </div>
+            @endcan
 @endsection
 
+@can('view_dashboard')
 @push('styles')
     <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
     <style>
@@ -741,7 +736,9 @@
         }
     </style>
 @endpush
+@endcan
 
+@can('view_dashboard')
 @push('scripts')
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js'></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
@@ -1079,4 +1076,5 @@
         });
     </script>
 @endpush
+@endcan
 

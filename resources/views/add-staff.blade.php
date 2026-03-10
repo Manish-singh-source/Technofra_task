@@ -38,6 +38,7 @@
             <div class="card">
                 <div class="card-body p-4">
                     <h5 class="card-title">Add New Staff</h5>
+                    <p class="text-muted mb-3">Fields marked with <span class="text-danger">*</span> are mandatory.</p>
                     <hr />
                     <div class="form-body mt-4">
                         <form action="{{ route('staff.store') }}" method="POST" enctype="multipart/form-data">
@@ -51,28 +52,28 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-6 mb-3">
-                                            <label for="firstName" class="form-label">First Name</label>
+                                            <label for="firstName" class="form-label">First Name <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="firstName" name="firstName"
                                                 placeholder="Enter first name">
                                         </div>
                                         <div class="col-6 mb-3">
-                                            <label for="lastName" class="form-label">Last Name</label>
+                                            <label for="lastName" class="form-label">Last Name <span class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="lastName" name="lastName"
                                                 placeholder="Enter last name">
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <label for="email" class="form-label">Email</label>
+                                        <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
                                         <input type="email" class="form-control" id="email" name="email" placeholder="Enter email">
                                     </div>
                                     <div class="mb-3">
-                                        <label for="phone" class="form-label">Phone</label>
+                                        <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
                                         <input type="text" class="form-control" id="phone" name="phone"
                                             placeholder="Enter phone number">
                                     </div>
                                     <div class="row g-3">
                                         <div class="col-12">
-                                            <label for="role" class="form-label">Role</label>
+                                            <label for="role" class="form-label">Role <span class="text-danger">*</span></label>
                                             <select class="form-select" id="role" name="role">
                                                 <option>Select Role</option>
                                                 @foreach($roles as $role)
@@ -121,7 +122,7 @@
 
                                         </div>
                                         <div class="col-12">
-                                            <label for="password" class="form-label">Password</label>
+                                            <label for="password" class="form-label">Password <span class="text-danger">*</span> <small class="text-muted">(Minimum 8 characters)</small></label>
                                             <input type="password" class="form-control" id="password" name="password"
                                                 placeholder="Enter password">
                                         </div>
@@ -158,3 +159,4 @@
     </div>
     <!--end page wrapper -->
 @endsection
+

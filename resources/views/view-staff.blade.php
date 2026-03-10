@@ -38,8 +38,7 @@
             <div class="row mb-4">
                 <div class="col-lg-3 col-md-6">
                     <div class="card radius-10 border-start border-0 border-4 border-primary h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
+                        <div class="card-body">                            <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Logged Time</p>
                                     <h4 class="my-1 text-primary">{{ $loggedTimeStats['total_formatted'] ?? '00:00' }}</h4>
@@ -54,8 +53,7 @@
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <div class="card radius-10 border-start border-0 border-4 border-info h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
+                        <div class="card-body">                            <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Last Month Logged Time</p>
                                     <h4 class="my-1 text-info">{{ $loggedTimeStats['last_month_formatted'] ?? '00:00' }}</h4>
@@ -70,8 +68,7 @@
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <div class="card radius-10 border-start border-0 border-4 border-success h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
+                        <div class="card-body">                            <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">This Month Logged Time</p>
                                     <h4 class="my-1 text-success">{{ $loggedTimeStats['this_month_formatted'] ?? '00:00' }}</h4>
@@ -86,8 +83,7 @@
                 </div>
                 <div class="col-lg-3 col-md-6">
                     <div class="card radius-10 border-start border-0 border-4 border-warning h-100">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
+                        <div class="card-body">                            <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">This Week Logged Time</p>
                                     <h4 class="my-1 text-warning">{{ $loggedTimeStats['this_week_formatted'] ?? '00:00' }}</h4>
@@ -109,7 +105,7 @@
                             <div class="card">
                                 <div class="card-body">
                                     <div class="d-flex flex-column align-items-center text-center">
-                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Admin"
+                                        <img src="{{ $staff->profile_image ? asset('uploads/staff/' . $staff->profile_image) : 'https://placehold.co/100x100' }}" alt="Admin"
                                             class="rounded-circle p-1 bg-primary" width="100" height="100">
                                         <div class="mt-3">
                                             <h4>{{ $staff->first_name . ' ' . $staff->last_name }}</h4>
@@ -162,11 +158,28 @@
 
                         </div>
                         <div class="col-lg-8">
-                            <form method="POST" action="{{ route('staff.update', $staff->id) }}">
+                            <form method="POST" action="{{ route('staff.update', $staff->id) }}" enctype="multipart/form-data">
                                 @csrf
                                 @method('PUT')
                                 <div class="card">
                                     <div class="card-body">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>
                                         <div class="row mb-3">
                                             <div class="col-sm-3">
                                                 <h6 class="mb-0">Full Name</h6>
@@ -288,7 +301,23 @@
                     <div class="col-12">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="d-flex align-items-center mb-3">Recent Projects
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>                                <h5 class="d-flex align-items-center mb-3">Recent Projects
                                     
                                 </h5>
                                 <div class="table-responsive">
@@ -342,7 +371,23 @@
                     <div class="col-sm-12">
                         <div class="card">
                             <div class="card-body">
-                                <h5 class="d-flex align-items-center mb-3">Recent Tasks
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>                                <h5 class="d-flex align-items-center mb-3">Recent Tasks
                                     
                                 </h5>
                                 <div class="table-responsive">
@@ -423,7 +468,23 @@
                 <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-primary h-100">
                         <div class="card-body">
-                            <div class="d-flex align-items-center">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>                            <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Project Complete</p>
                                     <h4 class="my-1 text-primary">{{ $completedProjectsCount }}</h4>
@@ -439,7 +500,23 @@
                 <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-success h-100">
                         <div class="card-body">
-                            <div class="d-flex align-items-center">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>                            <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Task Completed</p>
                                     <h4 class="my-1 text-success">{{ $completedTasksCount }}</h4>
@@ -462,7 +539,23 @@
                             <h5>Monthly Performance Trend</h5>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container-1">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>                            <div class="chart-container-1">
                                 <canvas id="performanceChart" width="400" height="250"></canvas>
                             </div>
                             <div class="mt-3">
@@ -494,7 +587,23 @@
                             <h5>Task Completion Breakdown</h5>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container-1">
+                                        <div class="row mb-3">
+                                            <div class="col-sm-3">
+                                                <h6 class="mb-0">Profile Image</h6>
+                                            </div>
+                                            <div class="col-sm-9 text-secondary">
+                                                <input type="file" name="profileImage" class="form-control" accept="image/*" />
+                                                <div class="form-text">JPG, PNG, GIF, WEBP. Max 2MB.</div>
+                                                @error('profileImage')
+                                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @if($staff->profile_image)
+                                                    <div class="mt-2">
+                                                        <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}" alt="Current Profile Image" class="img-thumbnail" style="max-height: 90px;">
+                                                    </div>
+                                                @endif
+                                            </div>
+                                        </div>                            <div class="chart-container-1">
                                 <canvas id="taskBreakdownChart" width="400" height="250"></canvas>
                             </div>
                             <div class="mt-3">
@@ -655,3 +764,6 @@
             });
         </script>
     @endpush
+
+
+

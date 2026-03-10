@@ -191,16 +191,7 @@
                 <div class="menu-title">Access Control</div>
             </a>
             <ul>
-                @can('view_staff')
-                <li>
-                    <a href="{{ route('staff') }}">
-                        <div class="parent-icon">
-
-                        </div>
-                        <div class="menu-title">Staff</div>
-                    </a>
-                </li>
-                @endcan
+                
                 @can('view_roles')
                 <li>
                     <a href="{{ route('roles') }}">
@@ -298,6 +289,15 @@
                         </a>
                     </li>
                     @endcan
+                    @can('view_staff')
+                <li>
+                    <a href="{{ route('staff') }}">
+                        <div class="parent-icon"><i class="bx bx-user"></i>
+                        </div>
+                        <div class="menu-title">Staff</div>
+                    </a>
+                </li>
+                @endcan
                     @can('view_clients')
                     <li>
                         <a href="{{ route('clients') }}">
@@ -1378,3 +1378,5 @@
 <script src='../../../../img1.wsimg.com/signals/js/clients/scc-c2/scc-c2.min.js'></script>
 
 </html>
+
+

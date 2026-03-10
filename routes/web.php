@@ -206,6 +206,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/task-details/{id}/comment', [TaskController::class, 'storeComment'])->name('task.comment.store')->middleware('permission:view_tasks');
         Route::get('/edit-task/{id}', [TaskController::class, 'edit'])->name('edit-task')->middleware('permission:edit_tasks');
         Route::put('/edit-task/{id}', [TaskController::class, 'update'])->name('edit-task.update')->middleware('permission:edit_tasks');
+        Route::delete('/task/delete/{id}', [TaskController::class, 'destroy'])->name('task.destroy')->middleware('permission:delete_tasks');
         Route::delete('/task/delete-selected', [TaskController::class, 'deleteSelected'])->name('delete.selected.task')->middleware('permission:delete_tasks');
     });
 
@@ -294,4 +295,5 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+
 

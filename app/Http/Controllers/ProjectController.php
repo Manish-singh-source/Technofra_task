@@ -75,7 +75,7 @@ class ProjectController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
-            'customer' => 'required|exists:customers,id',
+            'customer' => 'nullable|exists:customers,id',
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
@@ -146,7 +146,7 @@ class ProjectController extends Controller
 
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
-            'customer' => 'required|exists:customers,id',
+            'customer' => 'nullable|exists:customers,id',
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
@@ -803,4 +803,5 @@ class ProjectController extends Controller
     }
 
 }
+
 

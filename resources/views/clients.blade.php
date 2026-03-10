@@ -64,7 +64,7 @@
                                     @can('delete_clients')
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                     @endcan
-                                    <th>ID</th>
+                                    {{-- <th>ID</th> --}}
                                     <th>Client Name</th>
                                     <th>Email</th>
                                     <th>Industry</th>
@@ -81,11 +81,11 @@
                                         <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                                 value="{{ $customer->id }}"></td>
                                         @endcan
-                                        <td>
+                                        {{-- <td>
                                             <div class="d-flex align-items-center">
                                                 <h6 class="mb-0 font-14">{{ $customer->id }}</h6>
                                             </div>
-                                        </td>
+                                        </td> --}}
                                         <td>{{ $customer->client_name }}</td>
                                         <td>{{ $customer->email }}</td>
                                         <td>{{ $customer->industry }}</td>

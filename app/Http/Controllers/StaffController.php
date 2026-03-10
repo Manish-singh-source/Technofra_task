@@ -383,6 +383,7 @@ class StaffController extends Controller
     {
         $teams = Team::getTeamOptions();
         $validator = Validator::make($request->all(), [
+            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:staff,email,' . $id,
@@ -407,7 +408,7 @@ class StaffController extends Controller
         
         DB::beginTransaction();
         try {
-            $staff->update([
+            $updateData = [
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
                 'email' => $request->email,
@@ -416,7 +417,24 @@ class StaffController extends Controller
                 'status' => $request->status,
                 'team' => $request->team ?: null,
                 'departments' => $request->departments,
-            ]);
+            ];
+
+            if ($request->hasFile('profileImage')) {
+                $image = $request->file('profileImage');
+                $imageName = time() . '_' . $staff->id . '.' . $image->getClientOriginalExtension();
+                $image->move(public_path('uploads/staff'), $imageName);
+
+                if ($staff->profile_image) {
+                    $oldImagePath = public_path('uploads/staff/' . $staff->profile_image);
+                    if (file_exists($oldImagePath)) {
+                        @unlink($oldImagePath);
+                    }
+                }
+
+                $updateData['profile_image'] = $imageName;
+            }
+
+            $staff->update($updateData);
 
             // Update associated user
             $user = $staff->user ?? User::where('email', $oldEmail)->first();
@@ -692,3 +710,7 @@ class StaffController extends Controller
         }
     }
 }
+
+
+
+

@@ -32,7 +32,7 @@
                         <hr>
                     </div>
                     <div class="col-md-6">
-                        <label for="project_name" class="form-label">Project Name *</label>
+                        <label for="project_name" class="form-label">Project Name <span class="text-danger">*</span></label>
                         <input type="text" name="project_name" class="form-control @error('project_name') is-invalid @enderror" id="project_name" placeholder="Project Name" value="{{ old('project_name', $project->project_name) }}" required>
                         @error('project_name')
                             <div class="invalid-feedback">{{ $message }}</div>
@@ -41,7 +41,7 @@
                     <div class="col-md-6">
                         <label for="customer" class="form-label">Customer</label>
                         <select id="customer" name="customer" class="form-select @error('customer') is-invalid @enderror">
-                            <option selected>Choose...</option>
+                            <option value="" {{ old('customer', $project->customer_id) ? '' : 'selected disabled' }}>Choose...</option>
                             @foreach($customers as $customer)
                                 <option value="{{ $customer->id }}" {{ old('customer', $project->customer_id) == $customer->id ? 'selected' : '' }}>{{ $customer->client_name }}</option>
                             @endforeach
@@ -53,7 +53,7 @@
                     <div class="col-md-4">
                         <label for="status" class="form-label">Status</label>
                         <select id="status" name="status" class="form-select">
-                            <option selected>Choose...</option>
+                            <option value="" {{ old('status', $project->status) ? '' : 'selected' }}>Choose...</option>
                             <option value="not_started" {{ old('status', $project->status) == 'not_started' ? 'selected' : '' }}>Not Started</option>
                             <option value="in_progress" {{ old('status', $project->status) == 'in_progress' ? 'selected' : '' }}>In Progress</option>
                             <option value="on_hold" {{ old('status', $project->status) == 'on_hold' ? 'selected' : '' }}>On Hold</option>
@@ -64,7 +64,7 @@
                     <div class="col-md-4">
                         <label for="priority" class="form-label">Priority</label>
                         <select id="priority" name="priority" class="form-select @error('priority') is-invalid @enderror">
-                            <option selected>Choose...</option>
+                            <option value="" {{ old('priority', $project->priority) ? '' : 'selected' }}>Choose...</option>
                             <option value="low" {{ old('priority', $project->priority) == 'low' ? 'selected' : '' }}>Low</option>
                             <option value="medium" {{ old('priority', $project->priority) == 'medium' ? 'selected' : '' }}>Medium</option>
                             <option value="high" {{ old('priority', $project->priority) == 'high' ? 'selected' : '' }}>High</option>
@@ -96,7 +96,7 @@
                     <div class="col-md-4">
                         <label for="billing_type" class="form-label">Billing Type</label>
                         <select id="billing_type" name="billing_type" class="form-select">
-                            <option selected>Choose...</option>
+                            <option value="" {{ old('billing_type', $project->billing_type) ? '' : 'selected' }}>Choose...</option>
                             <option value="fixed_rate" {{ old('billing_type', $project->billing_type) == 'fixed_rate' ? 'selected' : '' }}>Fixed Rate</option>
                             <option value="hourly_rate" {{ old('billing_type', $project->billing_type) == 'hourly_rate' ? 'selected' : '' }}>Hourly Rate</option>
                         </select>
@@ -500,3 +500,4 @@
     });
 </script>
 @endsection
+

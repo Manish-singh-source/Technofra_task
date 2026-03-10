@@ -23,7 +23,7 @@
                         </div>
                     @endif
                     <div class="col-md-12">
-                        <label for="task_title" class="form-label">Task Title</label>
+                        <label for="task_title" class="form-label">Task Title <span class="text-danger">*</span></label>
                         <input type="text" name="task_title" class="form-control" id="task_title" placeholder="Task Title">
                     </div>
 
