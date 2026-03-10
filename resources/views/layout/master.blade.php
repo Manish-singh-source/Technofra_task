@@ -958,7 +958,7 @@
         @yield('content')
 
         <footer class="page-footer">
-            <p class="mb-0">Copyright © 2025 Technofra. All right reserved.</p>
+            <p class="mb-0">Copyright © 2026 Technofra. All right reserved.</p>
         </footer>
     </div>
     <!--end wrapper-->
