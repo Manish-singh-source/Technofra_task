@@ -206,6 +206,10 @@
     backdrop-filter: blur(14px);
     overflow: hidden;
 }
+.btn:hover{
+    background-color: #036;
+    color: #fff;
+}
 
         .auth-card-inner {
             padding: 34px 40px 28px;
@@ -293,12 +297,6 @@
             font-weight: 600;
             font-size: 1.1rem;
             transition: transform 0.2s ease, box-shadow 0.2s ease;
-        }
-
-        .auth-submit:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 28px rgba(62, 134, 215, 0.28);
-            color: #17324a;
         }
 
         .auth-footer {
@@ -493,6 +491,8 @@
     <script src="{{ asset('assets/js/app.js') }}"></script>
 </body>
 </html>
+
+
 
 
 
