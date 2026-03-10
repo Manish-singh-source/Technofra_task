@@ -18,7 +18,6 @@ class TaskController extends Controller
         $staff = Staff::all()->keyBy('id');
         $today = now()->startOfDay();
 
-        // Calculate summary statistics
         $runningTasks = $tasks->where('status', 'in_progress')->count();
         $completedTasks = $tasks->where('status', 'completed')->count();
         $lateTasks = $tasks->filter(function ($task) use ($today) {
@@ -57,17 +56,14 @@ class TaskController extends Controller
             'tags.*' => 'string',
             'task_description' => 'nullable|string',
             'attach_files' => 'nullable|array',
-            'attach_files.*' => 'file|max:10240', // 10MB max per file
+            'attach_files.*' => 'file|max:10240',
         ]);
 
         if ($validator->fails()) {
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Convert priority to lowercase
         $priority = strtolower($request->priority ?? 'medium');
-
-        // Tags are already an array from the form
         $tags = $request->tags ?? [];
 
         $task = Task::create([
@@ -83,20 +79,9 @@ class TaskController extends Controller
             'deadline' => $request->due_date,
         ]);
 
-        // Handle file uploads
         if ($request->hasFile('attach_files')) {
-            $files = $request->file('attach_files');
-            foreach ($files as $file) {
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('task_attachments', $fileName, 'public');
-
-                TaskAttachment::create([
-                    'task_id' => $task->id,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $filePath,
-                    'file_type' => $file->getMimeType(),
-                    'file_size' => $file->getSize(),
-                ]);
+            foreach ($request->file('attach_files') as $file) {
+                $this->storeTaskAttachment($task->id, $file);
             }
         }
 
@@ -106,6 +91,8 @@ class TaskController extends Controller
     public function show($id)
     {
         $task = Task::with('project', 'attachments', 'comments')->findOrFail($id);
+        $this->normalizeTaskAttachments($task);
+        $task->load('attachments');
         $staff = Staff::all()->keyBy('id');
 
         return view('task-details', compact('task', 'staff'));
@@ -114,7 +101,9 @@ class TaskController extends Controller
     public function edit($id)
     {
         $task = Task::with('attachments')->findOrFail($id);
-        $projects = \App\Models\Project::all();
+        $this->normalizeTaskAttachments($task);
+        $task->load('attachments');
+        $projects = Project::all();
         $staff = Staff::all();
 
         return view('edit-task', compact('task', 'projects', 'staff'));
@@ -122,7 +111,7 @@ class TaskController extends Controller
 
     public function update(Request $request, $id)
     {
-        $task = Task::findOrFail($id);
+        $task = Task::with('attachments')->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'task_title' => 'required|string|max:255',
@@ -146,10 +135,7 @@ class TaskController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Convert priority to lowercase
         $priority = strtolower($request->priority ?? 'medium');
-
-        // Tags are already an array from the form
         $tags = $request->tags ?? [];
 
         $task->update([
@@ -167,16 +153,7 @@ class TaskController extends Controller
 
         if ($request->hasFile('attach_files')) {
             foreach ($request->file('attach_files') as $file) {
-                $fileName = time() . '_' . $file->getClientOriginalName();
-                $filePath = $file->storeAs('task_attachments', $fileName, 'public');
-
-                TaskAttachment::create([
-                    'task_id' => $task->id,
-                    'file_name' => $file->getClientOriginalName(),
-                    'file_path' => $filePath,
-                    'file_type' => $file->getMimeType(),
-                    'file_size' => $file->getSize(),
-                ]);
+                $this->storeTaskAttachment($task->id, $file);
             }
         }
 
@@ -199,11 +176,15 @@ class TaskController extends Controller
 
         return redirect()->back()->with('success', 'Comment added successfully!');
     }
+
     public function destroy($id)
     {
         try {
-            $task = Task::findOrFail($id);
-            $task->attachments()->delete();
+            $task = Task::with('attachments')->findOrFail($id);
+            foreach ($task->attachments as $attachment) {
+                $this->deleteTaskAttachmentFile($attachment);
+                $attachment->delete();
+            }
             $task->comments()->delete();
             $task->delete();
 
@@ -213,9 +194,6 @@ class TaskController extends Controller
         }
     }
 
-    /**
-     * Delete selected tasks.
-     */
     public function deleteSelected(Request $request)
     {
         $ids = array_filter(explode(',', (string) $request->ids));
@@ -226,9 +204,12 @@ class TaskController extends Controller
 
         try {
             foreach ($ids as $id) {
-                $task = Task::find($id);
+                $task = Task::with('attachments')->find($id);
                 if ($task) {
-                    $task->attachments()->delete();
+                    foreach ($task->attachments as $attachment) {
+                        $this->deleteTaskAttachmentFile($attachment);
+                        $attachment->delete();
+                    }
                     $task->comments()->delete();
                     $task->delete();
                 }
@@ -237,6 +218,80 @@ class TaskController extends Controller
             return redirect()->route('task')->with('success', 'Selected tasks deleted successfully.');
         } catch (\Exception $e) {
             return redirect()->route('task')->with('error', 'Failed to delete selected tasks: ' . $e->getMessage());
+        }
+    }
+
+    private function storeTaskAttachment(int $taskId, $file): void
+    {
+        $originalName = $file->getClientOriginalName();
+        $extension = strtolower($file->getClientOriginalExtension());
+        $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+        $safeBaseName = preg_replace('/[^A-Za-z0-9\-_ ]/', '', $baseName) ?: 'attachment';
+        $fileName = time() . '_' . $safeBaseName . ($extension ? '.' . $extension : '');
+        $directory = public_path('uploads/task_attachments/' . $taskId);
+
+        if (!file_exists($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $file->move($directory, $fileName);
+
+        TaskAttachment::create([
+            'task_id' => $taskId,
+            'file_name' => $originalName,
+            'file_path' => 'uploads/task_attachments/' . $taskId . '/' . $fileName,
+            'file_type' => $file->getMimeType(),
+            'file_size' => $file->getSize(),
+        ]);
+    }
+
+    private function normalizeTaskAttachments(Task $task): void
+    {
+        foreach ($task->attachments as $attachment) {
+            $currentPath = ltrim((string) $attachment->file_path, '/');
+
+            if ($currentPath === '' || str_starts_with($currentPath, 'uploads/task_attachments/')) {
+                continue;
+            }
+
+            $sourceRelativePath = str_starts_with($currentPath, 'storage/')
+                ? substr($currentPath, 8)
+                : $currentPath;
+
+            $storageSource = storage_path('app/public/' . $sourceRelativePath);
+            $targetDirectory = public_path('uploads/task_attachments/' . $task->id);
+            $targetRelativePath = 'uploads/task_attachments/' . $task->id . '/' . basename($sourceRelativePath);
+            $targetAbsolutePath = public_path($targetRelativePath);
+
+            if (!file_exists($targetDirectory)) {
+                mkdir($targetDirectory, 0755, true);
+            }
+
+            if (file_exists($storageSource) && !file_exists($targetAbsolutePath)) {
+                copy($storageSource, $targetAbsolutePath);
+            }
+
+            if (file_exists($targetAbsolutePath) && $attachment->file_path !== $targetRelativePath) {
+                $attachment->update(['file_path' => $targetRelativePath]);
+            }
+        }
+    }
+
+    private function deleteTaskAttachmentFile(TaskAttachment $attachment): void
+    {
+        $relativePath = ltrim((string) $attachment->file_path, '/');
+
+        $publicFile = public_path($relativePath);
+        if ($relativePath !== '' && file_exists($publicFile)) {
+            unlink($publicFile);
+        }
+
+        $storageRelativePath = str_starts_with($relativePath, 'storage/')
+            ? substr($relativePath, 8)
+            : $relativePath;
+        $storageFile = storage_path('app/public/' . $storageRelativePath);
+        if ($storageRelativePath !== '' && file_exists($storageFile)) {
+            unlink($storageFile);
         }
     }
 }
