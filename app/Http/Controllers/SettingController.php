@@ -20,6 +20,11 @@ class SettingController extends Controller
     public function index()
     {
         $settings = Setting::getAllSettings();
+        $settings = array_merge($this->getMailSettingsFromEnvironment(), $settings);
+
+        if (empty($settings['mail_from_name'])) {
+            $settings['mail_from_name'] = $this->getMailSettingsFromEnvironment()['mail_from_name'] ?? ($settings['company_name'] ?? config('app.name'));
+        }
         $teams = Team::query()
             ->orderBy('name')
             ->get(['name', 'description', 'icon_path'])
@@ -196,6 +201,7 @@ class SettingController extends Controller
             'email' => 'required|email|max:255',
             'smtp_username' => 'required_if:email_protocol,smtp|nullable|string|max:255',
             'smtp_password' => 'required_if:email_protocol,smtp|nullable|string|max:255',
+            'mail_from_name' => 'nullable|string|max:255',
             'email_charset' => 'nullable|string|max:50',
             'bcc_all' => 'nullable|email',
             'email_signature' => 'nullable|string',
@@ -221,6 +227,7 @@ class SettingController extends Controller
                 'email' => 'text',
                 'smtp_username' => 'text',
                 'smtp_password' => 'text',
+                'mail_from_name' => 'text',
                 'email_charset' => 'text',
                 'bcc_all' => 'text',
                 'email_signature' => 'text',
@@ -232,15 +239,40 @@ class SettingController extends Controller
                 Setting::set($field, $request->$field, $type);
             }
 
+            $this->updateEnvironmentFile([
+                'MAIL_MAILER' => $this->resolveLaravelMailer((string) $request->email_protocol),
+                'MAIL_HOST' => (string) $request->smtp_host,
+                'MAIL_PORT' => (string) $request->smtp_port,
+                'MAIL_USERNAME' => (string) $request->smtp_username,
+                'MAIL_PASSWORD' => (string) $request->smtp_password,
+                'MAIL_ENCRYPTION' => $request->email_encryption === 'none' ? 'null' : (string) $request->email_encryption,
+                'MAIL_FROM_ADDRESS' => (string) $request->email,
+                'MAIL_FROM_NAME' => (string) ($request->mail_from_name ?: ($request->company_name ?: config('app.name'))),
+            ]);
+
+            $this->applyRuntimeMailConfiguration([
+                'email_protocol' => $request->email_protocol,
+                'email_encryption' => $request->email_encryption,
+                'smtp_host' => $request->smtp_host,
+                'smtp_port' => $request->smtp_port,
+                'smtp_username' => $request->smtp_username,
+                'smtp_password' => $request->smtp_password,
+                'email' => $request->email,
+                'mail_from_name' => $request->mail_from_name,
+                'company_name' => Setting::get('company_name', config('app.name')),
+            ]);
+
             DB::commit();
 
             return redirect()->route('settings')
-                ->with('success', 'Email settings updated successfully.');
+                ->with('success', 'Email settings updated successfully.')
+                ->with('active_settings_tab', 'email');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()
                 ->with('error', 'Failed to update email settings: ' . $e->getMessage())
-                ->withInput();
+                ->withInput()
+                ->with('active_settings_tab', 'email');
         }
     }
 
@@ -306,40 +338,20 @@ class SettingController extends Controller
 
         try {
             // Get email settings
-            $settings = Setting::getAllSettings();
+            $settings = array_merge($this->getMailSettingsFromEnvironment(), Setting::getAllSettings());
 
-            // Configure mail settings dynamically
-            $protocol = $settings['email_protocol'] ?? 'smtp';
-            $encryption = $settings['email_encryption'] ?? 'tls';
-            if ($encryption === 'none') {
-                $encryption = null;
-            }
-
-            // Set the mailer configuration at runtime
-            config([
-                'mail.mailer' => $protocol,
-                'mail.default' => $protocol,
-                'mail.mailers.smtp.host' => $settings['smtp_host'] ?? '',
-                'mail.mailers.smtp.port' => $settings['smtp_port'] ?? 587,
-                'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
-                'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
-                'mail.mailers.smtp.encryption' => $encryption,
-                'mail.from.address' => $settings['email'] ?? '',
-                'mail.from.name' => $settings['company_name'] ?? 'CRM System',
-            ]);
-
-            // Clear the mailer instance to use new config
-            app()->forgetInstance('mailer');
-            Mail::purge();
+            $this->applyRuntimeMailConfiguration($settings);
 
             // Send test email
             Mail::to($request->test_email)->send(new TestMail($settings));
 
             return redirect()->route('settings')
-                ->with('success', 'Test email sent successfully to ' . $request->test_email);
+                ->with('success', 'Test email sent successfully to ' . $request->test_email)
+                ->with('active_settings_tab', 'email');
         } catch (\Exception $e) {
             return redirect()->route('settings')
-                ->with('error', 'Failed to send test email: ' . $e->getMessage());
+                ->with('error', 'Failed to send test email: ' . $e->getMessage())
+                ->with('active_settings_tab', 'email');
         }
     }
 
@@ -506,6 +518,138 @@ class SettingController extends Controller
         if (str_starts_with($raw, 'team-icons/') && Storage::disk('public')->exists($raw)) {
             Storage::disk('public')->delete($raw);
         }
+    }
+
+    private function getMailSettingsFromEnvironment(): array
+    {
+        $envValues = $this->readEnvironmentFile();
+
+        return [
+            'email_protocol' => $envValues['MAIL_MAILER'] ?? config('mail.default', 'smtp'),
+            'email_encryption' => $this->normalizeEnvironmentValue($envValues['MAIL_ENCRYPTION'] ?? config('mail.mailers.smtp.encryption', 'tls')) ?? 'none',
+            'smtp_host' => $envValues['MAIL_HOST'] ?? config('mail.mailers.smtp.host', ''),
+            'smtp_port' => $envValues['MAIL_PORT'] ?? config('mail.mailers.smtp.port', 587),
+            'smtp_username' => $envValues['MAIL_USERNAME'] ?? config('mail.mailers.smtp.username', ''),
+            'smtp_password' => $envValues['MAIL_PASSWORD'] ?? config('mail.mailers.smtp.password', ''),
+            'email' => $envValues['MAIL_FROM_ADDRESS'] ?? config('mail.from.address', ''),
+            'mail_from_name' => $envValues['MAIL_FROM_NAME'] ?? config('mail.from.name', config('app.name')),
+        ];
+    }
+
+    private function applyRuntimeMailConfiguration(array $settings): void
+    {
+        $protocol = $this->resolveLaravelMailer((string) ($settings['email_protocol'] ?? 'smtp'));
+        $encryption = $settings['email_encryption'] ?? 'tls';
+        if ($encryption === 'none' || $encryption === 'null' || $encryption === '') {
+            $encryption = null;
+        }
+
+        config([
+            'mail.mailer' => $protocol,
+            'mail.default' => $protocol,
+            'mail.mailers.smtp.transport' => 'smtp',
+            'mail.mailers.smtp.host' => $settings['smtp_host'] ?? '',
+            'mail.mailers.smtp.port' => $settings['smtp_port'] ?? 587,
+            'mail.mailers.smtp.username' => $settings['smtp_username'] ?? '',
+            'mail.mailers.smtp.password' => $settings['smtp_password'] ?? '',
+            'mail.mailers.smtp.encryption' => $encryption,
+            'mail.from.address' => $settings['email'] ?? '',
+            'mail.from.name' => $settings['mail_from_name'] ?? $settings['company_name'] ?? config('app.name'),
+        ]);
+
+        app()->forgetInstance('mailer');
+        Mail::purge();
+    }
+
+    private function resolveLaravelMailer(string $protocol): string
+    {
+        return in_array($protocol, ['smtp', 'sendmail', 'mail'], true) ? $protocol : 'smtp';
+    }
+
+    private function readEnvironmentFile(): array
+    {
+        $path = base_path('.env');
+        if (!is_file($path)) {
+            return [];
+        }
+
+        $values = [];
+        foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+            $trimmed = trim((string) $line);
+            if ($trimmed === '' || str_starts_with($trimmed, '#') || !str_contains($line, '=')) {
+                continue;
+            }
+
+            [$key, $value] = explode('=', $line, 2);
+            $values[trim($key)] = $this->normalizeEnvironmentValue($value);
+        }
+
+        return $values;
+    }
+
+    private function updateEnvironmentFile(array $updates): void
+    {
+        $path = base_path('.env');
+        if (!is_file($path)) {
+            throw new \RuntimeException('.env file not found.');
+        }
+
+        $contents = file_get_contents($path);
+        if ($contents === false) {
+            throw new \RuntimeException('Unable to read .env file.');
+        }
+
+        foreach ($updates as $key => $value) {
+            $formatted = $key . '=' . $this->formatEnvironmentValue($value);
+            $pattern = '/^' . preg_quote($key, '/') . '=.*$/m';
+
+            if (preg_match($pattern, $contents)) {
+                $contents = preg_replace($pattern, $formatted, $contents, 1) ?? $contents;
+            } else {
+                $contents .= rtrim($contents) === '' ? $formatted : PHP_EOL . $formatted;
+            }
+        }
+
+        if (file_put_contents($path, $contents) === false) {
+            throw new \RuntimeException('Unable to write .env file.');
+        }
+    }
+
+    private function normalizeEnvironmentValue($value): ?string
+    {
+        $value = trim((string) $value);
+
+        if ($value === '') {
+            return '';
+        }
+
+        if (
+            (str_starts_with($value, '"') && str_ends_with($value, '"')) ||
+            (str_starts_with($value, "'") && str_ends_with($value, "'"))
+        ) {
+            $value = substr($value, 1, -1);
+        }
+
+        return strtolower($value) === 'null' ? null : $value;
+    }
+
+    private function formatEnvironmentValue($value): string
+    {
+        $value = (string) $value;
+
+        if ($value === '') {
+            return '""';
+        }
+
+        if (strtolower($value) === 'null') {
+            return 'null';
+        }
+
+        if (preg_match('/\s|#|=|"|\'/', $value)) {
+            return '"' . addcslashes($value, "\"\\") . '"';
+        }
+
+        return $value;
     }
     /**
      * API: Search tags.

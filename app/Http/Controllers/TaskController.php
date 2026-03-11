@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\Staff;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -14,7 +15,11 @@ class TaskController extends Controller
 {
     public function index()
     {
-        $tasks = Task::with('project', 'attachments')->orderByDesc('created_at')->get();
+        $tasks = $this->accessibleTasksQuery()
+            ->with('project', 'attachments')
+            ->orderByDesc('created_at')
+            ->get();
+
         $staff = Staff::all()->keyBy('id');
         $today = now()->startOfDay();
 
@@ -26,8 +31,9 @@ class TaskController extends Controller
                 && !in_array($task->status, ['completed', 'cancelled', 'on_hold'], true);
         })->count();
         $delayedTasks = $tasks->where('status', 'on_hold')->count();
+        $isRestrictedToAssignedTasks = $this->shouldRestrictToAssignedTasks();
 
-        return view('task', compact('tasks', 'staff', 'runningTasks', 'completedTasks', 'lateTasks', 'delayedTasks'));
+        return view('task', compact('tasks', 'staff', 'runningTasks', 'completedTasks', 'lateTasks', 'delayedTasks', 'isRestrictedToAssignedTasks'));
     }
 
     public function create(Request $request)
@@ -90,7 +96,7 @@ class TaskController extends Controller
 
     public function show($id)
     {
-        $task = Task::with('project', 'attachments', 'comments')->findOrFail($id);
+        $task = $this->findAccessibleTaskOrFail((int) $id, ['project', 'attachments', 'comments']);
         $this->normalizeTaskAttachments($task);
         $task->load('attachments');
         $staff = Staff::all()->keyBy('id');
@@ -100,7 +106,7 @@ class TaskController extends Controller
 
     public function edit($id)
     {
-        $task = Task::with('attachments')->findOrFail($id);
+        $task = $this->findAccessibleTaskOrFail((int) $id, ['attachments']);
         $this->normalizeTaskAttachments($task);
         $task->load('attachments');
         $projects = Project::all();
@@ -111,7 +117,7 @@ class TaskController extends Controller
 
     public function update(Request $request, $id)
     {
-        $task = Task::with('attachments')->findOrFail($id);
+        $task = $this->findAccessibleTaskOrFail((int) $id, ['attachments']);
 
         $validator = Validator::make($request->all(), [
             'task_title' => 'required|string|max:255',
@@ -166,7 +172,7 @@ class TaskController extends Controller
             'comment' => 'required|string|max:1000',
         ]);
 
-        $task = Task::findOrFail($id);
+        $task = $this->findAccessibleTaskOrFail((int) $id);
 
         TaskComment::create([
             'task_id' => $task->id,
@@ -180,7 +186,7 @@ class TaskController extends Controller
     public function destroy($id)
     {
         try {
-            $task = Task::with('attachments')->findOrFail($id);
+            $task = $this->findAccessibleTaskOrFail((int) $id, ['attachments']);
             foreach ($task->attachments as $attachment) {
                 $this->deleteTaskAttachmentFile($attachment);
                 $attachment->delete();
@@ -204,7 +210,10 @@ class TaskController extends Controller
 
         try {
             foreach ($ids as $id) {
-                $task = Task::with('attachments')->find($id);
+                $task = $this->accessibleTasksQuery()
+                    ->with('attachments')
+                    ->find($id);
+
                 if ($task) {
                     foreach ($task->attachments as $attachment) {
                         $this->deleteTaskAttachmentFile($attachment);
@@ -219,6 +228,43 @@ class TaskController extends Controller
         } catch (\Exception $e) {
             return redirect()->route('task')->with('error', 'Failed to delete selected tasks: ' . $e->getMessage());
         }
+    }
+
+    private function accessibleTasksQuery(): Builder
+    {
+        $query = Task::query();
+        $staffId = $this->authenticatedStaffId();
+
+        if ($staffId === null) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $builder) use ($staffId) {
+            $builder->whereJsonContains('assignees', $staffId)
+                ->orWhereJsonContains('assignees', (string) $staffId);
+        });
+    }
+
+    private function findAccessibleTaskOrFail(int $taskId, array $with = []): Task
+    {
+        return $this->accessibleTasksQuery()
+            ->with($with)
+            ->findOrFail($taskId);
+    }
+
+    private function authenticatedStaffId(): ?int
+    {
+        $user = auth()->user();
+        if (!$user || !$user->isStaff()) {
+            return null;
+        }
+
+        return optional($user->staff)->id;
+    }
+
+    private function shouldRestrictToAssignedTasks(): bool
+    {
+        return $this->authenticatedStaffId() !== null;
     }
 
     private function storeTaskAttachment(int $taskId, $file): void

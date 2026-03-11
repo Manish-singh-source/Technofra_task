@@ -33,6 +33,9 @@
             @if(session('success'))
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
+            @if(!empty($isRestrictedToAssignedTasks))
+                <div class="alert alert-info">Aapko sirf wahi tasks dikh rahe hain jo aapko assign kiye gaye hain.</div>
+            @endif
             <!-- Task Summary Cards -->
             <div class="row mb-3">
                 <div class="col-lg-3">

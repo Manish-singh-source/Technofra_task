@@ -391,6 +391,15 @@
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
+
+                                            <div class="col-md-6">
+                                                <label for="mail_from_name" class="form-label">From Name</label>
+                                                <input type="text" class="form-control" id="mail_from_name" name="mail_from_name"
+                                                    value="{{ old('mail_from_name', $settings['mail_from_name'] ?? ($settings['company_name'] ?? '')) }}" placeholder="Technofra">
+                                                @error('mail_from_name')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
                                             
                                             <div class="col-md-6">
                                                 <label for="smtp_username" class="form-label">SMTP Username *</label>
@@ -441,24 +450,24 @@
                                                     <button type="submit" class="btn btn-primary">Save Email Settings</button>
                                                 </div>
                                             </div>
-                                            
-                                            <!-- Test Email Section -->
-                                            <div class="col-12 mt-4">
-                                                <div class="card bg-light">
-                                                    <div class="card-body">
-                                                        <h6>Send Test Email</h6>
-                                                        <form action="{{ route('settings.test.email') }}" method="POST" class="d-flex gap-2">
-                                                            @csrf
-                                                            <input type="email" class="form-control" name="test_email" placeholder="Enter email address" required>
-                                                            <button type="submit" class="btn btn-success">
-                                                                <i class="bx bx-paper-plane"></i> Send Test
-                                                            </button>
-                                                        </form>
-                                                    </div>
-                                                </div>
-                                            </div>
                                         </div>
                                     </form>
+
+                                    <!-- Test Email Section -->
+                                    <div class="mt-4">
+                                        <div class="card bg-light">
+                                            <div class="card-body">
+                                                <h6>Send Test Email</h6>
+                                                <form action="{{ route('settings.test.email') }}" method="POST" class="d-flex gap-2">
+                                                    @csrf
+                                                    <input type="email" class="form-control" name="test_email" placeholder="Enter email address" required>
+                                                    <button type="submit" class="btn btn-success flex-shrink-0">
+                                                        <i class="bx bx-paper-plane"></i> Send Test
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
 
