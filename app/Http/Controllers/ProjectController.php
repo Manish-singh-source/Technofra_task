@@ -53,18 +53,95 @@ class ProjectController extends Controller
         return $this->getLoggedInCustomer() !== null;
     }
 
-    public function index()
+    /**
+     * Get the logged-in staff record.
+     */
+    private function getLoggedInStaff()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return null;
+        }
+
+        if ($user->relationLoaded('staff') && $user->staff) {
+            return $user->staff;
+        }
+
+        return Staff::query()
+            ->where('user_id', $user->id)
+            ->orWhere('email', $user->email)
+            ->first();
+    }
+
+    /**
+     * Admin users can access every project; regular staff cannot.
+     */
+    private function isPrivilegedProjectUser(): bool
+    {
+        $user = Auth::user();
+
+        return (bool) ($user && $user->hasAnyRole(['super_admin', 'admin']));
+    }
+
+    /**
+     * Restrict project visibility by current user type.
+     */
+    private function visibleProjectsQuery()
     {
         $customer = $this->getLoggedInCustomer();
-        
         if ($customer) {
-            // Customer can only see their own projects
-            $projects = Project::with('customer')->where('customer_id', $customer->id)->get();
-        } else {
-            // Admin/Staff can see all projects
-            $projects = Project::with('customer')->get();
+            return Project::query()->where('customer_id', $customer->id);
         }
-        
+
+        if ($this->isPrivilegedProjectUser()) {
+            return Project::query();
+        }
+
+        $staff = $this->getLoggedInStaff();
+        if (!$staff) {
+            return Project::query()->whereRaw('1 = 0');
+        }
+
+        return Project::query()
+            ->where(function ($query) use ($staff) {
+                $query->whereJsonContains('members', $staff->id)
+                    ->orWhereJsonContains('members', (string) $staff->id);
+            });
+    }
+
+    /**
+     * Ensure the logged-in user can access the given project.
+     */
+    private function authorizeProjectAccess(Project $project, string $message = 'You are not authorized to view this project.'): void
+    {
+        if ($this->isPrivilegedProjectUser()) {
+            return;
+        }
+
+        $customer = $this->getLoggedInCustomer();
+        if ($customer) {
+            abort_if($project->customer_id !== $customer->id, 403, $message);
+            return;
+        }
+
+        $staff = $this->getLoggedInStaff();
+        if (!$staff) {
+            abort(403, $message);
+        }
+
+        $memberIds = collect($project->members ?? [])
+            ->filter(fn ($memberId) => $memberId !== null && $memberId !== '')
+            ->map(fn ($memberId) => (int) $memberId);
+
+        abort_if(!$memberIds->contains((int) $staff->id), 403, $message);
+    }
+
+    public function index()
+    {
+        $projects = $this->visibleProjectsQuery()
+            ->with('customer')
+            ->get();
+
         $staff = Staff::all()->keyBy('id');
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
@@ -146,6 +223,7 @@ class ProjectController extends Controller
     public function edit($id)
     {
         $project = Project::findOrFail($id);
+        $this->authorizeProjectAccess($project, 'You are not authorized to edit this project.');
         $customers = Customer::all();
         $staff = Staff::all();
         $projectFiles = ProjectFile::where('project_id', $id)->orderBy('created_at', 'desc')->get();
@@ -155,6 +233,7 @@ class ProjectController extends Controller
     public function update(Request $request, $id)
     {
         $project = Project::findOrFail($id);
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
@@ -217,7 +296,6 @@ class ProjectController extends Controller
 
     public function show($id)
     {
-        $customer = $this->getLoggedInCustomer();
         $project = Project::with([
             'customer',
             'statusLogs' => function ($query) {
@@ -225,11 +303,8 @@ class ProjectController extends Controller
             },
         ])->findOrFail($id);
         
-        // If user is a customer, verify they own this project
-        if ($customer && $project->customer_id !== $customer->id) {
-            abort(403, 'You are not authorized to view this project.');
-        }
-        
+        $this->authorizeProjectAccess($project);
+
         $staff = Staff::all()->keyBy('id');
         $memberIds = collect($project->members ?? [])->filter()->values();
 
@@ -303,12 +378,7 @@ class ProjectController extends Controller
             ];
         }
         
-        if ($customer) {
-            // Customer can only see their own projects
-            $allProjects = Project::where('customer_id', $customer->id)->get();
-        } else {
-            $allProjects = Project::all();
-        }
+        $allProjects = $this->visibleProjectsQuery()->get();
         
         // Get project files
         $projectFiles = ProjectFile::where('project_id', $id)->orderBy('created_at', 'desc')->get();
