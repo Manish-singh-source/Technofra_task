@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class StaffController extends Controller
 {
@@ -324,6 +325,12 @@ class StaffController extends Controller
         return sprintf('%02d:%02d', $hours, $remainingMinutes);
     }
 
+    private function refreshPermissionCache(): void
+    {
+        Cache::forget('spatie.permission.cache');
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
+    }
+
     private function businessTimezone(): string
     {
         return (string) config('app.timezone', self::DEFAULT_BUSINESS_TZ);
@@ -455,7 +462,7 @@ class StaffController extends Controller
             }
 
             // Clear permission cache
-            Cache::forget('spatie.permission.cache');
+            $this->refreshPermissionCache();
             
             DB::commit();
             return redirect()->route('staff')->with('success', 'Staff updated successfully.');
@@ -530,7 +537,7 @@ class StaffController extends Controller
             ]);
 
             // Clear permission cache
-            Cache::forget('spatie.permission.cache');
+            $this->refreshPermissionCache();
 
             // Send invitation email with login credentials
             $staffName = $request->firstName . ' ' . $request->lastName;
@@ -683,7 +690,7 @@ class StaffController extends Controller
             ]);
 
             // Clear permission cache
-            Cache::forget('spatie.permission.cache');
+            $this->refreshPermissionCache();
 
             // Send invitation email with login credentials
             $staffName = $request->first_name . ' ' . $request->last_name;

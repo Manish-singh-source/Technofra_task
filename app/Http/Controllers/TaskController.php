@@ -262,7 +262,7 @@ class TaskController extends Controller
     {
         $user = auth()->user();
 
-        return (bool) ($user && $user->hasAnyRole(['super_admin', 'admin']));
+        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin']));
     }
 
     private function authenticatedStaffId(): ?int

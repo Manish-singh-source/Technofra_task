@@ -507,7 +507,7 @@ class ClientIssueController extends Controller
             
             // Check authorization - allow if user can edit issues or is admin
             if (!Auth::user()->can('edit_raise_issue') && 
-                !Auth::user()->hasAnyRole(['super_admin', 'admin'])) {
+                !Auth::user()->hasAnyRole(['super-admin', 'super_admin', 'admin'])) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Unauthorized - You do not have permission to close issues'

@@ -80,7 +80,7 @@ class ProjectController extends Controller
     {
         $user = Auth::user();
 
-        return (bool) ($user && $user->hasAnyRole(['super_admin', 'admin']));
+        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin']));
     }
 
     /**

@@ -51,11 +51,12 @@
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Permissions</label>
-                                            <table class="table table-bordered">
+                                            <table class="table table-bordered align-middle">
                                                 <thead>
                                                     <tr>
                                                         <th>Features</th>
                                                         <th>Capabilities</th>
+                                                        <th class="text-center">Select All</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -72,15 +73,17 @@
                                                                 @endphp
                                                                 @if($permission)
                                                                 <div class="form-check">
-                                                                    <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ $permission->id }}" id="{{ $action . '_' . $module }}">
+                                                                    <input class="form-check-input permission-checkbox" data-group="{{ $module }}" type="checkbox" name="permissions[]" value="{{ $permission->id }}" id="{{ $action . '_' . $module }}">
                                                                     <label class="form-check-label" for="{{ $action . '_' . $module }}">{{ ucfirst($action) }}</label>
                                                                 </div>
                                                                 @endif
                                                             @endforeach
                                                         </td>
+                                                        <td class="text-center">
+                                                            <input class="form-check-input row-select-all" type="checkbox" data-group="{{ $module }}" aria-label="Select all {{ ucfirst(str_replace('_', ' ', $module)) }} permissions">
+                                                        </td>
                                                     </tr>
                                                     @endforeach
-                                                    <!-- Settings Permissions -->
                                                     <tr>
                                                         <td>Settings</td>
                                                         <td>
@@ -90,21 +93,19 @@
                                                                 @endphp
                                                                 @if($permission)
                                                                 <div class="form-check">
-                                                                    <input class="form-check-input" type="checkbox" name="permissions[]" value="{{ $permission->id }}" id="{{ $permissionName }}">
+                                                                    <input class="form-check-input permission-checkbox" data-group="settings" type="checkbox" name="permissions[]" value="{{ $permission->id }}" id="{{ $permissionName }}">
                                                                     <label class="form-check-label" for="{{ $permissionName }}">{{ ucfirst(str_replace('_', ' ', $permissionName)) }}</label>
                                                                 </div>
                                                                 @endif
                                                             @endforeach
                                                         </td>
+                                                        <td class="text-center">
+                                                            <input class="form-check-input row-select-all" type="checkbox" data-group="settings" aria-label="Select all settings permissions">
+                                                        </td>
                                                     </tr>
-                                               
-                                               
-                                               
-                                                
-                                                
-                                                
-                                            </tbody>
-                                        </table>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                     <div class="col-12">
                                         <div class="d-grid">
@@ -114,12 +115,43 @@
                                 </div>
                             </div>
                         </div><!--end row-->
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
-
-
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const syncRowToggle = function (group) {
+                const rowToggle = document.querySelector('.row-select-all[data-group="' + group + '"]');
+                const permissions = document.querySelectorAll('.permission-checkbox[data-group="' + group + '"]');
+
+                if (!rowToggle || permissions.length === 0) {
+                    return;
+                }
+
+                rowToggle.checked = Array.from(permissions).every(function (checkbox) {
+                    return checkbox.checked;
+                });
+            };
+
+            document.querySelectorAll('.row-select-all').forEach(function (toggle) {
+                toggle.addEventListener('change', function () {
+                    const group = this.dataset.group;
+                    document.querySelectorAll('.permission-checkbox[data-group="' + group + '"]').forEach(function (checkbox) {
+                        checkbox.checked = toggle.checked;
+                    });
+                });
+
+                syncRowToggle(toggle.dataset.group);
+            });
+
+            document.querySelectorAll('.permission-checkbox').forEach(function (checkbox) {
+                checkbox.addEventListener('change', function () {
+                    syncRowToggle(this.dataset.group);
+                });
+            });
+        });
+    </script>
     <!--end page wrapper -->
 @endsection
