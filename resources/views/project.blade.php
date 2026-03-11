@@ -30,13 +30,11 @@
                             class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
                             data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
                         </button>
-                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end"> <a class="dropdown-item"
-                                href="javascript:;">Action</a>
-                            <a class="dropdown-item" href="javascript:;">Another action</a>
-                            <a class="dropdown-item" href="javascript:;">Something else here</a>
-                            <div class="dropdown-divider"></div> <a class="dropdown-item" href="javascript:;">Separated
-                                link</a>
+                        @can('delete_projects')
+                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
+                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
                         </div>
+                        @endcan
                     </div>
                 </div>
             </div>
@@ -184,6 +182,9 @@
                                 <table id="projectsTable" class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            @can('delete_projects')
+                                            <th><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                            @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
                                             <th>Tags</th>
@@ -197,6 +198,9 @@
                                     <tbody>
                                         @forelse($projects as $project)
                                         <tr>
+                                            @can('delete_projects')
+                                            <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
+                                            @endcan
                                             <td>{{ $project->project_name }}</td>
                                             <td>{{ $project->customer->client_name ?? 'N/A' }}</td>
                                             <td>
@@ -263,7 +267,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No projects found</td>
+                                            <td colspan="9" class="text-center">No projects found</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -761,7 +765,45 @@
                 $('#projectsTable').show();
             }
         }
+
+        const selectAll = document.getElementById('select-all');
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        if (selectAll) {
+            selectAll.addEventListener('change', function() {
+                checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            });
+        }
+
+        const deleteSelectedBtn = document.getElementById('delete-selected');
+        if (deleteSelectedBtn) {
+            deleteSelectedBtn.addEventListener('click', function() {
+                let selected = [];
+                document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+                    selected.push(cb.value);
+                });
+
+                if (selected.length === 0) {
+                    alert('Please select at least one record.');
+                    return;
+                }
+
+                if (confirm('Are you sure you want to delete selected records?')) {
+                    let form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ route('delete.selected.project') }}';
+                    form.innerHTML = `
+                        @csrf
+                        <input type="hidden" name="_method" value="DELETE">
+                        <input type="hidden" name="ids" value="${selected.join(',')}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        }
     });
 </script>
 @endsection
+
+
 

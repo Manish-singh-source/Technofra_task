@@ -189,6 +189,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/project/{projectId}/issues/{issueId}', [ProjectController::class, 'updateIssue'])->name('project.issues.update')->middleware('permission:edit_projects');
         Route::delete('/project/{projectId}/issues/{issueId}', [ProjectController::class, 'destroyIssue'])->name('project.issues.destroy')->middleware('permission:edit_projects');
         Route::delete('/project/delete/{id}', [ProjectController::class, 'destroy'])->name('project.destroy')->middleware('permission:delete_projects');
+        Route::delete('/project/delete-selected', [ProjectController::class, 'deleteSelected'])->name('delete.selected.project')->middleware('permission:delete_projects');
         
         // Project File Routes
         Route::post('/project/{projectId}/upload-file', [ProjectController::class, 'uploadFile'])->name('project.upload-file')->middleware('permission:edit_projects');
@@ -295,5 +296,6 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+
 
 

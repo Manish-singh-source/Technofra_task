@@ -197,7 +197,7 @@
                                         @elseif($task->status == 'completed')
                                             <span class="badge bg-success">Completed</span>
                                         @elseif($task->status == 'on_hold')
-                                            <span class="badge bg-danger">Delayed</span>
+                                            <span class="badge bg-danger">Hold</span>
                                         @elseif($task->status == 'not_started')
                                             <span class="badge bg-secondary">Not Started</span>
                                         @elseif($task->status == 'cancelled')

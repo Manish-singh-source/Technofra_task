@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\ProjectCreatedMail;
 use App\Models\ProjectIssue;
 use App\Models\Customer;
 use App\Models\Project;
@@ -9,12 +10,14 @@ use App\Models\ProjectComment;
 use App\Models\ProjectFile;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectStatusLog;
+use App\Models\Setting;
 use App\Models\Staff;
 use App\Models\Task;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
@@ -28,10 +31,18 @@ class ProjectController extends Controller
     private function getLoggedInCustomer()
     {
         $user = Auth::user();
-        if ($user && $user->hasRole('customer')) {
-            return Customer::where('email', $user->email)->first();
+        if (!$user) {
+            return null;
         }
-        return null;
+
+        if ($user->relationLoaded('customer') && $user->customer) {
+            return $user->customer;
+        }
+
+        return Customer::query()
+            ->where('user_id', $user->id)
+            ->orWhere('email', $user->email)
+            ->first();
     }
 
     /**
@@ -39,7 +50,7 @@ class ProjectController extends Controller
      */
     private function isCustomer()
     {
-        return Auth::user() && Auth::user()->hasRole('customer');
+        return $this->getLoggedInCustomer() !== null;
     }
 
     public function index()
@@ -127,6 +138,7 @@ class ProjectController extends Controller
         }
 
         $this->createInitialStatusLog($project);
+        $this->sendProjectCreationNotifications($project);
 
         return redirect()->route('project')->with('success', 'Project created successfully!');
     }
@@ -689,6 +701,28 @@ class ProjectController extends Controller
         return redirect()->route('project')->with('success', 'Project deleted successfully!');
     }
 
+    public function deleteSelected(Request $request)
+    {
+        $ids = array_filter(explode(',', (string) $request->ids));
+
+        if (empty($ids)) {
+            return redirect()->route('project')->with('error', 'No projects selected for deletion.');
+        }
+
+        try {
+            foreach ($ids as $id) {
+                $project = Project::find($id);
+                if ($project) {
+                    $project->delete();
+                }
+            }
+
+            return redirect()->route('project')->with('success', 'Selected projects deleted successfully.');
+        } catch (\Exception $e) {
+            return redirect()->route('project')->with('error', 'Failed to delete selected projects: ' . $e->getMessage());
+        }
+    }
+
     /**
      * Store a project file
      */
@@ -777,6 +811,42 @@ class ProjectController extends Controller
         return redirect()->back()->with('success', 'File deleted successfully!');
     }
 
+    private function sendProjectCreationNotifications(Project $project): void
+    {
+        $project->loadMissing('customer');
+
+        $adminEmail = trim((string) Setting::get('company_email', ''));
+        if ($adminEmail !== '') {
+            try {
+                Mail::to($adminEmail)->send(new ProjectCreatedMail($project, 'admin'));
+            } catch (\Throwable $e) {
+                Log::error('Failed to send project creation email to admin: ' . $e->getMessage(), [
+                    'project_id' => $project->id,
+                    'admin_email' => $adminEmail,
+                ]);
+            }
+        }
+
+        $memberEmails = Staff::query()
+            ->whereIn('id', collect($project->members ?? [])->filter()->map(fn ($id) => (int) $id)->all())
+            ->whereNotNull('email')
+            ->pluck('email')
+            ->map(fn ($email) => trim((string) $email))
+            ->filter()
+            ->unique()
+            ->values();
+
+        foreach ($memberEmails as $memberEmail) {
+            try {
+                Mail::to($memberEmail)->send(new ProjectCreatedMail($project, 'member'));
+            } catch (\Throwable $e) {
+                Log::error('Failed to send project creation email to member: ' . $e->getMessage(), [
+                    'project_id' => $project->id,
+                    'member_email' => $memberEmail,
+                ]);
+            }
+        }
+    }
     /**
      * Customer's own projects - simplified view for customers
      */
@@ -803,5 +873,9 @@ class ProjectController extends Controller
     }
 
 }
+
+
+
+
 
 
