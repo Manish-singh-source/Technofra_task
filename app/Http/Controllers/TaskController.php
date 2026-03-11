@@ -233,6 +233,11 @@ class TaskController extends Controller
     private function accessibleTasksQuery(): Builder
     {
         $query = Task::query();
+
+        if ($this->isPrivilegedTaskUser()) {
+            return $query;
+        }
+
         $staffId = $this->authenticatedStaffId();
 
         if ($staffId === null) {
@@ -252,6 +257,14 @@ class TaskController extends Controller
             ->findOrFail($taskId);
     }
 
+
+    private function isPrivilegedTaskUser(): bool
+    {
+        $user = auth()->user();
+
+        return (bool) ($user && $user->hasAnyRole(['super_admin', 'admin']));
+    }
+
     private function authenticatedStaffId(): ?int
     {
         $user = auth()->user();
@@ -264,7 +277,7 @@ class TaskController extends Controller
 
     private function shouldRestrictToAssignedTasks(): bool
     {
-        return $this->authenticatedStaffId() !== null;
+        return !$this->isPrivilegedTaskUser() && $this->authenticatedStaffId() !== null;
     }
 
     private function storeTaskAttachment(int $taskId, $file): void

@@ -99,7 +99,7 @@ class ProjectController extends Controller
 
         $staff = $this->getLoggedInStaff();
         if (!$staff) {
-            return Project::query()->whereRaw('1 = 0');
+            return Project::query();
         }
 
         return Project::query()
@@ -126,7 +126,7 @@ class ProjectController extends Controller
 
         $staff = $this->getLoggedInStaff();
         if (!$staff) {
-            abort(403, $message);
+            return;
         }
 
         $memberIds = collect($project->members ?? [])
