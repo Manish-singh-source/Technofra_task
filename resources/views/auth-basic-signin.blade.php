@@ -377,9 +377,7 @@
             </div>
 
             <div class="story-copy">
-                <div class="story-kicker">What's new</div>
-                <span class="story-date">Mar 24, 2025</span>
-                <div class="story-headline">Smart CRM access built for secure client operations.</div>
+                <div class="story-headline">Work smarter with the new CRM experience.</div>
                 <div class="story-text">
                     Manage renewals, client records, tasks, and project communication from one focused workspace. Your existing login flow stays the same, only the experience is cleaner and sharper.
                 </div>
