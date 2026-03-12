@@ -539,17 +539,24 @@ class StaffController extends Controller
             // Clear permission cache
             $this->refreshPermissionCache();
 
-            // Send invitation email with login credentials
-            $staffName = $request->firstName . ' ' . $request->lastName;
-            try {
-                Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
-            } catch (\Exception $mailException) {
-                // Log the mail error but don't fail the staff creation
-                Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail');
+
+            if ($sendWelcomeEmail) {
+                $staffName = $request->firstName . ' ' . $request->lastName;
+                try {
+                    Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+                } catch (\Exception $mailException) {
+                    // Log the mail error but don't fail the staff creation
+                    Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                }
             }
 
             DB::commit();
-            return redirect()->route('staff')->with('success', 'Staff added successfully. Invitation email sent to ' . $request->email);
+            $successMessage = $sendWelcomeEmail
+                ? 'Staff added successfully. Invitation email sent to ' . $request->email
+                : 'Staff added successfully. Welcome email was not sent.';
+
+            return redirect()->route('staff')->with('success', $successMessage);
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
@@ -692,17 +699,24 @@ class StaffController extends Controller
             // Clear permission cache
             $this->refreshPermissionCache();
 
-            // Send invitation email with login credentials
-            $staffName = $request->first_name . ' ' . $request->last_name;
-            try {
-                Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
-            } catch (\Exception $mailException) {
-                // Log the mail error but don't fail the staff creation
-                Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail', true);
+
+            if ($sendWelcomeEmail) {
+                $staffName = $request->first_name . ' ' . $request->last_name;
+                try {
+                    Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+                } catch (\Exception $mailException) {
+                    // Log the mail error but don't fail the staff creation
+                    Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                }
             }
 
             DB::commit();
-            
+            return response()->json([
+                'success' => true,
+                'message' => $sendWelcomeEmail ? 'Staff created successfully. Invitation email sent.' : 'Staff created successfully. Welcome email was not sent.',
+                'data' => $staff->load('user.roles'),
+            ], 201);
             return response()->json([
                 'success' => true,
                 'message' => 'Staff created successfully. Invitation email sent.',

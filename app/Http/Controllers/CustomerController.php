@@ -70,9 +70,7 @@ class CustomerController extends Controller
         try {
             $userId = null;
 
-            // Create User for customer login if password is provided
             if ($request->password) {
-                // Check if email already exists in users table
                 $existingUser = User::where('email', $request->email)->first();
                 if ($existingUser) {
                     return back()->withErrors(['email' => 'This email is already registered as a user.'])->withInput();
@@ -86,22 +84,18 @@ class CustomerController extends Controller
 
                 $userId = $user->id;
 
-                // Assign role to user
                 $roleName = $request->role ?? 'customer';
                 $customerRole = Role::where('name', $roleName)->first();
                 if ($customerRole) {
                     $user->assignRole($customerRole);
                 } else {
-                    // Create customer role if it doesn't exist
                     $customerRole = Role::create(['name' => 'customer']);
                     $user->assignRole($customerRole);
                 }
 
-                // Clear permission cache
                 Cache::forget('spatie.permission.cache');
             }
 
-            // Create Customer record
             $customer = new Customer();
             $customer->user_id = $userId;
             $customer->client_name = $request->client_name;
@@ -126,17 +120,24 @@ class CustomerController extends Controller
             $customer->password = $request->password ? Hash::make($request->password) : null;
             $customer->save();
 
-            // Send invitation email with login credentials
-            $clientName = $request->contact_person ?: $request->client_name;
-            try {
-                Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
-            } catch (\Exception $mailException) {
-                // Log mail failure but keep customer creation successful
-                Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
+            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail');
+
+            if ($sendWelcomeEmail) {
+                $clientName = $request->contact_person ?: $request->client_name;
+                try {
+                    Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
+                } catch (\Exception $mailException) {
+                    Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
+                }
             }
 
             DB::commit();
-            return redirect()->route('clients')->with('success', 'Customer added successfully. Invitation email sent to ' . $request->email);
+
+            $successMessage = $sendWelcomeEmail
+                ? 'Customer added successfully. Invitation email sent to ' . $request->email
+                : 'Customer added successfully. Welcome email was not sent.';
+
+            return redirect()->route('clients')->with('success', $successMessage);
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Failed to create customer: ' . $e->getMessage());
@@ -341,19 +342,16 @@ class CustomerController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create User
             $user = User::create([
                 'name' => $request->client_name,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
             ]);
 
-            // Assign role
             $roleName = $request->role ?? 'customer';
             $role = Role::firstOrCreate(['name' => $roleName]);
             $user->assignRole($role);
 
-            // Create Customer
             $customer = Customer::create([
                 'user_id' => $user->id,
                 'client_name' => $request->client_name,
@@ -380,19 +378,21 @@ class CustomerController extends Controller
 
             Cache::forget('spatie.permission.cache');
 
-            // Send invitation email with login credentials
-            $clientName = $request->contact_person ?: $request->client_name;
-            try {
-                Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
-            } catch (\Exception $mailException) {
-                // Log mail failure but keep API creation successful
-                Log::error('Failed to send client invitation email via API: ' . $mailException->getMessage());
+            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail', true);
+
+            if ($sendWelcomeEmail) {
+                $clientName = $request->contact_person ?: $request->client_name;
+                try {
+                    Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
+                } catch (\Exception $mailException) {
+                    Log::error('Failed to send client invitation email via API: ' . $mailException->getMessage());
+                }
             }
 
             DB::commit();
             return response()->json([
                 'success' => true,
-                'message' => 'Customer created successfully. Invitation email sent.',
+                'message' => $sendWelcomeEmail ? 'Customer created successfully. Invitation email sent.' : 'Customer created successfully. Welcome email was not sent.',
                 'data' => $customer->load('user.roles'),
             ], 201);
         } catch (\Exception $e) {

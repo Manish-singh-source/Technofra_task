@@ -934,17 +934,12 @@
                             </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
-                            {{-- <li><a class="dropdown-item d-flex align-items-center" href="{{ route('user-profile')}}"><i class="bx bx-user fs-5"></i><span>Profile</span></a>
-							</li> --}}
-                            {{-- <li>
-								<div class="dropdown-divider mb-0"></div>
-							</li> --}}
                             <li>
                                 <form method="POST" action="{{ route('logout') }}" class="d-inline">
                                     @csrf
                                     <button type="submit" class="dropdown-item d-flex align-items-center"
                                         style="border: none; background: none; width: 100%; text-align: left;">
-                                        <i class="bx bx-log-out-circle"></i><span>Logout</span>
+                                        <i class="bx bx-log-out-circle fs-5"></i><span>Logout</span>
                                     </button>
                                 </form>
                             </li>

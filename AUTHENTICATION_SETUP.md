@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     // ... other protected routes
 });
 ```
+unse call karke bat kar lo or offer leter ka bhi puch lo kab tak aayega us hisab se resign date dalna padegathik
 
 ### 3. Updated Blade Templates
 
@@ -57,6 +58,9 @@ Route::middleware('auth')->group(function () {
 - Added old input values
 - Added remember me functionality
 - Added Bootstrap validation classes
+
+usko bol dete hu 20 se join 
+fir letter ke  thike bol do fir 
 
 #### Master Layout (`resources/views/layout/master.blade.php`)
 - Updated user dropdown to show authenticated user's name and email
@@ -87,6 +91,10 @@ The existing `users` table migration is used with fields:
 - `password` (hashed)
 - `created_at` (timestamp)
 - `updated_at` (timestamp)
+
+
+hostinger se hosting liya 
+
 
 ## How to Test
 
@@ -136,6 +144,9 @@ php artisan serve
 - `POST /login` - Process login
 - `POST /register` - Process registration  
 - `POST /logout` - Process logout
+vaha se replay aaya ha ki 23 ko kyu 
+aapne bola tha ki jada se jada 1 week ho sakt hai
+maine bola ok maam i cwill call 1.30
 
 ## Security Features
 
@@ -157,8 +168,21 @@ You can customize the authentication system by:
 
 ## Error Handling
 
+sun na kya karu main kya matlab join kar lo bol do offer mil gaya hai achha 
+
 The system includes comprehensive error handling:
 - Form validation errors are displayed with Bootstrap styling
 - Success messages are shown after successful operations
 - Failed login attempts show appropriate error messages
 - Database errors are handled gracefully
+
+
+yeha se kaise jau
+
+
+sir bolunga natak karega fir jada hua to bolega ka kar ke jao haa vo bolege hi ki kam pura kar ke jana aisa 
+
+
+vaha mujhe bla hai ki 1 week tak join kar lo
+haa to fir aap yaha pe bata ke nikal lo sidha 
+aapclhal thi agar aapko bole ki notice period karna padega to bolna ki salary cut kar lena notice period ki aur nikal lena 

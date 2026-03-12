@@ -128,7 +128,7 @@
                                         </div>
                                         <div class="col-12">
                                             <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="sendWelcomeEmail" id="sendWelcomeEmail">
+                                                <input class="form-check-input" type="checkbox" name="sendWelcomeEmail" id="sendWelcomeEmail" value="1" {{ old('sendWelcomeEmail') ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="sendWelcomeEmail">
                                                     Send Welcome Email
                                                 </label>
