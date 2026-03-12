@@ -50,6 +50,8 @@ class RoleSeeder extends Seeder
             
             // Dashboard
             'view_dashboard',
+            'view_dashboard_welcome',
+            'view_calendar',
             'view_renewals',
             
             // Vendor Management
@@ -111,6 +113,8 @@ class RoleSeeder extends Seeder
                 'edit_leads',
                 'delete_leads',
                 'view_dashboard',
+                'view_dashboard_welcome',
+                'view_calendar',
                 'view_renewals',
                 'view_vendors',
                 'create_vendors',
@@ -149,6 +153,8 @@ class RoleSeeder extends Seeder
                 'create_leads',
                 'edit_leads',
                 'view_dashboard',
+                'view_dashboard_welcome',
+                'view_calendar',
                 'view_renewals',
                 'view_vendors',
                 'create_vendors',
@@ -177,6 +183,8 @@ class RoleSeeder extends Seeder
                 'create_leads',
                 'edit_leads',
                 'view_dashboard',
+                'view_dashboard_welcome',
+                'view_calendar',
                 'view_renewals',
                 'view_vendors',
                 'view_services',
@@ -214,3 +222,6 @@ class RoleSeeder extends Seeder
         }
     }
 }
+
+
+

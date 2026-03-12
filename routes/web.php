@@ -124,7 +124,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Calendar Event routes
-    Route::prefix('calendar')->name('calendar.')->group(function () {
+    Route::prefix('calendar')->name('calendar.')->middleware('permission:view_calendar|view_dashboard')->group(function () {
         Route::get('/events', [CalendarEventController::class, 'getEvents'])->name('events');
         Route::post('/events', [CalendarEventController::class, 'store'])->name('store');
         Route::get('/events/{id}', [CalendarEventController::class, 'show'])->name('show');
@@ -296,6 +296,8 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+
+
 
 
 

@@ -103,7 +103,7 @@
 						<thead class="table-light">
 							<tr>
 								<th><input class="form-check-input" type="checkbox" id="select-all"></th>
-								<th>ID</th>
+								{{-- <th>ID</th> --}}
 								<th>Vendor Name</th>
 								<th>Service Name</th>
 								<th>Plan Type</th>
@@ -119,11 +119,11 @@
 								<tr>
 									<td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                                      value="{{ $service->id }}"></td>
-									<td>
-										<div class="d-flex align-items-center">
-											<h6 class="mb-0 font-14">{{ $loop->iteration }}</h6>
-										</div>
-									</td>
+                                    {{-- <td>
+                                        <div class="d-flex align-items-center">
+                                            <h6 class="mb-0 font-14">{{ $loop->iteration }}</h6>
+                                        </div>
+                                    </td> --}}
 									<td>{{ $service->vendor->name ?? 'N/A' }}</td>
 									<td>{{ $service->service_name }}</td>
 									<td>{{ ucfirst($service->plan_type) }}</td>
@@ -250,3 +250,6 @@
 <!--Start Back To Top Button-->
 <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 @endsection
+
+
+

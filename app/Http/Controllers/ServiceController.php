@@ -27,7 +27,6 @@ class ServiceController extends Controller
     {
         $query = Service::with(['client', 'vendor'])->whereNotNull('client_id');
 
-        // Apply date range filtering
         if ($request->filled('from_date')) {
             $query->where('billing_date', '>=', $request->from_date);
         }
@@ -40,8 +39,6 @@ class ServiceController extends Controller
 
         return view('services.index', compact('services'));
     }
-
-
 
     /**
      * Show the form for creating a new resource.
@@ -65,13 +62,14 @@ class ServiceController extends Controller
      */
     public function store(Request $request)
     {
-        // Validate the request
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|exists:clients,id',
             'services' => 'required|array|min:1',
             'services.*.vendor_id' => 'required|exists:vendors,id',
             'services.*.service_name' => 'required|string|max:255',
             'services.*.service_details' => 'nullable|string',
+            'services.*.remark_text' => 'nullable|string|max:100',
+            'services.*.remark_color' => 'nullable|in:yellow,red,green,blue,gray|required_with:services.*.remark_text',
             'services.*.start_date' => 'required|date',
             'services.*.end_date' => 'required|date|after_or_equal:services.*.start_date',
             'services.*.billing_date' => 'required|date',
@@ -83,6 +81,7 @@ class ServiceController extends Controller
             'services.*.vendor_id.required' => 'Please select a vendor for each service.',
             'services.*.vendor_id.exists' => 'Selected vendor does not exist.',
             'services.*.service_name.required' => 'Service name is required.',
+            'services.*.remark_color.required_with' => 'Please select a remark color when remark text is provided.',
             'services.*.start_date.required' => 'Start date is required.',
             'services.*.end_date.required' => 'End date is required.',
             'services.*.end_date.after_or_equal' => 'End date must be after or equal to start date.',
@@ -97,13 +96,14 @@ class ServiceController extends Controller
                 ->withInput();
         }
 
-        // Create multiple services
         foreach ($request->services as $serviceData) {
             Service::create([
                 'client_id' => $request->client_id,
                 'vendor_id' => $serviceData['vendor_id'],
                 'service_name' => $serviceData['service_name'],
                 'service_details' => $serviceData['service_details'] ?? null,
+                'remark_text' => $serviceData['remark_text'] ?? null,
+                'remark_color' => $serviceData['remark_color'] ?? null,
                 'start_date' => $serviceData['start_date'],
                 'end_date' => $serviceData['end_date'],
                 'billing_date' => $serviceData['billing_date'],
@@ -152,12 +152,13 @@ class ServiceController extends Controller
     {
         $service = Service::whereNotNull('client_id')->findOrFail($id);
 
-        // Validate the request
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|exists:clients,id',
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
+            'remark_text' => 'nullable|string|max:100',
+            'remark_color' => 'nullable|in:yellow,red,green,blue,gray|required_with:remark_text',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'billing_date' => 'required|date',
@@ -166,6 +167,7 @@ class ServiceController extends Controller
             'client_id.required' => 'Please select a client.',
             'vendor_id.required' => 'Please select a vendor.',
             'service_name.required' => 'Service name is required.',
+            'remark_color.required_with' => 'Please select a remark color when remark text is provided.',
             'start_date.required' => 'Start date is required.',
             'end_date.required' => 'End date is required.',
             'end_date.after_or_equal' => 'End date must be after or equal to start date.',
@@ -180,12 +182,13 @@ class ServiceController extends Controller
                 ->withInput();
         }
 
-        // Update the service
         $service->update([
             'client_id' => $request->client_id,
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
+            'remark_text' => $request->remark_text,
+            'remark_color' => $request->remark_color,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'billing_date' => $request->billing_date,

@@ -409,6 +409,61 @@ class ProjectController extends Controller
             'closed' => $issues->where('status', 'closed')->count(),
         ];
 
+
+        $completedTasks = $tasks->where('status', 'completed')->count();
+        $inProgressTasks = $tasks->where('status', 'in_progress')->count();
+        $overdueTasks = $tasks->filter(function ($task) {
+            return $task->deadline
+                && $task->deadline->isPast()
+                && !in_array($task->status, ['completed', 'cancelled'], true);
+        })->count();
+        $notStartedTasks = $tasks->where('status', 'not_started')->count();
+        $doneMilestones = $milestoneStats['completed'] ?? 0;
+        $resolvedIssues = ($issueStats['resolved'] ?? 0) + ($issueStats['closed'] ?? 0);
+
+        $progressSignals = [
+            $totalTasks > 0 ? ($completedTasks / $totalTasks) * 100 : null,
+            ($milestoneStats['total'] ?? 0) > 0 ? (($doneMilestones / $milestoneStats['total']) * 100) : null,
+            ($issueStats['total'] ?? 0) > 0 ? (($resolvedIssues / $issueStats['total']) * 100) : null,
+        ];
+
+        if ($project->status === 'completed') {
+            $overallProgress = 100;
+        } elseif ($project->status === 'cancelled') {
+            $overallProgress = 0;
+        } else {
+            $availableProgressSignals = array_values(array_filter($progressSignals, function ($value) {
+                return $value !== null;
+            }));
+
+            if (!empty($availableProgressSignals)) {
+                $overallProgress = (int) round(array_sum($availableProgressSignals) / count($availableProgressSignals));
+            } else {
+                $overallProgress = match ($project->status) {
+                    'in_progress' => 45,
+                    'on_hold' => 20,
+                    default => 0,
+                };
+            }
+        }
+
+        $overallProgress = max(0, min(100, $overallProgress));
+        $remainingTasks = max($totalTasks - $completedTasks, 0);
+        $projectProgress = [
+            'overall' => $overallProgress,
+            'completed_tasks' => $completedTasks,
+            'in_progress_tasks' => $inProgressTasks,
+            'overdue_tasks' => $overdueTasks,
+            'remaining_tasks' => $remainingTasks,
+            'not_started_tasks' => $notStartedTasks,
+            'total_tasks' => $totalTasks,
+            'completed_milestones' => $doneMilestones,
+            'total_milestones' => $milestoneStats['total'] ?? 0,
+            'resolved_issues' => $resolvedIssues,
+            'total_issues' => $issueStats['total'] ?? 0,
+        ];
+
+
         // Get project comments
         $projectComments = ProjectComment::where('project_id', $id)
             ->with('user')
@@ -433,7 +488,8 @@ class ProjectController extends Controller
             'usageChartData',
             'weeklyActivityLabels',
             'weeklyActivityData',
-            'totalTasks'
+            'totalTasks',
+            'projectProgress'
         ));
     }
 
@@ -943,6 +999,7 @@ class ProjectController extends Controller
     }
 
 }
+
 
 
 

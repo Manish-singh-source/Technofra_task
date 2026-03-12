@@ -177,6 +177,7 @@ class PermissionController extends Controller
             'services',
             'vendors',
             'dashboard',
+            'calendar',
         ];
     }
 
@@ -221,3 +222,5 @@ class PermissionController extends Controller
         ]);
     }
 }
+
+

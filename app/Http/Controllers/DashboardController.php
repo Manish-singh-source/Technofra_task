@@ -2,14 +2,16 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Service;
 use App\Models\ClientIssue;
-use App\Models\Project;
-use App\Models\Task;
 use App\Models\Lead;
+use App\Models\Project;
+use App\Models\Service;
 use App\Models\Staff;
+use App\Models\Task;
+use App\Models\VendorService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
@@ -21,7 +23,6 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        // Get current date
         $today = Carbon::today();
         $weekFromNow = $today->copy()->addWeek();
         $fiveDaysFromNow = $today->copy()->addDays(5);
@@ -29,7 +30,6 @@ class DashboardController extends Controller
         $totalProjects = Project::count();
         $totalTasks = Task::count();
 
-        // Build monthly project/task summary for last 12 months
         $startMonth = $today->copy()->startOfMonth()->subMonths(11);
         $endMonth = $today->copy()->endOfMonth();
 
@@ -62,7 +62,6 @@ class DashboardController extends Controller
             $projectSummaryTasks[] = (int) ($taskCountsByMonth[$monthKey] ?? 0);
         }
 
-        // Build task status summary for dashboard doughnut chart
         $taskStatusOrder = ['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled'];
         $taskStatusLabels = [
             'not_started' => 'Not Started',
@@ -100,7 +99,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // Build leads summary for Leads Overview chart
         $leadStatusOrder = ['new', 'contacted', 'qualified', 'converted', 'lost'];
         $leadStatusLabels = [
             'new' => 'New',
@@ -138,7 +136,6 @@ class DashboardController extends Controller
             ];
         }
 
-        // Team availability: completed tasks by staff (weekly / monthly / yearly)
         $staffMembers = Staff::orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
         $weekStart = $today->copy()->startOfWeek();
         $monthStart = $today->copy()->startOfMonth();
@@ -201,31 +198,39 @@ class DashboardController extends Controller
             $teamCountMap
         ));
 
-        // Calculate renewal statistics
-        $totalRenewals = Service::count();
+        $clientRenewalsDueThisWeek = Service::whereNotNull('client_id')->whereBetween('end_date', [$today, $weekFromNow])->count();
+        $vendorRenewalsDueThisWeek = VendorService::whereBetween('end_date', [$today, $weekFromNow])->count();
+        $renewalsDueThisWeek = $clientRenewalsDueThisWeek + $vendorRenewalsDueThisWeek;
 
-        // Renewals due this week (services ending within 7 days)
-        $renewalsDueThisWeek = Service::whereBetween('end_date', [$today, $weekFromNow])->count();
+        $clientOverdueRenewals = Service::whereNotNull('client_id')->where('end_date', '<', $today)->count();
+        $vendorOverdueRenewals = VendorService::where('end_date', '<', $today)->count();
+        $overdueRenewals = $clientOverdueRenewals + $vendorOverdueRenewals;
 
-        // Overdue renewals (services that ended before today)
-        $overdueRenewals = Service::where('end_date', '<', $today)->count();
+        $totalRenewals = Service::whereNotNull('client_id')->count() + VendorService::count();
 
-        // Combined critical renewals (overdue + upcoming in next 5 days)
-        $criticalRenewals = Service::with(['client', 'vendor'])
-            ->where(function($query) use ($today, $fiveDaysFromNow) {
-                $query->where('end_date', '<', $today) // Overdue
-                      ->orWhereBetween('end_date', [$today, $fiveDaysFromNow]); // Upcoming
-            })
-            ->orderByRaw('CASE WHEN end_date < ? THEN 0 ELSE 1 END, end_date ASC', [$today])
-            ->get();
+        $clientCriticalRenewals = $this->orderCriticalRenewals(
+            $this->applyCriticalRenewalWindow(
+                Service::with(['client', 'vendor'])->whereNotNull('client_id'),
+                $today,
+                $fiveDaysFromNow
+            ),
+            $today
+        )->get();
 
-        // Get support tickets (client issues) - Recent 10
+        $vendorCriticalRenewals = $this->orderCriticalRenewals(
+            $this->applyCriticalRenewalWindow(
+                VendorService::with('vendor'),
+                $today,
+                $fiveDaysFromNow
+            ),
+            $today
+        )->get();
+
         $supportTickets = ClientIssue::with(['project', 'customer'])
             ->orderBy('created_at', 'DESC')
             ->limit(10)
             ->get();
 
-        // Get notification data
         $renewalNotifications = NotificationService::getUrgentNotifications(10);
         $notificationCounts = NotificationService::getNotificationCounts();
         $hasCriticalNotifications = NotificationService::hasCriticalNotifications();
@@ -236,7 +241,12 @@ class DashboardController extends Controller
             'totalRenewals',
             'renewalsDueThisWeek',
             'overdueRenewals',
-            'criticalRenewals',
+            'clientRenewalsDueThisWeek',
+            'vendorRenewalsDueThisWeek',
+            'clientOverdueRenewals',
+            'vendorOverdueRenewals',
+            'clientCriticalRenewals',
+            'vendorCriticalRenewals',
             'supportTickets',
             'projectSummaryLabels',
             'projectSummaryProjects',
@@ -256,4 +266,22 @@ class DashboardController extends Controller
             'hasCriticalNotifications'
         ));
     }
+
+    private function applyCriticalRenewalWindow(Builder $query, Carbon $today, Carbon $windowEnd): Builder
+    {
+        return $query->where(function (Builder $query) use ($today, $windowEnd) {
+            $query->where('end_date', '<', $today)
+                ->orWhereBetween('end_date', [$today, $windowEnd]);
+        });
+    }
+
+    private function orderCriticalRenewals(Builder $query, Carbon $today): Builder
+    {
+        return $query->orderByRaw(
+            'CASE WHEN end_date < ? THEN 0 ELSE 1 END, end_date ASC',
+            [$today->toDateString()]
+        );
+    }
 }
+
+

@@ -20,7 +20,8 @@ class CalendarEventController extends Controller
     public function getEvents(Request $request)
     {
         try {
-            $events = CalendarEvent::active()
+            $events = $this->userEventsQuery()
+                ->active()
                 ->with('creator')
                 ->get()
                 ->map(function ($event) {
@@ -160,7 +161,9 @@ class CalendarEventController extends Controller
     public function show($id)
     {
         try {
-            $event = CalendarEvent::with('creator')->findOrFail($id);
+            $event = $this->userEventsQuery()
+                ->with('creator')
+                ->findOrFail($id);
 
             return response()->json([
                 'success' => true,
@@ -244,7 +247,7 @@ class CalendarEventController extends Controller
 
         DB::beginTransaction();
         try {
-            $event = CalendarEvent::findOrFail($id);
+            $event = $this->userEventsQuery()->findOrFail($id);
             $eventDateTime = Carbon::parse($request->event_date . ' ' . $request->event_time);
 
             if ($this->hasSchedulingConflict($eventDateTime, $event->id)) {
@@ -299,7 +302,7 @@ class CalendarEventController extends Controller
     {
         DB::beginTransaction();
         try {
-            $event = CalendarEvent::findOrFail($id);
+            $event = $this->userEventsQuery()->findOrFail($id);
             $eventTitle = $event->title;
 
             $event->delete();
@@ -341,7 +344,7 @@ class CalendarEventController extends Controller
 
         DB::beginTransaction();
         try {
-            $event = CalendarEvent::findOrFail($request->id);
+            $event = $this->userEventsQuery()->findOrFail($request->id);
             $event->status = $request->status;
             $event->save();
 
@@ -359,7 +362,7 @@ class CalendarEventController extends Controller
 
     private function hasSchedulingConflict(Carbon $eventDateTime, ?int $exceptEventId = null): bool
     {
-        return CalendarEvent::query()
+        return $this->userEventsQuery()
             ->where('status', 1)
             ->when($exceptEventId, function ($query, $exceptEventId) {
                 $query->where('id', '!=', $exceptEventId);
@@ -369,6 +372,11 @@ class CalendarEventController extends Controller
                 self::APPOINTMENT_BUFFER_MINUTES,
             ])
             ->exists();
+    }
+
+    private function userEventsQuery()
+    {
+        return CalendarEvent::query()->where('created_by', Auth::id());
     }
 
     private function logActivity(string $message, ?CalendarEvent $event = null): void

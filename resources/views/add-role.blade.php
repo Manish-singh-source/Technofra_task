@@ -1,39 +1,19 @@
 @extends('layout.master')
 
 @section('content')
-    <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
-            <!--breadcrumb-->
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="breadcrumb-title pe-3">Roles</div>
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0 p-0">
-                            <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a>
-                            </li>
+                            <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a></li>
                             <li class="breadcrumb-item active" aria-current="page">Add Role</li>
                         </ol>
                     </nav>
                 </div>
-                <div class="ms-auto">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary">Settings</button>
-                        <button type="button"
-                            class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
-                            data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end"> <a class="dropdown-item"
-                                href="javascript:;">Action</a>
-                            <a class="dropdown-item" href="javascript:;">Another action</a>
-                            <a class="dropdown-item" href="javascript:;">Something else here</a>
-                            <div class="dropdown-divider"></div> <a class="dropdown-item" href="javascript:;">Separated
-                                link</a>
-                        </div>
-                    </div>
-                </div>
             </div>
-            <!--end breadcrumb-->
 
             <div class="card">
                 <div class="card-body p-4">
@@ -78,6 +58,19 @@
                                                                 </div>
                                                                 @endif
                                                             @endforeach
+                                                            @if($module === 'dashboard')
+                                                                @foreach(['view_dashboard_welcome', 'view_calendar'] as $extraPermissionName)
+                                                                    @php
+                                                                        $extraPermission = $permissions->where('name', $extraPermissionName)->first();
+                                                                    @endphp
+                                                                    @if($extraPermission)
+                                                                    <div class="form-check">
+                                                                        <input class="form-check-input permission-checkbox" data-group="{{ $module }}" type="checkbox" name="permissions[]" value="{{ $extraPermission->id }}" id="{{ $extraPermissionName }}">
+                                                                        <label class="form-check-label" for="{{ $extraPermissionName }}">{{ ucfirst(str_replace('_', ' ', $extraPermissionName)) }}</label>
+                                                                    </div>
+                                                                    @endif
+                                                                @endforeach
+                                                            @endif
                                                         </td>
                                                         <td class="text-center">
                                                             <input class="form-check-input row-select-all" type="checkbox" data-group="{{ $module }}" aria-label="Select all {{ ucfirst(str_replace('_', ' ', $module)) }} permissions">
@@ -114,7 +107,7 @@
                                     </div>
                                 </div>
                             </div>
-                        </div><!--end row-->
+                        </div>
                     </form>
                 </div>
             </div>
@@ -153,5 +146,4 @@
             });
         });
     </script>
-    <!--end page wrapper -->
 @endsection

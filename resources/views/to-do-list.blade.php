@@ -42,6 +42,14 @@
                 <label for="todoDescription" class="form-label fw-semibold">Description</label>
                 <textarea id="todoDescription" class="form-control todo-description-area" rows="4"></textarea>
                 <div id="todoFormError" class="text-danger small mt-2 d-none">Description is required.</div>
+                <div class="mt-3">
+                    <label for="todoImage" class="form-label fw-semibold">Image</label>
+                    <input id="todoImage" type="file" class="form-control" accept="image/*">
+                    <div class="form-text">JPG, PNG, WEBP image select kar sakte ho.</div>
+                    <div id="todoImagePreviewWrap" class="todo-image-preview-wrap d-none">
+                        <img id="todoImagePreview" src="" alt="Todo image preview" class="todo-image-preview">
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
@@ -167,6 +175,29 @@
         min-height: 92px;
     }
 
+    .todo-image-preview-wrap {
+        margin-top: 12px;
+    }
+
+    .todo-image-preview,
+    .todo-item-image {
+        display: block;
+        max-width: 100%;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 1px solid #d9e1ee;
+    }
+
+    .todo-image-preview {
+        max-height: 220px;
+    }
+
+    .todo-item-image {
+        width: 180px;
+        max-height: 140px;
+        margin: 10px 0 0 26px;
+    }
+
     @media (max-width: 768px) {
         .todo-content {
             font-size: 14px;
@@ -174,6 +205,10 @@
 
         .todo-time {
             font-size: 12px;
+        }
+
+        .todo-item-image {
+            width: calc(100% - 26px);
         }
     }
 </style>
@@ -190,11 +225,15 @@ document.addEventListener('DOMContentLoaded', function () {
     const openTodoModalBtn = document.getElementById('openTodoModal');
     const saveTodoBtn = document.getElementById('saveTodoBtn');
     const todoDescription = document.getElementById('todoDescription');
+    const todoImage = document.getElementById('todoImage');
+    const todoImagePreview = document.getElementById('todoImagePreview');
+    const todoImagePreviewWrap = document.getElementById('todoImagePreviewWrap');
     const todoFormError = document.getElementById('todoFormError');
     const todoModalLabel = document.getElementById('todoModalLabel');
 
     let todos = readTodos();
     let editTodoId = null;
+    let selectedImageData = '';
 
     render();
 
@@ -213,12 +252,14 @@ document.addEventListener('DOMContentLoaded', function () {
             const target = todos.find(function (todo) { return todo.id === editTodoId; });
             if (target) {
                 target.description = description;
+                target.image = selectedImageData || '';
                 target.updatedAt = new Date().toISOString();
             }
         } else {
             todos.push({
                 id: String(Date.now()),
                 description: description,
+                image: selectedImageData || '',
                 completed: false,
                 createdAt: new Date().toISOString(),
                 completedAt: null
@@ -233,6 +274,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     todoModalEl.addEventListener('hidden.bs.modal', function () {
         resetModalState();
+    });
+
+    todoImage.addEventListener('change', function (event) {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            selectedImageData = '';
+            syncImagePreview('');
+            return;
+        }
+
+        if (!file.type || file.type.indexOf('image/') !== 0) {
+            event.target.value = '';
+            selectedImageData = '';
+            syncImagePreview('');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function (loadEvent) {
+            selectedImageData = String(loadEvent.target && loadEvent.target.result ? loadEvent.target.result : '');
+            syncImagePreview(selectedImageData);
+        };
+        reader.readAsDataURL(file);
     });
 
     unfinishedList.addEventListener('click', function (event) {
@@ -274,7 +338,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (isFinishedList && target.classList.contains('todo-content')) {
-            // Keep finish area consistent with screenshot behavior (read-only text click).
             return;
         }
     }
@@ -283,6 +346,9 @@ document.addEventListener('DOMContentLoaded', function () {
         editTodoId = null;
         todoModalLabel.textContent = 'Add New Todo';
         todoDescription.value = '';
+        selectedImageData = '';
+        todoImage.value = '';
+        syncImagePreview('');
         todoFormError.classList.add('d-none');
         todoModal.show();
         setTimeout(function () { todoDescription.focus(); }, 180);
@@ -292,6 +358,9 @@ document.addEventListener('DOMContentLoaded', function () {
         editTodoId = todo.id;
         todoModalLabel.textContent = 'Edit Todo';
         todoDescription.value = todo.description;
+        selectedImageData = todo.image || '';
+        todoImage.value = '';
+        syncImagePreview(selectedImageData);
         todoFormError.classList.add('d-none');
         todoModal.show();
         setTimeout(function () { todoDescription.focus(); }, 180);
@@ -300,6 +369,9 @@ document.addEventListener('DOMContentLoaded', function () {
     function resetModalState() {
         editTodoId = null;
         todoDescription.value = '';
+        todoImage.value = '';
+        selectedImageData = '';
+        syncImagePreview('');
         todoFormError.classList.add('d-none');
         todoModalLabel.textContent = 'Add New Todo';
     }
@@ -348,6 +420,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     '<input class="form-check-input todo-check todo-toggle" type="checkbox" ' + (todo.completed ? 'checked' : '') + '>',
                     '<div class="todo-content ' + (todo.completed ? 'is-done' : '') + '">' + escapeHtml(todo.description) + '</div>',
                 '</div>',
+                todo.image ? '<img src="' + escapeHtml(todo.image) + '" alt="Todo image" class="todo-item-image">' : '',
                 '<div class="todo-time">' + formatDateTime(stamp) + '</div>',
                 '<div class="todo-actions">',
                     '<button type="button" class="todo-edit" title="Edit"><i class="bx bx-edit-alt"></i></button>',
@@ -372,6 +445,17 @@ document.addEventListener('DOMContentLoaded', function () {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    function syncImagePreview(src) {
+        if (src) {
+            todoImagePreview.src = src;
+            todoImagePreviewWrap.classList.remove('d-none');
+            return;
+        }
+
+        todoImagePreview.src = '';
+        todoImagePreviewWrap.classList.add('d-none');
     }
 });
 </script>

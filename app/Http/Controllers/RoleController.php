@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Illuminate\Support\Facades\Cache;
 
 class RoleController extends Controller
@@ -24,7 +24,14 @@ class RoleController extends Controller
             'view_company_information',
             'view_email_settings'
         ];
-        return view('add-role', compact('permissions', 'modules', 'settingsPermissions'));
+        $welcomePermissions = [
+            'view_dashboard_welcome'
+        ];
+        $calendarPermissions = [
+            'view_calendar'
+        ];
+
+        return view('add-role', compact('permissions', 'modules', 'settingsPermissions', 'welcomePermissions', 'calendarPermissions'));
     }
 
     public function store(Request $request)
@@ -41,7 +48,6 @@ class RoleController extends Controller
             $role->syncPermissions($permissions);
         }
 
-        // Clear permission cache
         Cache::forget('spatie.permission.cache');
 
         return redirect()->route('roles')->with('success', 'Role created successfully.');
@@ -57,9 +63,15 @@ class RoleController extends Controller
             'view_company_information',
             'view_email_settings'
         ];
+        $welcomePermissions = [
+            'view_dashboard_welcome'
+        ];
+        $calendarPermissions = [
+            'view_calendar'
+        ];
         $rolePermissions = $role->permissions->pluck('id')->toArray();
-        
-        return view('edit-role', compact('role', 'permissions', 'modules', 'settingsPermissions', 'rolePermissions'));
+
+        return view('edit-role', compact('role', 'permissions', 'modules', 'settingsPermissions', 'welcomePermissions', 'calendarPermissions', 'rolePermissions'));
     }
 
     public function update(Request $request, $id)
@@ -80,7 +92,6 @@ class RoleController extends Controller
             $role->syncPermissions([]);
         }
 
-        // Clear permission cache
         Cache::forget('spatie.permission.cache');
 
         return redirect()->route('roles')->with('success', 'Role updated successfully.');
@@ -91,19 +102,15 @@ class RoleController extends Controller
         $role = Role::findOrFail($id);
         $role->delete();
 
-        // Clear permission cache
         Cache::forget('spatie.permission.cache');
 
         return redirect()->route('roles')->with('success', 'Role deleted successfully.');
     }
 
-    /**
-     * Delete selected roles.
-     */
     public function deleteSelected(Request $request)
     {
         $ids = explode(',', $request->ids);
-        
+
         if (empty($ids)) {
             return redirect()->route('roles')->with('error', 'No roles selected for deletion.');
         }
@@ -115,10 +122,9 @@ class RoleController extends Controller
                     $role->delete();
                 }
             }
-            
-            // Clear permission cache
+
             Cache::forget('spatie.permission.cache');
-            
+
             return redirect()->route('roles')->with('success', 'Selected roles deleted successfully.');
         } catch (\Exception $e) {
             return redirect()->route('roles')->with('error', 'Failed to delete selected roles: ' . $e->getMessage());

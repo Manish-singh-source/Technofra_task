@@ -181,36 +181,55 @@
 						<h5 class="mb-0">Project Progress</h5>
 					</div>
 					<div class="card-body">
+						@php
+							$progressBarClass = $projectProgress['overall'] >= 100
+								? 'bg-success'
+								: ($projectProgress['overall'] >= 60
+									? 'bg-primary'
+									: ($projectProgress['overall'] >= 30 ? 'bg-warning' : 'bg-danger'));
+						@endphp
 						<div class="mb-3">
 							<div class="d-flex justify-content-between mb-1">
 								<span class="font-13">Overall Progress</span>
-								<span class="font-13">75%</span>
+								<span class="font-13">{{ $projectProgress['overall'] }}%</span>
 							</div>
 							<div class="progress" style="height: 8px;">
-								<div class="progress-bar bg-success" style="width: 75%"></div>
+								<div class="progress-bar {{ $progressBarClass }}" style="width: {{ $projectProgress['overall'] }}%"></div>
 							</div>
+							<small class="text-muted d-block mt-2">
+								{{ $projectProgress['completed_tasks'] }} of {{ $projectProgress['total_tasks'] }} tasks done,
+								{{ $projectProgress['completed_milestones'] }} of {{ $projectProgress['total_milestones'] }} milestones closed,
+								{{ $projectProgress['resolved_issues'] }} of {{ $projectProgress['total_issues'] }} issues resolved.
+							</small>
 						</div>
-						<div class="row text-center">
-							<div class="col-4">
+						<div class="row text-center g-3">
+							<div class="col-6 col-lg-3">
 								<div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white mx-auto mb-2" style="width: 40px; height: 40px;">
 									<i class='bx bx-check'></i>
 								</div>
-								<h4 class="text-success mb-0">15</h4>
+								<h4 class="text-success mb-0">{{ $projectProgress['completed_tasks'] }}</h4>
 								<small class="text-muted font-13">Tasks Completed</small>
 							</div>
-							<div class="col-4">
+							<div class="col-6 col-lg-3">
 								<div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white mx-auto mb-2" style="width: 40px; height: 40px;">
 									<i class='bx bx-loader-alt'></i>
 								</div>
-								<h4 class="text-warning mb-0">5</h4>
+								<h4 class="text-warning mb-0">{{ $projectProgress['in_progress_tasks'] }}</h4>
 								<small class="text-muted font-13">Tasks In Progress</small>
 							</div>
-							<div class="col-4">
+							<div class="col-6 col-lg-3">
 								<div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white mx-auto mb-2" style="width: 40px; height: 40px;">
 									<i class='bx bx-time-five'></i>
 								</div>
-								<h4 class="text-danger mb-0">2</h4>
+								<h4 class="text-danger mb-0">{{ $projectProgress['overdue_tasks'] }}</h4>
 								<small class="text-muted font-13">Tasks Overdue</small>
+							</div>
+							<div class="col-6 col-lg-3">
+								<div class="widgets-icons-2 rounded-circle bg-gradient-quepal text-white mx-auto mb-2" style="width: 40px; height: 40px;">
+									<i class='bx bx-list-ul'></i>
+								</div>
+								<h4 class="text-primary mb-0">{{ $projectProgress['remaining_tasks'] }}</h4>
+								<small class="text-muted font-13">Tasks Remaining</small>
 							</div>
 						</div>
 					</div>
@@ -1318,4 +1337,5 @@ function editIssue(button) {
 @endpush
 
 @endsection
+
 

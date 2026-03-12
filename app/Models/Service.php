@@ -19,6 +19,8 @@ class Service extends Model
         'vendor_id',
         'service_name',
         'service_details',
+        'remark_text',
+        'remark_color',
         'start_date',
         'end_date',
         'billing_date',
@@ -66,6 +68,18 @@ class Service extends Model
             'expired' => 'danger',
             'pending' => 'warning',
             default => 'primary'
+        };
+    }
+
+    public function getRemarkBadgeStyleAttribute(): string
+    {
+        return match($this->remark_color) {
+            'yellow' => 'background-color: #fff3cd; color: #664d03; border-color: #ffec99;',
+            'red' => 'background-color: #f8d7da; color: #842029; border-color: #f1aeb5;',
+            'green' => 'background-color: #d1e7dd; color: #0f5132; border-color: #a3cfbb;',
+            'blue' => 'background-color: #cfe2ff; color: #084298; border-color: #9ec5fe;',
+            'gray' => 'background-color: #e2e3e5; color: #41464b; border-color: #c4c8cb;',
+            default => 'background-color: #fff3cd; color: #664d03; border-color: #ffec99;',
         };
     }
 }
