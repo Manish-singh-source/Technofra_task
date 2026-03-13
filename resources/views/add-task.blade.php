@@ -5,7 +5,7 @@
     <div class="page-content">
         <h6 class="text-uppercase">Add Task</h6>
         <hr>
-        <div class="card">
+        <div class="card">`````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````````  
             <div class="card-body p-4">
                 <h5 class="mb-4">Add Task</h5>
                 <form action="{{ route('add-task.store') }}" method="POST" class="row g-3" enctype="multipart/form-data">
