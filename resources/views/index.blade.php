@@ -132,7 +132,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @forelse($clientCriticalRenewals as $service)
+                                            @forelse($clientCriticalRenewals->take(5) as $service)
                                                 @php
                                                     $today = \Carbon\Carbon::today();
                                                     $daysLeft = $today->diffInDays($service->end_date, false);
@@ -234,7 +234,7 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @forelse($vendorCriticalRenewals as $service)
+                                            @forelse($vendorCriticalRenewals->take(5) as $service)
                                                 @php
                                                     $today = \Carbon\Carbon::today();
                                                     $daysLeft = $today->diffInDays($service->end_date, false);
@@ -1146,6 +1146,7 @@
     </script>
 @endpush
 @endcan
+
 
 
 

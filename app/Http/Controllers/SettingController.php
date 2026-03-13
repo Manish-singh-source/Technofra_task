@@ -65,32 +65,16 @@ class SettingController extends Controller
             // Update company name
             Setting::set('company_name', $request->company_name, 'text');
 
-            // Handle logo upload
             if ($request->hasFile('crm_logo')) {
-                // Delete old logo if exists
-                $oldLogo = Setting::get('crm_logo');
-                if ($oldLogo && Storage::exists('public/settings/' . $oldLogo)) {
-                    Storage::delete('public/settings/' . $oldLogo);
-                }
-
+                $this->deleteGeneralAsset(Setting::get('crm_logo'));
                 $logo = $request->file('crm_logo');
-                $logoName = 'logo_' . time() . '.' . $logo->getClientOriginalExtension();
-                $logo->storeAs('public/settings', $logoName);
-                Setting::set('crm_logo', $logoName, 'image');
+                Setting::set('crm_logo', $this->storeGeneralAsset($logo, 'logo'), 'image');
             }
 
-            // Handle favicon upload
             if ($request->hasFile('favicon')) {
-                // Delete old favicon if exists
-                $oldFavicon = Setting::get('favicon');
-                if ($oldFavicon && Storage::exists('public/settings/' . $oldFavicon)) {
-                    Storage::delete('public/settings/' . $oldFavicon);
-                }
-
+                $this->deleteGeneralAsset(Setting::get('favicon'));
                 $favicon = $request->file('favicon');
-                $faviconName = 'favicon_' . time() . '.' . $favicon->getClientOriginalExtension();
-                $favicon->storeAs('public/settings', $faviconName);
-                Setting::set('favicon', $faviconName, 'image');
+                Setting::set('favicon', $this->storeGeneralAsset($favicon, 'favicon'), 'image');
             }
 
             DB::commit();
@@ -517,6 +501,54 @@ class SettingController extends Controller
 
         if (str_starts_with($raw, 'team-icons/') && Storage::disk('public')->exists($raw)) {
             Storage::disk('public')->delete($raw);
+        }
+    }
+
+    private function storeGeneralAsset($file, string $prefix): string
+    {
+        $destinationPath = public_path('uploads/settings');
+        if (!is_dir($destinationPath)) {
+            mkdir($destinationPath, 0755, true);
+        }
+
+        $fileName = uniqid($prefix . '_', true) . '.' . strtolower($file->getClientOriginalExtension());
+        $file->move($destinationPath, $fileName);
+
+        return 'uploads/settings/' . $fileName;
+    }
+
+    private function deleteGeneralAsset(?string $path): void
+    {
+        $normalized = Setting::normalizeGeneralAssetPath((string) $path);
+        if ($normalized !== '') {
+            $publicFile = public_path($normalized);
+            if (is_file($publicFile)) {
+                @unlink($publicFile);
+            }
+        }
+
+        $raw = trim(str_replace('\\', '/', (string) $path));
+        $raw = ltrim($raw, '/');
+        if ($raw === '') {
+            return;
+        }
+
+        if (str_starts_with($raw, 'public/')) {
+            $raw = substr($raw, 7);
+        }
+
+        $legacyCandidates = [];
+        if (basename($raw) !== '') {
+            $legacyCandidates[] = 'settings/' . basename($raw);
+        }
+        if (str_starts_with($raw, 'settings/')) {
+            $legacyCandidates[] = $raw;
+        }
+
+        foreach (array_unique($legacyCandidates) as $legacyPath) {
+            if (Storage::disk('public')->exists($legacyPath)) {
+                Storage::disk('public')->delete($legacyPath);
+            }
         }
     }
 

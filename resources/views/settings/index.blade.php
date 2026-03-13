@@ -140,10 +140,13 @@
                                                 @error('crm_logo')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
-                                                @if(!empty($settings['crm_logo']) && Storage::exists('public/settings/' . $settings['crm_logo']))
+                                                @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['crm_logo'] ?? ''))
+                                                @if($crmLogoUrl)
                                                 <div class="mt-2">
-                                                    <img src="{{ Storage::url('public/settings/' . $settings['crm_logo']) }}" alt="CRM Logo" style="max-height: 60px;" class="img-thumbnail">
+                                                    <img src="{{ $crmLogoUrl }}" alt="CRM Logo" style="max-height: 60px;" class="img-thumbnail">
                                                 </div>
+                                                @elseif(!empty($settings['crm_logo']))
+                                                <div class="mt-2 text-warning small">CRM logo image not found. Please upload again.</div>
                                                 @endif
                                             </div>
                                             
@@ -154,10 +157,13 @@
                                                 @error('favicon')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
-                                                @if(!empty($settings['favicon']) && Storage::exists('public/settings/' . $settings['favicon']))
+                                                @php($faviconUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['favicon'] ?? ''))
+                                                @if($faviconUrl)
                                                 <div class="mt-2">
-                                                    <img src="{{ Storage::url('public/settings/' . $settings['favicon']) }}" alt="Favicon" style="max-height: 32px;" class="img-thumbnail">
+                                                    <img src="{{ $faviconUrl }}" alt="Favicon" style="max-height: 32px;" class="img-thumbnail">
                                                 </div>
+                                                @elseif(!empty($settings['favicon']))
+                                                <div class="mt-2 text-warning small">Favicon image not found. Please upload again.</div>
                                                 @endif
                                             </div>
                                             
@@ -475,17 +481,13 @@
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'renewal' ? 'show active' : '' }}" id="renewal" role="tabpanel">
                                     <h5 class="card-title">Renewal Manage</h5>
                                     <hr />
-                                    @php
-                                        $renewalEnabledRaw = old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1');
-                                        $renewalEnabled = !in_array(strtolower((string) $renewalEnabledRaw), ['0', 'false', 'off', 'no'], true);
-                                    @endphp
                                     <form action="{{ route('settings.update.renewal') }}" method="POST">
                                         @csrf
                                         @method('PUT')
                                         <div class="row g-3">
                                             <div class="col-12">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="renewal_notifications_enabled" name="renewal_notifications_enabled" value="1" {{ $renewalEnabled ? 'checked' : '' }}>
+                                                    <input class="form-check-input" type="checkbox" id="renewal_notifications_enabled" name="renewal_notifications_enabled" value="1" {{ !in_array(strtolower((string) old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
                                                     <label class="form-check-label" for="renewal_notifications_enabled">Enable Daily Renewal Email Notifications</label>
                                                 </div>
                                             </div>
@@ -562,21 +564,15 @@
                                                                     </button>
                                                                 </div>
                                                             </div>
-                                                            @php
-                                                                $teamIconPath = trim((string) ($teamRow['icon_path'] ?? ''));
-                                                                $teamIconPath = ltrim(str_replace('\\', '/', $teamIconPath), '/');
-                                                                $teamIconUrl = '';
-
-                                                                if ($teamIconPath !== '') {
-                                                                    if (str_starts_with($teamIconPath, 'uploads/') && file_exists(public_path($teamIconPath))) {
-                                                                        $teamIconUrl = asset($teamIconPath);
-                                                                    } elseif (str_starts_with($teamIconPath, 'team-icons/') && Storage::disk('public')->exists($teamIconPath)) {
-                                                                        $teamIconUrl = Storage::url($teamIconPath);
-                                                                    } elseif (file_exists(public_path($teamIconPath))) {
-                                                                        $teamIconUrl = asset($teamIconPath);
-                                                                    }
-                                                                }
-                                                            @endphp
+                                                            @php($teamIconPath = ltrim(str_replace('\\', '/', trim((string) ($teamRow['icon_path'] ?? ''))), '/'))
+                                                            @php($teamIconUrl = '')
+                                                            @if($teamIconPath !== '' && str_starts_with($teamIconPath, 'uploads/') && file_exists(public_path($teamIconPath)))
+                                                                @php($teamIconUrl = asset($teamIconPath))
+                                                            @elseif($teamIconPath !== '' && str_starts_with($teamIconPath, 'team-icons/') && \Illuminate\Support\Facades\Storage::disk('public')->exists($teamIconPath))
+                                                                @php($teamIconUrl = \Illuminate\Support\Facades\Storage::url($teamIconPath))
+                                                            @elseif($teamIconPath !== '' && file_exists(public_path($teamIconPath)))
+                                                                @php($teamIconUrl = asset($teamIconPath))
+                                                            @endif
                                                             @if($teamIconUrl !== '')
                                                                 <div class="mt-2">
                                                                     <img src="{{ $teamIconUrl }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
@@ -976,4 +972,5 @@ $(document).ready(function() {
 });
 </script>
 @endpush
+
 

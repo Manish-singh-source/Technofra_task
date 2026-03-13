@@ -364,11 +364,12 @@
         <aside class="auth-story">
             <div class="brand-lockup">
                  <div>
-                    @if(!empty($globalSettings['crm_logo']) && Storage::exists('public/settings/' . $globalSettings['crm_logo']))
-                        <img src="{{ Storage::url('public/settings/' . $globalSettings['crm_logo']) }}" class="logo-icon" alt="logo">
-                    @else
-                        <img src="{{ asset('assets/images/logo-icon.png') }}" class="logo-icon" alt="logo icon">
-                    @endif
+                    @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['crm_logo'] ?? ''))
+                 @if($crmLogoUrl)
+                     <img src="{{ $crmLogoUrl }}" class="logo-icon" alt="logo">
+                 @else
+                     <img src="{{ asset('assets/images/logo-icon.png') }}" class="logo-icon" alt="logo icon">
+                 @endif
                 </div>
                 <div>
                     <p class="brand-title mb-0">{{ $globalSettings['company_name'] ?? 'Technofra' }}</p>
@@ -393,8 +394,9 @@
             <div class="auth-card">
                 <div class="auth-card-inner">
                     <div class="text-center mb-3">
-                        @if(!empty($globalSettings['crm_logo']) && Storage::exists('public/settings/' . $globalSettings['crm_logo']))
-                            <img src="{{ Storage::url('public/settings/' . $globalSettings['crm_logo']) }}" class="mb-3" alt="logo" style="max-height: 54px; width: auto;">
+                        @php($crmLogoUrl = $crmLogoUrl ?? \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['crm_logo'] ?? ''))
+                        @if($crmLogoUrl)
+                            <img src="{{ $crmLogoUrl }}" class="mb-3" alt="logo" style="max-height: 54px; width: auto;">
                         @else
                             <img src="{{ asset('assets/images/logo-icon.png') }}" class="mb-3" alt="logo icon" style="max-height: 54px; width: auto;">
                         @endif
@@ -489,8 +491,4 @@
     <script src="{{ asset('assets/js/app.js') }}"></script>
 </body>
 </html>
-
-
-
-
 

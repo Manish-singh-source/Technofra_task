@@ -7,8 +7,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!--favicon-->
-    @if(!empty($globalSettings['favicon']) && Storage::exists('public/settings/' . $globalSettings['favicon']))
-        <link rel="icon" href="{{ Storage::url('public/settings/' . $globalSettings['favicon']) }}" type="image/png" />
+    @php($faviconUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['favicon'] ?? ''))
+    @if($faviconUrl)
+        <link rel="icon" href="{{ $faviconUrl }}" type="image/png" />
     @else
         <link rel="icon" href="{{ asset('assets/images/favicon-32x32.png') }}"  type="image/png" />
     @endif
@@ -146,8 +147,9 @@
         <div class="sidebar-wrapper" data-simplebar="true">
             <div class="sidebar-header">
                 <div>
-                    @if(!empty($globalSettings['crm_logo']) && Storage::exists('public/settings/' . $globalSettings['crm_logo']))
-                        <img src="{{ Storage::url('public/settings/' . $globalSettings['crm_logo']) }}" class="logo-icon" alt="logo">
+                    @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['crm_logo'] ?? ''))
+                    @if($crmLogoUrl)
+                        <img src="{{ $crmLogoUrl }}" class="logo-icon" alt="logo">
                     @else
                         <img src="{{ asset('assets/images/logo-icon.png') }}" class="logo-icon" alt="logo icon">
                     @endif
@@ -1372,5 +1374,4 @@
 <script src='../../../../img1.wsimg.com/signals/js/clients/scc-c2/scc-c2.min.js'></script>
 
 </html>
-
 
