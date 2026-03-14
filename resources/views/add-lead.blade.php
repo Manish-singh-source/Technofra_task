@@ -48,15 +48,10 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="source" class="form-label">Source</label>
-                                            <select class="form-select" id="source" name="source">
-                                                <option value="">Select Source</option>
-                                                <option value="website" {{ old('source') == 'website' ? 'selected' : '' }}>Website</option>
-                                                <option value="referral" {{ old('source') == 'referral' ? 'selected' : '' }}>Referral</option>
-                                                <option value="social_media" {{ old('source') == 'social_media' ? 'selected' : '' }}>Social Media</option>
-                                                <option value="cold_call" {{ old('source') == 'cold_call' ? 'selected' : '' }}>Cold Call</option>
-                                                <option value="email_campaign" {{ old('source') == 'email_campaign' ? 'selected' : '' }}>Email Campaign</option>
-                                                <option value="other" {{ old('source') == 'other' ? 'selected' : '' }}>Other</option>
-                                            </select>
+                                            <input type="text" class="form-control @error('source') is-invalid @enderror" id="source" name="source" placeholder="Enter source" value="{{ old('source') }}">
+                                            @error('source')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="status" class="form-label">Status</label>
@@ -172,17 +167,7 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="country" class="form-label">Country</label>
-                                            <select class="form-select @error('country') is-invalid @enderror" id="country" name="country">
-                                                <option value="">Select Country</option>
-                                                <option value="US" {{ old('country') == 'US' ? 'selected' : '' }}>United States</option>
-                                                <option value="UK" {{ old('country') == 'UK' ? 'selected' : '' }}>United Kingdom</option>
-                                                <option value="IN" {{ old('country') == 'IN' ? 'selected' : '' }}>India</option>
-                                                <option value="CA" {{ old('country') == 'CA' ? 'selected' : '' }}>Canada</option>
-                                                <option value="AU" {{ old('country') == 'AU' ? 'selected' : '' }}>Australia</option>
-                                                <option value="DE" {{ old('country') == 'DE' ? 'selected' : '' }}>Germany</option>
-                                                <option value="FR" {{ old('country') == 'FR' ? 'selected' : '' }}>France</option>
-                                                <option value="other" {{ old('country') == 'other' ? 'selected' : '' }}>Other</option>
-                                            </select>
+                                            <input type="text" class="form-control @error('country') is-invalid @enderror" id="country" name="country" placeholder="Enter country" value="{{ old('country') }}">
                                             @error('country')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror

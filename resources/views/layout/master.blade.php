@@ -185,29 +185,6 @@
      </ul>
     </li> -->
         <li class="menu-label">Master</li>
-        @can('view_staff')
-        <li>
-            <a href="javascript:;" class="has-arrow">
-                <div class="parent-icon"><i class="bx bx-user-circle"></i>
-                </div>
-                <div class="menu-title">Access Control</div>
-            </a>
-            <ul>
-                
-                @can('view_roles')
-                <li>
-                    <a href="{{ route('roles') }}">
-                        <div class="parent-icon">
-
-                        </div>
-                        <div class="menu-title">Roles</div>
-                    </a>
-                </li>
-                @endcan
-
-            </ul>
-        </li>
-        @endcan
         @can('view_renewals')
         <li>
             <a href="javascript:;" class="has-arrow">
@@ -307,6 +284,28 @@
                             </div>
                             <div class="menu-title">Client</div>
                         </a>
+                    </li>
+                    @endcan
+                    @can('view_staff')
+                    <li>
+                        <a href="javascript:;" class="has-arrow">
+                            <div class="parent-icon"><i class="bx bx-user-circle"></i>
+                            </div>
+                            <div class="menu-title">Access Control</div>
+                        </a>
+                        <ul>
+                            @can('view_roles')
+                            <li>
+                                <a href="{{ route('roles') }}">
+                                    <div class="parent-icon">
+
+                                    </div>
+                                    <div class="menu-title">Roles</div>
+                                </a>
+                            </li>
+                            @endcan
+
+                        </ul>
                     </li>
                     @endcan
                     @can('view_general_settings')
@@ -955,7 +954,7 @@
         @yield('content')
 
         <footer class="page-footer">
-            <p class="mb-0">Copyright © 2026 Technofra. All right reserved.</p>
+            <p class="mb-0">Copyright &copy; 2026 Technofra. All right reserved.</p>
         </footer>
     </div>
     <!--end wrapper-->

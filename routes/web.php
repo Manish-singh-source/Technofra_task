@@ -17,6 +17,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\TagController;
+use App\Http\Controllers\TodoController;
 use App\Http\Controllers\VendorServiceController;
 use App\Http\Controllers\VendorController;
 use Illuminate\Support\Facades\Route;
@@ -68,9 +69,12 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/add-vendor', [VendorController::class, 'create'])->name('add-vendor')->middleware('permission:create_vendors');
 
-    Route::get('/to-do-list', function () {
-        return view('to-do-list');
-    })->name('to-do-list');
+    Route::get('/to-do-list', [TodoController::class, 'index'])->name('to-do-list');
+    Route::get('/todos', [TodoController::class, 'list'])->name('todos.list');
+    Route::post('/todos', [TodoController::class, 'store'])->name('todos.store');
+    Route::put('/todos/{todo}', [TodoController::class, 'update'])->name('todos.update');
+    Route::delete('/todos/{todo}', [TodoController::class, 'destroy'])->name('todos.destroy');
+    Route::patch('/todos/{todo}/status', [TodoController::class, 'toggleStatus'])->name('todos.status');
 
     // Backward-compatible route (menu currently uses app-to-do)
     Route::get('/app-to-do', function () {
@@ -296,6 +300,7 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+
 
 
 

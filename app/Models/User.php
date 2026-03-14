@@ -51,6 +51,11 @@ class User extends Authenticatable
         return $this->hasOne(Staff::class);
     }
 
+    public function todos()
+    {
+        return $this->hasMany(Todo::class);
+    }
+
     /**
      * Get the customer record associated with the user.
      */
@@ -96,3 +101,5 @@ class User extends Authenticatable
         return 'admin';
     }
 }
+
+

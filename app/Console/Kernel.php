@@ -18,6 +18,7 @@ class Kernel extends ConsoleKernel
     {
         // Check notifications every minute so selected event time is not missed.
         $schedule->command('calendar:send-notifications')->everyMinute();
+        $schedule->command('todos:send-reminders')->everyMinute();
 
         $dailyNotificationTime = '16:00';
         try {
@@ -46,3 +47,6 @@ class Kernel extends ConsoleKernel
         require base_path('routes/console.php');
     }
 }
+
+
+

@@ -2,6 +2,7 @@
 @section('content')
     @php
         $taskTabs = [
+            'all' => ['label' => 'All', 'table_id' => 'tasksAllTable'],
             'not_started' => ['label' => 'Not Started', 'table_id' => 'tasksNotStartedTable'],
             'in_progress' => ['label' => 'In Progress', 'table_id' => 'tasksInProgressTable'],
             'on_hold' => ['label' => 'On Hold', 'table_id' => 'tasksOnHoldTable'],
@@ -43,7 +44,7 @@
                 <div class="alert alert-success">{{ session('success') }}</div>
             @endif
             @if(!empty($isRestrictedToAssignedTasks))
-                <div class="alert alert-info">Aapko sirf wahi tasks dikh rahe hain jo aapko assign kiye gaye hain.</div>
+                {{-- <div class="alert alert-info">Aapko sirf wahi tasks dikh rahe hain jo aapko assign kiye gaye hain.</div> --}}
             @endif
 
             <div class="row mb-3">
@@ -146,7 +147,7 @@
                     <div class="tab-content mt-3" id="taskTabsContent">
                         @foreach($taskTabs as $statusKey => $tab)
                             @php
-                                $statusTasks = $tasks->where('status', $statusKey);
+                                $statusTasks = $statusKey === 'all' ? $tasks : $tasks->where('status', $statusKey);
                             @endphp
                             <div class="tab-pane fade {{ $loop->first ? 'show active' : '' }}" id="{{ $statusKey }}" role="tabpanel" aria-labelledby="{{ $statusKey }}-tab">
                                 <div class="table-responsive">
@@ -331,4 +332,5 @@
         });
     </script>
 @endsection
+
 
