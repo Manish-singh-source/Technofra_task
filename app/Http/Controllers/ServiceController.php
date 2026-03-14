@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Client;
 use App\Models\Service;
 use App\Models\Vendor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -25,6 +26,9 @@ class ServiceController extends Controller
 
     public function index(Request $request)
     {
+        $today = Carbon::today()->toDateString();
+        $fiveDaysFromNow = Carbon::today()->addDays(5)->toDateString();
+
         $query = Service::with(['client', 'vendor'])->whereNotNull('client_id');
 
         if ($request->filled('from_date')) {
@@ -35,7 +39,14 @@ class ServiceController extends Controller
             $query->where('billing_date', '<=', $request->to_date);
         }
 
-        $services = $query->latest()->get();
+        $services = $query
+            ->orderByRaw(
+                "CASE WHEN end_date <= ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END",
+                [$today, $today, $fiveDaysFromNow]
+            )
+            ->orderBy('end_date')
+            ->latest('created_at')
+            ->get();
 
         return view('services.index', compact('services'));
     }
@@ -214,3 +225,4 @@ class ServiceController extends Controller
             ->with('success', 'Service deleted successfully!');
     }
 }
+

@@ -112,7 +112,12 @@
                         </thead>
                         <tbody>
                             @forelse($services as $service)
-                                <tr>
+                                @php
+                                    $today = \Carbon\Carbon::today();
+                                    $daysLeft = $today->diffInDays($service->end_date, false);
+                                    $isCriticalRenewal = $daysLeft <= 5;
+                                @endphp
+                                <tr class="{{ $isCriticalRenewal ? 'table-danger' : '' }}">
                                     <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                                     value="{{ $service->id }}"></td>
                                     {{-- <td>
@@ -242,6 +247,4 @@
 <div class="overlay toggle-icon"></div>
 <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 @endsection
-
-
 
