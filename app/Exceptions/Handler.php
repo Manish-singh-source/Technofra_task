@@ -59,7 +59,7 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $exception)
     {
-        if ($exception instanceof ValidationException) {
+        if ($exception instanceof ValidationException && $request->expectsJson()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Validation error',
@@ -73,10 +73,14 @@ class Handler extends ExceptionHandler
 
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        return response()->json([
-            'success' => false,
-            'message' => 'Token not provided or invalid',
-            'errors' => null,
-        ], 401);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Token not provided or invalid',
+                'errors' => null,
+            ], 401);
+        }
+
+        return redirect()->guest(route('login'));
     }
 }
