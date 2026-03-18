@@ -1,9 +1,8 @@
 <?php
 
-use App\Http\Controllers\AuthController;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\PermissionController;
-use App\Http\Controllers\RoleController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -20,20 +19,20 @@ use Illuminate\Support\Facades\Route;
 */
 
 // Public API routes (no authentication required)
-Route::prefix('auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'apiLogin']);
-    Route::post('/register', [AuthController::class, 'apiRegister']);
+Route::prefix('/v1')->group(function () {
+    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/login', [AuthController::class, 'login']);
 });
 
 // Protected API routes (require authentication)
 Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
-    Route::prefix('auth')->group(function () {
-        Route::post('/logout', [AuthController::class, 'apiLogout']);
-        Route::get('/user', [AuthController::class, 'apiUser']);
-        Route::post('/refresh-token', [AuthController::class, 'apiRefreshToken']);
+    Route::prefix('/v1')->group(function () {
+        Route::get('/me', [AuthController::class, 'me']);
+        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/logout-all', [AuthController::class, 'logoutAll']);
     });
-
+    
     // Staff API routes
     Route::prefix('staff')->group(function () {
         Route::get('/', [StaffController::class, 'apiIndex'])->middleware('permission:view_staff');
