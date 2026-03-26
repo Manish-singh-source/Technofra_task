@@ -99,27 +99,16 @@
                                         </div>
                                         <div class="col-12">
                                             <label class="form-label">Member Departments</label>
+                                            @php($selectedDepartments = old('departments', []))
+                                            @forelse($departments as $department)
                                             <div class="form-check">
                                                 <input class="form-check-input" type="checkbox" name="departments[]"
-                                                    value="Admin">
-                                                <label class="form-check-label">Admin</label>
+                                                    value="{{ $department }}" {{ in_array($department, $selectedDepartments ?? [], true) ? 'checked' : '' }}>
+                                                <label class="form-check-label">{{ $department }}</label>
                                             </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="departments[]"
-                                                    value="Web Developers">
-                                                <label class="form-check-label">Web Developers</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="departments[]"
-                                                    value="Design and Graphics">
-                                                <label class="form-check-label">Design and Graphics</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" name="departments[]"
-                                                    value="Seo Developer">
-                                                <label class="form-check-label">Seo Developer</label>
-                                            </div>
-
+                                            @empty
+                                            <div class="text-muted small">No departments found. Please add departments from Settings first.</div>
+                                            @endforelse
                                         </div>
                                         <div class="col-12">
                                             <label for="password" class="form-label">Password <span class="text-danger">*</span> <small class="text-muted">(Minimum 8 characters)</small></label>

@@ -148,6 +148,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/staff', [StaffController::class, 'index'])->name('staff')->middleware('permission:view_staff');
         Route::delete('/staff/delete/{id}', [StaffController::class, 'destroy'])->name('staff.destroy')->middleware('permission:delete_staff');
         Route::delete('/staff/delete-selected', [StaffController::class, 'deleteSelected'])->name('delete.selected.staff')->middleware('permission:delete_staff');
+        Route::post('/staff/restore/{id}', [StaffController::class, 'restore'])->name('staff.restore')->middleware('permission:edit_staff');
+        Route::delete('/staff/force-delete/{id}', [StaffController::class, 'forceDelete'])->name('staff.force-delete')->middleware('permission:delete_staff');
         Route::get('/add-staff', [StaffController::class, 'create'])->name('add-staff')->middleware('permission:create_staff');
         Route::get('/view-staff/{id}', [StaffController::class, 'show'])->name('view-staff')->middleware('permission:view_staff');
         Route::post('/store-staff', [StaffController::class, 'store'])->name('staff.store')->middleware('permission:create_staff');
@@ -266,6 +268,7 @@ Route::middleware('auth')->group(function () {
          Route::put('/settings/email', [SettingController::class, 'updateEmail'])->name('settings.update.email')->middleware('permission:view_email_settings');
          Route::put('/settings/renewal', [SettingController::class, 'updateRenewal'])->name('settings.update.renewal')->middleware('permission:view_email_settings');
          Route::put('/settings/teams', [SettingController::class, 'updateTeams'])->name('settings.update.teams')->middleware('permission:view_general_settings');
+         Route::put('/settings/departments', [SettingController::class, 'updateDepartments'])->name('settings.update.departments')->middleware('permission:view_general_settings');
          Route::post('/settings/test-email', [SettingController::class, 'sendTestEmail'])->name('settings.test.email')->middleware('permission:view_email_settings');
          Route::get('/settings/search-tags', [SettingController::class, 'searchTags'])->name('settings.search.tags');
      });
@@ -300,6 +303,8 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+
+
 
 
 

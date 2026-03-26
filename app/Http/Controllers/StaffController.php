@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Staff;
+use App\Models\Department;
 use App\Models\Team;
 use App\Models\Project;
 use App\Models\Setting;
@@ -36,7 +37,8 @@ class StaffController extends Controller
     {
         $roles = Role::all();
         $teams = Team::getTeamOptions();
-        return view('add-staff', compact('roles', 'teams'));
+        $departments = Department::getDepartmentOptions();
+        return view('add-staff', compact('roles', 'teams', 'departments'));
     }
 
     /**
@@ -53,13 +55,14 @@ class StaffController extends Controller
      */
     public function show($id)
     {
-        $staff = Staff::with('user')->findOrFail($id);
+        $staff = Staff::withTrashed()->with('user')->findOrFail($id);
         $roles = Role::all();
         $teams = Team::getTeamOptions();
+        $departments = Department::getDepartmentOptions();
         $projects = $staff->projects()->latest()->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
         $loggedTimeStats = $this->buildStaffLoggedTimeStats($staff);
-        return view('view-staff', compact('staff', 'roles', 'teams', 'projects', 'tasks', 'loggedTimeStats'));
+        return view('view-staff', compact('staff', 'roles', 'teams', 'departments', 'projects', 'tasks', 'loggedTimeStats'));
     }
 
     private function buildStaffLoggedTimeStats(Staff $staff): array
@@ -388,84 +391,30 @@ class StaffController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $teams = Team::getTeamOptions();
-        $validator = Validator::make($request->all(), [
-            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:staff,email,' . $id,
-            'phone' => 'required|string|max:20',
-            'role' => 'required|string|max:255',
-            'status' => 'required|in:active,inactive',
-            'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
-            'departments' => 'nullable|array',
-        ]);
+        $staff = Staff::findOrFail($id);
 
+        if ($staff->trashed()) {
+            return redirect()->back()->with('error', 'Restore this staff member before updating the record.');
+        }
+
+        $validator = $this->validateStaffData($request, $id);
         if ($validator->fails()) {
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
         }
 
-        $staff = Staff::findOrFail($id);
-        
-        // Get old role and email to update user later
-        $oldRole = $staff->role;
-        $oldEmail = $staff->email;
-        
         DB::beginTransaction();
         try {
-            $updateData = [
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'role' => $request->role,
-                'status' => $request->status,
-                'team' => $request->team ?: null,
-                'departments' => $request->departments,
-            ];
+            $oldRole = $staff->role;
+            $oldEmail = $staff->email;
 
-            if ($request->hasFile('profileImage')) {
-                $image = $request->file('profileImage');
-                $imageName = time() . '_' . $staff->id . '.' . $image->getClientOriginalExtension();
-                $image->move(public_path('uploads/staff'), $imageName);
-
-                if ($staff->profile_image) {
-                    $oldImagePath = public_path('uploads/staff/' . $staff->profile_image);
-                    if (file_exists($oldImagePath)) {
-                        @unlink($oldImagePath);
-                    }
-                }
-
-                $updateData['profile_image'] = $imageName;
-            }
-
-            $staff->update($updateData);
-
-            // Update associated user
-            $user = $staff->user ?? User::where('email', $oldEmail)->first();
-            if ($user) {
-                $user->update([
-                    'name' => $request->first_name . ' ' . $request->last_name,
-                    'email' => $request->email,
-                ]);
-
-                // Update role if changed
-                if ($oldRole !== $request->role) {
-                    $user->removeRole($oldRole);
-                    $newRole = Role::where('name', $request->role)->first();
-                    if ($newRole) {
-                        $user->assignRole($newRole);
-                    }
-                }
-            }
-
-            // Clear permission cache
+            $staff->update($this->buildStaffUpdateData($request, $staff));
+            $this->syncUserForStaffUpdate($staff, $request, $oldRole, $oldEmail);
             $this->refreshPermissionCache();
-            
+
             DB::commit();
-            return redirect()->route('staff')->with('success', 'Staff updated successfully.');
+            return redirect()->route('view-staff', $staff->id)->with('success', 'Staff updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             return redirect()->back()->with('error', 'Failed to update staff: ' . $e->getMessage());
@@ -487,6 +436,8 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
+            'departments.*' => 'string|max:255',
+            'status' => ['nullable', 'string', Rule::in(['active', 'inactive'])],
             'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
         ]);
 
@@ -498,30 +449,22 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
-            // Handle profile image upload
             $profileImagePath = null;
             if ($request->hasFile('profileImage')) {
-                $image = $request->file('profileImage');
-                $ext = $image->getClientOriginalExtension();
-                $imageName = time() . "." . $ext;
-                $image->move(public_path('uploads/staff'), $imageName);
-                $profileImagePath = $imageName;
+                $profileImagePath = $this->uploadProfileImage($request->file('profileImage'));
             }
 
-            // Create User first
             $user = User::create([
                 'name' => $request->firstName . ' ' . $request->lastName,
                 'email' => $request->email,
                 'password' => Hash::make($request->password),
             ]);
 
-            // Assign role to user
             $role = Role::where('name', $request->role)->first();
             if ($role) {
                 $user->assignRole($role);
             }
 
-            // Create Staff record linked to user
             $staff = Staff::create([
                 'user_id' => $user->id,
                 'profile_image' => $profileImagePath,
@@ -531,22 +474,19 @@ class StaffController extends Controller
                 'phone' => $request->phone,
                 'role' => $request->role,
                 'password' => Hash::make($request->password),
-                'status' => 'active',
+                'status' => $request->status ?? 'active',
                 'departments' => $request->departments,
                 'team' => $request->team ?: null,
             ]);
 
-            // Clear permission cache
             $this->refreshPermissionCache();
 
             $sendWelcomeEmail = $request->boolean('sendWelcomeEmail');
-
             if ($sendWelcomeEmail) {
                 $staffName = $request->firstName . ' ' . $request->lastName;
                 try {
                     Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
                 } catch (\Exception $mailException) {
-                    // Log the mail error but don't fail the staff creation
                     Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
                 }
             }
@@ -564,27 +504,19 @@ class StaffController extends Controller
     }
 
     /**
-     * Remove the specified staff member.
+     * Soft delete the specified staff member.
      */
     public function destroy($id)
     {
         $staff = Staff::findOrFail($id);
-        
+
+        if ($staff->trashed()) {
+            return redirect()->back()->with('error', 'Staff member is already deleted.');
+        }
+
         DB::beginTransaction();
         try {
-            // Delete associated user if exists
-            if ($staff->user) {
-                $staff->user->delete();
-            } else {
-                // Fallback: find user by email
-                $user = User::where('email', $staff->email)->first();
-                if ($user) {
-                    $user->delete();
-                }
-            }
-            
-            $staff->delete();
-            
+            $this->performStaffDelete($staff, false);
             DB::commit();
             return redirect()->route('staff')->with('success', 'Staff deleted successfully.');
         } catch (\Exception $e) {
@@ -598,31 +530,24 @@ class StaffController extends Controller
      */
     public function deleteSelected(Request $request)
     {
-        $ids = explode(',', $request->ids);
-        
-        if (empty($ids)) {
+        $ids = collect(explode(',', (string) $request->ids))
+            ->map(fn ($id) => (int) trim($id))
+            ->filter()
+            ->values();
+
+        if ($ids->isEmpty()) {
             return redirect()->route('staff')->with('error', 'No staff selected for deletion.');
         }
 
         DB::beginTransaction();
         try {
-            foreach ($ids as $id) {
-                $staff = Staff::find($id);
-                if ($staff) {
-                    // Delete associated user if exists
-                    if ($staff->user) {
-                        $staff->user->delete();
-                    } else {
-                        // Fallback: find user by email
-                        $user = User::where('email', $staff->email)->first();
-                        if ($user) {
-                            $user->delete();
-                        }
-                    }
-                    $staff->delete();
+            $staffMembers = Staff::whereIn('id', $ids)->get();
+            foreach ($staffMembers as $staff) {
+                if (!$staff->trashed()) {
+                    $this->performStaffDelete($staff, false);
                 }
             }
-            
+
             DB::commit();
             return redirect()->route('staff')->with('success', 'Selected staff members deleted successfully.');
         } catch (\Exception $e) {
@@ -632,14 +557,91 @@ class StaffController extends Controller
     }
 
     /**
+     * Restore a soft deleted staff member.
+     */
+    public function restore($id)
+    {
+        $staff = Staff::withTrashed()->findOrFail($id);
+
+        if (!$staff->trashed()) {
+            return redirect()->back()->with('error', 'Staff member is already active.');
+        }
+
+        DB::beginTransaction();
+        try {
+            $staff->restore();
+            $this->refreshPermissionCache();
+
+            DB::commit();
+            return redirect()->route('view-staff', $staff->id)->with('success', 'Staff restored successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to restore staff: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Permanently delete a staff member.
+     */
+    public function forceDelete($id)
+    {
+        $staff = Staff::withTrashed()->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            $this->performStaffDelete($staff, true);
+            DB::commit();
+            return redirect()->route('staff')->with('success', 'Staff permanently deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to permanently delete staff: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * API: Get all staff members.
      */
-    public function apiIndex()
+    public function apiIndex(Request $request)
     {
-        $staff = Staff::with('user.roles')->get();
+        $staff = Staff::withTrashed()
+            ->with('user.roles')
+            ->when(!$request->boolean('include_trashed'), function ($query) {
+                $query->whereNull('deleted_at');
+            })
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $staff,
+            'data' => $staff->map(fn (Staff $member) => $this->formatStaffResource($member)),
+        ]);
+    }
+
+    /**
+     * API: Get add-staff form options.
+     */
+    public function apiFormOptions()
+    {
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'roles' => Role::query()->orderBy('name')->pluck('name')->values(),
+                'teams' => Team::getTeamOptions(),
+                'departments' => Department::getDepartmentOptions(),
+                'statuses' => ['active', 'inactive'],
+            ],
+        ]);
+    }
+
+    /**
+     * API: Show a single staff member.
+     */
+    public function apiShow($id)
+    {
+        $staff = Staff::withTrashed()->with('user.roles')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatStaffResource($staff),
         ]);
     }
 
@@ -649,7 +651,14 @@ class StaffController extends Controller
     public function apiStore(Request $request)
     {
         $teams = Team::getTeamOptions();
-        $validator = Validator::make($request->all(), [
+        $payload = array_merge($request->all(), [
+            'first_name' => $request->input('first_name', $request->input('firstName')),
+            'last_name' => $request->input('last_name', $request->input('lastName')),
+            'sendWelcomeEmail' => $request->input('sendWelcomeEmail', $request->input('send_welcome_email')),
+        ]);
+
+        $validator = Validator::make($payload, [
+            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => 'required|email|unique:staff,email|unique:users,email',
@@ -657,7 +666,10 @@ class StaffController extends Controller
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
             'departments' => 'nullable|array',
+            'departments.*' => 'string|max:255',
             'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
+            'status' => ['nullable', 'string', Rule::in(['active', 'inactive'])],
+            'sendWelcomeEmail' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -669,44 +681,46 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
-            // Create User first
+            $profileImagePath = null;
+            if ($request->hasFile('profileImage')) {
+                $profileImagePath = $this->uploadProfileImage($request->file('profileImage'));
+            }
+
             $user = User::create([
-                'name' => $request->first_name . ' ' . $request->last_name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
+                'name' => $payload['first_name'] . ' ' . $payload['last_name'],
+                'email' => $payload['email'],
+                'password' => Hash::make($payload['password']),
             ]);
 
-            // Assign role to user
-            $role = Role::where('name', $request->role)->first();
+            $role = Role::where('name', $payload['role'])->first();
             if ($role) {
                 $user->assignRole($role);
             }
 
-            // Create Staff record linked to user
             $staff = Staff::create([
                 'user_id' => $user->id,
-                'first_name' => $request->first_name,
-                'last_name' => $request->last_name,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'role' => $request->role,
-                'password' => Hash::make($request->password),
-                'status' => 'active',
-                'departments' => $request->departments,
-                'team' => $request->team ?: null,
+                'profile_image' => $profileImagePath,
+                'first_name' => $payload['first_name'],
+                'last_name' => $payload['last_name'],
+                'email' => $payload['email'],
+                'phone' => $payload['phone'],
+                'role' => $payload['role'],
+                'password' => Hash::make($payload['password']),
+                'status' => $payload['status'] ?? 'active',
+                'departments' => $payload['departments'] ?? [],
+                'team' => !empty($payload['team']) ? $payload['team'] : null,
             ]);
 
-            // Clear permission cache
             $this->refreshPermissionCache();
 
-            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail', true);
+            $sendWelcomeEmail = filter_var($payload['sendWelcomeEmail'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            $sendWelcomeEmail = $sendWelcomeEmail ?? true;
 
             if ($sendWelcomeEmail) {
-                $staffName = $request->first_name . ' ' . $request->last_name;
+                $staffName = $payload['first_name'] . ' ' . $payload['last_name'];
                 try {
-                    Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+                    Mail::to($payload['email'])->send(new StaffInviteMail($staffName, $payload['email'], $payload['password']));
                 } catch (\Exception $mailException) {
-                    // Log the mail error but don't fail the staff creation
                     Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
                 }
             }
@@ -715,12 +729,7 @@ class StaffController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => $sendWelcomeEmail ? 'Staff created successfully. Invitation email sent.' : 'Staff created successfully. Welcome email was not sent.',
-                'data' => $staff->load('user.roles'),
-            ], 201);
-            return response()->json([
-                'success' => true,
-                'message' => 'Staff created successfully. Invitation email sent.',
-                'data' => $staff->load('user.roles'),
+                'data' => $this->formatStaffResource($staff->load('user.roles')),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -730,8 +739,298 @@ class StaffController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * API: Update a staff member.
+     */
+    public function apiUpdate(Request $request, $id)
+    {
+        $staff = Staff::withTrashed()->findOrFail($id);
+
+        if ($staff->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restore this staff member before updating the record.',
+            ], 409);
+        }
+
+        $validator = $this->validateStaffData($request, $id);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $oldRole = $staff->role;
+            $oldEmail = $staff->email;
+
+            $staff->update($this->buildStaffUpdateData($request, $staff));
+            $this->syncUserForStaffUpdate($staff, $request, $oldRole, $oldEmail);
+            $this->refreshPermissionCache();
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff updated successfully.',
+                'data' => $this->formatStaffResource($staff->fresh()->load('user.roles')),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update staff: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Soft delete a staff member.
+     */
+    public function apiDestroy($id)
+    {
+        $staff = Staff::findOrFail($id);
+
+        if ($staff->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff member is already deleted.',
+            ], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            $this->performStaffDelete($staff, false);
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete staff: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Restore a soft deleted staff member.
+     */
+    public function apiRestore($id)
+    {
+        $staff = Staff::withTrashed()->findOrFail($id);
+
+        if (!$staff->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Staff member is already active.',
+            ], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            $staff->restore();
+            $this->refreshPermissionCache();
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff restored successfully.',
+                'data' => $this->formatStaffResource($staff->fresh()->load('user.roles')),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore staff: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Permanently delete a staff member.
+     */
+    public function apiForceDelete($id)
+    {
+        $staff = Staff::withTrashed()->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            $this->performStaffDelete($staff, true);
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Staff permanently deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete staff: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function validateStaffData(Request $request, int|string $id)
+    {
+        $teams = Team::getTeamOptions();
+
+        return Validator::make($request->all(), [
+            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:staff,email,' . $id,
+            'phone' => 'required|string|max:20',
+            'role' => 'required|string|max:255',
+            'status' => 'required|in:active,inactive',
+            'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
+            'departments' => 'nullable|array',
+            'departments.*' => 'string|max:255',
+        ]);
+    }
+
+    private function buildStaffUpdateData(Request $request, Staff $staff): array
+    {
+        $updateData = [
+            'first_name' => $request->first_name,
+            'last_name' => $request->last_name,
+            'email' => $request->email,
+            'phone' => $request->phone,
+            'role' => $request->role,
+            'status' => $request->status,
+            'team' => $request->team ?: null,
+            'departments' => $request->departments ?? [],
+        ];
+
+        if ($request->hasFile('profileImage')) {
+            $updateData['profile_image'] = $this->uploadProfileImage($request->file('profileImage'), $staff->profile_image, $staff->id);
+        }
+
+        return $updateData;
+    }
+
+    private function syncUserForStaffUpdate(Staff $staff, Request $request, string $oldRole, string $oldEmail): void
+    {
+        $user = $staff->user ?? User::where('email', $oldEmail)->first();
+        if (!$user) {
+            return;
+        }
+
+        $user->update([
+            'name' => $request->first_name . ' ' . $request->last_name,
+            'email' => $request->email,
+        ]);
+
+        if ($oldRole !== $request->role) {
+            if ($user->hasRole($oldRole)) {
+                $user->removeRole($oldRole);
+            }
+
+            $newRole = Role::where('name', $request->role)->first();
+            if ($newRole) {
+                $user->assignRole($newRole);
+            }
+        }
+    }
+
+    private function uploadProfileImage($image, ?string $oldImage = null, ?int $staffId = null): string
+    {
+        $extension = $image->getClientOriginalExtension();
+        $imageName = $staffId
+            ? time() . '_' . $staffId . '.' . $extension
+            : time() . '.' . $extension;
+
+        $image->move(public_path('uploads/staff'), $imageName);
+
+        if ($oldImage) {
+            $oldImagePath = public_path('uploads/staff/' . $oldImage);
+            if (file_exists($oldImagePath)) {
+                @unlink($oldImagePath);
+            }
+        }
+
+        return $imageName;
+    }
+
+    private function performStaffDelete(Staff $staff, bool $forceDelete = false): void
+    {
+        if ($forceDelete) {
+            $user = $staff->user;
+            if (!$user && $staff->email) {
+                $user = User::where('email', $staff->email)->first();
+            }
+
+            if ($staff->profile_image) {
+                $imagePath = public_path('uploads/staff/' . $staff->profile_image);
+                if (file_exists($imagePath)) {
+                    @unlink($imagePath);
+                }
+            }
+
+            $staff->forceDelete();
+
+            if ($user) {
+                $user->delete();
+            }
+
+            $this->refreshPermissionCache();
+            return;
+        }
+
+        $staff->delete();
+    }
+
+    private function formatStaffResource(Staff $staff): array
+    {
+        $staff->loadMissing('user.roles');
+
+        return [
+            'id' => $staff->id,
+            'user_id' => $staff->user_id,
+            'profile_image' => $staff->profile_image,
+            'profile_image_url' => $staff->profile_image ? asset('uploads/staff/' . $staff->profile_image) : null,
+            'first_name' => $staff->first_name,
+            'last_name' => $staff->last_name,
+            'full_name' => $staff->full_name,
+            'email' => $staff->email,
+            'phone' => $staff->phone,
+            'role' => $staff->role,
+            'status' => $staff->status,
+            'team' => $staff->team,
+            'departments' => $staff->departments ?? [],
+            'is_deleted' => $staff->trashed(),
+            'deleted_at' => optional($staff->deleted_at)?->toISOString(),
+            'created_at' => optional($staff->created_at)?->toISOString(),
+            'updated_at' => optional($staff->updated_at)?->toISOString(),
+            'user' => $staff->user ? [
+                'id' => $staff->user->id,
+                'name' => $staff->user->name,
+                'email' => $staff->user->email,
+                'roles' => $staff->user->roles->pluck('name')->values(),
+            ] : null,
+            'links' => [
+                'web' => [
+                    'view' => route('view-staff', $staff->id),
+                    'update' => route('staff.update', $staff->id),
+                    'delete' => route('staff.destroy', $staff->id),
+                    'restore' => route('staff.restore', $staff->id),
+                    'force_delete' => route('staff.force-delete', $staff->id),
+                ],
+                'api' => [
+                    'show' => url('/api/staff/' . $staff->id),
+                    'update' => url('/api/staff/' . $staff->id),
+                    'delete' => url('/api/staff/' . $staff->id),
+                    'restore' => url('/api/staff/' . $staff->id . '/restore'),
+                    'force_delete' => url('/api/staff/' . $staff->id . '/force'),
+                ],
+            ],
+        ];
+    }
 }
-
-
-
 

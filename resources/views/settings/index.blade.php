@@ -6,6 +6,9 @@
         if ($errors->any() && old('teams')) {
             $activeSettingsTab = 'teams';
         }
+        if ($errors->any() && old('departments')) {
+            $activeSettingsTab = 'departments';
+        }
 
         $availableTabs = [];
         if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'general';
@@ -13,6 +16,7 @@
         if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'email';
         if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'renewal';
         if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'teams';
+        if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'departments';
         if (!in_array($activeSettingsTab, $availableTabs, true)) {
             $activeSettingsTab = $availableTabs[0] ?? 'general';
         }
@@ -20,6 +24,10 @@
         $teamRows = old('teams', $teams ?? []);
         if (!is_array($teamRows) || count($teamRows) === 0) {
             $teamRows = [['name' => '', 'description' => '', 'icon_path' => '']];
+        }
+        $departmentRows = old('departments', $departments ?? []);
+        if (!is_array($departmentRows) || count($departmentRows) === 0) {
+            $departmentRows = [['name' => '']];
         }
     @endphp
     <!--start page wrapper -->
@@ -85,8 +93,13 @@
                                 </button>
                                 @endif
                                 @if(auth()->user()->hasPermissionTo('view_general_settings'))
-                                <button class="nav-link text-start py-3 px-3 {{ $activeSettingsTab === 'teams' ? 'active' : '' }}" id="teams-tab" data-bs-toggle="pill" data-bs-target="#teams" type="button" role="tab" aria-controls="teams" aria-selected="{{ $activeSettingsTab === 'teams' ? 'true' : 'false' }}">
+                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'teams' ? 'active' : '' }}" id="teams-tab" data-bs-toggle="pill" data-bs-target="#teams" type="button" role="tab" aria-controls="teams" aria-selected="{{ $activeSettingsTab === 'teams' ? 'true' : 'false' }}">
                                     <i class="bx bx-group me-2"></i> Teams
+                                </button>
+                                @endif
+                                @if(auth()->user()->hasPermissionTo('view_general_settings'))
+                                <button class="nav-link text-start py-3 px-3 {{ $activeSettingsTab === 'departments' ? 'active' : '' }}" id="departments-tab" data-bs-toggle="pill" data-bs-target="#departments" type="button" role="tab" aria-controls="departments" aria-selected="{{ $activeSettingsTab === 'departments' ? 'true' : 'false' }}">
+                                    <i class="bx bx-briefcase me-2"></i> Departments
                                 </button>
                                 @endif
                             </div>
@@ -607,6 +620,54 @@
                                     </form>
                                 </div>
 
+                                <!-- TAB 5: DEPARTMENTS -->
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'departments' ? 'show active' : '' }}" id="departments" role="tabpanel">
+                                    <h5 class="card-title">Department Settings</h5>
+                                    <hr />
+                                    <form action="{{ route('settings.update.departments') }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label class="form-label">Departments</label>
+                                                <div id="departments-rows" class="d-flex flex-column gap-2">
+                                                    @foreach($departmentRows as $index => $departmentRow)
+                                                        <div class="department-row border rounded p-3">
+                                                            <div class="row g-2 align-items-end">
+                                                                <div class="col-md-11">
+                                                                    <label class="form-label mb-1">Department Name</label>
+                                                                    <input type="text" class="form-control" name="departments[{{ $index }}][name]" value="{{ $departmentRow['name'] ?? '' }}" placeholder="Enter department name" required>
+                                                                </div>
+                                                                <div class="col-md-1 d-grid">
+                                                                    <button type="button" class="btn btn-outline-danger remove-department-row">
+                                                                        <i class="bx bx-trash"></i>
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                @error('departments')
+                                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                                @enderror
+                                                @error('departments.*.name')
+                                                    <div class="text-danger mt-1">{{ $message }}</div>
+                                                @enderror
+                                                <small class="text-muted d-block mt-2">Add department names that should be available in the system.</small>
+                                            </div>
+
+                                            <div class="col-12 d-flex gap-2">
+                                                <button type="button" class="btn btn-light border" id="add-department-row">
+                                                    <i class="bx bx-plus"></i> Add Department
+                                                </button>
+                                                <button type="submit" class="btn btn-primary">
+                                                    Save Departments
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+
                             </div>
                         </div>
                     </div>
@@ -801,6 +862,34 @@ $(document).ready(function() {
         $(this).closest('.team-row').remove();
     });
 
+
+    $("#add-department-row").on("click", function() {
+        const nextIndex = Date.now();
+        $("#departments-rows").append(`
+            <div class="department-row border rounded p-3">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-11">
+                        <label class="form-label mb-1">Department Name</label>
+                        <input type="text" class="form-control" name="departments[${nextIndex}][name]" placeholder="Enter department name" required>
+                    </div>
+                    <div class="col-md-1 d-grid">
+                        <button type="button" class="btn btn-outline-danger remove-department-row">
+                            <i class="bx bx-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `);
+    });
+
+    $(document).on("click", ".remove-department-row", function() {
+        const rows = $("#departments-rows .department-row");
+        if (rows.length <= 1) {
+            rows.find("input[type=\"text\"]").val("");
+            return;
+        }
+        $(this).closest(".department-row").remove();
+    });
     // Add Tag Form Submit
     $('#addTagForm').on('submit', function(e) {
         e.preventDefault();

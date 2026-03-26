@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Setting;
+use App\Models\Department;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -39,7 +40,17 @@ class SettingController extends Controller
             })
             ->values()
             ->all();
-        return view('settings.index', compact('settings', 'teams'));
+        $departments = Department::query()
+            ->orderBy('name')
+            ->get(['name'])
+            ->map(function ($department) {
+                return [
+                    'name' => (string) $department->name,
+                ];
+            })
+            ->values()
+            ->all();
+        return view('settings.index', compact('settings', 'teams', 'departments'));
     }
 
     /**
@@ -428,6 +439,65 @@ class SettingController extends Controller
         }
     }
 
+    /**
+     * Update department settings.
+     */
+    public function updateDepartments(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'departments' => 'required|array|min:1',
+            'departments.*.name' => 'required|string|max:255|distinct',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('active_settings_tab', 'departments');
+        }
+
+        try {
+            $rows = $request->input('departments', []);
+            $departments = [];
+
+            foreach ($rows as $row) {
+                $name = trim((string) ($row['name'] ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $departments[] = [
+                    'name' => $name,
+                    'is_active' => true,
+                ];
+            }
+
+            if (count($departments) === 0) {
+                return redirect()->back()
+                    ->with('error', 'At least one department is required.')
+                    ->withInput()
+                    ->with('active_settings_tab', 'departments');
+            }
+
+            DB::beginTransaction();
+            Department::query()->delete();
+            foreach ($departments as $departmentData) {
+                Department::create($departmentData);
+            }
+            DB::commit();
+
+            return redirect()->route('settings')
+                ->with('success', 'Departments updated successfully.')
+                ->with('active_settings_tab', 'departments');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()
+                ->with('error', 'Failed to update departments: ' . $e->getMessage())
+                ->withInput()
+                ->with('active_settings_tab', 'departments');
+        }
+    }
+
     private function storeTeamIcon($iconFile): string
     {
         $destinationPath = public_path('uploads/team-icons');
@@ -697,4 +767,6 @@ class SettingController extends Controller
         ]);
     }
 }
+
+
 

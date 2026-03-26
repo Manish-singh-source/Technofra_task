@@ -35,7 +35,7 @@ Now we can go through each in details:
 
 4. Staff Management: 
     - create staff: 
-        - when creating a staff we can add staffs basic details like name, email, dob, phone number, etc. 
+        - when creating a staff we can add staffs basic details like name, email, dob, phone number,Role , Status,  etc. 
         - we can choose team for that staff  (optional)
         - depending on team filter roles: we can select role for that staff 
         - generate a random password for him and send to him on mail with welcome message 
@@ -122,3 +122,127 @@ Now we can go through each in details:
         - edit data as we are filling in form of create
     - delete task 
     - view task
+10. Staff Create API Documentation
+
+    Purpose:
+    - create a staff member from app or Postman using the same data structure used by the `/add-staff` web form
+
+    Web form source:
+    - page route: `/add-staff`
+    - view file: `resources/views/add-staff.blade.php`
+    - controller method: `App\Http\Controllers\StaffController::create()`
+
+    Form fields found in add staff page:
+    - `profileImage`
+    - `firstName`
+    - `lastName`
+    - `email`
+    - `phone`
+    - `role`
+    - `status`
+    - `team`
+    - `departments[]`
+    - `password`
+    - `sendWelcomeEmail`
+
+    Where form dropdown and checkbox data comes from:
+    - roles: `Role::all()`
+    - teams: `Team::getTeamOptions()`
+    - departments: `Department::getDepartmentOptions()`
+
+    API routes created:
+    - `GET /api/staff/form-options`
+    - `POST /api/staff`
+
+    Route file:
+    - `routes/api.php`
+
+    Authentication:
+    - these APIs are inside `auth:sanctum`
+    - first login from `POST /api/v1/login`
+    - then pass `Authorization: Bearer {token}`
+
+    Why `form-options` API was added:
+    - the app also needs same roles, teams, departments as web form
+    - because of this, one API returns:
+        - roles
+        - teams
+        - departments
+        - statuses
+
+    Staff create API logic:
+    - controller method: `App\Http\Controllers\StaffController::apiStore()`
+    - accepts both:
+        - web style field names: `firstName`, `lastName`
+        - api style field names: `first_name`, `last_name`
+    - validates input
+    - uploads profile image if sent
+    - creates `users` table record
+    - assigns selected role to user
+    - creates `staff` table record
+    - optionally sends welcome email
+    - returns JSON response
+
+    Validation used in create API:
+    - `profileImage` => optional image
+    - `first_name` => required
+    - `last_name` => required
+    - `email` => required and unique in `staff` and `users`
+    - `phone` => required
+    - `role` => required
+    - `password` => required, min 8
+    - `departments` => optional array
+    - `team` => optional, but must exist in active team list
+    - `status` => optional, only `active` or `inactive`
+    - `sendWelcomeEmail` => optional boolean
+
+    Request formats supported:
+    - `multipart/form-data` for Postman or app when image upload is needed
+    - `application/json` when image is not required
+
+    Example JSON request:
+    ```json
+    {
+      "first_name": "Rahul",
+      "last_name": "Sharma",
+      "email": "rahul@example.com",
+      "phone": "9876543210",
+      "role": "admin",
+      "status": "active",
+      "team": "Web Team",
+      "departments": ["Admin", "Web Developers"],
+      "password": "Password@123",
+      "send_welcome_email": true
+    }
+    ```
+
+    Example form-data request:
+    - `profileImage` => file
+    - `firstName` => Rahul
+    - `lastName` => Sharma
+    - `email` => rahul@example.com
+    - `phone` => 9876543210
+    - `role` => admin
+    - `status` => active
+    - `team` => Web Team
+    - `departments[]` => Admin
+    - `departments[]` => Web Developers
+    - `password` => Password@123
+    - `sendWelcomeEmail` => 1
+
+    Postman testing steps:
+    - call `POST /api/v1/login`
+    - copy token from response
+    - call `GET /api/staff/form-options` to check role, team, department values
+    - call `POST /api/staff`
+    - in headers send bearer token
+    - in body send either json or form-data
+
+    Success response:
+    - `success: true`
+    - success message
+    - created staff data with user roles
+
+    Error response:
+    - `422` for validation errors
+    - `500` for server error
