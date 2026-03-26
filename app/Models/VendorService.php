@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -57,6 +58,55 @@ class VendorService extends Model
             'expired' => 'danger',
             'pending' => 'warning',
             default => 'primary'
+        };
+    }
+
+    public function getEffectiveStatusAttribute(): string
+    {
+        $today = Carbon::today();
+        $fiveDaysFromNow = $today->copy()->addDays(5);
+
+        if ($this->end_date && $this->end_date->lt($today)) {
+            return 'expired';
+        }
+
+        if ($this->end_date && $this->end_date->between($today, $fiveDaysFromNow)) {
+            return 'upcoming';
+        }
+
+        return $this->status;
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->effective_status) {
+            'upcoming' => 'Up Coming',
+            'pending' => 'Hold',
+            default => ucfirst($this->effective_status),
+        };
+    }
+
+    public function getEffectiveStatusBadgeAttribute(): string
+    {
+        return match ($this->effective_status) {
+            'active' => 'success',
+            'inactive' => 'secondary',
+            'expired' => 'danger',
+            'pending' => 'warning',
+            'upcoming' => 'info',
+            default => 'primary',
+        };
+    }
+
+    public function getTabKeyAttribute(): string
+    {
+        return match ($this->effective_status) {
+            'upcoming' => 'upcoming',
+            'active' => 'active',
+            'inactive' => 'inactive',
+            'pending' => 'pending',
+            'expired' => 'expired',
+            default => 'all',
         };
     }
 }

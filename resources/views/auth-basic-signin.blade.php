@@ -1,5 +1,6 @@
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -74,8 +75,8 @@
             color: #1b2a39;
         }
 
-        .auth-brand-accent {
-            color: var(--auth-green);
+        ..auth-brand-accent {
+            color: #0084b4;
         }
 
         .auth-brand img {
@@ -93,15 +94,14 @@
             margin: 18px 0 10px;
             font-size: clamp(2.2rem, 4vw, 3rem);
             font-weight: 700;
-            letter-spacing: 0.04em;
-            color: var(--auth-green);
+            color: #00618f;
         }
 
         .auth-divider {
             width: 48px;
             height: 4px;
             border-radius: 999px;
-            background: var(--auth-green);
+            background: #01295e;
             margin: 0 auto 20px;
         }
 
@@ -165,7 +165,7 @@
         }
 
         .form-control:focus {
-            border-color: var(--auth-green);
+            
             box-shadow: 0 0 0 0.18rem rgba(32, 201, 151, 0.15);
         }
 
@@ -231,14 +231,14 @@
             font-weight: 700;
             font-size: 1rem;
             color: #fff;
-            background: linear-gradient(180deg, #24d6a1 0%, var(--auth-green-dark) 100%);
+            background: linear-gradient(180deg, #015285 0%, #00b8e6 100%);
             box-shadow: 0 14px 26px rgba(32, 201, 151, 0.28);
         }
 
         .auth-submit:hover,
         .auth-submit:focus {
             color: #fff;
-            background: linear-gradient(180deg, #22c596 0%, #11a676 100%);
+            background: linear-gradient(180deg, #014679 0%, #00b7e5 100%);
         }
 
         .auth-footer {
@@ -258,7 +258,7 @@
         .auth-side {
             position: relative;
             overflow: hidden;
-            background: linear-gradient(180deg, #22cfa0 0%, #1ac897 100%);
+            background: linear-gradient(180deg, #00d1fe 0%, #011e53 100%);
             color: #fff;
             display: flex;
             align-items: center;
@@ -352,7 +352,7 @@
         }
 
         .auth-side-button:hover {
-            background: #fff;
+            background: #000000;
             color: var(--auth-green-dark);
         }
 
@@ -407,6 +407,7 @@
         }
     </style>
 </head>
+
 <body>
     @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['crm_logo'] ?? ''))
     @php($companyName = trim($globalSettings['company_name'] ?? 'Technofra Name'))
@@ -419,12 +420,21 @@
             <section class="auth-form-panel">
                 <div>
                     <div class="auth-brand">
-                        @if($crmLogoUrl)
+                        @if ($crmLogoUrl)
                             <img src="{{ $crmLogoUrl }}" alt="logo">
                         @endif
-                        <div>
+                        <div class="d-flex">
+                            <div>
+                                @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['crm_logo'] ?? ''))
+                                @if ($crmLogoUrl)
+                                    <img src="{{ $crmLogoUrl }}" style="max-height: 23px;" class="logo-icon" alt="logo">
+                                @else
+                                    <img src="{{ asset('assets/images/logo-icon.png') }}" style="max-height: 23px;" class="logo-icon"
+                                        alt="logo icon">
+                                @endif
+                            </div>
                             <span class="auth-brand-accent">{{ $companyFirst }}</span>
-                            <span>{{ $companyRest }}</span>
+                            {{-- <span>{{ $companyRest }}</span> --}}
                         </div>
                     </div>
 
@@ -440,21 +450,23 @@
 
                         <p class="auth-subtitle">or use your email account</p>
 
-                        @if(session('success'))
+                        @if (session('success'))
                             <div class="alert alert-success alert-dismissible fade show auth-alert" role="alert">
                                 {{ session('success') }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         @endif
 
-                        @if($errors->any())
+                        @if ($errors->any())
                             <div class="alert alert-danger alert-dismissible fade show auth-alert" role="alert">
                                 <ul class="mb-0 ps-3">
-                                    @foreach($errors->all() as $error)
+                                    @foreach ($errors->all() as $error)
                                         <li>{{ $error }}</li>
                                     @endforeach
                                 </ul>
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"
+                                    aria-label="Close"></button>
                             </div>
                         @endif
 
@@ -463,15 +475,9 @@
 
                             <div class="form-group">
                                 <label for="inputEmailAddress" class="form-label">Email</label>
-                                <input
-                                    type="email"
-                                    class="form-control @error('email') is-invalid @enderror"
-                                    id="inputEmailAddress"
-                                    name="email"
-                                    value="{{ old('email') }}"
-                                    placeholder="Enter your email"
-                                    required
-                                >
+                                <input type="email" class="form-control @error('email') is-invalid @enderror"
+                                    id="inputEmailAddress" name="email" value="{{ old('email') }}"
+                                    placeholder="Enter your email" required>
                                 @error('email')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -480,14 +486,9 @@
                             <div class="form-group">
                                 <label for="inputChoosePassword" class="form-label">Password</label>
                                 <div class="input-group" id="show_hide_password">
-                                    <input
-                                        type="password"
-                                        class="form-control @error('password') is-invalid @enderror"
-                                        id="inputChoosePassword"
-                                        name="password"
-                                        placeholder="Enter your password"
-                                        required
-                                    >
+                                    <input type="password" class="form-control @error('password') is-invalid @enderror"
+                                        id="inputChoosePassword" name="password" placeholder="Enter your password"
+                                        required>
                                     <a href="javascript:;" class="input-group-text">
                                         <i class='bx bx-hide'></i>
                                     </a>
@@ -499,7 +500,8 @@
 
                             <div class="auth-meta">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rememberCheck" name="remember" value="1" {{ old('remember') ? 'checked' : '' }}>
+                                    <input class="form-check-input" type="checkbox" id="rememberCheck" name="remember"
+                                        value="1" {{ old('remember') ? 'checked' : '' }}>
                                     <label class="form-check-label" for="rememberCheck">Remember me</label>
                                 </div>
                                 <a class="auth-link" href="{{ route('password.request') }}">Forgot Password?</a>
@@ -520,10 +522,10 @@
             <aside class="auth-side">
                 <span class="auth-side-shape" aria-hidden="true"></span>
                 <div class="auth-side-content">
-                    <h2 class="auth-side-title">Hello, Friend!</h2>
+                    <h2 class="auth-side-title text-white">Hello, Friend!</h2>
                     <div class="auth-side-divider"></div>
                     <p class="auth-side-text">Fill up personal information and start your journey with us.</p>
-                    <a href="{{ route('register') }}" class="auth-side-button">Sign Up</a>
+                    {{-- <a href="{{ route('register') }}" class="auth-side-button">Sign Up</a> --}}
                 </div>
             </aside>
         </div>
@@ -535,8 +537,8 @@
     <script src="{{ asset('assets/plugins/metismenu/js/metisMenu.min.js') }}"></script>
     <script src="{{ asset('assets/plugins/perfect-scrollbar/js/perfect-scrollbar.js') }}"></script>
     <script>
-        $(document).ready(function () {
-            $("#show_hide_password a").on('click', function (event) {
+        $(document).ready(function() {
+            $("#show_hide_password a").on('click', function(event) {
                 event.preventDefault();
                 if ($('#show_hide_password input').attr("type") == "text") {
                     $('#show_hide_password input').attr('type', 'password');
@@ -552,4 +554,6 @@
     </script>
     <script src="{{ asset('assets/js/app.js') }}"></script>
 </body>
+
 </html>
+

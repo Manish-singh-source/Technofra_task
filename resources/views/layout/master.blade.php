@@ -1159,7 +1159,10 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            $('#example').DataTable();
+            var $defaultTable = $('#example');
+            if ($defaultTable.length && !$defaultTable.is('[data-no-default-datatable]') && !$.fn.DataTable.isDataTable($defaultTable)) {
+                $defaultTable.DataTable();
+            }
         });
     </script>
     <!--app JS-->
@@ -1373,4 +1376,6 @@
 <script src='../../../../img1.wsimg.com/signals/js/clients/scc-c2/scc-c2.min.js'></script>
 
 </html>
+
+
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Vendor;
 use App\Models\VendorService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
@@ -24,9 +25,17 @@ class VendorServiceController extends Controller
 
     public function index(Request $request)
     {
+        $today = Carbon::today()->toDateString();
+        $fiveDaysFromNow = Carbon::today()->addDays(5)->toDateString();
+        $activeTab = $request->get('tab', 'all');
+        $availableTabs = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
+
+        if (!in_array($activeTab, $availableTabs, true)) {
+            $activeTab = 'all';
+        }
+
         $query = VendorService::with('vendor');
 
-        // Apply date range filtering
         if ($request->filled('from_date')) {
             $query->where('billing_date', '>=', $request->from_date);
         }
@@ -35,9 +44,25 @@ class VendorServiceController extends Controller
             $query->where('billing_date', '<=', $request->to_date);
         }
 
-        $services = $query->latest()->get();
+        $services = $query
+            ->orderByRaw(
+                'CASE WHEN end_date < ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END',
+                [$today, $today, $fiveDaysFromNow]
+            )
+            ->orderBy('end_date')
+            ->latest('created_at')
+            ->get();
 
-        return view('vendor-services.index', compact('services'));
+        $tabCounts = [
+            'all' => $services->count(),
+            'upcoming' => $services->where('tab_key', 'upcoming')->count(),
+            'active' => $services->where('tab_key', 'active')->count(),
+            'inactive' => $services->where('tab_key', 'inactive')->count(),
+            'pending' => $services->where('tab_key', 'pending')->count(),
+            'expired' => $services->where('tab_key', 'expired')->count(),
+        ];
+
+        return view('vendor-services.index', compact('services', 'tabCounts', 'activeTab'));
     }
 
     /**
@@ -212,3 +237,5 @@ class VendorServiceController extends Controller
             ->with('success', 'Vendor Service deleted successfully!');
     }
 }
+
+

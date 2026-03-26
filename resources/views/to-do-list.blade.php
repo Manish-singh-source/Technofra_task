@@ -32,7 +32,7 @@
             </section>
 
             <div class="row g-4 mt-1 align-items-stretch">
-                <div class="col-12 col-xl-4">
+                {{-- <div class="col-12 col-xl-4">
                     <aside class="todo-panel todo-panel--sidebar card border-0 shadow-sm h-100">
                         <div class="todo-panel__head">
                             <div>
@@ -68,8 +68,8 @@
                             <p class="mb-0">Set a repeat pattern, choose reminder time, and the task stays personal to the current login user.</p>
                         </div>
                     </aside>
-                </div>
-                <div class="col-12 col-xl-8">
+                </div> --}}
+                <div class="col-12 col-xl-12">
                     <div class="row g-4">
                         <div class="col-12">
                             <div class="todo-panel card border-0 shadow-sm">

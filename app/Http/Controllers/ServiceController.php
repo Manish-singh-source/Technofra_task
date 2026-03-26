@@ -28,6 +28,12 @@ class ServiceController extends Controller
     {
         $today = Carbon::today()->toDateString();
         $fiveDaysFromNow = Carbon::today()->addDays(5)->toDateString();
+        $activeTab = $request->get('tab', 'all');
+        $availableTabs = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
+
+        if (!in_array($activeTab, $availableTabs, true)) {
+            $activeTab = 'all';
+        }
 
         $query = Service::with(['client', 'vendor'])->whereNotNull('client_id');
 
@@ -41,14 +47,23 @@ class ServiceController extends Controller
 
         $services = $query
             ->orderByRaw(
-                "CASE WHEN end_date <= ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END",
+                'CASE WHEN end_date <= ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END',
                 [$today, $today, $fiveDaysFromNow]
             )
             ->orderBy('end_date')
             ->latest('created_at')
             ->get();
 
-        return view('services.index', compact('services'));
+        $tabCounts = [
+            'all' => $services->count(),
+            'upcoming' => $services->where('tab_key', 'upcoming')->count(),
+            'active' => $services->where('tab_key', 'active')->count(),
+            'inactive' => $services->where('tab_key', 'inactive')->count(),
+            'pending' => $services->where('tab_key', 'pending')->count(),
+            'expired' => $services->where('tab_key', 'expired')->count(),
+        ];
+
+        return view('services.index', compact('services', 'tabCounts', 'activeTab'));
     }
 
     /**
@@ -225,4 +240,3 @@ class ServiceController extends Controller
             ->with('success', 'Service deleted successfully!');
     }
 }
-
