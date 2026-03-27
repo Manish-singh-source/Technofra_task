@@ -424,7 +424,7 @@
                             <img src="{{ $crmLogoUrl }}" alt="logo">
                         @endif
                         <div class="d-flex">
-                            <div>
+                            {{-- <div>
                                 @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['crm_logo'] ?? ''))
                                 @if ($crmLogoUrl)
                                     <img src="{{ $crmLogoUrl }}" style="max-height: 23px;" class="logo-icon" alt="logo">
@@ -432,7 +432,7 @@
                                     <img src="{{ asset('assets/images/logo-icon.png') }}" style="max-height: 23px;" class="logo-icon"
                                         alt="logo icon">
                                 @endif
-                            </div>
+                            </div> --}}
                             <span class="auth-brand-accent">{{ $companyFirst }}</span>
                             {{-- <span>{{ $companyRest }}</span> --}}
                         </div>
@@ -512,11 +512,11 @@
                     </div>
                 </div>
 
-                <div class="auth-footer">
+                {{-- <div class="auth-footer">
                     <a href="javascript:;" class="auth-link">Privacy Policy</a>
                     <span>&bull;</span>
                     <a href="javascript:;" class="auth-link">Terms &amp; Conditions</a>
-                </div>
+                </div> --}}
             </section>
 
             <aside class="auth-side">
