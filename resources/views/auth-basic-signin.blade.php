@@ -144,6 +144,95 @@
             margin-bottom: 18px;
         }
 
+        .auth-floating-group {
+            position: relative;
+            margin-top: 10px;
+        }
+
+       .auth-floating-group .form-label {
+    position: absolute;
+    top: -10px;
+    left: 16px;
+    z-index: 2;
+    margin: 0;
+    padding: 0 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.1;
+    color: #00618f;
+    background: #fff;
+}
+       .auth-floating-group .form-control {
+    min-height: 60px;
+    padding: 4px 18px 12px;
+    border: 2px solid #007dae;
+    border-radius: 14px;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+        .auth-floating-group .form-control::placeholder {
+            color: #9ca8b3;
+            font-weight: 500;
+        }
+
+        .auth-floating-group .form-control:focus {
+            border-color: #31c9a0;
+            box-shadow: 0 0 0 0.22rem rgba(49, 201, 160, 0.14);
+        }
+
+        .auth-floating-group .form-control.is-invalid {
+            border-color: #d04b4b;
+            background-image: none;
+        }
+
+       .auth-floating-group .input-group {
+    border: 2px solid #007dae;
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+}
+
+        .auth-floating-group .input-group .form-control {
+    min-height: 60px;
+    padding: 4px 18px 12px;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+        .auth-floating-group .input-group .form-control:focus {
+            border-color: transparent;
+            box-shadow: none;
+        }
+
+       .auth-floating-group .input-group .input-group-text {
+    min-height: 60px;
+    border: 0;
+    border-radius: 0;
+    padding: 0 18px;
+    color: #00618f;
+    background: #fff;
+}
+        .auth-floating-group .input-group:focus-within {
+            border-color: #31c9a0;
+            box-shadow: 0 0 0 0.22rem rgba(49, 201, 160, 0.14);
+        }
+
+        .auth-floating-group .input-group .form-control.is-invalid,
+        .auth-floating-group .input-group.is-invalid {
+            border-color: transparent;
+        }
+
+        .auth-floating-group.has-error .input-group {
+            border-color: #d04b4b;
+        }
+
+        .auth-floating-group .invalid-feedback {
+            display: block;
+            margin-top: 8px;
+        }
+
         .form-label {
             font-size: 0.93rem;
             font-weight: 600;
@@ -473,7 +562,7 @@
                         <form method="POST" action="{{ route('login') }}">
                             @csrf
 
-                            <div class="form-group">
+                            <div class="form-group auth-floating-group">
                                 <label for="inputEmailAddress" class="form-label">Email</label>
                                 <input type="email" class="form-control @error('email') is-invalid @enderror"
                                     id="inputEmailAddress" name="email" value="{{ old('email') }}"
@@ -483,7 +572,7 @@
                                 @enderror
                             </div>
 
-                            <div class="form-group">
+                            <div class="form-group auth-floating-group @error('password') has-error @enderror">
                                 <label for="inputChoosePassword" class="form-label">Password</label>
                                 <div class="input-group" id="show_hide_password">
                                     <input type="password" class="form-control @error('password') is-invalid @enderror"
@@ -556,4 +645,10 @@
 </body>
 
 </html>
+
+
+
+
+
+
 
