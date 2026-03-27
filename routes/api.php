@@ -31,41 +31,41 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::post('/logout-all', [AuthController::class, 'logoutAll']);
-    });
-    
-    // Staff API routes
-    Route::prefix('staff')->group(function () {
-        Route::get('/form-options', [StaffController::class, 'apiFormOptions'])->middleware('permission:create_staff');
-        Route::get('/', [StaffController::class, 'apiIndex'])->middleware('permission:view_staff');
-        Route::get('/{id}', [StaffController::class, 'apiShow'])->middleware('permission:view_staff');
-        Route::post('/', [StaffController::class, 'apiStore'])->middleware('permission:create_staff');
-        Route::match(['put', 'patch'], '/{id}', [StaffController::class, 'apiUpdate'])->middleware('permission:edit_staff');
-        Route::delete('/{id}', [StaffController::class, 'apiDestroy'])->middleware('permission:delete_staff');
-        Route::post('/{id}/restore', [StaffController::class, 'apiRestore'])->middleware('permission:edit_staff');
-        Route::delete('/{id}/force', [StaffController::class, 'apiForceDelete'])->middleware('permission:delete_staff');
-    });
 
-    // Customer/Client API routes
-    Route::prefix('clients')->group(function () {
-        Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
-        Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
-    });
+        // Staff API routes
+        Route::prefix('staff')->group(function () {
+            Route::get('/form-options', [StaffController::class, 'apiFormOptions'])->middleware('permission:create_staff');
+            Route::get('/', [StaffController::class, 'apiIndex'])->middleware('permission:view_staff');
+            Route::get('/{id}', [StaffController::class, 'apiShow'])->middleware('permission:view_staff');
+            Route::post('/', [StaffController::class, 'apiStore'])->middleware('permission:create_staff');
+            Route::match(['put', 'patch'], '/{id}', [StaffController::class, 'apiUpdate'])->middleware('permission:edit_staff');
+            Route::delete('/{id}', [StaffController::class, 'apiDestroy'])->middleware('permission:delete_staff');
+            Route::post('/{id}/restore', [StaffController::class, 'apiRestore'])->middleware('permission:edit_staff');
+            Route::delete('/{id}/force', [StaffController::class, 'apiForceDelete'])->middleware('permission:delete_staff');
+        });
 
-    // Permission API routes
-    Route::prefix('permissions')->group(function () {
-        Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
-        Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_roles');
-    });
+        // Customer/Client API routes
+        Route::prefix('clients')->group(function () {
+            Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
+            Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
+        });
 
-    // Role API routes
-    Route::prefix('roles')->group(function () {
-        Route::get('/', function () {
-            $roles = \Spatie\Permission\Models\Role::with('permissions')->get();
-            return response()->json([
-                'success' => true,
-                'data' => $roles,
-            ]);
-        })->middleware('permission:view_roles');
+        // Permission API routes
+        Route::prefix('permissions')->group(function () {
+            Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
+            Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_roles');
+        });
+
+        // Role API routes
+        Route::prefix('roles')->group(function () {
+            Route::get('/', function () {
+                $roles = \Spatie\Permission\Models\Role::with('permissions')->get();
+                return response()->json([
+                    'success' => true,
+                    'data' => $roles,
+                ]);
+            })->middleware('permission:view_roles');
+        });
     });
 });
 
@@ -73,5 +73,3 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-
