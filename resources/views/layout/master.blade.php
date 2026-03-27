@@ -239,8 +239,7 @@
                         </a>
                     </li>
                     @endcan
-                <!-- Projects section - removed permission check -->
-                @can('view_projects')
+                    @can('view_projects')
                 <li>
                     <a href="{{ route('project') }}">
                         <div class="parent-icon"><i class="bx bx-bar-chart"></i>
@@ -283,6 +282,15 @@
                             <div class="parent-icon"><i class="bx bx-user-check"></i>
                             </div>
                             <div class="menu-title">Client</div>
+                        </a>
+                    </li>
+                    @endcan
+                    @can('view_book_calls')
+                    <li>
+                        <a href="{{ route('book-call.index') }}">
+                            <div class="parent-icon"><i class="bx bx-phone-call"></i>
+                            </div>
+                            <div class="menu-title">Book A Call</div>
                         </a>
                     </li>
                     @endcan
@@ -1376,6 +1384,8 @@
 <script src='../../../../img1.wsimg.com/signals/js/clients/scc-c2/scc-c2.min.js'></script>
 
 </html>
+
+
 
 
 

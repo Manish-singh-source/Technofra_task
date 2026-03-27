@@ -32,6 +32,7 @@ class PermissionSeeder extends Seeder
             'services',
             'vendors',
             'dashboard',
+            'book_calls',
         ];
 
         // Define all actions
@@ -94,3 +95,4 @@ class PermissionSeeder extends Seeder
         $this->command->info('Password: 123456789');
     }
 }
+

@@ -146,6 +146,17 @@ class MenuHelper
             ];
         }
 
+
+        // Book A Call
+        if (in_array('view_book_calls', $permissions)) {
+            $menu[] = [
+                'name' => 'Book A Call',
+                'route' => 'book-call.index',
+                'icon' => 'bx bx-phone-call',
+                'active' => request()->routeIs('book-call*'),
+            ];
+        }
+
         // Settings
         if (self::hasAnyPermission($permissions, ['view_general_settings', 'view_company_information', 'view_email_settings'])) {
             $menu[] = [
@@ -236,3 +247,6 @@ class MenuHelper
         return $user->getAllPermissions()->pluck('name')->toArray();
     }
 }
+
+
+

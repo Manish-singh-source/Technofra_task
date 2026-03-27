@@ -77,6 +77,9 @@ class RoleSeeder extends Seeder
             'create_tasks',
             'edit_tasks',
             'delete_tasks',
+
+            // Book Call
+            'view_book_calls',
             
             // Settings Management
             'view_general_settings',
@@ -132,6 +135,7 @@ class RoleSeeder extends Seeder
                 'create_tasks',
                 'edit_tasks',
                 'delete_tasks',
+                'view_book_calls',
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
@@ -168,6 +172,7 @@ class RoleSeeder extends Seeder
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
+                'view_book_calls',
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
@@ -192,6 +197,7 @@ class RoleSeeder extends Seeder
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
+                'view_book_calls',
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
@@ -209,6 +215,7 @@ class RoleSeeder extends Seeder
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
+                'view_book_calls',
             ],
         ];
 
@@ -222,6 +229,7 @@ class RoleSeeder extends Seeder
         }
     }
 }
+
 
 
 

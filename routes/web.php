@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\BookCallController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientIssueController;
@@ -88,6 +89,13 @@ Route::middleware('auth')->group(function () {
     Route::get('/user-profile', function () {
         return view('user-profile');
     })->name('user-profile');
+
+    Route::get('/book-call', [BookCallController::class, 'index'])
+        ->name('book-call.index')
+        ->middleware('permission:view_book_calls');
+    Route::delete('/book-call/{bookCall}', [BookCallController::class, 'destroy'])
+        ->name('book-call.destroy')
+        ->middleware('permission:view_book_calls');
 
 
 
@@ -303,6 +311,7 @@ Route::get('/auth-basic-signin', [AuthController::class, 'showLoginForm'])->name
 Route::get('/auth-basic-signup', [AuthController::class, 'showRegisterForm'])->name('auth-basic-signup');
 
 // End Lead CRUD routes
+
 
 
 
