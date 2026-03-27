@@ -92,7 +92,7 @@
 
         .auth-title {
             margin: 18px 0 10px;
-            font-size: clamp(2.2rem, 4vw, 3rem);
+            font-size: clamp(2.2rem, 4vw, 2rem);
             font-weight: 700;
             color: #00618f;
         }
