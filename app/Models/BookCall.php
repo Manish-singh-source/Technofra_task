@@ -12,6 +12,7 @@ class BookCall extends Model
         'name',
         'email',
         'phone',
+        'meeting_agenda',
         'booking_date',
         'booking_time',
         'booking_datetime',
