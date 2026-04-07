@@ -66,6 +66,10 @@ class VendorService extends Model
         $today = Carbon::today();
         $fiveDaysFromNow = $today->copy()->addDays(5);
 
+        if (in_array($this->status, ['inactive', 'pending', 'expired'], true)) {
+            return $this->status;
+        }
+
         if ($this->end_date && $this->end_date->lt($today)) {
             return 'expired';
         }
@@ -90,8 +94,8 @@ class VendorService extends Model
     {
         return match ($this->effective_status) {
             'active' => 'success',
-            'inactive' => 'secondary',
-            'expired' => 'danger',
+            'inactive' => 'danger',
+            'expired' => 'orange',
             'pending' => 'warning',
             'upcoming' => 'info',
             default => 'primary',

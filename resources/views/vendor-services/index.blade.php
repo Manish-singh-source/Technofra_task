@@ -1,5 +1,25 @@
 @extends('/layout/master')
 @section('content')
+<style>
+    .btn-orange {
+        background-color: #ff7f00 !important;
+        border-color: #ff7f00 !important;
+        color: white !important;
+    }
+    .btn-outline-orange {
+        border-color: #ff7f00 !important;
+        color: #ff7f00 !important;
+        background-color: transparent !important;
+    }
+    .btn-outline-orange:hover {
+        background-color: #ff7f00 !important;
+        color: white !important;
+    }
+    .bg-orange {
+        background-color: #ff7f00 !important;
+        color: white !important;
+    }
+</style>
 <!--start page wrapper -->
 <div class="page-wrapper">
     <div class="page-content">
@@ -16,9 +36,9 @@
                 'all' => ['active' => 'btn-dark', 'inactive' => 'btn-outline-dark', 'badge' => 'bg-dark'],
                 'upcoming' => ['active' => 'btn-warning text-dark', 'inactive' => 'btn-outline-warning', 'badge' => 'bg-warning text-dark'],
                 'active' => ['active' => 'btn-success', 'inactive' => 'btn-outline-success', 'badge' => 'bg-success'],
-                'inactive' => ['active' => 'btn-secondary', 'inactive' => 'btn-outline-secondary', 'badge' => 'bg-secondary'],
+                'inactive' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
                 'pending' => ['active' => 'btn-info text-dark', 'inactive' => 'btn-outline-info', 'badge' => 'bg-info text-dark'],
-                'expired' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
+                'expired' => ['active' => 'btn-orange', 'inactive' => 'btn-outline-orange', 'badge' => 'bg-orange'],
             ];
             $visibleCount = $activeTab === 'all' ? $services->count() : $services->where('tab_key', $activeTab)->count();
         @endphp

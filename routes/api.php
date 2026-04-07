@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Http\Request;
@@ -47,7 +48,22 @@ Route::middleware('auth:sanctum')->group(function () {
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
             Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
+            Route::get('/{id}', [CustomerController::class, 'apiShow'])->middleware('permission:view_clients');
             Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
+            Route::match(['put', 'patch'], '/{id}', [CustomerController::class, 'apiUpdate'])->middleware('permission:edit_clients');
+            Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
+            Route::post('/{id}/restore', [CustomerController::class, 'apiRestore'])->middleware('permission:edit_clients');
+            Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
+        });
+
+        // Lead API routes
+        Route::prefix('leads')->group(function () {
+            Route::get('/form-options', [LeadController::class, 'apiFormOptions'])->middleware('permission:create_leads');
+            Route::get('/', [LeadController::class, 'apiIndex'])->middleware('permission:view_leads');
+            Route::get('/{id}', [LeadController::class, 'apiShow'])->middleware('permission:view_leads');
+            Route::post('/', [LeadController::class, 'apiStore'])->middleware('permission:create_leads');
+            Route::match(['put', 'patch'], '/{id}', [LeadController::class, 'apiUpdate'])->middleware('permission:edit_leads');
+            Route::delete('/{id}', [LeadController::class, 'apiDestroy'])->middleware('permission:delete_leads');
         });
 
         // Permission API routes

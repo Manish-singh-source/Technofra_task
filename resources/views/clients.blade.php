@@ -115,10 +115,10 @@
                                                 <a href="{{ route('clients-details', $customer->id) }}"><i
                                                         class='bx bxs-show'></i></a>
                                                 @endcan
-                                                @can('edit_clients')
-                                                <a href="{{ route('client.edit', $customer->id) }}" class="ms-2"><i
+                                                {{-- @can('edit_clients')
+                                                <a href="{{ route('clients-details', $customer->id) }}" class="ms-2"><i
                                                         class='bx bxs-edit'></i></a>
-                                                @endcan
+                                                @endcan --}}
                                                 @can('delete_clients')
                                                     <form id="delete-form-{{ $customer->id }}"
                                                         action="{{ route('clients.delete', $customer->id) }}" method="POST"
@@ -182,3 +182,5 @@
     </script>
     <!--end page wrapper -->
 @endsection
+
+

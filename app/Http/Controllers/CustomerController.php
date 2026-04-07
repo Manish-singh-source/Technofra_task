@@ -6,12 +6,12 @@ use App\Mail\ClientInviteMail;
 use App\Models\Customer;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
 use Spatie\Permission\Models\Role;
 
 class CustomerController extends Controller
@@ -21,7 +21,7 @@ class CustomerController extends Controller
      */
     public function index()
     {
-        $customers = Customer::with('user')->get();
+        $customers = Customer::with('user')->latest()->get();
         return view('clients', compact('customers'));
     }
 
@@ -39,28 +39,7 @@ class CustomerController extends Controller
      */
     public function storeclient(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'client_name' => 'required|string|min:3',
-            'contact_person' => 'required|string|min:3',
-            'email' => 'required|email|unique:customers,email',
-            'phone' => 'nullable|string|min:10',
-            'website' => 'nullable|url',
-            'address_line1' => 'required|string',
-            'address_line2' => 'nullable|string',
-            'city' => 'required|string',
-            'state' => 'required|string',
-            'postal_code' => 'required|string',
-            'country' => 'required|string',
-            'client_type' => 'required|in:Individual,Company,Organization',
-            'industry' => 'required|string',
-            'status' => 'required|in:Active,Inactive,Suspended',
-            'priority_level' => 'nullable|in:Low,Medium,High',
-            'assigned_manager_id' => 'nullable|integer',
-            'default_due_days' => 'nullable|integer',
-            'billing_type' => 'nullable|in:Hourly,Fixed,Retainer',
-            'role' => 'nullable|string|max:255',
-            'password' => 'required|string|min:6',
-        ]);
+        $validator = $this->validateCustomerData($request);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -68,73 +47,18 @@ class CustomerController extends Controller
 
         DB::beginTransaction();
         try {
-            $userId = null;
-
-            if ($request->password) {
-                $existingUser = User::where('email', $request->email)->first();
-                if ($existingUser) {
-                    return back()->withErrors(['email' => 'This email is already registered as a user.'])->withInput();
-                }
-
-                $user = User::create([
-                    'name' => $request->client_name,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
-                ]);
-
-                $userId = $user->id;
-
-                $roleName = $request->role ?? 'customer';
-                $customerRole = Role::where('name', $roleName)->first();
-                if ($customerRole) {
-                    $user->assignRole($customerRole);
-                } else {
-                    $customerRole = Role::create(['name' => 'customer']);
-                    $user->assignRole($customerRole);
-                }
-
-                Cache::forget('spatie.permission.cache');
-            }
-
-            $customer = new Customer();
-            $customer->user_id = $userId;
-            $customer->client_name = $request->client_name;
-            $customer->contact_person = $request->contact_person;
-            $customer->email = $request->email;
-            $customer->phone = $request->phone;
-            $customer->website = $request->website;
-            $customer->address_line1 = $request->address_line1;
-            $customer->address_line2 = $request->address_line2;
-            $customer->city = $request->city;
-            $customer->state = $request->state;
-            $customer->postal_code = $request->postal_code;
-            $customer->country = $request->country;
-            $customer->client_type = $request->client_type;
-            $customer->industry = $request->industry;
-            $customer->status = $request->status;
-            $customer->priority_level = $request->priority_level;
-            $customer->assigned_manager_id = $request->assigned_manager_id;
-            $customer->default_due_days = $request->default_due_days;
-            $customer->billing_type = $request->billing_type;
-            $customer->role = $request->role;
-            $customer->password = $request->password ? Hash::make($request->password) : null;
-            $customer->save();
-
-            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail');
+            $payload = $validator->validated();
+            $this->createCustomerFromPayload($payload);
+            $sendWelcomeEmail = $this->normalizeSendWelcomeEmail($request->input('sendWelcomeEmail', true));
 
             if ($sendWelcomeEmail) {
-                $clientName = $request->contact_person ?: $request->client_name;
-                try {
-                    Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
-                } catch (\Exception $mailException) {
-                    Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
-                }
+                $this->sendClientInviteMail($payload);
             }
 
             DB::commit();
 
             $successMessage = $sendWelcomeEmail
-                ? 'Customer added successfully. Invitation email sent to ' . $request->email
+                ? 'Customer added successfully. Invitation email sent to ' . $payload['email']
                 : 'Customer added successfully. Welcome email was not sent.';
 
             return redirect()->route('clients')->with('success', $successMessage);
@@ -149,9 +73,9 @@ class CustomerController extends Controller
      */
     public function show($id)
     {
-        $customer = Customer::with([
+        $customer = Customer::withTrashed()->with([
             'projects.tasks',
-            'user',
+            'user.roles',
             'clientIssues' => function ($query) {
                 $query->latest();
             },
@@ -167,29 +91,13 @@ class CustomerController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $customer = Customer::findOrFail($id);
+        $customer = Customer::withTrashed()->findOrFail($id);
 
-        $validator = Validator::make($request->all(), [
-            'client_name' => 'required|string|min:3',
-            'contact_person' => 'required|string|min:3',
-            'email' => 'required|email|unique:customers,email,' . $id,
-            'phone' => 'nullable|string|min:10',
-            'website' => 'nullable|url',
-            'address_line1' => 'required|string',
-            'address_line2' => 'nullable|string',
-            'city' => 'required|string',
-            'state' => 'required|string',
-            'postal_code' => 'required|string',
-            'country' => 'required|string',
-            'client_type' => 'required|in:Individual,Company,Organization',
-            'industry' => 'required|string',
-            'status' => 'required|in:Active,Inactive,Suspended',
-            'priority_level' => 'nullable|in:Low,Medium,High',
-            'assigned_manager_id' => 'nullable|integer',
-            'default_due_days' => 'nullable|integer',
-            'billing_type' => 'nullable|in:Hourly,Fixed,Retainer',
-            'role' => 'nullable|string|max:255',
-        ]);
+        if ($customer->trashed()) {
+            return redirect()->back()->with('error', 'Restore this client before updating the record.');
+        }
+
+        $validator = $this->validateCustomerData($request, $id, false);
 
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
@@ -197,33 +105,13 @@ class CustomerController extends Controller
 
         DB::beginTransaction();
         try {
+            $payload = $validator->validated();
             $oldEmail = $customer->email;
             $oldRole = $customer->role;
 
-            $customer->update($request->except(['password']));
-
-            // Update associated user if exists
-            $user = $customer->user ?? User::where('email', $oldEmail)->first();
-            if ($user) {
-                $user->update([
-                    'name' => $request->client_name,
-                    'email' => $request->email,
-                ]);
-
-                // Update role if changed
-                if ($oldRole !== $request->role && $request->role) {
-                    if ($oldRole) {
-                        $user->removeRole($oldRole);
-                    }
-                    $newRole = Role::where('name', $request->role)->first();
-                    if ($newRole) {
-                        $user->assignRole($newRole);
-                    }
-                }
-
-                // Clear permission cache
-                Cache::forget('spatie.permission.cache');
-            }
+            $customer->update($this->buildCustomerData($payload, false));
+            $this->syncUserForCustomerUpdate($customer, $payload, $oldRole, $oldEmail);
+            $this->refreshPermissionCache();
 
             DB::commit();
             return redirect()->back()->with('success', 'Customer updated successfully.');
@@ -234,27 +122,21 @@ class CustomerController extends Controller
     }
 
     /**
-     * Remove the specified customer.
+     * Soft delete the specified customer.
      */
     public function delete($id)
     {
         $customer = Customer::findOrFail($id);
-        
+
+        if ($customer->trashed()) {
+            return redirect()->route('clients')->with('error', 'Customer is already deleted.');
+        }
+
         DB::beginTransaction();
         try {
-            // Delete associated user if exists
-            if ($customer->user) {
-                $customer->user->delete();
-            } else {
-                $user = User::where('email', $customer->email)->first();
-                if ($user) {
-                    $user->delete();
-                }
-            }
-            
-            $customer->delete();
-
+            $this->performCustomerDelete($customer, false);
             DB::commit();
+
             return redirect()->route('clients')->with('success', 'Customer deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
@@ -267,30 +149,21 @@ class CustomerController extends Controller
      */
     public function deleteSelected(Request $request)
     {
-        $ids = explode(',', $request->ids);
-        
+        $ids = array_filter(explode(',', (string) $request->ids));
+
         if (empty($ids)) {
             return redirect()->route('clients')->with('error', 'No customers selected for deletion.');
         }
 
         DB::beginTransaction();
         try {
-            foreach ($ids as $id) {
-                $customer = Customer::find($id);
-                if ($customer) {
-                    // Delete associated user if exists
-                    if ($customer->user) {
-                        $customer->user->delete();
-                    } else {
-                        $user = User::where('email', $customer->email)->first();
-                        if ($user) {
-                            $user->delete();
-                        }
-                    }
-                    $customer->delete();
+            $customers = Customer::whereIn('id', $ids)->get();
+            foreach ($customers as $customer) {
+                if (!$customer->trashed()) {
+                    $this->performCustomerDelete($customer, false);
                 }
             }
-            
+
             DB::commit();
             return redirect()->route('clients')->with('success', 'Selected customers deleted successfully.');
         } catch (\Exception $e) {
@@ -302,12 +175,32 @@ class CustomerController extends Controller
     /**
      * API: Get all customers.
      */
-    public function apiIndex()
+    public function apiIndex(Request $request)
     {
-        $customers = Customer::with('user.roles')->get();
+        $customers = Customer::withTrashed()
+            ->with('user.roles')
+            ->when(!$request->boolean('include_trashed'), function ($query) {
+                $query->whereNull('deleted_at');
+            })
+            ->latest()
+            ->get();
+
         return response()->json([
             'success' => true,
-            'data' => $customers,
+            'data' => $customers->map(fn (Customer $customer) => $this->formatCustomerResource($customer)),
+        ]);
+    }
+
+    /**
+     * API: Show a single customer.
+     */
+    public function apiShow($id)
+    {
+        $customer = Customer::withTrashed()->with('user.roles')->findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatCustomerResource($customer),
         ]);
     }
 
@@ -316,22 +209,7 @@ class CustomerController extends Controller
      */
     public function apiStore(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'client_name' => 'required|string|min:3',
-            'contact_person' => 'required|string|min:3',
-            'email' => 'required|email|unique:customers,email|unique:users,email',
-            'phone' => 'nullable|string|min:10',
-            'address_line1' => 'required|string',
-            'city' => 'required|string',
-            'state' => 'required|string',
-            'postal_code' => 'required|string',
-            'country' => 'required|string',
-            'client_type' => 'required|in:Individual,Company,Organization',
-            'industry' => 'required|string',
-            'status' => 'required|in:Active,Inactive,Suspended',
-            'role' => 'nullable|string|max:255',
-            'password' => 'required|string|min:6',
-        ]);
+        $validator = $this->validateCustomerData($request);
 
         if ($validator->fails()) {
             return response()->json([
@@ -342,58 +220,19 @@ class CustomerController extends Controller
 
         DB::beginTransaction();
         try {
-            $user = User::create([
-                'name' => $request->client_name,
-                'email' => $request->email,
-                'password' => Hash::make($request->password),
-            ]);
-
-            $roleName = $request->role ?? 'customer';
-            $role = Role::firstOrCreate(['name' => $roleName]);
-            $user->assignRole($role);
-
-            $customer = Customer::create([
-                'user_id' => $user->id,
-                'client_name' => $request->client_name,
-                'contact_person' => $request->contact_person,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'website' => $request->website,
-                'address_line1' => $request->address_line1,
-                'address_line2' => $request->address_line2,
-                'city' => $request->city,
-                'state' => $request->state,
-                'postal_code' => $request->postal_code,
-                'country' => $request->country,
-                'client_type' => $request->client_type,
-                'industry' => $request->industry,
-                'status' => $request->status,
-                'priority_level' => $request->priority_level,
-                'assigned_manager_id' => $request->assigned_manager_id,
-                'default_due_days' => $request->default_due_days,
-                'billing_type' => $request->billing_type,
-                'role' => $roleName,
-                'password' => Hash::make($request->password),
-            ]);
-
-            Cache::forget('spatie.permission.cache');
-
-            $sendWelcomeEmail = $request->boolean('sendWelcomeEmail', true);
+            $payload = $validator->validated();
+            $customer = $this->createCustomerFromPayload($payload);
+            $sendWelcomeEmail = $this->normalizeSendWelcomeEmail($request->input('sendWelcomeEmail', $request->input('send_welcome_email', true)));
 
             if ($sendWelcomeEmail) {
-                $clientName = $request->contact_person ?: $request->client_name;
-                try {
-                    Mail::to($request->email)->send(new ClientInviteMail($clientName, $request->email, $request->password));
-                } catch (\Exception $mailException) {
-                    Log::error('Failed to send client invitation email via API: ' . $mailException->getMessage());
-                }
+                $this->sendClientInviteMail($payload);
             }
 
             DB::commit();
             return response()->json([
                 'success' => true,
                 'message' => $sendWelcomeEmail ? 'Customer created successfully. Invitation email sent.' : 'Customer created successfully. Welcome email was not sent.',
-                'data' => $customer->load('user.roles'),
+                'data' => $this->formatCustomerResource($customer->fresh()->load('user.roles')),
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -403,4 +242,371 @@ class CustomerController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * API: Update a customer.
+     */
+    public function apiUpdate(Request $request, $id)
+    {
+        $customer = Customer::withTrashed()->findOrFail($id);
+
+        if ($customer->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Restore this client before updating the record.',
+            ], 409);
+        }
+
+        $validator = $this->validateCustomerData($request, $id, false);
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            $payload = $validator->validated();
+            $oldEmail = $customer->email;
+            $oldRole = $customer->role;
+
+            $customer->update($this->buildCustomerData($payload, false));
+            $this->syncUserForCustomerUpdate($customer, $payload, $oldRole, $oldEmail);
+            $this->refreshPermissionCache();
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer updated successfully.',
+                'data' => $this->formatCustomerResource($customer->fresh()->load('user.roles')),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update customer: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Soft delete a customer.
+     */
+    public function apiDestroy($id)
+    {
+        $customer = Customer::findOrFail($id);
+
+        if ($customer->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer is already deleted.',
+            ], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            $this->performCustomerDelete($customer, false);
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete customer: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Restore a soft deleted customer.
+     */
+    public function apiRestore($id)
+    {
+        $customer = Customer::withTrashed()->findOrFail($id);
+
+        if (!$customer->trashed()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Customer is already active.',
+            ], 409);
+        }
+
+        DB::beginTransaction();
+        try {
+            $customer->restore();
+            $this->refreshPermissionCache();
+
+            DB::commit();
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer restored successfully.',
+                'data' => $this->formatCustomerResource($customer->fresh()->load('user.roles')),
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore customer: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * API: Permanently delete a customer.
+     */
+    public function apiForceDelete($id)
+    {
+        $customer = Customer::withTrashed()->findOrFail($id);
+
+        DB::beginTransaction();
+        try {
+            $this->performCustomerDelete($customer, true);
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Customer permanently deleted successfully.',
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete customer: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function validateCustomerData(Request $request, int|string|null $id = null, bool $requirePassword = true)
+    {
+        $passwordRule = $requirePassword ? 'required|string|min:8' : 'nullable|string|min:8';
+        $customerEmailRule = 'unique:customers,email' . ($id ? ',' . $id : '');
+        $userEmailRule = 'unique:users,email';
+
+        if ($id) {
+            $existingCustomer = Customer::withTrashed()->find($id);
+            $ignoreUserId = $existingCustomer?->user_id;
+
+            if (!$ignoreUserId && $existingCustomer?->email) {
+                $ignoreUserId = User::where('email', $existingCustomer->email)->value('id');
+            }
+
+            if ($ignoreUserId) {
+                $userEmailRule .= ',' . $ignoreUserId;
+            }
+        }
+
+        return Validator::make($request->all(), [
+            'client_name' => 'required|string|min:3|max:255',
+            'contact_person' => 'required|string|min:3|max:255',
+            'email' => ['required', 'email', $customerEmailRule, $userEmailRule],
+            'phone' => 'nullable|string|min:10|max:20',
+            'website' => 'nullable|url|max:255',
+            'address_line1' => 'required|string|max:255',
+            'address_line2' => 'nullable|string|max:255',
+            'city' => 'required|string|max:255',
+            'state' => 'required|string|max:255',
+            'postal_code' => 'required|string|max:50',
+            'country' => 'required|string|max:255',
+            'client_type' => 'required|in:Individual,Company,Organization',
+            'industry' => 'required|string|max:255',
+            'status' => 'required|in:Active,Inactive,Suspended',
+            'priority_level' => 'nullable|in:Low,Medium,High',
+            'assigned_manager_id' => 'nullable|integer',
+            'default_due_days' => 'nullable|integer',
+            'billing_type' => 'nullable|in:Hourly,Fixed,Retainer',
+            'role' => 'nullable|string|max:255',
+            'password' => $passwordRule,
+        ], [], [
+            'client_name' => 'client name',
+            'contact_person' => 'contact person',
+            'address_line1' => 'address line 1',
+            'address_line2' => 'address line 2',
+            'postal_code' => 'postal code',
+            'client_type' => 'client type',
+            'priority_level' => 'priority level',
+            'assigned_manager_id' => 'assigned manager',
+            'default_due_days' => 'default due days',
+            'billing_type' => 'billing type',
+        ]);
+    }
+
+    private function createCustomerFromPayload(array $payload): Customer
+    {
+        $user = User::create([
+            'name' => $payload['client_name'],
+            'email' => $payload['email'],
+            'password' => Hash::make($payload['password']),
+        ]);
+
+        $roleName = $payload['role'] ?? 'customer';
+        $role = Role::firstOrCreate(['name' => $roleName]);
+        $user->assignRole($role);
+
+        $customer = Customer::create($this->buildCustomerData(array_merge($payload, [
+            'user_id' => $user->id,
+            'role' => $roleName,
+            'password' => Hash::make($payload['password']),
+        ]), true));
+
+        $this->refreshPermissionCache();
+
+        return $customer->load('user.roles');
+    }
+
+    private function buildCustomerData(array $payload, bool $includePassword = true): array
+    {
+        $data = [
+            'user_id' => $payload['user_id'] ?? null,
+            'client_name' => $payload['client_name'],
+            'contact_person' => $payload['contact_person'],
+            'email' => $payload['email'],
+            'phone' => $payload['phone'] ?? null,
+            'website' => $payload['website'] ?? null,
+            'address_line1' => $payload['address_line1'],
+            'address_line2' => $payload['address_line2'] ?? null,
+            'city' => $payload['city'],
+            'state' => $payload['state'],
+            'postal_code' => $payload['postal_code'],
+            'country' => $payload['country'],
+            'client_type' => $payload['client_type'],
+            'industry' => $payload['industry'],
+            'status' => $payload['status'],
+            'priority_level' => $payload['priority_level'] ?? null,
+            'assigned_manager_id' => $payload['assigned_manager_id'] ?? null,
+            'default_due_days' => $payload['default_due_days'] ?? null,
+            'billing_type' => $payload['billing_type'] ?? null,
+            'role' => $payload['role'] ?? 'customer',
+        ];
+
+        if ($includePassword && array_key_exists('password', $payload)) {
+            $data['password'] = $payload['password'];
+        }
+
+        return $data;
+    }
+
+    private function syncUserForCustomerUpdate(Customer $customer, array $payload, ?string $oldRole, string $oldEmail): void
+    {
+        $user = $customer->user ?? User::where('email', $oldEmail)->first();
+        if (!$user) {
+            return;
+        }
+
+        $user->update([
+            'name' => $payload['client_name'],
+            'email' => $payload['email'],
+        ]);
+
+        $newRoleName = $payload['role'] ?? $customer->role ?? 'customer';
+        if ($oldRole !== $newRoleName) {
+            if ($oldRole && $user->hasRole($oldRole)) {
+                $user->removeRole($oldRole);
+            }
+
+            $newRole = Role::firstOrCreate(['name' => $newRoleName]);
+            $user->assignRole($newRole);
+        }
+    }
+
+    private function performCustomerDelete(Customer $customer, bool $forceDelete = false): void
+    {
+        if ($forceDelete) {
+            $user = $customer->user;
+            if (!$user && $customer->email) {
+                $user = User::where('email', $customer->email)->first();
+            }
+
+            $customer->forceDelete();
+
+            if ($user) {
+                $user->delete();
+            }
+
+            $this->refreshPermissionCache();
+            return;
+        }
+
+        $customer->delete();
+    }
+
+    private function sendClientInviteMail(array $payload): void
+    {
+        $clientName = $payload['contact_person'] ?: $payload['client_name'];
+
+        try {
+            Mail::to($payload['email'])->send(new ClientInviteMail($clientName, $payload['email'], $payload['password']));
+        } catch (\Exception $mailException) {
+            Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
+        }
+    }
+
+    private function normalizeSendWelcomeEmail(mixed $value): bool
+    {
+        $normalized = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+        return $normalized ?? true;
+    }
+
+    private function refreshPermissionCache(): void
+    {
+        Cache::forget('spatie.permission.cache');
+    }
+
+    private function formatCustomerResource(Customer $customer): array
+    {
+        $customer->loadMissing('user.roles');
+
+        return [
+            'id' => $customer->id,
+            'user_id' => $customer->user_id,
+            'client_name' => $customer->client_name,
+            'contact_person' => $customer->contact_person,
+            'email' => $customer->email,
+            'phone' => $customer->phone,
+            'website' => $customer->website,
+            'address_line1' => $customer->address_line1,
+            'address_line2' => $customer->address_line2,
+            'city' => $customer->city,
+            'state' => $customer->state,
+            'postal_code' => $customer->postal_code,
+            'country' => $customer->country,
+            'client_type' => $customer->client_type,
+            'industry' => $customer->industry,
+            'status' => $customer->status,
+            'priority_level' => $customer->priority_level,
+            'assigned_manager_id' => $customer->assigned_manager_id,
+            'default_due_days' => $customer->default_due_days,
+            'billing_type' => $customer->billing_type,
+            'role' => $customer->role,
+            'is_deleted' => $customer->trashed(),
+            'deleted_at' => optional($customer->deleted_at)?->toISOString(),
+            'created_at' => optional($customer->created_at)?->toISOString(),
+            'updated_at' => optional($customer->updated_at)?->toISOString(),
+            'user' => $customer->user ? [
+                'id' => $customer->user->id,
+                'name' => $customer->user->name,
+                'email' => $customer->user->email,
+                'roles' => $customer->user->roles->pluck('name')->values(),
+            ] : null,
+            'links' => [
+                'web' => [
+                    'view' => route('clients-details', $customer->id),
+                    'update' => route('clients.update', $customer->id),
+                    'delete' => route('clients.delete', $customer->id),
+                ],
+                'api' => [
+                    'show' => url('/api/clients/' . $customer->id),
+                    'update' => url('/api/clients/' . $customer->id),
+                    'delete' => url('/api/clients/' . $customer->id),
+                    'restore' => url('/api/clients/' . $customer->id . '/restore'),
+                    'force_delete' => url('/api/clients/' . $customer->id . '/force'),
+                ],
+            ],
+        ];
+    }
 }
+

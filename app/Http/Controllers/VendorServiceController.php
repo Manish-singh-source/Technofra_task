@@ -217,8 +217,9 @@ class VendorServiceController extends Controller
             $data['billing_date'] = null;
         }
         $service->update($data);
+        $service->refresh();
 
-        return redirect()->route('vendor-services.index')
+        return redirect()->route('vendor-services.index', ['tab' => $service->tab_key])
             ->with('success', 'Vendor Service updated successfully!');
     }
 
