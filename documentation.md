@@ -246,3 +246,145 @@ Now we can go through each in details:
     Error response:
     - `422` for validation errors
     - `500` for server error
+
+11. Project API Documentation
+
+    Purpose:
+    - create detailed API support for project module and its related data so mobile app or Postman can manage the full project lifecycle
+
+    Authentication:
+    - all project APIs are inside `auth:sanctum`
+    - first login from `POST /api/v1/login`
+    - then send `Authorization: Bearer {token}`
+
+    Base path:
+    - `/api/v1/projects`
+
+    Related controller:
+    - `App\Http\Controllers\Api\ProjectController`
+
+    APIs added:
+    - `GET /api/v1/projects/form-options`
+    - `GET /api/v1/projects`
+    - `GET /api/v1/projects/{id}`
+    - `POST /api/v1/projects`
+    - `PUT|PATCH /api/v1/projects/{id}`
+    - `DELETE /api/v1/projects/{id}`
+    - `GET /api/v1/projects/{projectId}/milestones`
+    - `POST /api/v1/projects/{projectId}/milestones`
+    - `PUT|PATCH /api/v1/projects/{projectId}/milestones/{milestoneId}`
+    - `DELETE /api/v1/projects/{projectId}/milestones/{milestoneId}`
+    - `GET /api/v1/projects/{projectId}/issues`
+    - `POST /api/v1/projects/{projectId}/issues`
+    - `PUT|PATCH /api/v1/projects/{projectId}/issues/{issueId}`
+    - `DELETE /api/v1/projects/{projectId}/issues/{issueId}`
+    - `GET /api/v1/projects/{projectId}/comments`
+    - `POST /api/v1/projects/{projectId}/comments`
+    - `GET /api/v1/projects/{projectId}/files`
+    - `POST /api/v1/projects/{projectId}/files`
+    - `DELETE /api/v1/projects/{projectId}/files/{fileId}`
+
+    Permission middleware used:
+    - list/show/comments/files => `view_projects`
+    - create => `create_projects`
+    - update, milestones, issues, file upload => `edit_projects`
+    - delete project or file => `delete_projects`
+
+    Access rules inside controller:
+    - admin or super-admin can access all projects
+    - customer can access only projects where `customer_id` matches their account
+    - normal staff can access only projects where their staff id exists in `members`
+
+    Form options API response:
+    - customers list with `id`, `name`, `email`
+    - staff list with `id`, `name`, `email`, `role`
+    - project statuses
+    - priorities
+    - billing types
+    - milestone statuses
+    - issue statuses
+    - issue priorities
+
+    Project create/update fields:
+    - `project_name` => required string
+    - `customer` => optional customer id
+    - `status` => optional, one of `not_started`, `in_progress`, `on_hold`, `completed`, `cancelled`
+    - `start_date` => optional date
+    - `deadline` => optional date, must be greater than or equal to start date
+    - `billing_type` => optional, `fixed_rate` or `hourly_rate`
+    - `total_rate` => optional numeric
+    - `estimated_hours` => optional integer
+    - `tags[]` => optional array of strings
+    - `members[]` => optional array of staff ids
+    - `description` => optional string
+    - `priority` => optional, `low`, `medium`, `high`
+    - `technologies[]` => optional array of strings
+    - `project_files[]` => optional files while creating or updating project
+
+    Supported file upload types:
+    - `jpeg`, `jpg`, `png`, `gif`, `svg`, `webp`, `bmp`, `pdf`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `txt`, `zip`, `rar`
+    - max size per file: `10 MB`
+
+    Example create project request JSON:
+    ```json
+    {
+      "project_name": "CRM Mobile App",
+      "customer": 3,
+      "status": "in_progress",
+      "start_date": "2026-04-01",
+      "deadline": "2026-05-20",
+      "billing_type": "fixed_rate",
+      "total_rate": 85000,
+      "estimated_hours": 180,
+      "tags": ["mobile", "crm"],
+      "members": [2, 5],
+      "description": "Client CRM app with dashboard and task tracking",
+      "priority": "high",
+      "technologies": ["Laravel", "Flutter", "MySQL"]
+    }
+    ```
+
+    Project list filters:
+    - `status`
+    - `customer_id`
+    - `priority`
+    - `search`
+
+    Project detail response includes:
+    - main project record
+    - calculated stats for tasks, milestones, issues, elapsed hours, and overall progress
+    - related task list
+    - related files list
+    - related milestones list
+    - related issues list
+    - related comments list
+    - project status log timeline
+
+    Milestone fields:
+    - `title` => required string
+    - `description` => optional string
+    - `status` => required, `pending`, `in_progress`, `completed`
+    - `due_date` => optional date
+
+    Issue fields:
+    - `issue_description` => required string
+    - `priority` => required, `low`, `medium`, `high`
+    - `status` => required, `open`, `in_progress`, `resolved`, `closed`
+
+    Comment fields:
+    - `comment` => required string
+
+    Separate project file upload API:
+    - use `POST /api/v1/projects/{projectId}/files`
+    - send request as `multipart/form-data`
+    - field name: `file`
+
+    Success responses:
+    - `success: true`
+    - message for create, update, delete actions
+    - detailed data payload where applicable
+
+    Error responses:
+    - `422` for validation errors
+    - `403` for unauthorized project access
+    - `500` for unexpected server errors

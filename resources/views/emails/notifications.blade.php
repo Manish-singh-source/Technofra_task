@@ -3,190 +3,268 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Service Renewal Notifications</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-        .email-container {
-            background-color: #ffffff;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .header {
-            text-align: center;
-            border-bottom: 3px solid #007bff;
-            padding-bottom: 20px;
-            margin-bottom: 30px;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-            margin-bottom: 10px;
-        }
-        .service-item {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 8px;
-            margin: 15px 0;
-            border-left: 4px solid #dc3545;
-        }
-        .service-item.overdue {
-            border-left-color: #dc3545;
-        }
-        .service-item.expiring-soon {
-            border-left-color: #ffc107;
-        }
-        .service-name {
-            font-weight: bold;
-            font-size: 16px;
-            color: #007bff;
-            margin-bottom: 8px;
-        }
-        .service-details {
-            font-size: 14px;
-            color: #6c757d;
-            margin-bottom: 5px;
-        }
-        .expiry-info {
-            font-weight: bold;
-            margin-top: 8px;
-        }
-        .overdue .expiry-info {
-            color: #dc3545;
-        }
-        .expiring-soon .expiry-info {
-            color: #ffc107;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #dee2e6;
-            color: #6c757d;
-            font-size: 14px;
-        }
-        .btn {
-            display: inline-block;
-            padding: 12px 24px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin: 10px 5px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .summary {
-            background-color: #e7f3ff;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 20px 0;
-            text-align: center;
-        }
-        .section-title {
-            font-size: 18px;
-            font-weight: bold;
-            color: #007bff;
-            margin: 20px 0 10px 0;
-            border-bottom: 2px solid #007bff;
-            padding-bottom: 5px;
-        }
-    </style>
+    <title>Daily Renewal Notifications</title>
 </head>
-<body>
-    <div class="email-container">
-        <!-- Header -->
-        <div class="header">
-            <div class="logo">Technofra Renewal Master</div>
-            <p>Daily Service Renewal Notifications</p>
-        </div>
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family:Arial, Helvetica, sans-serif; color:#334155;">
+    @php
+        $clientServices = $criticalServices ?? collect();
+        $vendorServices = $criticalVendorServices ?? collect();
+        $totalRenewals = $clientServices->count() + $vendorServices->count();
+        $today = \Carbon\Carbon::today();
+        $expiringTodayCount = $clientServices->filter(fn ($service) => $service->end_date && $service->end_date->isSameDay($today))->count()
+            + $vendorServices->filter(fn ($service) => $service->end_date && $service->end_date->isSameDay($today))->count();
+        $expiredCount = $clientServices->filter(fn ($service) => $service->end_date && $service->end_date->lt($today))->count()
+            + $vendorServices->filter(fn ($service) => $service->end_date && $service->end_date->lt($today))->count();
 
-        <!-- Summary -->
-        <div class="summary">
-            <h3>Action Required</h3>
-            <p>You have {{ count($criticalServices) + count($criticalVendorServices) }} service(s) that require immediate attention.</p>
-        </div>
+        $describeRenewal = function ($service) use ($today) {
+            if (!$service->end_date) {
+                return 'Renewal date not available';
+            }
 
-        <!-- Client Services -->
-        @if($criticalServices && $criticalServices->count() > 0)
-        <div class="section-title">Client Services</div>
-        @foreach($criticalServices as $service)
-            @php
-                $daysLeft = \Carbon\Carbon::today()->diffInDays($service->end_date, false);
-                $isOverdue = $daysLeft < 0;
-                $isExpiringSoon = $daysLeft >= 0 && $daysLeft <= 5;
-            @endphp
-            <div class="service-item {{ $isOverdue ? 'overdue' : 'expiring-soon' }}">
-                <div class="service-name">{{ $service->service_name }}</div>
-                <div class="service-details">
-                    <strong>Client:</strong> {{ $service->client->cname ?? 'N/A' }}<br>
-                    <strong>Vendor:</strong> {{ $service->vendor->name ?? 'N/A' }}<br>
-                    <strong>Amount:</strong> ₹{{ number_format($service->amount, 2) }}
-                </div>
-                <div class="expiry-info">
-                    @if($isOverdue)
-                        Expired {{ abs($daysLeft) }} days ago ({{ $service->end_date->format('d M Y') }})
-                    @else
-                        Expires in {{ $daysLeft }} days ({{ $service->end_date->format('d M Y') }})
-                    @endif
-                </div>
-            </div>
-        @endforeach
-        @endif
+            $daysLeft = $today->diffInDays($service->end_date, false);
 
-        <!-- Vendor Services -->
-        @if($criticalVendorServices && $criticalVendorServices->count() > 0)
-        <div class="section-title">Vendor Services</div>
-        @foreach($criticalVendorServices as $service)
-            @php
-                $daysLeft = \Carbon\Carbon::today()->diffInDays($service->end_date, false);
-                $isOverdue = $daysLeft < 0;
-                $isExpiringSoon = $daysLeft >= 0 && $daysLeft <= 5;
-            @endphp
-            <div class="service-item {{ $isOverdue ? 'overdue' : 'expiring-soon' }}">
-                <div class="service-name">{{ $service->service_name }}</div>
-                <div class="service-details">
-                    <strong>Vendor:</strong> {{ $service->vendor->name ?? 'N/A' }}<br>
-                    <strong>Plan Type:</strong> {{ $service->plan_type ?? 'N/A' }}
-                </div>
-                <div class="expiry-info">
-                    @if($isOverdue)
-                        Expired {{ abs($daysLeft) }} days ago ({{ $service->end_date->format('d M Y') }})
-                    @else
-                        Expires in {{ $daysLeft }} days ({{ $service->end_date->format('d M Y') }})
-                    @endif
-                </div>
-            </div>
-        @endforeach
-        @endif
+            if ($daysLeft < 0) {
+                return 'Expired ' . abs($daysLeft) . ' day(s) ago';
+            }
 
-        <!-- Call to Action -->
-        <div style="text-align: center; margin: 30px 0;">
-            <p>Please review these services and take necessary action to avoid service interruptions.</p>
-            <a href="{{ url('/dashboard') }}" class="btn" style="color: #ffffff;">View Dashboard</a>
-            <a href="{{ url('/vendor-services') }}" class="btn" style="color: #ffffff;">View Vendor Services</a>
-            <a href="mailto:support@technofra.com" class="btn" style="color: #ffffff;">Contact Support</a>
-        </div>
+            if ($daysLeft === 0) {
+                return 'Expires today';
+            }
 
-        <!-- Footer -->
-        <div class="footer">
-            <p><strong>Technofra Renewal Master</strong></p>
-            <p>This is an automated daily notification email.</p>
-            <p>If you have any questions, please contact our support team.</p>
-            <p style="margin-top: 20px;">
-                <small>© {{ date('Y') }} Technofra. All rights reserved.</small>
-            </p>
-        </div>
-    </div>
+            if ($daysLeft === 1) {
+                return 'Expires tomorrow';
+            }
+
+            return 'Expires in ' . $daysLeft . ' day(s)';
+        };
+    @endphp
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#f3f4f6; margin:0; padding:24px 0;">
+        <tr>
+            <td align="center">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="560" style="width:560px; max-width:560px; background-color:#ffffff;">
+                    <tr>
+                        <td style="padding:18px 28px 8px 28px; font-size:14px; color:#64748b;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                <tr>
+                                    <td style="font-size:14px; color:#64748b;">
+                                        A daily renewal notification has been generated from the Technofra dashboard.
+                                    </td>
+                                    <td align="right" style="font-size:14px; color:#64748b;">
+                                        {{ now()->format('d M Y H:i') }}
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:18px 48px 0 48px;">
+                            <img src="{{ asset('https://technofra.com/assets/image/favicon.png') }}" alt="Technofra" style="display:block; width:56px; height:auto; border:0;">
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:18px 48px 0 48px;">
+                            <h1 style="margin:0; font-size:24px; line-height:1.35; color:#2b3b52; font-weight:700;">Daily Renewal Email Notifications</h1>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:18px 48px 0 48px; font-size:16px; line-height:1.7; color:#475569;">
+                            {{ $totalRenewals }} renewal item(s) need attention today. The summary below includes client and vendor renewals with their expiry status so your team can follow up quickly.
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:28px 48px 0 48px;">
+                            <a href="{{ url('/client') }}" style="display:inline-block; background-color:#0b3c74; color:#ffffff; text-decoration:none; padding:15px 34px; font-size:15px; font-weight:700;">Open Renewals</a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:56px 48px 0 48px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #b8c9de;">
+                                <tr>
+                                    <td style="padding:30px;">
+                                        <h2 style="margin:0 0 24px 0; font-size:18px; color:#2b3b52; font-weight:700;">Renewal Summary</h2>
+
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #d9e3ef; margin-bottom:16px; border-collapse:collapse;">
+                                            <tr>
+                                                <td colspan="2" style="padding:14px 16px; background-color:#f8fafc; border-bottom:1px solid #d9e3ef; font-size:16px; font-weight:700; color:#1e293b;">
+                                                    Renewal Summary Overview
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155; width:42%;">Total Renewal Items</td>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $totalRenewals }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Client Renewals</td>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $clientServices->count() }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Vendor Renewals</td>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $vendorServices->count() }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Expiring Today</td>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $expiringTodayCount }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Already Expired</td>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $expiredCount }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Quick Access</td>
+                                                <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">
+                                                    <a href="{{ url('/client') }}" style="color:#004aad; text-decoration:underline;">Open Client Renewals</a>
+                                                    &nbsp;|&nbsp;
+                                                    <a href="{{ url('/vendor-services') }}" style="color:#004aad; text-decoration:underline;">Open Vendor Renewals</a>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td style="padding:12px 16px; font-size:14px; font-weight:700; color:#334155;">Generated At</td>
+                                                <td style="padding:12px 16px; font-size:14px; color:#475569;">{{ now()->format('d M Y H:i') }}</td>
+                                            </tr>
+                                        </table>
+
+                                        @if($clientServices->count() > 0)
+                                            <div style="height:26px; border-bottom:1px solid #e2e8f0;"></div>
+                                            <h3 style="margin:24px 0 18px 0; font-size:18px; color:#2b3b52; font-weight:700;">Client Renewal Details</h3>
+
+                                            @foreach($clientServices as $service)
+                                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #d9e3ef; margin-bottom:16px; border-collapse:collapse;">
+                                                    <tr>
+                                                        <td colspan="2" style="padding:14px 16px; background-color:#f8fafc; border-bottom:1px solid #d9e3ef; font-size:16px; font-weight:700; color:#1e293b;">
+                                                            {{ $service->service_name ?: 'Client Service' }}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155; width:42%;">Client</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $service->client->cname ?? 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Vendor</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $service->vendor->name ?? 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Renewal Date</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ optional($service->end_date)->format('d M Y') ?: 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Renewal Status</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $describeRenewal($service) }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Amount</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">Rs. {{ number_format((float) ($service->amount ?? 0), 2) }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; font-size:14px; font-weight:700; color:#334155;">Current Status</td>
+                                                        <td style="padding:12px 16px; font-size:14px; color:#475569;">{{ $service->status_label ?? ucfirst($service->status ?? 'N/A') }}</td>
+                                                    </tr>
+                                                </table>
+                                            @endforeach
+                                        @endif
+
+                                        @if($vendorServices->count() > 0)
+                                            <div style="height:10px;"></div>
+                                            <h3 style="margin:24px 0 18px 0; font-size:18px; color:#2b3b52; font-weight:700;">Vendor Renewal Details</h3>
+
+                                            @foreach($vendorServices as $service)
+                                                <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="border:1px solid #d9e3ef; margin-bottom:16px; border-collapse:collapse;">
+                                                    <tr>
+                                                        <td colspan="2" style="padding:14px 16px; background-color:#f8fafc; border-bottom:1px solid #d9e3ef; font-size:16px; font-weight:700; color:#1e293b;">
+                                                            {{ $service->service_name ?: 'Vendor Service' }}
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155; width:42%;">Vendor</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $service->vendor->name ?? 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Plan Type</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $service->plan_type ?? 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Renewal Date</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ optional($service->end_date)->format('d M Y') ?: 'N/A' }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; font-weight:700; color:#334155;">Renewal Status</td>
+                                                        <td style="padding:12px 16px; border-bottom:1px solid #e2e8f0; font-size:14px; color:#475569;">{{ $describeRenewal($service) }}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td style="padding:12px 16px; font-size:14px; font-weight:700; color:#334155;">Current Status</td>
+                                                        <td style="padding:12px 16px; font-size:14px; color:#475569;">{{ $service->status_label ?? ucfirst($service->status ?? 'N/A') }}</td>
+                                                    </tr>
+                                                </table>
+                                            @endforeach
+                                        @endif
+
+                                        <div style="height:26px; border-bottom:1px solid #e2e8f0;"></div>
+
+                                        <h3 style="margin:24px 0 18px 0; font-size:18px; color:#2b3b52; font-weight:700;">Recommended Next Steps</h3>
+
+                                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+                                            <tr>
+                                                <td valign="top" style="padding:0 20px 20px 0; width:38px;">
+                                                    <div style="width:34px; height:34px; line-height:34px; text-align:center; border:1px solid #0b3c74; color:#0b3c74; font-size:14px; font-weight:700;">1</div>
+                                                </td>
+                                                <td valign="top" style="padding:0 0 20px 0;">
+                                                    <div style="font-size:16px; font-weight:700; color:#26384f; margin-bottom:6px;">Review renewal dates</div>
+                                                    <div style="font-size:15px; line-height:1.7; color:#64748b;">Check all listed client and vendor renewals and prioritize items that have already expired or are due today.</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td valign="top" style="padding:0 20px 20px 0; width:38px;">
+                                                    <div style="width:34px; height:34px; line-height:34px; text-align:center; border:1px solid #0b3c74; color:#0b3c74; font-size:14px; font-weight:700;">2</div>
+                                                </td>
+                                                <td valign="top" style="padding:0 0 20px 0;">
+                                                    <div style="font-size:16px; font-weight:700; color:#26384f; margin-bottom:6px;">Coordinate renewals</div>
+                                                    <div style="font-size:15px; line-height:1.7; color:#64748b;">Reach out to the relevant client, vendor, or internal owner so payment and continuation steps are completed on time.</div>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <td valign="top" style="padding:0 20px 0 0; width:38px;">
+                                                    <div style="width:34px; height:34px; line-height:34px; text-align:center; border:1px solid #0b3c74; color:#0b3c74; font-size:14px; font-weight:700;">3</div>
+                                                </td>
+                                                <td valign="top" style="padding:0;">
+                                                    <div style="font-size:16px; font-weight:700; color:#26384f; margin-bottom:6px;">Update the renewal records</div>
+                                                    <div style="font-size:15px; line-height:1.7; color:#64748b;">After action is taken, update the service status and dates in the dashboard so future reminders stay accurate.</div>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:40px 48px 0 48px;">
+                            <div style="font-size:16px; font-weight:700; color:#2b3b52; margin-bottom:16px;">Quick Actions</div>
+                            <div style="font-size:15px; line-height:1.9;">
+                                <a href="{{ url('/client') }}" style="color:#004aad; text-decoration:none;">Open Client Renewals</a>
+                                <span style="color:#94a3b8;">&nbsp;|&nbsp;</span>
+                                <a href="{{ url('/vendor-services') }}" style="color:#004aad; text-decoration:none;">Open Vendor Services</a>
+                                <span style="color:#94a3b8;">&nbsp;|&nbsp;</span>
+                                <a href="{{ url('/') }}" style="color:#004aad; text-decoration:none;">Visit Dashboard</a>
+                            </div>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding:40px 48px 40px 48px;">
+                            <div style="background-color:#f1f5f9; padding:28px; font-size:14px; line-height:1.8; color:#64748b;">
+                                This notification was generated automatically from the daily renewal email notification settings in the Technofra dashboard.
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>

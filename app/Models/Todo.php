@@ -62,7 +62,7 @@ class Todo extends Model
 
     public function getDisplayScheduleAttribute()
     {
-        $time = $this->task_time ? Carbon::createFromFormat('H:i:s', $this->task_time)->format('h:i A') : 'Any time';
+        $time = $this->formatDisplayTime($this->task_time) ?? 'Any time';
         $label = 'Every ' . $this->repeat_interval . ' ' . $this->repeat_unit;
 
         if ($this->repeat_interval > 1) {
@@ -76,6 +76,17 @@ class Todo extends Model
         }
 
         return $label . ' at ' . $time;
+    }
+
+    protected function formatDisplayTime(?string $time): ?string
+    {
+        if (!$time) {
+            return null;
+        }
+
+        $format = strlen($time) === 5 ? 'H:i' : 'H:i:s';
+
+        return Carbon::createFromFormat($format, $time)->format('h:i A');
     }
 
     public function getNextOccurrenceDate(?Carbon $from = null): ?Carbon
@@ -218,4 +229,6 @@ class Todo extends Model
         return $taskDate->greaterThan($startsOn) ? $taskDate : $startsOn;
     }
 }
+
+
 

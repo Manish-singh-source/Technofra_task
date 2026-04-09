@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -81,6 +82,25 @@ class AuthenticationTest extends TestCase
         $this->assertAuthenticatedAs($user);
     }
 
+
+    /** @test */
+    public function user_can_login_with_remember_me_enabled()
+    {
+        User::factory()->create([
+            'email' => 'john@example.com',
+            'password' => Hash::make('password123')
+        ]);
+
+        $response = $this->post('/login', [
+            'email' => 'john@example.com',
+            'password' => 'password123',
+            'remember' => '1'
+        ]);
+
+        $response->assertRedirect('/dashboard');
+        $response->assertCookie(Auth::getRecallerName());
+        $this->assertAuthenticated();
+    }
     /** @test */
     public function user_cannot_login_with_invalid_credentials()
     {

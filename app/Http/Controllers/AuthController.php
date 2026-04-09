@@ -84,6 +84,7 @@ class AuthController extends Controller
         $validator = Validator::make($request->all(), [
             'email' => 'required|email',
             'password' => 'required',
+            'remember' => 'nullable|boolean',
         ], [
             'email.required' => 'The email field is required.',
             'email.email' => 'Please enter a valid email address.',
@@ -98,7 +99,7 @@ class AuthController extends Controller
 
         // Attempt to log the user in
         $credentials = $request->only('email', 'password');
-        $remember = $request->has('remember');
+        $remember = $request->boolean('remember');
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
@@ -122,7 +123,7 @@ class AuthController extends Controller
         // Authentication failed
         return redirect()->back()
             ->withErrors(['email' => 'These credentials do not match our records.'])
-            ->withInput($request->only('email'));
+            ->withInput($request->only('email', 'remember'));
     }
 
     /**
@@ -287,3 +288,4 @@ class AuthController extends Controller
     }
 
 }
+

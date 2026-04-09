@@ -452,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (event.target.closest('.todo-delete')) {
-            if (!confirm('Is todo ko delete karna hai?')) return;
+            if (!confirm('Do you want to delete this todo?')) return;
             await fetch(routes.deleteTemplate.replace('__ID__', todoId), {
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }

@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StaffController;
+use App\Http\Controllers\TodoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -45,6 +47,40 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/force', [StaffController::class, 'apiForceDelete'])->middleware('permission:delete_staff');
         });
 
+        // Todo API routes
+        Route::prefix('todos')->group(function () {
+            Route::get('/options', [TodoController::class, 'apiTodoOptions']);
+            Route::get('/', [TodoController::class, 'apiTodoCollection']);
+            Route::get('/{todo}', [TodoController::class, 'apiTodoDetail']);
+            Route::post('/create-todo', [TodoController::class, 'apiCreateTodo']);
+            Route::match(['put', 'patch'], '/update-todo/{todo}', [TodoController::class, 'apiUpdateTodo']);
+            Route::delete('/delete-todo/{todo}', [TodoController::class, 'apiDeleteTodo']);
+            Route::patch('/toggle-todo-status/{todo}', [TodoController::class, 'apiToggleTodoStatus']);
+        });
+
+
+        // Project API routes
+        Route::prefix('projects')->group(function () {
+            Route::get('/form-options', [ApiProjectController::class, 'apiFormOptions'])->middleware('permission:create_projects');
+            Route::get('/', [ApiProjectController::class, 'apiIndex'])->middleware('permission:view_projects');
+            Route::get('/{id}', [ApiProjectController::class, 'apiShow'])->middleware('permission:view_projects');
+            Route::post('/', [ApiProjectController::class, 'apiStore'])->middleware('permission:create_projects');
+            Route::match(['put', 'patch'], '/{id}', [ApiProjectController::class, 'apiUpdate'])->middleware('permission:edit_projects');
+            Route::delete('/{id}', [ApiProjectController::class, 'apiDestroy'])->middleware('permission:delete_projects');
+            Route::get('/{projectId}/milestones', [ApiProjectController::class, 'apiMilestoneIndex'])->middleware('permission:view_projects');
+            Route::post('/{projectId}/milestones', [ApiProjectController::class, 'apiStoreMilestone'])->middleware('permission:edit_projects');
+            Route::match(['put', 'patch'], '/{projectId}/milestones/{milestoneId}', [ApiProjectController::class, 'apiUpdateMilestone'])->middleware('permission:edit_projects');
+            Route::delete('/{projectId}/milestones/{milestoneId}', [ApiProjectController::class, 'apiDestroyMilestone'])->middleware('permission:edit_projects');
+            Route::get('/{projectId}/issues', [ApiProjectController::class, 'apiIssueIndex'])->middleware('permission:view_projects');
+            Route::post('/{projectId}/issues', [ApiProjectController::class, 'apiStoreIssue'])->middleware('permission:edit_projects');
+            Route::match(['put', 'patch'], '/{projectId}/issues/{issueId}', [ApiProjectController::class, 'apiUpdateIssue'])->middleware('permission:edit_projects');
+            Route::delete('/{projectId}/issues/{issueId}', [ApiProjectController::class, 'apiDestroyIssue'])->middleware('permission:edit_projects');
+            Route::get('/{projectId}/comments', [ApiProjectController::class, 'apiCommentIndex'])->middleware('permission:view_projects');
+            Route::post('/{projectId}/comments', [ApiProjectController::class, 'apiStoreComment'])->middleware('permission:view_projects');
+            Route::get('/{projectId}/files', [ApiProjectController::class, 'apiFileIndex'])->middleware('permission:view_projects');
+            Route::post('/{projectId}/files', [ApiProjectController::class, 'apiUploadFile'])->middleware('permission:edit_projects');
+            Route::delete('/{projectId}/files/{fileId}', [ApiProjectController::class, 'apiDeleteFile'])->middleware('permission:delete_projects');
+        });
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
             Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
@@ -89,3 +125,5 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
