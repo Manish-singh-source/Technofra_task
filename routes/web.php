@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookCallController;
+use App\Http\Controllers\DigitalMarketingLeadController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientIssueController;
@@ -96,6 +97,14 @@ Route::middleware('auth')->group(function () {
     Route::delete('/book-call/{bookCall}', [BookCallController::class, 'destroy'])
         ->name('book-call.destroy')
         ->middleware('permission:view_book_calls');
+
+    // Digital Marketing Leads routes
+    Route::get('/digital-marketing-leads', [DigitalMarketingLeadController::class, 'index'])
+        ->name('digital-marketing-leads.index')
+        ->middleware('permission:view_digital_marketing_leads');
+    Route::delete('/digital-marketing-leads/{digitalMarketingLead}', [DigitalMarketingLeadController::class, 'destroy'])
+        ->name('digital-marketing-leads.destroy')
+        ->middleware('permission:view_digital_marketing_leads');
 
 
 

@@ -33,6 +33,7 @@ class PermissionSeeder extends Seeder
             'vendors',
             'dashboard',
             'book_calls',
+            'digital_marketing_leads',
         ];
 
         // Define all actions

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
+use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PermissionController;
@@ -81,6 +82,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{projectId}/files', [ApiProjectController::class, 'apiUploadFile'])->middleware('permission:edit_projects');
             Route::delete('/{projectId}/files/{fileId}', [ApiProjectController::class, 'apiDeleteFile'])->middleware('permission:delete_projects');
         });
+        // Task API routes
+        Route::prefix('tasks')->group(function () {
+            Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions'])->middleware('permission:create_tasks');
+            Route::get('/', [ApiTaskController::class, 'apiIndex'])->middleware('permission:view_tasks');
+            Route::get('/{id}', [ApiTaskController::class, 'apiShow'])->middleware('permission:view_tasks');
+            Route::post('/', [ApiTaskController::class, 'apiStore'])->middleware('permission:create_tasks');
+            Route::match(['put', 'patch'], '/{id}', [ApiTaskController::class, 'apiUpdate'])->middleware('permission:edit_tasks');
+            Route::delete('/{id}', [ApiTaskController::class, 'apiDestroy'])->middleware('permission:delete_tasks');
+            Route::get('/{taskId}/comments', [ApiTaskController::class, 'apiCommentIndex'])->middleware('permission:view_tasks');
+            Route::post('/{taskId}/comments', [ApiTaskController::class, 'apiStoreComment'])->middleware('permission:view_tasks');
+            Route::get('/{taskId}/attachments', [ApiTaskController::class, 'apiAttachmentIndex'])->middleware('permission:view_tasks');
+            Route::post('/{taskId}/attachments', [ApiTaskController::class, 'apiUploadAttachment'])->middleware('permission:edit_tasks');
+            Route::delete('/{taskId}/attachments/{attachmentId}', [ApiTaskController::class, 'apiDeleteAttachment'])->middleware('permission:delete_tasks');
+        });
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
             Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
@@ -125,5 +140,7 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
 
 

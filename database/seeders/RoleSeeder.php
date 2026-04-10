@@ -81,6 +81,9 @@ class RoleSeeder extends Seeder
             // Book Call
             'view_book_calls',
             
+            // Digital Marketing Leads
+            'view_digital_marketing_leads',
+            
             // Settings Management
             'view_general_settings',
             'view_company_information',
@@ -136,6 +139,7 @@ class RoleSeeder extends Seeder
                 'edit_tasks',
                 'delete_tasks',
                 'view_book_calls',
+                'view_digital_marketing_leads',
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
@@ -173,6 +177,7 @@ class RoleSeeder extends Seeder
                 'create_tasks',
                 'edit_tasks',
                 'view_book_calls',
+                'view_digital_marketing_leads',
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
@@ -198,6 +203,7 @@ class RoleSeeder extends Seeder
                 'create_tasks',
                 'edit_tasks',
                 'view_book_calls',
+                'view_digital_marketing_leads',
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
@@ -216,6 +222,7 @@ class RoleSeeder extends Seeder
                 'create_tasks',
                 'edit_tasks',
                 'view_book_calls',
+                'view_digital_marketing_leads',
             ],
         ];
 

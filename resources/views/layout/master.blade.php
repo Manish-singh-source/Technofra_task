@@ -294,6 +294,15 @@
                         </a>
                     </li>
                     @endcan
+                    @can('view_digital_marketing_leads')
+                    <li>
+                        <a href="{{ route('digital-marketing-leads.index') }}">
+                            <div class="parent-icon"><i class="bx bx-line-chart"></i>
+                            </div>
+                            <div class="menu-title">Digital Marketing Leads</div>
+                        </a>
+                    </li>
+                    @endcan
                     @can('view_staff')
                     <li>
                         <a href="javascript:;" class="has-arrow">

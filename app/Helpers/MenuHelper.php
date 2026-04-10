@@ -157,6 +157,16 @@ class MenuHelper
             ];
         }
 
+        // Digital Marketing Leads
+        if (in_array('view_digital_marketing_leads', $permissions)) {
+            $menu[] = [
+                'name' => 'Digital Marketing Leads',
+                'route' => 'digital-marketing-leads.index',
+                'icon' => 'bx bx-line-chart',
+                'active' => request()->routeIs('digital-marketing-leads*'),
+            ];
+        }
+
         // Settings
         if (self::hasAnyPermission($permissions, ['view_general_settings', 'view_company_information', 'view_email_settings'])) {
             $menu[] = [
