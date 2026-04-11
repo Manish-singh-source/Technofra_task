@@ -79,7 +79,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Project API routes
         Route::prefix('projects')->group(function () {
             Route::get('/form-options', [ApiProjectController::class, 'apiFormOptions'])->middleware('permission:create_projects');
-            Route::get('/', [ApiProjectController::class, 'apiIndex'])->middleware('permission:view_projects');
+            Route::get('/', [ApiProjectController::class, 'apiIndex']);
             Route::get('/{id}', [ApiProjectController::class, 'apiShow'])->middleware('permission:view_projects');
             Route::post('/', [ApiProjectController::class, 'apiStore'])->middleware('permission:create_projects');
             Route::match(['put', 'patch'], '/{id}', [ApiProjectController::class, 'apiUpdate'])->middleware('permission:edit_projects');
