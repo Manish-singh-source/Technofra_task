@@ -394,3 +394,183 @@ Now we can go through each in details:
     - `422` for validation errors
     - `403` for unauthorized project access
     - `500` for unexpected server errors
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{
+    "success": true,
+    "message": "Staff found",
+    "data": [
+        {
+            "id": 1,
+            "user_id": 2,
+            "profile_image": "1775887883.jpeg",
+            "first_name": "Amit1",
+            "last_name": "Kumar",
+            "email": "amit1@example.com",
+            "phone": "9876543210",
+            "role": "Staff",
+            "password": "$2y$10$eOIA4.vudWJhngN6pz0wruT55Al/4.CHe2YpgVVI2AWI7zqK4O7NO",
+            "status": "active",
+            "departments": [
+                "Graphic Design"
+            ],
+            "team": "Web Team",
+            "created_at": "2026-04-11T06:11:23.000000Z",
+            "updated_at": "2026-04-11T06:44:17.000000Z",
+            "deleted_at": null,
+            "user": {
+                "id": 2,
+                "name": "Amit1 Kumar",
+                "email": "amit1@example.com",
+                "email_verified_at": null,
+                "status": 1,
+                "created_at": "2026-04-11T06:11:23.000000Z",
+                "updated_at": "2026-04-11T06:44:17.000000Z"
+            }
+        },
+        {
+            "id": 2,
+            "user_id": 3,
+            "profile_image": "1775889440.png",
+            "first_name": "Amit",
+            "last_name": "Kumar",
+            "email": "amit@example.com",
+            "phone": "9876543210",
+            "role": "admin",
+            "password": "$2y$10$loHohdUGt1drCnaPoDS49OjSWUqgROUS/dzXIEiwZhWmEoZWfx6Ru",
+            "status": "active",
+            "departments": [
+                "Admin",
+                "Web Developers"
+            ],
+            "team": "Web Team",
+            "created_at": "2026-04-11T06:37:20.000000Z",
+            "updated_at": "2026-04-11T06:37:20.000000Z",
+            "deleted_at": null,
+            "user": {
+                "id": 3,
+                "name": "Amit Kumar",
+                "email": "amit@example.com",
+                "email_verified_at": null,
+                "status": 1,
+                "created_at": "2026-04-11T06:37:20.000000Z",
+                "updated_at": "2026-04-11T06:37:20.000000Z"
+            }
+        }
+    ]
+}
+
+
+
+
+
+
+
+{
+    "success": true,
+    "data": [
+        {
+            "id": 1,
+            "user_id": 2,
+            "profile_image": "1775887883.jpeg",
+            "profile_image_url": "http://127.0.0.1:8000/uploads/staff/1775887883.jpeg",
+            "first_name": "Amit1",
+            "last_name": "Kumar",
+            "full_name": "Amit1 Kumar",
+            "email": "amit1@example.com",
+            "phone": "9876543210",
+            "role": "Staff",
+            "status": "active",
+            "team": "Web Team",
+            "departments": [
+                "Graphic Design"
+            ],
+            "is_deleted": false,
+            "deleted_at": null,
+            "created_at": "2026-04-11T06:11:23.000000Z",
+            "updated_at": "2026-04-11T06:44:17.000000Z",
+            "user": {
+                "id": 2,
+                "name": "Amit1 Kumar",
+                "email": "amit1@example.com",
+                "roles": [
+                    "staff"
+                ]
+            },
+            "links": {
+                "web": {
+                    "view": "http://127.0.0.1:8000/view-staff/1",
+                    "update": "http://127.0.0.1:8000/update-staff/1",
+                    "delete": "http://127.0.0.1:8000/staff/delete/1",
+                    "restore": "http://127.0.0.1:8000/staff/restore/1",
+                    "force_delete": "http://127.0.0.1:8000/staff/force-delete/1"
+                },
+                "api": {
+                    "show": "http://127.0.0.1:8000/api/staff/1",
+                    "update": "http://127.0.0.1:8000/api/staff/1",
+                    "delete": "http://127.0.0.1:8000/api/staff/1",
+                    "restore": "http://127.0.0.1:8000/api/staff/1/restore",
+                    "force_delete": "http://127.0.0.1:8000/api/staff/1/force"
+                }
+            }
+        },
+        {
+            "id": 2,
+            "user_id": 3,
+            "profile_image": "1775889440.png",
+            "profile_image_url": "http://127.0.0.1:8000/uploads/staff/1775889440.png",
+            "first_name": "Amit",
+            "last_name": "Kumar",
+            "full_name": "Amit Kumar",
+            "email": "amit@example.com",
+            "phone": "9876543210",
+            "role": "admin",
+            "status": "active",
+            "team": "Web Team",
+            "departments": [
+                "Admin",
+                "Web Developers"
+            ],
+            "is_deleted": false,
+            "deleted_at": null,
+            "created_at": "2026-04-11T06:37:20.000000Z",
+            "updated_at": "2026-04-11T06:37:20.000000Z",
+            "user": {
+                "id": 3,
+                "name": "Amit Kumar",
+                "email": "amit@example.com",
+                "roles": [
+                    "admin"
+                ]
+            },
+            "links": {
+                "web": {
+                    "view": "http://127.0.0.1:8000/view-staff/2",
+                    "update": "http://127.0.0.1:8000/update-staff/2",
+                    "delete": "http://127.0.0.1:8000/staff/delete/2",
+                    "restore": "http://127.0.0.1:8000/staff/restore/2",
+                    "force_delete": "http://127.0.0.1:8000/staff/force-delete/2"
+                },
+                "api": {
+                    "show": "http://127.0.0.1:8000/api/staff/2",
+                    "update": "http://127.0.0.1:8000/api/staff/2",
+                    "delete": "http://127.0.0.1:8000/api/staff/2",
+                    "restore": "http://127.0.0.1:8000/api/staff/2/restore",
+                    "force_delete": "http://127.0.0.1:8000/api/staff/2/force"
+                }
+            }
+        }
+    ]
+}

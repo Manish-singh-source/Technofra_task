@@ -52,6 +52,18 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
+        Route::controller(App\Http\Controllers\Api\StaffController::class)->group(function() {
+            Route::prefix('staff-v2')->group(function () {
+                Route::get('/', 'index')->middleware('permission:view_staff');
+                Route::get('/{id}', 'show')->middleware('permission:view_staff');
+                Route::post('/', 'store')->middleware('permission:create_staff');
+                Route::put('/{id}', 'update')->middleware('permission:edit_staff');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_staff');
+                Route::post('/{id}/restore', 'restore')->middleware('permission:edit_staff');
+                Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
+            });
+        });
+
         // Todo API routes
         Route::prefix('todos')->group(function () {
             Route::get('/options', [TodoController::class, 'apiTodoOptions']);
