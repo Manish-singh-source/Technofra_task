@@ -18,7 +18,7 @@ class RoleController extends Controller
     public function create()
     {
         $permissions = Permission::all();
-        $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls'];
+        $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls', 'digital_marketing_leads'];
         $settingsPermissions = [
             'view_general_settings',
             'view_company_information',
@@ -57,7 +57,7 @@ class RoleController extends Controller
     {
         $role = Role::with('permissions')->findOrFail($id);
         $permissions = Permission::all();
-        $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls'];
+        $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls', 'digital_marketing_leads'];
         $settingsPermissions = [
             'view_general_settings',
             'view_company_information',
