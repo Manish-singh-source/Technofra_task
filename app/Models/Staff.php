@@ -29,6 +29,15 @@ class Staff extends Model
     ];
 
     /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var array<int, string>
+     */
+    protected $hidden = [
+        'password',
+    ];
+
+    /**
      * Get the projects where this staff is a member.
      */
     public function projects()

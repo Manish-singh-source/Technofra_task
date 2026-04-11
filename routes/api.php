@@ -52,7 +52,7 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        Route::controller(App\Http\Controllers\Api\StaffController::class)->group(function() {
+        Route::controller(App\Http\Controllers\Api\StaffController::class)->group(function () {
             Route::prefix('staff-v2')->group(function () {
                 Route::get('/', 'index')->middleware('permission:view_staff');
                 Route::get('/{id}', 'show')->middleware('permission:view_staff');
@@ -63,6 +63,19 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
             });
         });
+
+        // Customer/Client API routes
+        Route::prefix('clients')->group(function () {
+            Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
+            Route::get('/{id}', [CustomerController::class, 'apiShow'])->middleware('permission:view_clients');
+            Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
+            Route::match(['put', 'patch'], '/{id}', [CustomerController::class, 'apiUpdate'])->middleware('permission:edit_clients');
+            Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
+            Route::post('/{id}/restore', [CustomerController::class, 'apiRestore'])->middleware('permission:edit_clients');
+            Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
+        });
+
+        
 
         // Todo API routes
         Route::prefix('todos')->group(function () {
@@ -112,16 +125,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{taskId}/attachments', [ApiTaskController::class, 'apiUploadAttachment'])->middleware('permission:edit_tasks');
             Route::delete('/{taskId}/attachments/{attachmentId}', [ApiTaskController::class, 'apiDeleteAttachment'])->middleware('permission:delete_tasks');
         });
-        // Customer/Client API routes
-        Route::prefix('clients')->group(function () {
-            Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
-            Route::get('/{id}', [CustomerController::class, 'apiShow'])->middleware('permission:view_clients');
-            Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
-            Route::match(['put', 'patch'], '/{id}', [CustomerController::class, 'apiUpdate'])->middleware('permission:edit_clients');
-            Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
-            Route::post('/{id}/restore', [CustomerController::class, 'apiRestore'])->middleware('permission:edit_clients');
-            Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
-        });
+
 
         // Lead API routes
         Route::prefix('leads')->group(function () {

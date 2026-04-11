@@ -58,4 +58,21 @@ class Project extends Model
     {
         return $this->hasMany(ProjectMilestone::class);
     }
+
+    // project members list 
+    public function membersList()
+    {
+        $memberIds = $this->members ?? [];
+
+        return Staff::whereIn('id', $memberIds)
+            ->get()
+            ->map(function ($staff) {
+                $staff->profile_image = $staff->profile_image
+                    ? asset($staff->profile_image)
+                    : null;
+
+                return $staff;
+            })
+            ->values();
+    }
 }

@@ -886,7 +886,7 @@ class ProjectController extends Controller
             ] : null,
             'start_date' => optional($project->start_date)?->toDateString(),
             'deadline' => optional($project->deadline)?->toDateString(),
-            'members' => collect($project->members ?? [])->map(fn ($id) => (int) $id)->values(),
+            'members' => $project->membersList(),
             'tags' => $project->tags ?? [],
             'technologies' => $project->technologies ?? [],
             'created_at' => optional($project->created_at)?->toISOString(),
