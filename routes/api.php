@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 // Public API routes (no authentication required)
 Route::prefix('/v1')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    // Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
 });
 
@@ -32,20 +32,24 @@ Route::prefix('/v1')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
     Route::prefix('/v1')->group(function () {
-        Route::get('/me', [AuthController::class, 'me']);
-        Route::post('/logout', [AuthController::class, 'logout']);
-        Route::post('/logout-all', [AuthController::class, 'logoutAll']);
+        Route::controller(AuthController::class)->group(function () {
+            Route::get('/me', 'me');
+            Route::post('/logout', 'logout');
+            Route::post('/logout-all', 'logoutAll');
+        });
 
         // Staff API routes
-        Route::prefix('staff')->group(function () {
-            Route::get('/form-options', [StaffController::class, 'apiFormOptions'])->middleware('permission:create_staff');
-            Route::get('/', [StaffController::class, 'apiIndex'])->middleware('permission:view_staff');
-            Route::get('/{id}', [StaffController::class, 'apiShow'])->middleware('permission:view_staff');
-            Route::post('/', [StaffController::class, 'apiStore'])->middleware('permission:create_staff');
-            Route::match(['put', 'patch'], '/{id}', [StaffController::class, 'apiUpdate'])->middleware('permission:edit_staff');
-            Route::delete('/{id}', [StaffController::class, 'apiDestroy'])->middleware('permission:delete_staff');
-            Route::post('/{id}/restore', [StaffController::class, 'apiRestore'])->middleware('permission:edit_staff');
-            Route::delete('/{id}/force', [StaffController::class, 'apiForceDelete'])->middleware('permission:delete_staff');
+        Route::controller(StaffController::class)->group(function () {
+            Route::prefix('staff')->group(function () {
+                Route::get('/form-options', 'apiFormOptions')->middleware('permission:create_staff');
+                Route::get('/', 'apiIndex')->middleware('permission:view_staff');
+                Route::get('/{id}', 'apiShow')->middleware('permission:view_staff');
+                Route::post('/', 'apiStore')->middleware('permission:create_staff');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_staff');
+                Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_staff');
+                Route::post('/{id}/restore', 'apiRestore')->middleware('permission:edit_staff');
+                Route::delete('/{id}/force', 'apiForceDelete')->middleware('permission:delete_staff');
+            });
         });
 
         // Todo API routes
@@ -140,7 +144,3 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-
-
-

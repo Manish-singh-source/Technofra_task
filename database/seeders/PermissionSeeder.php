@@ -96,4 +96,5 @@ class PermissionSeeder extends Seeder
         $this->command->info('Password: 123456789');
     }
 }
+ 
 
