@@ -170,7 +170,7 @@ class LeadController extends Controller
      */
     public function apiIndex()
     {
-        $leads = Lead::query()->latest('id')->get();
+        $leads = Lead::query()->latest('id')->paginate();
 
         return response()->json([
             'success' => true,
