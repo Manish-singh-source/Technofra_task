@@ -51,8 +51,8 @@ class StaffController extends Controller
 
         $validated = Validator::make($request->all(), [
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'firstName' => 'required|string|max:255',
+            'lastName' => 'required|string|max:255',
             'email' => 'required|email|unique:staff,email|unique:users,email',
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
@@ -126,10 +126,7 @@ class StaffController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create staff: ' . $e->getMessage(),
-            ], 500);
+            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
         }
     }
 
@@ -156,7 +153,8 @@ class StaffController extends Controller
         }
     }
 
-    public function restore($id) {
+    public function restore($id)
+    {
         $staff = Staff::withTrashed()->find($id);
 
         if (!$staff->trashed()) {
@@ -172,6 +170,34 @@ class StaffController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return ApiResponse::error('Failed to restore staff' . $e->getMessage(), 500);
+        }
+    }
+
+    /**
+     * Permanently delete a staff member.
+     */
+    public function forceDelete($id)
+    {
+        $staff = Staff::withTrashed()->find($id);   
+        if (!$staff) {
+            return ApiResponse::error('Staff member not found');
+        }
+
+        DB::beginTransaction();
+        try {
+            if ($staff->profile_image) {
+                $imagePath = public_path('uploads/staff/' . $staff->profile_image);
+                if (file_exists($imagePath)) {
+                    @unlink($imagePath);
+                }
+            }
+            $staff->forceDelete();
+
+            DB::commit();
+            return ApiResponse::success('Staff permanently deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return ApiResponse::error('Failed to permanently delete staff' . $e->getMessage(), 500);
         }
     }
 }
