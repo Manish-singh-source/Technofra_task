@@ -147,7 +147,7 @@ class LeadController extends Controller
             'success' => true,
             'data' => [
                 'statuses' => self::STATUSES,
-                'sources' => self::SOURCES,
+                // 'sources' => self::SOURCES,
                 'tags' => self::TAGS,
                 'staff' => Staff::query()
                     ->orderBy('first_name')
