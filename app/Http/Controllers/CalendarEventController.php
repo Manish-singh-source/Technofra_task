@@ -12,6 +12,38 @@ class CalendarEventController extends Controller
     private const APPOINTMENT_BUFFER_MINUTES = 30;
 
     /**
+     * API: Get all calendar events for the authenticated user.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function apiIndex(Request $request)
+    {
+        try {
+            $events = $this->userEventsQuery()
+                ->when(!$request->boolean('include_inactive'), function ($query) {
+                    $query->active();
+                })
+                ->with('creator')
+                ->orderBy('event_date')
+                ->orderBy('event_time')
+                ->get()
+                ->map(fn (CalendarEvent $event) => $this->formatEventResource($event));
+
+            return response()->json([
+                'success' => true,
+                'data' => $events,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching calendar events for API: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching events',
+            ], 500);
+        }
+    }
+
+    /**
      * Get all calendar events for FullCalendar display.
      *
      * @param Request $request
@@ -71,7 +103,6 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        // At least one recipient channel is required.
         if (empty(trim((string) $request->email_recipients)) && empty(trim((string) $request->whatsapp_recipients))) {
             return response()->json([
                 'success' => false,
@@ -79,7 +110,6 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        // Validate email recipients
         $emails = array_filter(array_map('trim', explode(',', (string) $request->email_recipients)));
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -90,7 +120,6 @@ class CalendarEventController extends Controller
             }
         }
 
-        // Validate WhatsApp recipients (phone numbers)
         if ($request->whatsapp_recipients) {
             $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
             foreach ($phones as $phone) {
@@ -188,6 +217,32 @@ class CalendarEventController extends Controller
     }
 
     /**
+     * API: Show a single calendar event for the authenticated user.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function apiShow($id)
+    {
+        try {
+            $event = $this->userEventsQuery()
+                ->with('creator')
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $this->formatEventResource($event),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching calendar event for API: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Event not found',
+            ], 404);
+        }
+    }
+
+    /**
      * Update the specified event.
      *
      * @param Request $request
@@ -212,7 +267,6 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        // At least one recipient channel is required.
         if (empty(trim((string) $request->email_recipients)) && empty(trim((string) $request->whatsapp_recipients))) {
             return response()->json([
                 'success' => false,
@@ -220,7 +274,6 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        // Validate email recipients
         $emails = array_filter(array_map('trim', explode(',', (string) $request->email_recipients)));
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -231,7 +284,6 @@ class CalendarEventController extends Controller
             }
         }
 
-        // Validate WhatsApp recipients (phone numbers)
         if ($request->whatsapp_recipients) {
             $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
             foreach ($phones as $phone) {
@@ -293,6 +345,31 @@ class CalendarEventController extends Controller
     }
 
     /**
+     * API: Update an existing calendar event.
+     *
+     * @param Request $request
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function apiUpdate(Request $request, $id)
+    {
+        $response = $this->update($request, $id);
+        $payload = $response->getData(true);
+
+        if (($payload['success'] ?? false) !== true) {
+            return $response;
+        }
+
+        $event = $this->userEventsQuery()->with('creator')->find($id);
+
+        return response()->json([
+            'success' => true,
+            'message' => $payload['message'] ?? 'Event updated successfully',
+            'data' => $event ? $this->formatEventResource($event) : ($payload['event'] ?? null),
+        ]);
+    }
+
+    /**
      * Remove the specified event.
      *
      * @param int $id
@@ -323,6 +400,44 @@ class CalendarEventController extends Controller
                 'message' => 'Error deleting event: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * API: Store a new calendar event.
+     *
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function apiStore(Request $request)
+    {
+        $response = $this->store($request);
+        $payload = $response->getData(true);
+
+        if (($payload['success'] ?? false) !== true) {
+            return $response;
+        }
+
+        $eventId = $payload['event']['id'] ?? null;
+        $event = $eventId
+            ? $this->userEventsQuery()->with('creator')->find($eventId)
+            : null;
+
+        return response()->json([
+            'success' => true,
+            'message' => $payload['message'] ?? 'Event created successfully',
+            'data' => $event ? $this->formatEventResource($event) : ($payload['event'] ?? null),
+        ], 201);
+    }
+
+    /**
+     * API: Delete a calendar event.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function apiDestroy($id)
+    {
+        return $this->destroy($id);
     }
 
     /**
@@ -400,5 +515,48 @@ class CalendarEventController extends Controller
         } catch (\Throwable $e) {
             Log::warning('Activity log skipped: ' . $e->getMessage());
         }
+    }
+
+    private function formatEventResource(CalendarEvent $event): array
+    {
+        $event->loadMissing('creator');
+
+        return [
+            'id' => $event->id,
+            'title' => $event->title,
+            'description' => $event->description,
+            'event_date' => $event->event_date?->format('Y-m-d'),
+            'event_time' => $event->event_time?->format('H:i'),
+            'start' => $event->event_date && $event->event_time
+                ? $event->event_date->format('Y-m-d') . 'T' . $event->event_time->format('H:i:s')
+                : null,
+            'email_recipients' => $event->email_recipients,
+            'email_recipients_array' => $event->email_recipients_array,
+            'whatsapp_recipients' => $event->whatsapp_recipients,
+            'whatsapp_recipients_array' => $event->whatsapp_recipients_array,
+            'notification_sent' => (bool) $event->notification_sent,
+            'notification_sent_at' => optional($event->notification_sent_at)?->toISOString(),
+            'reminder_10min_sent' => (bool) $event->reminder_10min_sent,
+            'reminder_10min_sent_at' => optional($event->reminder_10min_sent_at)?->toISOString(),
+            'event_time_notification_sent' => (bool) $event->event_time_notification_sent,
+            'event_time_notification_sent_at' => optional($event->event_time_notification_sent_at)?->toISOString(),
+            'status' => (bool) $event->status,
+            'created_by' => $event->created_by,
+            'created_by_name' => $event->creator->name ?? 'Unknown',
+            'created_at' => optional($event->created_at)?->toISOString(),
+            'updated_at' => optional($event->updated_at)?->toISOString(),
+            'links' => [
+                'web' => [
+                    'show' => route('calendar.show', $event->id),
+                    'update' => route('calendar.update', $event->id),
+                    'delete' => route('calendar.destroy', $event->id),
+                ],
+                'api' => [
+                    'show' => url('/api/v1/calendar/events/' . $event->id),
+                    'update' => url('/api/v1/calendar/events/' . $event->id),
+                    'delete' => url('/api/v1/calendar/events/' . $event->id),
+                ],
+            ],
+        ];
     }
 }

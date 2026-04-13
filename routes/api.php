@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
+use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\PermissionController;
@@ -75,7 +76,14 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
         });
 
-        
+        // Calendar appointment API routes
+        Route::prefix('calendar')->group(function () {
+            Route::get('/events', [CalendarEventController::class, 'apiIndex'])->middleware('permission:view_calendar|view_dashboard');
+            Route::get('/events/{id}', [CalendarEventController::class, 'apiShow'])->middleware('permission:view_calendar|view_dashboard');
+            Route::post('/events', [CalendarEventController::class, 'apiStore'])->middleware('permission:view_calendar|view_dashboard');
+            Route::match(['put', 'patch'], '/events/{id}', [CalendarEventController::class, 'apiUpdate'])->middleware('permission:view_calendar|view_dashboard');
+            Route::delete('/events/{id}', [CalendarEventController::class, 'apiDestroy'])->middleware('permission:view_calendar|view_dashboard');
+        });
 
         // Todo API routes
         Route::prefix('todos')->group(function () {
@@ -87,7 +95,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/delete-todo/{todo}', [TodoController::class, 'apiDeleteTodo']);
             Route::patch('/toggle-todo-status/{todo}', [TodoController::class, 'apiToggleTodoStatus']);
         });
-
 
         // Project API routes
         Route::prefix('projects')->group(function () {
@@ -111,6 +118,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{projectId}/files', [ApiProjectController::class, 'apiUploadFile'])->middleware('permission:edit_projects');
             Route::delete('/{projectId}/files/{fileId}', [ApiProjectController::class, 'apiDeleteFile'])->middleware('permission:delete_projects');
         });
+
         // Task API routes
         Route::prefix('tasks')->group(function () {
             Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions'])->middleware('permission:create_tasks');
@@ -125,7 +133,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/{taskId}/attachments', [ApiTaskController::class, 'apiUploadAttachment'])->middleware('permission:edit_tasks');
             Route::delete('/{taskId}/attachments/{attachmentId}', [ApiTaskController::class, 'apiDeleteAttachment'])->middleware('permission:delete_tasks');
         });
-
 
         // Lead API routes
         Route::prefix('leads')->group(function () {

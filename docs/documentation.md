@@ -593,3 +593,101 @@ Now we can go through each in details:
         }
     ]
 }
+12. Calendar Appointment API Documentation
+
+    Purpose:
+    - create and manage calendar appointments from app or Postman using the same logic used by the dashboard calendar modal in `resources/views/index.blade.php`
+
+    Web source:
+    - view file: `resources/views/index.blade.php`
+    - save button: `$('#saveEventBtn').click(function() { ... })`
+    - web controller methods: `App\Http\Controllers\CalendarEventController::store()`, `show()`, `update()`, `destroy()`
+
+    API base path:
+    - `/api/v1/calendar/events`
+
+    Authentication:
+    - these APIs are inside `auth:sanctum`
+    - first login from `POST /api/v1/login`
+    - then pass `Authorization: Bearer {token}`
+
+    Permission middleware:
+    - `view_calendar|view_dashboard`
+
+    APIs added:
+    - `GET /api/v1/calendar/events`
+    - `GET /api/v1/calendar/events/{id}`
+    - `POST /api/v1/calendar/events`
+    - `PUT|PATCH /api/v1/calendar/events/{id}`
+    - `DELETE /api/v1/calendar/events/{id}`
+
+    Fields supported:
+    - `title` => required string
+    - `description` => optional string
+    - `event_date` => required date like `2026-04-13`
+    - `event_time` => required time in `H:i` format like `14:30`
+    - `email_recipients` => optional comma-separated emails
+    - `whatsapp_recipients` => optional comma-separated phone numbers in international format
+
+    Important validation rules:
+    - at least one of `email_recipients` or `whatsapp_recipients` is required
+    - all email addresses must be valid
+    - all WhatsApp numbers must be 8 to 15 digits and cannot start with `0`
+    - another appointment cannot exist within 30 minutes of the selected slot for the same logged-in user
+
+    Example create request JSON:
+    ```json
+    {
+      "title": "Client follow-up call",
+      "description": "Discuss renewal and pending items",
+      "event_date": "2026-04-15",
+      "event_time": "11:00",
+      "email_recipients": "client@example.com, manager@example.com",
+      "whatsapp_recipients": "919876543210,919876543211"
+    }
+    ```
+
+    Example success response:
+    ```json
+    {
+      "success": true,
+      "message": "Event created successfully",
+      "data": {
+        "id": 5,
+        "title": "Client follow-up call",
+        "description": "Discuss renewal and pending items",
+        "event_date": "2026-04-15",
+        "event_time": "11:00",
+        "start": "2026-04-15T11:00:00",
+        "email_recipients": "client@example.com, manager@example.com",
+        "email_recipients_array": ["client@example.com", "manager@example.com"],
+        "whatsapp_recipients": "919876543210,919876543211",
+        "whatsapp_recipients_array": ["919876543210", "919876543211"],
+        "notification_sent": false,
+        "reminder_10min_sent": false,
+        "event_time_notification_sent": false,
+        "status": true,
+        "created_by": 1,
+        "created_by_name": "Admin",
+        "created_at": "2026-04-13T10:30:00.000000Z",
+        "updated_at": "2026-04-13T10:30:00.000000Z",
+        "links": {
+          "web": {
+            "show": "http://127.0.0.1:8000/calendar/events/5",
+            "update": "http://127.0.0.1:8000/calendar/events/5",
+            "delete": "http://127.0.0.1:8000/calendar/events/5"
+          },
+          "api": {
+            "show": "http://127.0.0.1:8000/api/v1/calendar/events/5",
+            "update": "http://127.0.0.1:8000/api/v1/calendar/events/5",
+            "delete": "http://127.0.0.1:8000/api/v1/calendar/events/5"
+          }
+        }
+      }
+    }
+    ```
+
+    Notes:
+    - list API returns only the authenticated user's events
+    - pass `include_inactive=true` in list API if app also needs inactive events
+    - create and update APIs reuse the same validation and scheduling conflict logic as the web calendar modal
