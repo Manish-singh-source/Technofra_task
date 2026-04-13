@@ -473,6 +473,7 @@ class TaskController extends Controller
                 'id' => $member->id,
                 'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
                 'email' => $member->email,
+                'profile_image' => asset('uploads/staff/', $member->profile_image),
             ])
             ->values()
             ->all();
