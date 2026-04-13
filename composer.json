@@ -7,7 +7,8 @@
     "require": {
         "php": "^8.0.2",
         "doctrine/dbal": "^3.10",
-        "guzzlehttp/guzzle": "^7.2",
+        "google/auth": "^1.50",
+        "guzzlehttp/guzzle": "^7.10",
         "laravel/framework": "^9.19",
         "laravel/sanctum": "^3.0",
         "laravel/tinker": "^2.7",

@@ -11,6 +11,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TodoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\FcmTestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -33,6 +34,10 @@ Route::prefix('/v1')->group(function () {
 Route::middleware('auth:sanctum')->group(function () {
     // Auth routes
     Route::prefix('/v1')->group(function () {
+
+        // Only for testing notification
+        Route::post('/test-fcm', [FcmTestController::class, 'send'])->middleware('throttle:60,1');
+        
         Route::controller(AuthController::class)->group(function () {
             Route::get('/me', 'me');
             Route::post('/logout', 'logout');

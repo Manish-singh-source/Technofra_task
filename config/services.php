@@ -31,6 +31,11 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+    ],
+
     'k3_whatsapp' => [
         'base_url' => env('K3_WHATSAPP_BASE_URL', 'https://partnersv1.pinbot.ai'),
         'business_id' => env('K3_WHATSAPP_BUSINESS_ID'),
