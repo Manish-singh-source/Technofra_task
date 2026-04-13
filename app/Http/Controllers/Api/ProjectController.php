@@ -35,7 +35,7 @@ class ProjectController extends Controller
                 'customers' => Customer::query()
                     ->orderBy('client_name')
                     ->get()
-                    ->map(fn (Customer $customer) => [
+                    ->map(fn(Customer $customer) => [
                         'id' => $customer->id,
                         'name' => $this->formatCustomerName($customer),
                         'email' => $customer->email,
@@ -44,7 +44,7 @@ class ProjectController extends Controller
                 'staff' => Staff::query()
                     ->orderBy('first_name')
                     ->get()
-                    ->map(fn (Staff $member) => [
+                    ->map(fn(Staff $member) => [
                         'id' => $member->id,
                         'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
                         'email' => $member->email,
@@ -65,9 +65,9 @@ class ProjectController extends Controller
     {
         $projects = $this->visibleProjectsQuery()
             ->with(['customer', 'statusLogs'])
-            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
-            ->when($request->filled('customer_id'), fn ($query) => $query->where('customer_id', $request->input('customer_id')))
-            ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->input('priority')))
+            ->when($request->filled('status'), fn($query) => $query->where('status', $request->input('status')))
+            ->when($request->filled('customer_id'), fn($query) => $query->where('customer_id', $request->input('customer_id')))
+            ->when($request->filled('priority'), fn($query) => $query->where('priority', $request->input('priority')))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
                 $query->where(function ($nested) use ($search) {
@@ -80,7 +80,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $projects->map(fn (Project $project) => $this->formatProjectListResource($project))->values(),
+            'data' => $projects->map(fn(Project $project) => $this->formatProjectListResource($project))->values(),
             'meta' => [
                 'counts' => [
                     'all' => $projects->count(),
@@ -98,7 +98,7 @@ class ProjectController extends Controller
     {
         $project = Project::with([
             'customer',
-            'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+            'statusLogs' => fn($query) => $query->orderBy('started_at'),
         ])->findOrFail($id);
 
         $this->authorizeProjectAccess($project);
@@ -232,7 +232,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $milestones->map(fn (ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
+            'data' => $milestones->map(fn(ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
         ]);
     }
 
@@ -333,7 +333,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $issues->map(fn (ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
+            'data' => $issues->map(fn(ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
         ]);
     }
 
@@ -421,7 +421,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $comments->map(fn (ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
+            'data' => $comments->map(fn(ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
         ]);
     }
 
@@ -460,7 +460,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $files->map(fn (ProjectFile $file) => $this->formatFileResource($file))->values(),
+            'data' => $files->map(fn(ProjectFile $file) => $this->formatFileResource($file))->values(),
         ]);
     }
 
@@ -584,8 +584,8 @@ class ProjectController extends Controller
         }
 
         $memberIds = collect($project->members ?? [])
-            ->filter(fn ($memberId) => $memberId !== null && $memberId !== '')
-            ->map(fn ($memberId) => (int) $memberId);
+            ->filter(fn($memberId) => $memberId !== null && $memberId !== '')
+            ->map(fn($memberId) => (int) $memberId);
 
         abort_if(!$memberIds->contains((int) $staff->id), 403, $message);
     }
@@ -765,7 +765,7 @@ class ProjectController extends Controller
     {
         $project->loadMissing([
             'customer',
-            'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+            'statusLogs' => fn($query) => $query->orderBy('started_at'),
         ]);
 
         $elapsedBoundary = $this->getElapsedBoundary();
@@ -778,12 +778,7 @@ class ProjectController extends Controller
         $issues = ProjectIssue::where('project_id', $project->id)->with('customer')->latest()->get();
         $comments = ProjectComment::where('project_id', $project->id)->with('user')->latest()->get();
 
-        $milestoneStats = [
-            'total' => $milestones->count(),
-            'completed' => $milestones->where('status', 'completed')->count(),
-            'in_progress' => $milestones->where('status', 'in_progress')->count(),
-            'pending' => $milestones->where('status', 'pending')->count(),
-        ];
+
 
         $issueStats = [
             'total' => $issues->count(),
@@ -793,16 +788,22 @@ class ProjectController extends Controller
             'closed' => $issues->where('status', 'closed')->count(),
         ];
 
-        $completedTasks = $tasks->where('status', 'completed')->count();
-        $inProgressTasks = $tasks->where('status', 'in_progress')->count();
         $overdueTasks = $tasks->filter(function ($task) {
             return $task->deadline
                 && $task->deadline->isPast()
                 && !in_array($task->status, ['completed', 'cancelled'], true);
         })->count();
+        $inProgressTasks = $tasks->where('status', 'in_progress')->count();
         $notStartedTasks = $tasks->where('status', 'not_started')->count();
-        $resolvedIssues = $issueStats['resolved'] + $issueStats['closed'];
 
+        $completedTasks = $tasks->where('status', 'completed')->count();
+        $resolvedIssues = $issueStats['resolved'] + $issueStats['closed'];
+        $milestoneStats = [
+            'total' => $milestones->count(),
+            'completed' => $milestones->where('status', 'completed')->count(),
+            'in_progress' => $milestones->where('status', 'in_progress')->count(),
+            'pending' => $milestones->where('status', 'pending')->count(),
+        ];
         $progressSignals = [
             $tasks->count() > 0 ? ($completedTasks / $tasks->count()) * 100 : null,
             $milestoneStats['total'] > 0 ? (($milestoneStats['completed'] / $milestoneStats['total']) * 100) : null,
@@ -814,7 +815,7 @@ class ProjectController extends Controller
         } elseif ($project->status === 'cancelled') {
             $overallProgress = 0;
         } else {
-            $availableSignals = array_values(array_filter($progressSignals, fn ($value) => $value !== null));
+            $availableSignals = array_values(array_filter($progressSignals, fn($value) => $value !== null));
             $overallProgress = !empty($availableSignals)
                 ? (int) round(array_sum($availableSignals) / count($availableSignals))
                 : match ($project->status) {
@@ -845,7 +846,7 @@ class ProjectController extends Controller
                     'resolved_issues' => $resolvedIssues,
                 ],
             ],
-            'tasks' => $tasks->map(fn (Task $task) => [
+            'tasks' => $tasks->map(fn(Task $task) => [
                 'id' => $task->id,
                 'title' => $task->title,
                 'description' => $task->description,
@@ -859,11 +860,11 @@ class ProjectController extends Controller
                 'created_at' => optional($task->created_at)?->toISOString(),
                 'updated_at' => optional($task->updated_at)?->toISOString(),
             ])->values(),
-            'files' => $projectFiles->map(fn (ProjectFile $file) => $this->formatFileResource($file))->values(),
-            'milestones' => $milestones->map(fn (ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
-            'issues' => $issues->map(fn (ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
-            'comments' => $comments->map(fn (ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
-            'status_logs' => $project->statusLogs->map(fn (ProjectStatusLog $log) => [
+            'files' => $projectFiles->map(fn(ProjectFile $file) => $this->formatFileResource($file))->values(),
+            'milestones' => $milestones->map(fn(ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
+            'issues' => $issues->map(fn(ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
+            'comments' => $comments->map(fn(ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
+            'status_logs' => $project->statusLogs->map(fn(ProjectStatusLog $log) => [
                 'id' => $log->id,
                 'status' => $log->status,
                 'started_at' => optional($log->started_at)?->toISOString(),
@@ -874,6 +875,50 @@ class ProjectController extends Controller
 
     private function formatProjectListResource(Project $project): array
     {
+        $tasks = Task::where('project_id', $project->id)->latest()->get();
+        $issues = ProjectIssue::where('project_id', $project->id)->with('customer')->latest()->get();
+        $milestones = ProjectMilestone::where('project_id', $project->id)->orderBy('sort_order')->orderBy('due_date')->orderBy('id')->get();
+
+        $issueStats = [
+            'total' => $issues->count(),
+            'open' => $issues->where('status', 'open')->count(),
+            'in_progress' => $issues->where('status', 'in_progress')->count(),
+            'resolved' => $issues->where('status', 'resolved')->count(),
+            'closed' => $issues->where('status', 'closed')->count(),
+        ];
+        $resolvedIssues = $issueStats['resolved'] + $issueStats['closed'];
+        $completedTasks = $tasks->where('status', 'completed')->count();
+
+
+        $milestoneStats = [
+            'total' => $milestones->count(),
+            'completed' => $milestones->where('status', 'completed')->count(),
+            'in_progress' => $milestones->where('status', 'in_progress')->count(),
+            'pending' => $milestones->where('status', 'pending')->count(),
+        ];
+
+        $progressSignals = [
+            $tasks->count() > 0 ? ($completedTasks / $tasks->count()) * 100 : null,
+            $milestoneStats['total'] > 0 ? (($milestoneStats['completed'] / $milestoneStats['total']) * 100) : null,
+            $issueStats['total'] > 0 ? (($resolvedIssues / $issueStats['total']) * 100) : null,
+        ];
+
+        if ($project->status === 'completed') {
+            $overallProgress = 100;
+        } elseif ($project->status === 'cancelled') {
+            $overallProgress = 0;
+        } else {
+            $availableSignals = array_values(array_filter($progressSignals, fn($value) => $value !== null));
+            $overallProgress = !empty($availableSignals)
+                ? (int) round(array_sum($availableSignals) / count($availableSignals))
+                : match ($project->status) {
+                    'in_progress' => 45,
+                    'on_hold' => 20,
+                    default => 0,
+                };
+        }
+
+        $overallProgress = max(0, min(100, $overallProgress));
         return [
             'id' => $project->id,
             'project_name' => $project->project_name,
@@ -889,6 +934,10 @@ class ProjectController extends Controller
             'members' => $project->membersList(),
             'tags' => $project->tags ?? [],
             'technologies' => $project->technologies ?? [],
+            'progress' => [
+                'overall' => $overallProgress,
+                'resolved_issues' => $resolvedIssues,
+            ],
             'created_at' => optional($project->created_at)?->toISOString(),
             'updated_at' => optional($project->updated_at)?->toISOString(),
             'links' => [
@@ -1074,10 +1123,10 @@ class ProjectController extends Controller
         }
 
         $memberEmails = Staff::query()
-            ->whereIn('id', collect($project->members ?? [])->filter()->map(fn ($id) => (int) $id)->all())
+            ->whereIn('id', collect($project->members ?? [])->filter()->map(fn($id) => (int) $id)->all())
             ->whereNotNull('email')
             ->pluck('email')
-            ->map(fn ($email) => trim((string) $email))
+            ->map(fn($email) => trim((string) $email))
             ->filter()
             ->unique()
             ->values();
@@ -1094,8 +1143,3 @@ class ProjectController extends Controller
         }
     }
 }
-
-
-
-
-
