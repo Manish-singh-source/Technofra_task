@@ -143,7 +143,17 @@ Now we can go through each in details:
     - view task
 
 
-10. 
+10. FCM Token API:
+
+curl --location 'http://127.0.0.1:8000/api/v1/test-fcm' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_TOKEN_HERE' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+  "token": "DEVICE_FCM_TOKEN",
+  "title": "Test Notification",
+  "body": "Hello from Laravel FCM test"
+}'
 
 
     
