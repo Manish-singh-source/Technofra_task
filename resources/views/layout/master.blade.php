@@ -313,7 +313,7 @@
                         <ul>
                             @can('view_roles')
                                 <li>
-                                    <a href="{{ route('roles') }}">
+                                    <a href="{{ route('roles.index') }}">
                                         <div class="parent-icon">
 
                                         </div>

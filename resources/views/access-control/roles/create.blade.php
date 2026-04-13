@@ -9,54 +9,35 @@
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0 p-0">
                             <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a></li>
-                            <li class="breadcrumb-item"><a href="{{ route('roles.index') }}">Roles</a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Edit Role</li>
+                            <li class="breadcrumb-item active" aria-current="page">Add Role</li>
                         </ol>
                     </nav>
                 </div>
             </div>
 
-            @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
             <div class="card">
                 <div class="card-body p-4">
-                    <h5 class="card-title">Edit Role - {{ $role->name }}</h5>
+                    <h5 class="card-title">Add New Role</h5>
                     <hr />
-                    <form action="{{ route('role.update', $role->id) }}" method="POST">
+                    <form action="{{ route('role.store') }}" method="POST">
                         @csrf
-                        @method('PUT')
                         <div class="form-body mt-4">
                             <div class="row">
                                 <div class="col-lg-12">
                                     <div class="border border-3 p-4 rounded">
                                         <div class="mb-3">
                                             <label for="name" class="form-label">Role Name</label>
-                                            <input type="text" class="form-control @error('name') is-invalid @enderror"
-                                                id="name" name="name" placeholder="Enter role name"
-                                                value="{{ old('name', $role->name) }}" required>
-                                            @error('name')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                            <input type="text" class="form-control" id="name" name="name"
+                                                placeholder="Enter role name" required>
                                         </div>
                                         <div class="mb-3">
                                             <label class="form-label">Permissions</label>
-                                            <table class="table table-bordered">
+                                            <table class="table table-bordered align-middle">
                                                 <thead>
                                                     <tr>
                                                         <th>Features</th>
                                                         <th>Capabilities</th>
+                                                        <th class="text-center">Select All</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -75,11 +56,12 @@
                                                                     @endphp
                                                                     @if ($permission)
                                                                         <div class="form-check">
-                                                                            <input class="form-check-input" type="checkbox"
-                                                                                name="permissions[]"
+                                                                            <input
+                                                                                class="form-check-input permission-checkbox"
+                                                                                data-group="{{ $module }}"
+                                                                                type="checkbox" name="permissions[]"
                                                                                 value="{{ $permission->id }}"
-                                                                                id="{{ $action . '_' . $module }}"
-                                                                                {{ in_array($permission->id, old('permissions', $rolePermissions)) ? 'checked' : '' }}>
+                                                                                id="{{ $action . '_' . $module }}">
                                                                             <label class="form-check-label"
                                                                                 for="{{ $action . '_' . $module }}">{{ ucfirst($action) }}</label>
                                                                         </div>
@@ -94,17 +76,23 @@
                                                                         @endphp
                                                                         @if ($extraPermission)
                                                                             <div class="form-check">
-                                                                                <input class="form-check-input"
+                                                                                <input
+                                                                                    class="form-check-input permission-checkbox"
+                                                                                    data-group="{{ $module }}"
                                                                                     type="checkbox" name="permissions[]"
                                                                                     value="{{ $extraPermission->id }}"
-                                                                                    id="{{ $extraPermissionName }}"
-                                                                                    {{ in_array($extraPermission->id, old('permissions', $rolePermissions)) ? 'checked' : '' }}>
+                                                                                    id="{{ $extraPermissionName }}">
                                                                                 <label class="form-check-label"
                                                                                     for="{{ $extraPermissionName }}">{{ ucfirst(str_replace('_', ' ', $extraPermissionName)) }}</label>
                                                                             </div>
                                                                         @endif
                                                                     @endforeach
                                                                 @endif
+                                                            </td>
+                                                            <td class="text-center">
+                                                                <input class="form-check-input row-select-all"
+                                                                    type="checkbox" data-group="{{ $module }}"
+                                                                    aria-label="Select all {{ ucfirst(str_replace('_', ' ', $module)) }} permissions">
                                                             </td>
                                                         </tr>
                                                     @endforeach
@@ -119,26 +107,30 @@
                                                                 @endphp
                                                                 @if ($permission)
                                                                     <div class="form-check">
-                                                                        <input class="form-check-input" type="checkbox"
+                                                                        <input class="form-check-input permission-checkbox"
+                                                                            data-group="settings" type="checkbox"
                                                                             name="permissions[]"
                                                                             value="{{ $permission->id }}"
-                                                                            id="{{ $permissionName }}"
-                                                                            {{ in_array($permission->id, old('permissions', $rolePermissions)) ? 'checked' : '' }}>
+                                                                            id="{{ $permissionName }}">
                                                                         <label class="form-check-label"
                                                                             for="{{ $permissionName }}">{{ ucfirst(str_replace('_', ' ', $permissionName)) }}</label>
                                                                     </div>
                                                                 @endif
                                                             @endforeach
                                                         </td>
+                                                        <td class="text-center">
+                                                            <input class="form-check-input row-select-all" type="checkbox"
+                                                                data-group="settings"
+                                                                aria-label="Select all settings permissions">
+                                                        </td>
                                                     </tr>
                                                 </tbody>
                                             </table>
                                         </div>
-                                        <div class="col-12">
-                                            <div class="d-grid gap-2">
-                                                <button type="submit" class="btn btn-primary">Update Role</button>
-                                                <a href="{{ route('roles.index') }}" class="btn btn-secondary">Cancel</a>
-                                            </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="d-grid">
+                                            <button type="submit" class="btn btn-primary">Add Role</button>
                                         </div>
                                     </div>
                                 </div>
@@ -149,4 +141,39 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const syncRowToggle = function(group) {
+                const rowToggle = document.querySelector('.row-select-all[data-group="' + group + '"]');
+                const permissions = document.querySelectorAll('.permission-checkbox[data-group="' + group +
+                    '"]');
+
+                if (!rowToggle || permissions.length === 0) {
+                    return;
+                }
+
+                rowToggle.checked = Array.from(permissions).every(function(checkbox) {
+                    return checkbox.checked;
+                });
+            };
+
+            document.querySelectorAll('.row-select-all').forEach(function(toggle) {
+                toggle.addEventListener('change', function() {
+                    const group = this.dataset.group;
+                    document.querySelectorAll('.permission-checkbox[data-group="' + group + '"]')
+                        .forEach(function(checkbox) {
+                            checkbox.checked = toggle.checked;
+                        });
+                });
+
+                syncRowToggle(toggle.dataset.group);
+            });
+
+            document.querySelectorAll('.permission-checkbox').forEach(function(checkbox) {
+                checkbox.addEventListener('change', function() {
+                    syncRowToggle(this.dataset.group);
+                });
+            });
+        });
+    </script>
 @endsection

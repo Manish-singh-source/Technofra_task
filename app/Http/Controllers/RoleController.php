@@ -12,12 +12,25 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::with('permissions')->get();
-        return view('roles', compact('roles'));
+        $activeRoles = Role::where('status', 'active')->count();
+        $inactiveRoles = Role::where('status', 'inactive')->count();
+        $permissionsCount = Permission::count();
+        return view('access-control.roles.index', compact('roles', 'activeRoles', 'inactiveRoles', 'permissionsCount'));
     }
 
     public function create()
     {
         $permissions = Permission::all();
+
+        // $modules = $permissions
+        //     ->pluck('name')                 // get only names
+        //     ->map(function ($name) {
+        //         return explode('_', $name)[1] ?? null; // get module part
+        //     })
+        //     ->filter()                      // remove nulls
+        //     ->unique()                      // get unique modules
+        //     ->values();                     // reset index
+
         $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls', 'digital_marketing_leads'];
         $settingsPermissions = [
             'view_general_settings',
@@ -31,7 +44,7 @@ class RoleController extends Controller
             'view_calendar'
         ];
 
-        return view('add-role', compact('permissions', 'modules', 'settingsPermissions', 'welcomePermissions', 'calendarPermissions'));
+        return view('access-control.roles.create', compact('permissions', 'modules', 'settingsPermissions', 'welcomePermissions', 'calendarPermissions'));
     }
 
     public function store(Request $request)
@@ -50,7 +63,7 @@ class RoleController extends Controller
 
         Cache::forget('spatie.permission.cache');
 
-        return redirect()->route('roles')->with('success', 'Role created successfully.');
+        return redirect()->route('roles.index')->with('success', 'Role created successfully.');
     }
 
     public function edit($id)
@@ -94,7 +107,7 @@ class RoleController extends Controller
 
         Cache::forget('spatie.permission.cache');
 
-        return redirect()->route('roles')->with('success', 'Role updated successfully.');
+        return redirect()->route('roles.index')->with('success', 'Role updated successfully.');
     }
 
     public function destroy($id)
@@ -104,7 +117,7 @@ class RoleController extends Controller
 
         Cache::forget('spatie.permission.cache');
 
-        return redirect()->route('roles')->with('success', 'Role deleted successfully.');
+        return redirect()->route('roles.index')->with('success', 'Role deleted successfully.');
     }
 
     public function deleteSelected(Request $request)
@@ -112,7 +125,7 @@ class RoleController extends Controller
         $ids = explode(',', $request->ids);
 
         if (empty($ids)) {
-            return redirect()->route('roles')->with('error', 'No roles selected for deletion.');
+            return redirect()->route('roles.index')->with('error', 'No roles selected for deletion.');
         }
 
         try {
@@ -125,10 +138,9 @@ class RoleController extends Controller
 
             Cache::forget('spatie.permission.cache');
 
-            return redirect()->route('roles')->with('success', 'Selected roles deleted successfully.');
+            return redirect()->route('roles.index')->with('success', 'Selected roles deleted successfully.');
         } catch (\Exception $e) {
-            return redirect()->route('roles')->with('error', 'Failed to delete selected roles: ' . $e->getMessage());
+            return redirect()->route('roles.index')->with('error', 'Failed to delete selected roles: ' . $e->getMessage());
         }
     }
 }
-

@@ -16,9 +16,7 @@ class PermissionController extends Controller
     public function index()
     {
         $permissions = Permission::all();
-        $modules = $this->getModules();
-
-        return view('access-control.permissions.index', compact('permissions', 'modules'));
+        return view('access-control.permissions.index', compact('permissions'));
     }
 
     /**
@@ -63,8 +61,7 @@ class PermissionController extends Controller
     public function edit($id)
     {
         $permission = Permission::findOrFail($id);
-        $modules = $this->getModules();
-        return view('access-control.permissions.edit', compact('permission', 'modules'));
+        return view('access-control.permissions.edit', compact('permission'));
     }
 
     /**
@@ -109,6 +106,17 @@ class PermissionController extends Controller
 
         return redirect()->route('permissions.index')->with('success', 'Permission deleted successfully.');
     }
+
+
+
+
+
+
+
+    // not used below
+
+
+
 
     /**
      * Assign permission to a role.

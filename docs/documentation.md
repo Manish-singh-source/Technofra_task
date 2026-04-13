@@ -15,23 +15,40 @@ I am creating a new project named as 'MyCRM' such as that will handle following 
 Now we can go through each in details: 
 
 
-1. Permissions:
+1. Permissions:                 ------ done module
+    - list permissions
     - create permissions 
     - delete permissions 
     - view permissions 
     - edit permissions 
 
+
+
+
+
+
 2. Roles:
+    - list roles
     - create roles with permissions 
-    - delete roles 
-    - view roles 
     - edit roles with permissions 
+    - delete roles 
+    - multi delete roles
+
 
 3. Teams:
-    - create teams with roles/permissions
-    - delete teams 
+    - list teams
+    - create teams with roles/permissions (optional)
+    - edit teams with roles/permissions (optional)
     - view teams 
-    - edit teams with roles/permissions
+    - delete teams 
+    - multi delete teams 
+
+4. Departments: 
+    - list departments
+    - create departments 
+    - edit departments 
+    - delete departments 
+    - multi delete departments 
 
 
 
@@ -126,7 +143,7 @@ Now we can go through each in details:
     - view task
 
 
-
+10. 
 
 
     
