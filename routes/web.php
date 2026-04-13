@@ -46,6 +46,30 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('aut
 
 // Protected routes (require authentication)
 Route::middleware('auth')->group(function () {
+
+    // Permissions Controller 
+    Route::controller(PermissionController::class)->group(function () {
+        Route::get('/permissions', 'index')->name('permissions.index');
+        Route::get('/add-permission', 'create')->name('permission.create');
+        Route::post('/add-permission', 'store')->name('permission.store');
+        Route::get('/edit-permission/{id}', 'edit')->name('permission.edit');
+        Route::put('/edit-permission/{id}', 'update')->name('permission.update');
+        Route::delete('/permission/delete/{id}', 'destroy')->name('permission.destroy');
+    });
+
+    
+    // Permission routes
+    // Route::middleware(['auth'])->group(function () {
+    //     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions')->middleware('permission:view_roles');
+    //     Route::get('/add-permission', [PermissionController::class, 'create'])->name('add-permission')->middleware('permission:create_roles');
+    //     Route::post('/add-permission', [PermissionController::class, 'store'])->name('store-permission')->middleware('permission:create_roles');
+    //     Route::get('/edit-permission/{id}', [PermissionController::class, 'edit'])->name('permission.edit')->middleware('permission:edit_roles');
+    //     Route::put('/edit-permission/{id}', [PermissionController::class, 'update'])->name('permission.update')->middleware('permission:edit_roles');
+    //     Route::delete('/permission/delete/{id}', [PermissionController::class, 'destroy'])->name('permission.delete')->middleware('permission:delete_roles');
+    //     Route::post('/permission/assign-to-role', [PermissionController::class, 'assignToRole'])->name('permission.assign-to-role')->middleware('permission:edit_roles');
+    //     Route::post('/permission/remove-from-role', [PermissionController::class, 'removeFromRole'])->name('permission.remove-from-role')->middleware('permission:edit_roles');
+    // });
+
     // Client Controller
     Route::get('/client', [ClientController::class, 'client'])->name('client')->middleware('permission:view_renewals');
     Route::post('/client/toggle-status',  [ClientController::class, 'toggleStatus'])->name('client.toggleStatus')->middleware('permission:edit_renewals');
@@ -184,17 +208,6 @@ Route::middleware('auth')->group(function () {
         Route::delete('/role/delete-selected', [RoleController::class, 'deleteSelected'])->name('delete.selected.role')->middleware('permission:delete_roles');
     });
 
-    // Permission routes
-    Route::middleware(['auth'])->group(function () {
-        Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions')->middleware('permission:view_roles');
-        Route::get('/add-permission', [PermissionController::class, 'create'])->name('add-permission')->middleware('permission:create_roles');
-        Route::post('/add-permission', [PermissionController::class, 'store'])->name('store-permission')->middleware('permission:create_roles');
-        Route::get('/edit-permission/{id}', [PermissionController::class, 'edit'])->name('permission.edit')->middleware('permission:edit_roles');
-        Route::put('/edit-permission/{id}', [PermissionController::class, 'update'])->name('permission.update')->middleware('permission:edit_roles');
-        Route::delete('/permission/delete/{id}', [PermissionController::class, 'destroy'])->name('permission.delete')->middleware('permission:delete_roles');
-        Route::post('/permission/assign-to-role', [PermissionController::class, 'assignToRole'])->name('permission.assign-to-role')->middleware('permission:edit_roles');
-        Route::post('/permission/remove-from-role', [PermissionController::class, 'removeFromRole'])->name('permission.remove-from-role')->middleware('permission:edit_roles');
-    });
 
     // Project routes
     Route::middleware(['auth'])->group(function () {

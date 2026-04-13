@@ -33,6 +33,8 @@ Now we can go through each in details:
     - view teams 
     - edit teams with roles/permissions
 
+
+
 4. Staff Management: 
     - create staff: 
         - when creating a staff we can add staffs basic details like name, email, dob, phone number,Role , Status,  etc. 

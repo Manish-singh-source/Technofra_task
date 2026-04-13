@@ -17,7 +17,8 @@ class PermissionController extends Controller
     {
         $permissions = Permission::all();
         $modules = $this->getModules();
-        return view('permissions', compact('permissions', 'modules'));
+
+        return view('access-control.permissions.index', compact('permissions', 'modules'));
     }
 
     /**
@@ -26,7 +27,7 @@ class PermissionController extends Controller
     public function create()
     {
         $modules = $this->getModules();
-        return view('add-permission', compact('modules'));
+        return view('access-control.permissions.create', compact('modules'));
     }
 
     /**
@@ -53,7 +54,7 @@ class PermissionController extends Controller
         // Clear permission cache
         Cache::forget('spatie.permission.cache');
 
-        return redirect()->route('permissions')->with('success', 'Permission created successfully.');
+        return redirect()->route('permissions.index')->with('success', 'Permission created successfully.');
     }
 
     /**
@@ -63,7 +64,7 @@ class PermissionController extends Controller
     {
         $permission = Permission::findOrFail($id);
         $modules = $this->getModules();
-        return view('edit-permission', compact('permission', 'modules'));
+        return view('access-control.permissions.edit', compact('permission', 'modules'));
     }
 
     /**
@@ -92,7 +93,7 @@ class PermissionController extends Controller
         // Clear permission cache
         Cache::forget('spatie.permission.cache');
 
-        return redirect()->route('permissions')->with('success', 'Permission updated successfully.');
+        return redirect()->route('permissions.index')->with('success', 'Permission updated successfully.');
     }
 
     /**
@@ -106,7 +107,7 @@ class PermissionController extends Controller
         // Clear permission cache
         Cache::forget('spatie.permission.cache');
 
-        return redirect()->route('permissions')->with('success', 'Permission deleted successfully.');
+        return redirect()->route('permissions.index')->with('success', 'Permission deleted successfully.');
     }
 
     /**
