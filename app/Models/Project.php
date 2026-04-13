@@ -68,7 +68,7 @@ class Project extends Model
             ->get()
             ->map(function ($staff) {
                 $staff->profile_image = $staff->profile_image
-                    ? asset($staff->profile_image)
+                    ? asset('uploads/staff/' . $staff->profile_image)
                     : null;
 
                 return $staff;
