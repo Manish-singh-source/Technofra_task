@@ -926,7 +926,7 @@ class ProjectController extends Controller
             'total_rate' => $project->total_rate !== null ? (float) $project->total_rate : null,
             'estimated_hours' => $project->estimated_hours,
             'tags' => $project->tags ?? [],
-            'members' => collect($project->members ?? [])->map(fn ($id) => (int) $id)->values(),
+            'members' => $project->membersList(),
             'description' => $project->description,
             'priority' => $project->priority,
             'technologies' => $project->technologies ?? [],
