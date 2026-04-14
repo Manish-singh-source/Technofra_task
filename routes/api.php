@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\CalendarEventController;
@@ -37,11 +38,20 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Only for testing notification
         Route::post('/test-fcm', [FcmTestController::class, 'send'])->middleware('throttle:60,1');
-        
+
         Route::controller(AuthController::class)->group(function () {
             Route::get('/me', 'me');
             Route::post('/logout', 'logout');
             Route::post('/logout-all', 'logoutAll');
+        });
+
+        // Role API routes
+        Route::prefix('roles')->group(function () {
+            Route::get('/', [ApiRoleController::class, 'index'])->middleware('permission:view_roles');
+            Route::post('/', [ApiRoleController::class, 'store'])->middleware('permission:create_roles');
+            Route::match(['put', 'patch'], '/{id}', [ApiRoleController::class, 'update'])->middleware('permission:edit_roles');
+            Route::delete('/delete-all', [ApiRoleController::class, 'destroyAll'])->middleware('permission:delete_roles');
+            Route::delete('/{id}', [ApiRoleController::class, 'destroy'])->middleware('permission:delete_roles');
         });
 
         // Staff API routes
@@ -153,17 +163,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
             Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_roles');
-        });
-
-        // Role API routes
-        Route::prefix('roles')->group(function () {
-            Route::get('/', function () {
-                $roles = \Spatie\Permission\Models\Role::with('permissions')->get();
-                return response()->json([
-                    'success' => true,
-                    'data' => $roles,
-                ]);
-            })->middleware('permission:view_roles');
         });
     });
 });
