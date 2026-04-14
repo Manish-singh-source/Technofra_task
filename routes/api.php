@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
+use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\CalendarEventController;
@@ -94,6 +95,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
             Route::post('/{id}/restore', [CustomerController::class, 'apiRestore'])->middleware('permission:edit_clients');
             Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
+        });
+
+        // Vendor API routes
+        Route::prefix('vendors')->group(function () {
+            Route::get('/', [ApiVendorController::class, 'index'])->middleware('permission:view_vendors');
+            Route::get('/{id}', [ApiVendorController::class, 'show'])->middleware('permission:view_vendors');
+            Route::post('/', [ApiVendorController::class, 'store'])->middleware('permission:create_vendors');
+            Route::match(['put', 'patch'], '/{id}', [ApiVendorController::class, 'update'])->middleware('permission:edit_vendors');
+            Route::delete('/delete-all', [ApiVendorController::class, 'destroyAll'])->middleware('permission:delete_vendors');
+            Route::delete('/{id}', [ApiVendorController::class, 'destroy'])->middleware('permission:delete_vendors');
         });
 
         // Calendar appointment API routes
