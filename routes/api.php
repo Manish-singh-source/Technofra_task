@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
@@ -12,7 +13,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TodoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\FcmTestController;
+use Spatie\Permission\Models\Role;
 
 /*
 |--------------------------------------------------------------------------
@@ -77,6 +78,10 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::delete('/{id}', 'destroy')->middleware('permission:delete_staff');
                 Route::post('/{id}/restore', 'restore')->middleware('permission:edit_staff');
                 Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
+            });
+            Route::prefix('staff')->group(function () {
+                Route::get('/{id}/tasks', 'staffTasks')->middleware('permission:view_staff');
+                Route::get('/{id}/projects', 'staffProjects')->middleware('permission:view_staff');
             });
         });
 
@@ -163,6 +168,17 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
             Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_roles');
+        });
+
+        // Role API routes
+        Route::prefix('roles')->group(function () {
+            Route::get('/', function () {
+                $roles = \Spatie\Permission\Models\Role::with('permissions')->get();
+                return response()->json([
+                    'success' => true,
+                    'data' => $roles,
+                ]);
+            })->middleware('permission:view_roles');
         });
     });
 });

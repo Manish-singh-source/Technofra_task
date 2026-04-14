@@ -8,7 +8,6 @@ use App\Mail\StaffInviteMail;
 use App\Models\Staff;
 use App\Models\Team;
 use App\Models\User;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -24,18 +23,20 @@ class StaffController extends Controller
     public function index()
     {
         $staffs = Staff::with('user')->get();
-        if (!$staffs) {
+        if (! $staffs) {
             return ApiResponse::error('No staff found');
         }
+
         return ApiResponse::success($staffs, 'Staff found');
     }
 
     public function show($id)
     {
         $staff = Staff::with('user')->findOrFail($id);
-        if (!$staff) {
+        if (! $staff) {
             return ApiResponse::error('Staff not found');
         }
+
         return ApiResponse::success($staff, 'Staff found');
     }
 
@@ -64,7 +65,6 @@ class StaffController extends Controller
             'sendWelcomeEmail' => 'nullable|boolean',
         ]);
 
-
         if ($validated->fails()) {
             return response()->json([
                 'success' => false,
@@ -80,7 +80,7 @@ class StaffController extends Controller
             }
 
             $user = User::create([
-                'name' => $payload['first_name'] . ' ' . $payload['last_name'],
+                'name' => $payload['first_name'].' '.$payload['last_name'],
                 'email' => $payload['email'],
                 'password' => Hash::make($payload['password']),
             ]);
@@ -101,7 +101,7 @@ class StaffController extends Controller
                 'password' => Hash::make($payload['password']),
                 'status' => $payload['status'] ?? 'active',
                 'departments' => $payload['departments'] ?? [],
-                'team' => !empty($payload['team']) ? $payload['team'] : null,
+                'team' => ! empty($payload['team']) ? $payload['team'] : null,
             ]);
 
             $this->refreshPermissionCache();
@@ -110,15 +110,16 @@ class StaffController extends Controller
             $sendWelcomeEmail = $sendWelcomeEmail ?? true;
 
             if ($sendWelcomeEmail) {
-                $staffName = $payload['first_name'] . ' ' . $payload['last_name'];
+                $staffName = $payload['first_name'].' '.$payload['last_name'];
                 try {
                     Mail::to($payload['email'])->send(new StaffInviteMail($staffName, $payload['email'], $payload['password']));
                 } catch (\Exception $mailException) {
-                    Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                    Log::error('Failed to send staff invitation email: '.$mailException->getMessage());
                 }
             }
 
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => $sendWelcomeEmail ? 'Staff created successfully. Invitation email sent.' : 'Staff created successfully. Welcome email was not sent.',
@@ -126,7 +127,8 @@ class StaffController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to create staff: '.$e->getMessage());
         }
     }
 
@@ -149,7 +151,8 @@ class StaffController extends Controller
             return ApiResponse::success('Staff deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return ApiResponse::error('Failed to delete staff' . $e->getMessage(), 500);
+
+            return ApiResponse::error('Failed to delete staff'.$e->getMessage(), 500);
         }
     }
 
@@ -157,7 +160,7 @@ class StaffController extends Controller
     {
         $staff = Staff::withTrashed()->find($id);
 
-        if (!$staff->trashed()) {
+        if (! $staff->trashed()) {
             return ApiResponse::error('Staff member is already active');
         }
 
@@ -169,7 +172,8 @@ class StaffController extends Controller
             return ApiResponse::success($staff, 'Staff restored successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return ApiResponse::error('Failed to restore staff' . $e->getMessage(), 500);
+
+            return ApiResponse::error('Failed to restore staff'.$e->getMessage(), 500);
         }
     }
 
@@ -178,15 +182,15 @@ class StaffController extends Controller
      */
     public function forceDelete($id)
     {
-        $staff = Staff::withTrashed()->find($id);   
-        if (!$staff) {
+        $staff = Staff::withTrashed()->find($id);
+        if (! $staff) {
             return ApiResponse::error('Staff member not found');
         }
 
         DB::beginTransaction();
         try {
             if ($staff->profile_image) {
-                $imagePath = public_path('uploads/staff/' . $staff->profile_image);
+                $imagePath = public_path('uploads/staff/'.$staff->profile_image);
                 if (file_exists($imagePath)) {
                     @unlink($imagePath);
                 }
@@ -194,10 +198,51 @@ class StaffController extends Controller
             $staff->forceDelete();
 
             DB::commit();
+
             return ApiResponse::success('Staff permanently deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return ApiResponse::error('Failed to permanently delete staff' . $e->getMessage(), 500);
+
+            return ApiResponse::error('Failed to permanently delete staff'.$e->getMessage(), 500);
         }
+    }
+
+    public function staffTasks($id)
+    {
+        $staff = Staff::find($id);
+        if (! $staff) {
+            return ApiResponse::error('Staff not found', 404);
+        }
+
+        $tasks = $staff->tasks()->with('project')->get()->map(function ($task) {
+            $task->assignees = Staff::whereIn('id', $task->assignees ?? [])->get();
+            $task->followers = Staff::whereIn('id', $task->followers ?? [])->get();
+            // $task->members = Staff::whereIn('id', $task->members ?? [])->get();
+
+            if ($task->project) {
+                // $task->project->members = Staff::whereIn('id', $task->project->membersList() ?? [])->get();
+                // $task->project->members = $task->project->membersList();
+            }
+
+            return $task;
+        });
+
+        return ApiResponse::success($tasks, 'Staff tasks retrieved successfully');
+    }
+
+    public function staffProjects($id)
+    {
+        $staff = Staff::find($id);
+        if (! $staff) {
+            return ApiResponse::error('Staff not found', 404);
+        }
+
+        $projects = $staff->projects()->with('customer')->get()->map(function ($project) {
+            $project->members = Staff::whereIn('id', $project->members ?? [])->get();
+
+            return $project;
+        });
+
+        return ApiResponse::success($projects, 'Staff projects retrieved successfully');
     }
 }
