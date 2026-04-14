@@ -130,6 +130,12 @@
                         <label for="todoDescription" class="form-label fw-semibold">Description</label>
                         <textarea id="todoDescription" class="form-control todo-description-area" rows="4" placeholder="Add extra details for this task"></textarea>
                     </div>
+                    <div class="col-12">
+                        <label for="todoAttachments" class="form-label fw-semibold">Attachments</label>
+                        <input type="file" id="todoAttachments" class="form-control" multiple>
+                        <div class="form-text">You can upload multiple files. When editing a todo, new files are added to the existing attachments.</div>
+                        <div id="todoExistingAttachments" class="todo-attachment-list mt-3 d-none"></div>
+                    </div>
                     <div class="col-md-4">
                         <label for="todoTaskTime" class="form-label fw-semibold">Select Time</label>
                         <input type="time" id="todoTaskTime" class="form-control">
@@ -286,6 +292,11 @@
     .todo-empty { padding: 34px 20px; border-radius: 18px; background: rgba(255, 255, 255, 0.96); border: 1px dashed #dfe8f5; text-align: center; color: #8b9bb1; font-weight: 600; }
     .todo-modal-content { border-radius: 26px; border: 0; }
     .todo-description-area { resize: vertical; min-height: 100px; }
+    .todo-attachment-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .todo-attachment-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 999px; background: #eef7fb; color: var(--todo-text); font-size: 12px; font-weight: 600; text-decoration: none; }
+    .todo-attachment-chip:hover { background: #e3f3fa; color: var(--todo-brand-navy); }
+    .todo-attachment-inline { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+    .todo-attachment-summary { color: var(--todo-muted); font-size: 13px; margin-top: 12px; }
     .todo-days-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; }
     .todo-day-option, .todo-ends-box label {
         display: flex; align-items: center; gap: 8px; border: 1px solid var(--todo-border); border-radius: 14px; padding: 11px 12px; background: #fbfdff; font-weight: 600;
@@ -343,6 +354,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const fields = {
         title: document.getElementById('todoTitle'),
         description: document.getElementById('todoDescription'),
+        attachments: document.getElementById('todoAttachments'),
         task_date: document.getElementById('todoTaskDate'),
         task_time: document.getElementById('todoTaskTime'),
         repeat_interval: document.getElementById('todoRepeatInterval'),
@@ -352,8 +364,9 @@ document.addEventListener('DOMContentLoaded', function () {
         ends_on: document.getElementById('todoEndsOn'),
         ends_after_occurrences: document.getElementById('todoEndsAfter')
     };
+    const todoExistingAttachments = document.getElementById('todoExistingAttachments');
 
-    let todos = @json($todos);
+    let todos = @json(collect($todos)->map(fn ($todo) => app(\App\Http\Controllers\TodoController::class)->formatTodoResource($todo))->values());
     let editingId = null;
 
     render();
@@ -400,23 +413,26 @@ document.addEventListener('DOMContentLoaded', function () {
         });
         syncRepeatDaysVisibility();
         syncEndsVisibility();
+        renderExistingAttachments(todo.attachments || []);
         todoModal.show();
     }
 
     async function saveTodo() {
-        const payload = collectPayload();
+        const formData = buildFormData();
         const url = editingId ? routes.updateTemplate.replace('__ID__', editingId) : routes.store;
-        const method = editingId ? 'PUT' : 'POST';
+
+        if (editingId) {
+            formData.append('_method', 'PUT');
+        }
 
         try {
             const response = await fetch(url, {
-                method: method,
+                method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
                     'Accept': 'application/json',
                     'X-CSRF-TOKEN': csrfToken,
                 },
-                body: JSON.stringify(payload),
+                body: formData,
             });
 
             const result = await response.json();
@@ -430,7 +446,6 @@ document.addEventListener('DOMContentLoaded', function () {
             showError(error.message || 'Unable to save todo.');
         }
     }
-
     async function reloadTodos() {
         const response = await fetch(routes.list, { headers: { 'Accept': 'application/json' } });
         const result = await response.json();
@@ -497,6 +512,31 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     }
 
+    function buildFormData() {
+        const payload = collectPayload();
+        const formData = new FormData();
+
+        Object.keys(payload).forEach(function (key) {
+            const value = payload[key];
+
+            if (Array.isArray(value)) {
+                value.forEach(function (item) {
+                    formData.append(key + '[]', item);
+                });
+                return;
+            }
+
+            if (value !== null && value !== '') {
+                formData.append(key, value);
+            }
+        });
+
+        Array.from(fields.attachments.files || []).forEach(function (file) {
+            formData.append('attachments[]', file);
+        });
+
+        return formData;
+    }
     function render() {
         const unfinished = todos.filter(function (item) { return !item.is_completed; });
         const finished = todos.filter(function (item) { return item.is_completed; });
@@ -525,6 +565,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const endsText = todo.ends_type === 'on'
             ? 'Ends on ' + formatDate(todo.ends_on)
             : (todo.ends_type === 'after' ? 'Ends after ' + todo.ends_after_occurrences + ' times' : 'Never ends');
+        const attachments = Array.isArray(todo.attachments) ? todo.attachments : [];
+        const attachmentHtml = attachments.length
+            ? '<div class="todo-attachment-inline">' + attachments.map(function (attachment) {
+                const fileName = attachment.name || attachment.path || 'Attachment';
+                return '<a class="todo-attachment-chip" href="' + escapeHtml(attachment.url || '#') + '" target="_blank" rel="noopener"><i class="bx bx-paperclip"></i>' + escapeHtml(fileName) + '</a>';
+            }).join('') + '</div>'
+            : '';
 
         return [
             '<div class="todo-item" data-id="' + escapeHtml(todo.id) + '">',
@@ -541,7 +588,9 @@ document.addEventListener('DOMContentLoaded', function () {
                             '<span class="todo-badge"><i class="bx bx-stop-circle"></i> ' + escapeHtml(endsText) + '</span>',
                             (repeatDays ? '<span class="todo-badge"><i class="bx bx-repeat"></i> ' + escapeHtml(repeatDays) + '</span>' : ''),
                             (todo.reminder_time ? '<span class="todo-badge"><i class="bx bx-bell"></i> ' + escapeHtml('Reminder ' + formatTime(todo.reminder_time)) + '</span>' : ''),
+                            (attachments.length ? '<span class="todo-badge"><i class="bx bx-paperclip"></i> ' + escapeHtml(String(attachments.length) + ' attachment(s)') + '</span>' : ''),
                         '</div>',
+                        attachmentHtml,
                     '</div>',
                     '<div class="todo-actions">',
                         '<button type="button" class="todo-edit" title="Edit"><i class="bx bx-edit-alt"></i></button>',
@@ -551,7 +600,6 @@ document.addEventListener('DOMContentLoaded', function () {
             '</div>'
         ].join('');
     }
-
     function resetForm() {
         editingId = null;
         document.getElementById('todoForm').reset();
@@ -560,11 +608,12 @@ document.addEventListener('DOMContentLoaded', function () {
             checkbox.checked = false;
         });
         fields.repeat_interval.value = 1;
+        fields.attachments.value = '';
+        renderExistingAttachments([]);
         hideError();
         syncRepeatDaysVisibility();
         syncEndsVisibility();
     }
-
     function syncRepeatDaysVisibility() {
         repeatDaysWrap.classList.toggle('d-none', fields.repeat_unit.value !== 'week');
     }
@@ -625,6 +674,21 @@ document.addEventListener('DOMContentLoaded', function () {
         todoFormError.classList.add('d-none');
     }
 
+    function renderExistingAttachments(attachments) {
+        const items = Array.isArray(attachments) ? attachments : [];
+
+        if (!items.length) {
+            todoExistingAttachments.innerHTML = '';
+            todoExistingAttachments.classList.add('d-none');
+            return;
+        }
+
+        todoExistingAttachments.innerHTML = items.map(function (attachment) {
+            const fileName = attachment.name || attachment.path || 'Attachment';
+            return '<a class="todo-attachment-chip" href="' + escapeHtml(attachment.url || '#') + '" target="_blank" rel="noopener"><i class="bx bx-paperclip"></i>' + escapeHtml(fileName) + '</a>';
+        }).join('');
+        todoExistingAttachments.classList.remove('d-none');
+    }
     function escapeHtml(value) {
         return String(value)
             .replace(/&/g, '&amp;')
@@ -637,6 +701,8 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 @endpush
 @endsection
+
+
 
 
 

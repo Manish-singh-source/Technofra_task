@@ -6,6 +6,8 @@ use App\Models\Todo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\File;
+use Illuminate\Support\Str;
 
 class TodoController extends Controller
 {
@@ -21,7 +23,7 @@ class TodoController extends Controller
         $todos = Todo::ownedBy(Auth::id())->latest()->get();
 
         return response()->json([
-            'data' => $todos,
+            'data' => $todos->map(fn (Todo $todo) => $this->formatTodoResource($todo))->values(),
         ]);
     }
 
@@ -36,7 +38,7 @@ class TodoController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $todos->map(fn (Todo $todo) => $this->formatTodoResource($todo)),
+            'data' => $todos->map(fn (Todo $todo) => $this->formatTodoResource($todo))->values(),
         ]);
     }
 
@@ -66,6 +68,7 @@ class TodoController extends Controller
     {
         $data = $this->validatedData($request);
         $data['user_id'] = Auth::id();
+        $data['attachments'] = $this->storeUploadedAttachments($request);
 
         $todo = Todo::create($data);
 
@@ -80,7 +83,10 @@ class TodoController extends Controller
     {
         $this->authorizeTodo($todo);
 
-        $todo->update($this->validatedData($request));
+        $data = $this->validatedData($request);
+        $data['attachments'] = $this->mergeTodoAttachments($todo, $request);
+
+        $todo->update($data);
 
         return response()->json([
             'success' => true,
@@ -92,6 +98,7 @@ class TodoController extends Controller
     public function apiDeleteTodo(Todo $todo): JsonResponse
     {
         $this->authorizeTodo($todo);
+        $this->deleteTodoAttachments($todo);
         $todo->delete();
 
         return response()->json([
@@ -126,12 +133,13 @@ class TodoController extends Controller
     {
         $data = $this->validatedData($request);
         $data['user_id'] = Auth::id();
+        $data['attachments'] = $this->storeUploadedAttachments($request);
 
         $todo = Todo::create($data);
 
         return response()->json([
             'message' => 'Todo created successfully.',
-            'data' => $todo,
+            'data' => $this->formatTodoResource($todo),
         ], 201);
     }
 
@@ -139,17 +147,21 @@ class TodoController extends Controller
     {
         $this->authorizeTodo($todo);
 
-        $todo->update($this->validatedData($request));
+        $data = $this->validatedData($request);
+        $data['attachments'] = $this->mergeTodoAttachments($todo, $request);
+
+        $todo->update($data);
 
         return response()->json([
             'message' => 'Todo updated successfully.',
-            'data' => $todo->fresh(),
+            'data' => $this->formatTodoResource($todo->fresh()),
         ]);
     }
 
     public function destroy(Todo $todo): JsonResponse
     {
         $this->authorizeTodo($todo);
+        $this->deleteTodoAttachments($todo);
         $todo->delete();
 
         return response()->json([
@@ -174,7 +186,7 @@ class TodoController extends Controller
 
         return response()->json([
             'message' => 'Todo status updated successfully.',
-            'data' => $todo->fresh(),
+            'data' => $this->formatTodoResource($todo->fresh()),
         ]);
     }
 
@@ -183,6 +195,8 @@ class TodoController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'attachments' => 'nullable|array',
+            'attachments.*' => 'file|max:10240',
             'task_date' => 'required|date',
             'task_time' => 'nullable|date_format:H:i',
             'repeat_interval' => 'required|integer|min:1|max:365',
@@ -195,6 +209,8 @@ class TodoController extends Controller
             'ends_on' => 'nullable|date|required_if:ends_type,on',
             'ends_after_occurrences' => 'nullable|integer|min:1|required_if:ends_type,after',
         ]);
+
+        unset($data['attachments']);
 
         if ($data['repeat_unit'] !== 'week') {
             $data['repeat_days'] = null;
@@ -216,13 +232,31 @@ class TodoController extends Controller
         abort_unless($todo->user_id === Auth::id(), 403);
     }
 
-    protected function formatTodoResource(Todo $todo): array
+    public function formatTodoResource(Todo $todo): array
     {
+        $attachments = collect($todo->attachments ?? [])
+            ->filter(fn ($attachment) => is_array($attachment) && !empty($attachment['path']))
+            ->values()
+            ->map(function (array $attachment) {
+                $path = ltrim((string) ($attachment['path'] ?? ''), '/');
+
+                return [
+                    'name' => $attachment['name'] ?? basename($path),
+                    'path' => $path,
+                    'url' => url($path),
+                    'size' => $attachment['size'] ?? null,
+                    'mime_type' => $attachment['mime_type'] ?? null,
+                ];
+            })
+            ->values();
+
         return [
             'id' => $todo->id,
             'user_id' => $todo->user_id,
             'title' => $todo->title,
             'description' => $todo->description,
+            'attachments' => $attachments,
+            'attachments_count' => $attachments->count(),
             'task_date' => optional($todo->task_date)?->toDateString(),
             'task_time' => $todo->task_time,
             'repeat_interval' => $todo->repeat_interval,
@@ -245,11 +279,70 @@ class TodoController extends Controller
                 ],
                 'api' => [
                     'show' => url('/api/v1/todos/' . $todo->id),
-                    'update' => url('/api/v1/todos/' . $todo->id),
-                    'delete' => url('/api/v1/todos/' . $todo->id),
-                    'toggle_status' => url('/api/v1/todos/' . $todo->id . '/status'),
+                    'update' => url('/api/v1/todos/update-todo/' . $todo->id),
+                    'delete' => url('/api/v1/todos/delete-todo/' . $todo->id),
+                    'toggle_status' => url('/api/v1/todos/toggle-todo-status/' . $todo->id),
                 ],
             ],
         ];
     }
+
+    protected function storeUploadedAttachments(Request $request): array
+    {
+        $storedAttachments = [];
+
+        if (!$request->hasFile('attachments')) {
+            return $storedAttachments;
+        }
+
+        $directory = public_path('uploads/todo_attachments');
+        if (!File::isDirectory($directory)) {
+            File::makeDirectory($directory, 0755, true);
+        }
+
+        foreach ($request->file('attachments') as $file) {
+            if (!$file || !$file->isValid()) {
+                continue;
+            }
+
+            $fileName = time() . '_' . Str::random(12) . '.' . $file->getClientOriginalExtension();
+            $file->move($directory, $fileName);
+
+            $storedAttachments[] = [
+                'name' => $file->getClientOriginalName(),
+                'path' => 'uploads/todo_attachments/' . $fileName,
+                // 'size' => $file->getSize(),
+                // 'mime_type' => $file->getMimeType(),
+            ];
+        }
+
+        return $storedAttachments;
+    }
+
+    protected function mergeTodoAttachments(Todo $todo, Request $request): array
+    {
+        $existingAttachments = collect($todo->attachments ?? [])
+            ->filter(fn ($attachment) => is_array($attachment) && !empty($attachment['path']))
+            ->values()
+            ->all();
+
+        $newAttachments = $this->storeUploadedAttachments($request);
+
+        return array_values(array_merge($existingAttachments, $newAttachments));
+    }
+
+    protected function deleteTodoAttachments(Todo $todo): void
+    {
+        foreach ($todo->attachments ?? [] as $attachment) {
+            if (!is_array($attachment) || empty($attachment['path'])) {
+                continue;
+            }
+
+            $absolutePath = public_path($attachment['path']);
+            if (File::exists($absolutePath)) {
+                File::delete($absolutePath);
+            }
+        }
+    }
 }
+
