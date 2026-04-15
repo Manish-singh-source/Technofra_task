@@ -41,7 +41,9 @@ class Project extends Model
 
     public function staffMembers()
     {
-        return $this->belongsToMany(Staff::class, 'project_staff', 'project_id', 'staff_id');
+        $memberIds = $this->members ?? [];
+
+        return Staff::whereIn('id', $memberIds)->get();
     }
 
     public function tasks()
@@ -59,7 +61,7 @@ class Project extends Model
         return $this->hasMany(ProjectMilestone::class);
     }
 
-    // project members list 
+    // project members list
     public function membersList()
     {
         $memberIds = $this->members ?? [];
@@ -68,8 +70,8 @@ class Project extends Model
             ->get()
             ->map(function ($staff) {
                 $staff->profile_image = $staff->profile_image
-                    ? asset('uploads/staff/' . $staff->profile_image)
-                    : null;
+                                    ? asset('uploads/staff/'.$staff->profile_image)
+                                    : null;
 
                 return $staff;
             })

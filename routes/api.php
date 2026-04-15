@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FcmTestController;
-use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
+use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
@@ -94,6 +94,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
             Route::post('/{id}/restore', [CustomerController::class, 'apiRestore'])->middleware('permission:edit_clients');
             Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
+            // Client Tasks
+            Route::get('/{id}/tasks', [CustomerController::class, 'apiClientTasks'])->middleware('permission:view_clients');
+            Route::get('/{id}/tasks/{taskId}', [CustomerController::class, 'apiClientTaskDetail'])->middleware('permission:view_clients');
+            // Client Projects
+            Route::get('/{id}/projects', [CustomerController::class, 'apiClientProjects'])->middleware('permission:view_clients');
+            Route::get('/{id}/projects/{projectId}', [CustomerController::class, 'apiClientProjectDetail'])->middleware('permission:view_clients');
+            // Client issues
+            Route::get('/{id}/issues', [CustomerController::class, 'apiClientIssues'])->middleware('permission:view_clients');
+            Route::get('/{id}/issues/{issueId}', [CustomerController::class, 'apiClientIssueDetail'])->middleware('permission:view_clients');
         });
 
         // Calendar appointment API routes
@@ -173,7 +182,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Role API routes
         Route::prefix('roles')->group(function () {
             Route::get('/', function () {
-                $roles = \Spatie\Permission\Models\Role::with('permissions')->get();
+                $roles = Role::with('permissions')->get();
+
                 return response()->json([
                     'success' => true,
                     'data' => $roles,
