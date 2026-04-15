@@ -37,7 +37,7 @@ class TaskController extends Controller
                     ->get()
                     ->map(fn (Staff $member) => [
                         'id' => $member->id,
-                        'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                        'name' => trim(($member->first_name ?? '').' '.($member->last_name ?? '')),
                         'email' => $member->email,
                         'role' => $member->role,
                     ])
@@ -68,8 +68,8 @@ class TaskController extends Controller
                 $search = trim((string) $request->input('search'));
 
                 $query->where(function (Builder $nested) use ($search) {
-                    $nested->where('title', 'like', '%' . $search . '%')
-                        ->orWhere('description', 'like', '%' . $search . '%');
+                    $nested->where('title', 'like', '%'.$search.'%')
+                        ->orWhere('description', 'like', '%'.$search.'%');
                 });
             })
             ->orderByDesc('created_at')
@@ -79,7 +79,7 @@ class TaskController extends Controller
         $lateCount = $tasks->filter(function (Task $task) use ($today) {
             return $task->deadline
                 && $task->deadline->lt($today)
-                && !in_array($task->status, ['completed', 'cancelled', 'on_hold'], true);
+                && ! in_array($task->status, ['completed', 'cancelled', 'on_hold'], true);
         })->count();
 
         return response()->json([
@@ -146,7 +146,7 @@ class TaskController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create task: ' . $e->getMessage(),
+                'message' => 'Failed to create task: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -187,7 +187,7 @@ class TaskController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update task: ' . $e->getMessage(),
+                'message' => 'Failed to update task: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -218,7 +218,7 @@ class TaskController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete task: ' . $e->getMessage(),
+                'message' => 'Failed to delete task: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -314,7 +314,55 @@ class TaskController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete attachment: ' . $e->getMessage(),
+                'message' => 'Failed to delete attachment: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function apiDeleteAll(): JsonResponse
+    {
+        try {
+            $count = Task::count();
+            Task::query()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All tasks deleted successfully.',
+                'data' => ['deleted_count' => $count],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete all tasks: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function apiForceDeleteAll(): JsonResponse
+    {
+        try {
+            $trashedTasks = Task::onlyTrashed()->get();
+            $count = $trashedTasks->count();
+
+            foreach ($trashedTasks as $task) {
+                foreach ($task->attachments as $attachment) {
+                    $this->deleteTaskAttachmentFile($attachment);
+                    $attachment->forceDelete();
+                }
+                $task->comments()->forceDelete();
+            }
+
+            Task::onlyTrashed()->forceDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All tasks permanently deleted successfully.',
+                'data' => ['deleted_count' => $count],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete all tasks: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -396,7 +444,7 @@ class TaskController extends Controller
     {
         $user = auth()->user();
 
-        if (!$user || !$user->isStaff()) {
+        if (! $user || ! $user->isStaff()) {
             return null;
         }
 
@@ -405,7 +453,7 @@ class TaskController extends Controller
 
     private function shouldRestrictToAssignedTasks(): bool
     {
-        return !$this->isPrivilegedTaskUser() && $this->authenticatedStaffId() !== null;
+        return ! $this->isPrivilegedTaskUser() && $this->authenticatedStaffId() !== null;
     }
 
     private function buildTaskDetailPayload(Task $task): array
@@ -471,9 +519,9 @@ class TaskController extends Controller
             ->get()
             ->map(fn (Staff $member) => [
                 'id' => $member->id,
-                'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                'name' => trim(($member->first_name ?? '').' '.($member->last_name ?? '')),
                 'email' => $member->email,
-                'profile_image' => asset('uploads/staff/' . $member->profile_image),
+                'profile_image' => asset('uploads/staff/'.$member->profile_image),
             ])
             ->values()
             ->all();
@@ -514,10 +562,10 @@ class TaskController extends Controller
         $extension = strtolower($file->getClientOriginalExtension());
         $baseName = pathinfo($originalName, PATHINFO_FILENAME);
         $safeBaseName = preg_replace('/[^A-Za-z0-9\-_ ]/', '', $baseName) ?: 'attachment';
-        $fileName = time() . '_' . $safeBaseName . ($extension ? '.' . $extension : '');
-        $directory = public_path('uploads/task_attachments/' . $taskId);
+        $fileName = time().'_'.$safeBaseName.($extension ? '.'.$extension : '');
+        $directory = public_path('uploads/task_attachments/'.$taskId);
 
-        if (!file_exists($directory)) {
+        if (! file_exists($directory)) {
             mkdir($directory, 0755, true);
         }
 
@@ -526,7 +574,7 @@ class TaskController extends Controller
         TaskAttachment::create([
             'task_id' => $taskId,
             'file_name' => $originalName,
-            'file_path' => 'uploads/task_attachments/' . $taskId . '/' . $fileName,
+            'file_path' => 'uploads/task_attachments/'.$taskId.'/'.$fileName,
             'file_type' => $file->getMimeType(),
             'file_size' => $file->getSize(),
         ]);
@@ -545,16 +593,16 @@ class TaskController extends Controller
                 ? substr($currentPath, 8)
                 : $currentPath;
 
-            $storageSource = storage_path('app/public/' . $sourceRelativePath);
-            $targetDirectory = public_path('uploads/task_attachments/' . $task->id);
-            $targetRelativePath = 'uploads/task_attachments/' . $task->id . '/' . basename($sourceRelativePath);
+            $storageSource = storage_path('app/public/'.$sourceRelativePath);
+            $targetDirectory = public_path('uploads/task_attachments/'.$task->id);
+            $targetRelativePath = 'uploads/task_attachments/'.$task->id.'/'.basename($sourceRelativePath);
             $targetAbsolutePath = public_path($targetRelativePath);
 
-            if (!file_exists($targetDirectory)) {
+            if (! file_exists($targetDirectory)) {
                 mkdir($targetDirectory, 0755, true);
             }
 
-            if (file_exists($storageSource) && !file_exists($targetAbsolutePath)) {
+            if (file_exists($storageSource) && ! file_exists($targetAbsolutePath)) {
                 copy($storageSource, $targetAbsolutePath);
             }
 
@@ -576,7 +624,7 @@ class TaskController extends Controller
         $storageRelativePath = str_starts_with($relativePath, 'storage/')
             ? substr($relativePath, 8)
             : $relativePath;
-        $storageFile = storage_path('app/public/' . $storageRelativePath);
+        $storageFile = storage_path('app/public/'.$storageRelativePath);
         if ($storageRelativePath !== '' && file_exists($storageFile)) {
             unlink($storageFile);
         }
