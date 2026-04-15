@@ -140,6 +140,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('projects')->group(function () {
             Route::get('/form-options', [ApiProjectController::class, 'apiFormOptions'])->middleware('permission:create_projects');
             Route::get('/', [ApiProjectController::class, 'apiIndex']);
+            Route::delete('/delete-all', [ApiProjectController::class, 'apiDeleteAll'])->middleware('permission:delete_projects');
+            Route::delete('/force-delete-all', [ApiProjectController::class, 'apiForceDeleteAll'])->middleware('permission:delete_projects');
             Route::get('/{id}', [ApiProjectController::class, 'apiShow'])->middleware('permission:view_projects');
             Route::post('/', [ApiProjectController::class, 'apiStore'])->middleware('permission:create_projects');
             Route::match(['put', 'patch'], '/{id}', [ApiProjectController::class, 'apiUpdate'])->middleware('permission:edit_projects');
@@ -164,6 +166,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('tasks')->group(function () {
             Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions'])->middleware('permission:create_tasks');
             Route::get('/', [ApiTaskController::class, 'apiIndex'])->middleware('permission:view_tasks');
+            Route::delete('/delete-all', [ApiTaskController::class, 'apiDeleteAll'])->middleware('permission:delete_tasks');
+            Route::delete('/force-delete-all', [ApiTaskController::class, 'apiForceDeleteAll'])->middleware('permission:delete_tasks');
             Route::get('/{id}', [ApiTaskController::class, 'apiShow'])->middleware('permission:view_tasks');
             Route::post('/', [ApiTaskController::class, 'apiStore'])->middleware('permission:create_tasks');
             Route::match(['put', 'patch'], '/{id}', [ApiTaskController::class, 'apiUpdate'])->middleware('permission:edit_tasks');

@@ -219,6 +219,44 @@ class ProjectController extends Controller
         }
     }
 
+    public function apiDeleteAll(): JsonResponse
+    {
+        try {
+            $count = Project::count();
+            Project::query()->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All projects deleted successfully.',
+                'data' => ['deleted_count' => $count],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete all projects: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function apiForceDeleteAll(): JsonResponse
+    {
+        try {
+            $count = Project::onlyTrashed()->count();
+            Project::onlyTrashed()->forceDelete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'All projects permanently deleted successfully.',
+                'data' => ['deleted_count' => $count],
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to permanently delete all projects: '.$e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function apiMilestoneIndex($projectId): JsonResponse
     {
         $project = Project::findOrFail($projectId);
