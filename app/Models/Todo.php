@@ -14,6 +14,7 @@ class Todo extends Model
         'user_id',
         'title',
         'description',
+        'attachments',
         'task_date',
         'task_time',
         'repeat_interval',
@@ -37,6 +38,7 @@ class Todo extends Model
         'completed_at' => 'datetime',
         'last_reminder_sent_at' => 'datetime',
         'repeat_days' => 'array',
+        'attachments' => 'array',
         'is_completed' => 'boolean',
     ];
 
@@ -229,6 +231,3 @@ class Todo extends Model
         return $taskDate->greaterThan($startsOn) ? $taskDate : $startsOn;
     }
 }
-
-
-
