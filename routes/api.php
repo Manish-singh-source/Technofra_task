@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FcmTestController;
-use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
+use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
@@ -157,6 +157,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{projectId}/files', [ApiProjectController::class, 'apiFileIndex'])->middleware('permission:view_projects');
             Route::post('/{projectId}/files', [ApiProjectController::class, 'apiUploadFile'])->middleware('permission:edit_projects');
             Route::delete('/{projectId}/files/{fileId}', [ApiProjectController::class, 'apiDeleteFile'])->middleware('permission:delete_projects');
+            Route::get('/{projectId}/usage', [ApiProjectController::class, 'apiUsage'])->middleware('permission:view_projects');
         });
 
         // Task API routes
