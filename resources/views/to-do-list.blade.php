@@ -330,11 +330,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const routes = {
-        list: @json(route('todos.list')),
-        store: @json(route('todos.store')),
-        updateTemplate: @json(url('/todos/__ID__')),
-        deleteTemplate: @json(url('/todos/__ID__')),
-        statusTemplate: @json(url('/todos/__ID__/status')),
+        list: "{{ route('todos.list') }}",
+        store: "{{ route('todos.store') }}",
+        update: "{{ url('/todos') }}/" + "__ID__",
+        delete: "{{ url('/todos') }}/" + "__ID__",
+        status: "{{ url('/todos') }}/" + "__ID__" + "/status",
     };
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     const todoModalEl = document.getElementById('todoModal');
@@ -368,7 +368,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     const todoExistingAttachments = document.getElementById('todoExistingAttachments');
 
-    let todos = @json(collect($todos)->map(fn ($todo) => app(\App\Http\Controllers\TodoController::class)->formatTodoResource($todo))->values());
+    let todos = @json($formattedTodos);
     let editingId = null;
     let removedAttachmentIndices = [];
 
@@ -425,7 +425,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     async function saveTodo() {
         const formData = buildFormData();
-        const url = editingId ? routes.updateTemplate.replace('__ID__', editingId) : routes.store;
+        const url = editingId ? routes.update.replace('__ID__', editingId) : routes.store;
 
         if (editingId) {
             formData.append('_method', 'PUT');
@@ -474,7 +474,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (event.target.closest('.todo-delete')) {
             if (!confirm('Do you want to delete this todo?')) return;
-            await fetch(routes.deleteTemplate.replace('__ID__', todoId), {
+            await fetch(routes.delete.replace('__ID__', todoId), {
                 method: 'DELETE',
                 headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
             });
@@ -483,7 +483,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         if (event.target.classList.contains('todo-toggle')) {
-            await fetch(routes.statusTemplate.replace('__ID__', todoId), {
+            await fetch(routes.status.replace('__ID__', todoId), {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -546,14 +546,21 @@ document.addEventListener('DOMContentLoaded', function () {
         Object.keys(payload).forEach(function (key) {
             const value = payload[key];
 
-            if (Array.isArray(value)) {
+            if (key === 'remove_attachments' && Array.isArray(value) && value.length > 0) {
+                value.forEach(function (item) {
+                    formData.append('remove_attachments[]', item);
+                });
+                return;
+            }
+
+            if (Array.isArray(value) && value.length > 0) {
                 value.forEach(function (item) {
                     formData.append(key + '[]', item);
                 });
                 return;
             }
 
-            if (value !== null && value !== '') {
+            if (!Array.isArray(value) && value !== null && value !== '') {
                 formData.append(key, value);
             }
         });

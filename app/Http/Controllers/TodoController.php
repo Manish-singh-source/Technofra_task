@@ -15,7 +15,11 @@ class TodoController extends Controller
     {
         $todos = Todo::ownedBy(Auth::id())->latest()->get();
 
-        return view('to-do-list', compact('todos'));
+        $formattedTodos = $todos->map(function ($todo) {
+            return $this->formatTodoResource($todo);
+        })->values();
+
+        return view('to-do-list', compact('todos', 'formattedTodos'));
     }
 
     public function list(): JsonResponse
@@ -195,10 +199,8 @@ class TodoController extends Controller
         $data = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'attachments' => 'nullable|array',
-            'attachments.*' => 'file|max:10240',
             'remove_attachments' => 'nullable|array',
-            'remove_attachments.*' => 'integer',
+            'remove_attachments.*' => 'integer|min:0',
             'task_date' => 'required|date',
             'task_time' => 'nullable|date_format:H:i',
             'repeat_interval' => 'required|integer|min:1|max:365',
@@ -212,7 +214,9 @@ class TodoController extends Controller
             'ends_after_occurrences' => 'nullable|integer|min:1|required_if:ends_type,after',
         ]);
 
-        unset($data['attachments'], $data['remove_attachments']);
+        if (empty($data['remove_attachments'])) {
+            unset($data['remove_attachments']);
+        }
 
         if ($data['repeat_unit'] !== 'week') {
             $data['repeat_days'] = null;

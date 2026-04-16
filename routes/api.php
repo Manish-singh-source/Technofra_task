@@ -130,10 +130,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/options', [TodoController::class, 'apiTodoOptions']);
             Route::get('/', [TodoController::class, 'apiTodoCollection']);
             Route::get('/{todo}', [TodoController::class, 'apiTodoDetail']);
-            Route::post('/create-todo', [TodoController::class, 'apiCreateTodo']);
-            Route::match(['put', 'patch'], '/update-todo/{todo}', [TodoController::class, 'apiUpdateTodo']);
-            Route::delete('/delete-todo/{todo}', [TodoController::class, 'apiDeleteTodo']);
-            Route::patch('/toggle-todo-status/{todo}', [TodoController::class, 'apiToggleTodoStatus']);
+            Route::post('/', [TodoController::class, 'apiCreateTodo']);
+            Route::match(['put', 'patch'], '/{todo}', [TodoController::class, 'apiUpdateTodo']);
+            Route::delete('/{todo}', [TodoController::class, 'apiDeleteTodo']);
+            Route::patch('/{todo}/status', [TodoController::class, 'apiToggleTodoStatus']);
         });
 
         // Project API routes
