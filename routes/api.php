@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
@@ -205,6 +206,18 @@ Route::middleware('auth:sanctum')->group(function () {
                     'data' => $roles,
                 ]);
             })->middleware('permission:view_roles');
+        });
+
+        // Client Renewal API routes
+        Route::get('/clients', [ClientRenewalController::class, 'clientList']);
+        Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
+        Route::prefix('client-renewals')->group(function () {
+            Route::get('/', [ClientRenewalController::class, 'index']);
+            Route::delete('/force', [ClientRenewalController::class, 'forceDeleteAll']);
+            Route::delete('/', [ClientRenewalController::class, 'destroyAll']);
+            Route::get('/{id}', [ClientRenewalController::class, 'show']);
+            Route::match(['put', 'patch'], '/{id}', [ClientRenewalController::class, 'update']);
+            Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
         });
     });
 });
