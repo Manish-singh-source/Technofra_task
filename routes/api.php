@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
+use App\Http\Controllers\Api\VendorRenewalController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
@@ -208,16 +209,30 @@ Route::middleware('auth:sanctum')->group(function () {
             })->middleware('permission:view_roles');
         });
 
-        // Client Renewal API routes
         Route::get('/clients', [ClientRenewalController::class, 'clientList']);
         Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
+        
+        // Client Renewal API routes
         Route::prefix('client-renewals')->group(function () {
             Route::get('/', [ClientRenewalController::class, 'index']);
+            Route::post('/', [ClientRenewalController::class, 'store']);
             Route::delete('/force', [ClientRenewalController::class, 'forceDeleteAll']);
             Route::delete('/', [ClientRenewalController::class, 'destroyAll']);
             Route::get('/{id}', [ClientRenewalController::class, 'show']);
             Route::match(['put', 'patch'], '/{id}', [ClientRenewalController::class, 'update']);
             Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
+        });
+
+        // Vendor Renewal API routes
+        Route::prefix('vendor-renewals')->group(function () {
+            Route::get('/', [VendorRenewalController::class, 'index']);
+            Route::post('/', [VendorRenewalController::class, 'store']);
+            Route::delete('/force', [VendorRenewalController::class, 'forceDeleteAll']);
+            Route::delete('/', [VendorRenewalController::class, 'destroyAll']);
+            Route::get('/{id}', [VendorRenewalController::class, 'show']);
+            Route::match(['put', 'patch'], '/{id}', [VendorRenewalController::class, 'update']);
+            // Route::patch('/{id}/vendor', [VendorRenewalController::class, 'updateVendor']);
+            Route::delete('/{id}', [VendorRenewalController::class, 'destroy']);
         });
     });
 });
