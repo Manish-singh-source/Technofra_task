@@ -293,8 +293,10 @@
     .todo-modal-content { border-radius: 26px; border: 0; }
     .todo-description-area { resize: vertical; min-height: 100px; }
     .todo-attachment-list { display: flex; flex-wrap: wrap; gap: 10px; }
-    .todo-attachment-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 999px; background: #eef7fb; color: var(--todo-text); font-size: 12px; font-weight: 600; text-decoration: none; }
+    .todo-attachment-chip { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 999px; background: #eef7fb; color: var(--todo-text); font-size: 12px; font-weight: 600; text-decoration: none; position: relative; }
     .todo-attachment-chip:hover { background: #e3f3fa; color: var(--todo-brand-navy); }
+    .todo-attachment-remove { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; background: #ff6b6b; color: #fff; cursor: pointer; margin-left: 4px; font-size: 14px; line-height: 1; }
+    .todo-attachment-remove:hover { background: #e74c3c; }
     .todo-attachment-inline { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
     .todo-attachment-summary { color: var(--todo-muted); font-size: 13px; margin-top: 12px; }
     .todo-days-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 10px; }
@@ -368,6 +370,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let todos = @json(collect($todos)->map(fn ($todo) => app(\App\Http\Controllers\TodoController::class)->formatTodoResource($todo))->values());
     let editingId = null;
+    let removedAttachmentIndices = [];
 
     render();
     syncRepeatDaysVisibility();
@@ -381,11 +384,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     todoModalEl.addEventListener('hidden.bs.modal', resetForm);
+    todoExistingAttachments.addEventListener('click', handleAttachmentRemove);
     unfinishedList.addEventListener('click', handleListAction);
     finishedList.addEventListener('click', handleListAction);
 
     function openCreateModal() {
         resetForm();
+        removedAttachmentIndices = [];
         todoModalLabel.textContent = 'Add New Todo';
         const today = new Date().toISOString().slice(0, 10);
         fields.task_date.value = today;
@@ -395,6 +400,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function openEditModal(todo) {
         resetForm();
+        removedAttachmentIndices = [];
         editingId = todo.id;
         todoModalLabel.textContent = 'Edit Todo';
         fields.title.value = todo.title || '';
@@ -490,6 +496,26 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function handleAttachmentRemove(event) {
+        const removeBtn = event.target.closest('.todo-attachment-remove');
+        if (!removeBtn) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const index = parseInt(removeBtn.getAttribute('data-index'), 10);
+        if (!isNaN(index) && !removedAttachmentIndices.includes(index)) {
+            removedAttachmentIndices.push(index);
+            const todo = todos.find(function (t) { return String(t.id) === String(editingId); });
+            if (todo && todo.attachments) {
+                const filteredAttachments = todo.attachments.filter(function (_, i) {
+                    return !removedAttachmentIndices.includes(i);
+                });
+                renderExistingAttachments(filteredAttachments);
+            }
+        }
+    }
+
     function collectPayload() {
         const endsType = document.querySelector('input[name="todoEndsType"]:checked').value;
         const repeatDays = Array.from(document.querySelectorAll('#repeatDaysWrap input[type="checkbox"]:checked')).map(function (item) {
@@ -509,6 +535,7 @@ document.addEventListener('DOMContentLoaded', function () {
             ends_type: endsType,
             ends_on: endsType === 'on' ? (fields.ends_on.value || null) : null,
             ends_after_occurrences: endsType === 'after' ? Number(fields.ends_after_occurrences.value || 0) || null : null,
+            remove_attachments: removedAttachmentIndices,
         };
     }
 
@@ -602,6 +629,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     function resetForm() {
         editingId = null;
+        removedAttachmentIndices = [];
         document.getElementById('todoForm').reset();
         document.querySelector('input[name="todoEndsType"][value="never"]').checked = true;
         document.querySelectorAll('#repeatDaysWrap input[type="checkbox"]').forEach(function (checkbox) {
@@ -683,9 +711,10 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
 
-        todoExistingAttachments.innerHTML = items.map(function (attachment) {
+        todoExistingAttachments.innerHTML = items.map(function (attachment, index) {
             const fileName = attachment.name || attachment.path || 'Attachment';
-            return '<a class="todo-attachment-chip" href="' + escapeHtml(attachment.url || '#') + '" target="_blank" rel="noopener"><i class="bx bx-paperclip"></i>' + escapeHtml(fileName) + '</a>';
+            const removeBtn = '<span class="todo-attachment-remove" data-index="' + index + '" title="Remove"><i class="bx bx-x"></i></span>';
+            return '<a class="todo-attachment-chip" href="' + escapeHtml(attachment.url || '#') + '" target="_blank" rel="noopener"><i class="bx bx-paperclip"></i>' + escapeHtml(fileName) + removeBtn + '</a>';
         }).join('');
         todoExistingAttachments.classList.remove('d-none');
     }

@@ -197,6 +197,8 @@ class TodoController extends Controller
             'description' => 'nullable|string',
             'attachments' => 'nullable|array',
             'attachments.*' => 'file|max:10240',
+            'remove_attachments' => 'nullable|array',
+            'remove_attachments.*' => 'integer',
             'task_date' => 'required|date',
             'task_time' => 'nullable|date_format:H:i',
             'repeat_interval' => 'required|integer|min:1|max:365',
@@ -210,7 +212,7 @@ class TodoController extends Controller
             'ends_after_occurrences' => 'nullable|integer|min:1|required_if:ends_type,after',
         ]);
 
-        unset($data['attachments']);
+        unset($data['attachments'], $data['remove_attachments']);
 
         if ($data['repeat_unit'] !== 'week') {
             $data['repeat_days'] = null;
@@ -235,7 +237,7 @@ class TodoController extends Controller
     public function formatTodoResource(Todo $todo): array
     {
         $attachments = collect($todo->attachments ?? [])
-            ->filter(fn ($attachment) => is_array($attachment) && !empty($attachment['path']))
+            ->filter(fn ($attachment) => is_array($attachment) && ! empty($attachment['path']))
             ->values()
             ->map(function (array $attachment) {
                 $path = ltrim((string) ($attachment['path'] ?? ''), '/');
@@ -278,10 +280,10 @@ class TodoController extends Controller
                     'list' => route('to-do-list'),
                 ],
                 'api' => [
-                    'show' => url('/api/v1/todos/' . $todo->id),
-                    'update' => url('/api/v1/todos/update-todo/' . $todo->id),
-                    'delete' => url('/api/v1/todos/delete-todo/' . $todo->id),
-                    'toggle_status' => url('/api/v1/todos/toggle-todo-status/' . $todo->id),
+                    'show' => url('/api/v1/todos/'.$todo->id),
+                    'update' => url('/api/v1/todos/update-todo/'.$todo->id),
+                    'delete' => url('/api/v1/todos/delete-todo/'.$todo->id),
+                    'toggle_status' => url('/api/v1/todos/toggle-todo-status/'.$todo->id),
                 ],
             ],
         ];
@@ -291,26 +293,26 @@ class TodoController extends Controller
     {
         $storedAttachments = [];
 
-        if (!$request->hasFile('attachments')) {
+        if (! $request->hasFile('attachments')) {
             return $storedAttachments;
         }
 
         $directory = public_path('uploads/todo_attachments');
-        if (!File::isDirectory($directory)) {
+        if (! File::isDirectory($directory)) {
             File::makeDirectory($directory, 0755, true);
         }
 
         foreach ($request->file('attachments') as $file) {
-            if (!$file || !$file->isValid()) {
+            if (! $file || ! $file->isValid()) {
                 continue;
             }
 
-            $fileName = time() . '_' . Str::random(12) . '.' . $file->getClientOriginalExtension();
+            $fileName = time().'_'.Str::random(12).'.'.$file->getClientOriginalExtension();
             $file->move($directory, $fileName);
 
             $storedAttachments[] = [
                 'name' => $file->getClientOriginalName(),
-                'path' => 'uploads/todo_attachments/' . $fileName,
+                'path' => 'uploads/todo_attachments/'.$fileName,
                 // 'size' => $file->getSize(),
                 // 'mime_type' => $file->getMimeType(),
             ];
@@ -322,9 +324,17 @@ class TodoController extends Controller
     protected function mergeTodoAttachments(Todo $todo, Request $request): array
     {
         $existingAttachments = collect($todo->attachments ?? [])
-            ->filter(fn ($attachment) => is_array($attachment) && !empty($attachment['path']))
+            ->filter(fn ($attachment) => is_array($attachment) && ! empty($attachment['path']))
             ->values()
             ->all();
+
+        $removeIds = $request->input('remove_attachments', []);
+        if (! empty($removeIds)) {
+            $existingAttachments = collect($existingAttachments)
+                ->filter(fn ($attachment, $index) => ! in_array($index, $removeIds))
+                ->values()
+                ->all();
+        }
 
         $newAttachments = $this->storeUploadedAttachments($request);
 
@@ -334,7 +344,7 @@ class TodoController extends Controller
     protected function deleteTodoAttachments(Todo $todo): void
     {
         foreach ($todo->attachments ?? [] as $attachment) {
-            if (!is_array($attachment) || empty($attachment['path'])) {
+            if (! is_array($attachment) || empty($attachment['path'])) {
                 continue;
             }
 
@@ -345,4 +355,3 @@ class TodoController extends Controller
         }
     }
 }
-
