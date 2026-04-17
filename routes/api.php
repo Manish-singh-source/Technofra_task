@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
 use App\Http\Controllers\Api\ServiceController as ApiServiceController;
+use App\Http\Controllers\Api\SettingController as ApiSettingController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
@@ -225,6 +226,25 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
             Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_roles');
+        });
+
+        // Settings API routes
+        Route::prefix('settings')->group(function () {
+            Route::get('/', [ApiSettingController::class, 'index'])->middleware('permission:view_general_settings|view_company_information|view_email_settings');
+            Route::get('/general', [ApiSettingController::class, 'general'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/general', [ApiSettingController::class, 'updateGeneral'])->middleware('permission:view_general_settings');
+            Route::get('/company', [ApiSettingController::class, 'company'])->middleware('permission:view_company_information');
+            Route::match(['post', 'put', 'patch'], '/company', [ApiSettingController::class, 'updateCompany'])->middleware('permission:view_company_information');
+            Route::get('/email', [ApiSettingController::class, 'email'])->middleware('permission:view_email_settings');
+            Route::match(['post', 'put', 'patch'], '/email', [ApiSettingController::class, 'updateEmail'])->middleware('permission:view_email_settings');
+            Route::get('/renewal', [ApiSettingController::class, 'renewal'])->middleware('permission:view_email_settings');
+            Route::match(['post', 'put', 'patch'], '/renewal', [ApiSettingController::class, 'updateRenewal'])->middleware('permission:view_email_settings');
+            Route::get('/teams', [ApiSettingController::class, 'teams'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/teams', [ApiSettingController::class, 'updateTeams'])->middleware('permission:view_general_settings');
+            Route::get('/departments', [ApiSettingController::class, 'departments'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/departments', [ApiSettingController::class, 'updateDepartments'])->middleware('permission:view_general_settings');
+            Route::post('/test-email', [ApiSettingController::class, 'sendTestEmail'])->middleware('permission:view_email_settings');
+            Route::get('/search-tags', [ApiSettingController::class, 'searchTags']);
         });
 
         // Role API routes
