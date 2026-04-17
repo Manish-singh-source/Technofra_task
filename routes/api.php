@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
@@ -203,6 +204,23 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [LeadController::class, 'apiDestroy'])->middleware('permission:delete_leads');
         });
 
+        // Client issue API routes
+        Route::prefix('client-issues')->group(function () {
+            Route::get('/form-options', [ApiClientIssueController::class, 'formOptions']);
+            Route::get('/', [ApiClientIssueController::class, 'index']);
+            Route::post('/', [ApiClientIssueController::class, 'store']);
+            Route::get('/{id}', [ApiClientIssueController::class, 'show']);
+            Route::post('/{clientIssue}/assign', [ApiClientIssueController::class, 'assignTeam']);
+            Route::patch('/{id}/status', [ApiClientIssueController::class, 'updateStatus']);
+            Route::delete('/{id}', [ApiClientIssueController::class, 'destroy']);
+            Route::post('/delete-selected', [ApiClientIssueController::class, 'deleteSelected']);
+            Route::post('/{clientIssue}/tasks', [ApiClientIssueController::class, 'taskStore']);
+            Route::get('/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskShow']);
+            Route::match(['put', 'patch'], '/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskUpdate']);
+            Route::patch('/{clientIssue}/tasks/{task}/status', [ApiClientIssueController::class, 'taskUpdateStatus']);
+            Route::delete('/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskDestroy']);
+        });
+
         // Permission API routes
         Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
@@ -253,3 +271,5 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+
