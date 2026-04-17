@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RoleController as ApiRoleController;
+use App\Http\Controllers\Api\ServiceController as ApiServiceController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
@@ -118,6 +119,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [ApiVendorController::class, 'destroy'])->middleware('permission:delete_vendors');
         });
 
+        // Service API routes
+        Route::prefix('services')->group(function () {
+            Route::get('/form-options', [ApiServiceController::class, 'formOptions'])->middleware('permission:create_services');
+            Route::get('/', [ApiServiceController::class, 'index'])->middleware('permission:view_services');
+            Route::get('/{id}', [ApiServiceController::class, 'show'])->middleware('permission:view_services');
+            Route::post('/', [ApiServiceController::class, 'store'])->middleware('permission:create_services');
+            Route::match(['put', 'patch'], '/{id}', [ApiServiceController::class, 'update'])->middleware('permission:edit_services');
+            Route::delete('/{id}', [ApiServiceController::class, 'destroy'])->middleware('permission:delete_services');
+            Route::post('/delete-selected', [ApiServiceController::class, 'deleteSelected'])->middleware('permission:delete_services');
+        });
+
         // Calendar appointment API routes
         Route::prefix('calendar')->group(function () {
             Route::get('/events', [CalendarEventController::class, 'apiIndex'])->middleware('permission:view_calendar|view_dashboard');
@@ -211,7 +223,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/clients', [ClientRenewalController::class, 'clientList']);
         Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
-        
+
         // Client Renewal API routes
         Route::prefix('client-renewals')->group(function () {
             Route::get('/', [ClientRenewalController::class, 'index']);

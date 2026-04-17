@@ -2,9 +2,12 @@
 
 namespace App\Exceptions;
 
+use App\Helpers\ApiResponse;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
-use Illuminate\Auth\AuthenticationException;
+use Spatie\Permission\Exceptions\UnauthorizedException as SpatieUnauthorizedException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -50,35 +53,25 @@ class Handler extends ExceptionHandler
         });
     }
 
-    /**
-     * 
-     * Handle Validation Errors
-     * 
-     * 
-     */
-
     public function render($request, Throwable $exception)
     {
-        if ($exception instanceof ValidationException && $request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Validation error',
-                'errors' => $exception->errors(),
-            ], 422);
+        if ($request->expectsJson() || $request->is('api/*')) {
+            if ($exception instanceof ValidationException) {
+                return ApiResponse::error('Validation error.', $exception->errors(), 422);
+            }
+
+            if ($exception instanceof AuthorizationException || $exception instanceof SpatieUnauthorizedException) {
+                return ApiResponse::error('You are not authorized to perform this action.', null, 403);
+            }
         }
 
         return parent::render($request, $exception);
     }
 
-
     protected function unauthenticated($request, AuthenticationException $exception)
     {
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Token not provided or invalid',
-                'errors' => null,
-            ], 401);
+        if ($request->expectsJson() || $request->is('api/*')) {
+            return ApiResponse::error('Token not provided or invalid.', null, 401);
         }
 
         return redirect()->guest(route('login'));
