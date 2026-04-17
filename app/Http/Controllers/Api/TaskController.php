@@ -569,14 +569,17 @@ class TaskController extends Controller
             mkdir($directory, 0755, true);
         }
 
+        $mimeType = $file->getMimeType();
+        $fileSize = $file->getSize();
+
         $file->move($directory, $fileName);
 
         TaskAttachment::create([
             'task_id' => $taskId,
             'file_name' => $originalName,
             'file_path' => 'uploads/task_attachments/'.$taskId.'/'.$fileName,
-            'file_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'file_type' => $mimeType,
+            'file_size' => $fileSize,
         ]);
     }
 
