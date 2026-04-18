@@ -3,7 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Lead;
-use App\Models\Staff;
+use App\Models\User;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -16,7 +16,11 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping
     public function collection()
     {
         $leads = Lead::all();
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
 
         // Add assigned staff names to each lead
         $leads->transform(function ($lead) use ($staff) {

@@ -95,3 +95,14 @@ user_id
 client_type 
 industry (optional)
 website (optional)
+
+
+
+
+
+1. i have updated users table for so it can store client and staff data as well using role column
+2. so check my leadcontroller for now. 
+3. in this controlle check if there staff or client model is using or not 
+4. if staff or client models are using then replace with user model cause now i have moved those data in my users table as you know. 
+5. also check all relationships with those models and create in user model that relationships so my code will not break. 
+6. check verify that all is working properly.

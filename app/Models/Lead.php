@@ -45,6 +45,23 @@ class Lead extends Model
             return collect([]);
         }
         
-        return Staff::whereIn('id', $this->assigned)->get();
+        return User::staffMembers()
+            ->whereIn('id', $this->assigned)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+    }
+
+    public function assignedUsers()
+    {
+        if (!$this->assigned || !is_array($this->assigned)) {
+            return collect([]);
+        }
+
+        return User::staffMembers()
+            ->whereIn('id', $this->assigned)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
     }
 }

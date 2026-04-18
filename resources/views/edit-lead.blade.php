@@ -49,6 +49,7 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="source" class="form-label">Source</label>
+                                            {{-- 
                                             <select class="form-select" id="source" name="source">
                                                 <option value="">Select Source</option>
                                                 <option value="website" {{ $lead->source == 'website' ? 'selected' : '' }}>Website</option>
@@ -57,7 +58,11 @@
                                                 <option value="cold_call" {{ $lead->source == 'cold_call' ? 'selected' : '' }}>Cold Call</option>
                                                 <option value="email_campaign" {{ $lead->source == 'email_campaign' ? 'selected' : '' }}>Email Campaign</option>
                                                 <option value="other" {{ $lead->source == 'other' ? 'selected' : '' }}>Other</option>
-                                            </select>
+                                            </select> --}}
+                                            <input type="text" class="form-control @error('source') is-invalid @enderror" id="source" name="source" placeholder="Enter Source" value="{{ old('source', $lead->source) }}">
+                                            @error('source')
+                                                <div class="invalid-feedback">{{ $message }}</div>
+                                            @enderror
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="status" class="form-label">Status</label>

@@ -3,10 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Lead;
-use App\Models\Staff;
+use App\Models\User;
 use App\Exports\LeadsExport;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
 class LeadController extends Controller
@@ -21,7 +22,11 @@ class LeadController extends Controller
     public function index()
     {
         $leads = Lead::all();
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
 
         $allLeads = $leads->count();
         $newLeads = $leads->where('status', 'new')->count();
@@ -38,7 +43,10 @@ class LeadController extends Controller
      */
     public function create()
     {
-        $staff = Staff::all();
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         return view('add-lead', compact('staff'));
     }
 
@@ -64,7 +72,10 @@ class LeadController extends Controller
     public function edit($id)
     {
         $lead = Lead::findOrFail($id);
-        $staff = Staff::all();
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         return view('edit-lead', compact('lead', 'staff'));
     }
 
@@ -92,7 +103,11 @@ class LeadController extends Controller
     public function show($id)
     {
         $lead = Lead::findOrFail($id);
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
         return view('view-lead', compact('lead', 'staff'));
     }
 
@@ -149,11 +164,11 @@ class LeadController extends Controller
                 'statuses' => self::STATUSES,
                 // 'sources' => self::SOURCES,
                 'tags' => self::TAGS,
-                'staff' => Staff::query()
+                'staff' => User::staffMembers()
                     ->orderBy('first_name')
                     ->orderBy('last_name')
                     ->get()
-                    ->map(fn (Staff $member) => [
+                    ->map(fn (User $member) => [
                         'id' => $member->id,
                         'first_name' => $member->first_name,
                         'last_name' => $member->last_name,
@@ -269,7 +284,9 @@ class LeadController extends Controller
             'lead_value' => 'nullable|numeric|min:0',
             'source' => 'nullable|string|max:100',
             'assigned' => 'nullable|array',
-            'assigned.*' => 'exists:staff,id',
+            'assigned.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'description' => 'nullable|string',
@@ -302,12 +319,12 @@ class LeadController extends Controller
 
     private function formatLeadResource(Lead $lead): array
     {
-        $assignedStaff = Staff::query()
+        $assignedStaff = User::staffMembers()
             ->whereIn('id', $lead->assigned ?? [])
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->map(fn (Staff $member) => [
+            ->map(fn (User $member) => [
                 'id' => $member->id,
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,

@@ -150,6 +150,19 @@ class User extends Authenticatable
             ->orWhereJsonContains('followers', (string) $this->id);
     }
 
+    public function scopeStaffMembers($query)
+    {
+        return $query->where('role', '!=', 'client')->whereNotNull('role');
+    }
+
+    public function assignedLeads()
+    {
+        return Lead::query()->where(function ($query) {
+            $query->whereJsonContains('assigned', $this->id)
+                ->orWhereJsonContains('assigned', (string) $this->id);
+        });
+    }
+
     public function getFullNameAttribute(): string
     {
         return $this->name;
