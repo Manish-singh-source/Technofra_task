@@ -90,8 +90,8 @@
                                         <span class="text-secondary">{{ $lead->city ?? '' }}{{ $lead->city && $lead->state ? ', ' : '' }}{{ $lead->state ?? '' }}{{ ($lead->city || $lead->state) && $lead->country ? ', ' : '' }}{{ $lead->country ?? '' }}</span>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
-                                        <h6 class="mb-0"><i class="bx bx-dollar me-2"></i>Value</h6>
-                                        <span class="text-secondary">${{ number_format($lead->lead_value ?? 0, 2) }}</span>
+                                        <h6 class="mb-0"><i class="bx bx-rupee me-2"></i>Value</h6>
+                                        <span class="text-secondary">₹{{ number_format($lead->lead_value ?? 0, 2) }}</span>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                                         <h6 class="mb-0"><i class="bx bx-tag me-2"></i>Tags</h6>
@@ -216,7 +216,7 @@
                                         <h6 class="mb-0">Lead Value</h6>
                                     </div>
                                     <div class="col-sm-9 text-secondary">
-                                        ${{ number_format($lead->lead_value ?? 0, 2) }}
+                                        ₹{{ number_format($lead->lead_value ?? 0, 2) }}
                                     </div>
                                 </div>
                                 <div class="row mb-3">
