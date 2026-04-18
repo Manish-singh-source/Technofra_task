@@ -19,8 +19,8 @@ return new class extends Migration
             $table->string('first_name')->after('id');
             $table->string('last_name')->after('first_name');
             $table->string('phone')->nullable()->after('email_verified_at');
-            $table->string('profile_image')->nullable()->after('password');
-            $table->string('status')->default('active')->after('profile_image');
+            // $table->string('profile_image')->nullable()->after('password');
+            $table->string('status')->default('active')->after('profile_image')->change();
             $table->string('role')->nullable()->after('status');
             $table->softDeletes();
         });
@@ -35,9 +35,9 @@ return new class extends Migration
     {
         Schema::table('users', function (Blueprint $table) {
             $table->dropSoftDeletes();
-            $table->dropColumn(['first_name', 'last_name', 'phone', 'profile_image', 'status', 'role']);
+            $table->dropColumn(['first_name', 'last_name', 'phone', 'status', 'role']);
             $table->string('name')->after('id');
-            $table->string('status')->default('active')->after('email_verified_at');
+            // $table->string('status')->default('active')->after('email_verified_at');
         });
     }
 };

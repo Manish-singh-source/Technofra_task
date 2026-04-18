@@ -23,9 +23,13 @@ use Spatie\Permission\PermissionRegistrar;
 class StaffController extends Controller
 {
     private const DEFAULT_BUSINESS_TZ = 'UTC';
+
     private const DEFAULT_WORK_START_TIME = '09:00';
+
     private const DEFAULT_LUNCH_START_TIME = '13:00';
+
     private const DEFAULT_LUNCH_END_TIME = '14:00';
+
     private const DEFAULT_WORK_END_TIME = '18:00';
 
     /**
@@ -38,7 +42,7 @@ class StaffController extends Controller
             ->where('role', 'staff')
             ->orderBy('first_name')
             ->get()
-            ->map(fn(User $user) => $this->hydrateStaffUser($user));
+            ->map(fn (User $user) => $this->hydrateStaffUser($user));
 
         return view('staff.index', compact('staff'));
     }
@@ -51,9 +55,9 @@ class StaffController extends Controller
         $roles = Role::all();
         $teams = Team::getTeamOptions();
         $departments = Department::getDepartmentOptions();
+
         return view('staff.create', compact('roles', 'teams', 'departments'));
     }
-
 
     /**
      * Store a newly created staff member.
@@ -65,7 +69,11 @@ class StaffController extends Controller
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'firstName' => 'required|string|max:255',
             'lastName' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->withoutTrashed(),
+            ],
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
@@ -91,8 +99,8 @@ class StaffController extends Controller
             $status = $request->status ?? 'active';
             $team = $request->filled('team') ? $request->team : null;
             $departments = collect($request->input('departments', []))
-                ->filter(fn($department) => is_string($department) && trim($department) !== '')
-                ->map(fn($department) => trim($department))
+                ->filter(fn ($department) => is_string($department) && trim($department) !== '')
+                ->map(fn ($department) => trim($department))
                 ->unique()
                 ->values()
                 ->all();
@@ -120,26 +128,26 @@ class StaffController extends Controller
 
             $sendWelcomeEmail = $request->boolean('sendWelcomeEmail');
             if ($sendWelcomeEmail) {
-                $staffName = $request->firstName . ' ' . $request->lastName;
+                $staffName = $request->firstName.' '.$request->lastName;
                 try {
                     Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
                 } catch (\Exception $mailException) {
-                    Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                    Log::error('Failed to send staff invitation email: '.$mailException->getMessage());
                 }
             }
 
             DB::commit();
             $successMessage = $sendWelcomeEmail
-                ? 'Staff added successfully. Invitation email sent to ' . $request->email
+                ? 'Staff added successfully. Invitation email sent to '.$request->email
                 : 'Staff added successfully. Welcome email was not sent.';
 
             return redirect()->route('staff')->with('success', $successMessage);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to create staff: '.$e->getMessage());
         }
     }
-
 
     /**
      * Display the specified staff member.
@@ -158,9 +166,9 @@ class StaffController extends Controller
         $projects = $staff->projects()->latest()->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
         $loggedTimeStats = $this->buildStaffLoggedTimeStats($staff);
+
         return view('staff.view', compact('staff', 'roles', 'teams', 'departments', 'projects', 'tasks', 'loggedTimeStats'));
     }
-
 
     /**
      * Update the specified staff member.
@@ -189,10 +197,12 @@ class StaffController extends Controller
             $this->refreshPermissionCache();
 
             DB::commit();
+
             return redirect()->route('view-staff', $staff->id)->with('success', 'Staff updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to update staff: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to update staff: '.$e->getMessage());
         }
     }
 
@@ -211,10 +221,12 @@ class StaffController extends Controller
         try {
             $this->performStaffDelete($staff, false);
             DB::commit();
+
             return redirect()->route('staff')->with('success', 'Staff deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to delete staff: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to delete staff: '.$e->getMessage());
         }
     }
 
@@ -224,7 +236,7 @@ class StaffController extends Controller
     public function deleteSelected(Request $request)
     {
         $ids = collect(explode(',', (string) $request->ids))
-            ->map(fn($id) => (int) trim($id))
+            ->map(fn ($id) => (int) trim($id))
             ->filter()
             ->values();
 
@@ -236,16 +248,18 @@ class StaffController extends Controller
         try {
             $staffMembers = User::whereIn('id', $ids)->get();
             foreach ($staffMembers as $staff) {
-                if (!$staff->trashed()) {
+                if (! $staff->trashed()) {
                     $this->performStaffDelete($staff, false);
                 }
             }
 
             DB::commit();
+
             return redirect()->route('staff')->with('success', 'Selected staff members deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->route('staff')->with('error', 'Failed to delete selected staff: ' . $e->getMessage());
+
+            return redirect()->route('staff')->with('error', 'Failed to delete selected staff: '.$e->getMessage());
         }
     }
 
@@ -256,7 +270,7 @@ class StaffController extends Controller
     {
         $staff = User::withTrashed()->findOrFail($id);
 
-        if (!$staff->trashed()) {
+        if (! $staff->trashed()) {
             return redirect()->back()->with('error', 'Staff member is already active.');
         }
 
@@ -266,10 +280,12 @@ class StaffController extends Controller
             $this->refreshPermissionCache();
 
             DB::commit();
+
             return redirect()->route('view-staff', $staff->id)->with('success', 'Staff restored successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to restore staff: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to restore staff: '.$e->getMessage());
         }
     }
 
@@ -284,13 +300,14 @@ class StaffController extends Controller
         try {
             $this->performStaffDelete($staff, true);
             DB::commit();
+
             return redirect()->route('staff')->with('success', 'Staff permanently deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to permanently delete staff: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Failed to permanently delete staff: '.$e->getMessage());
         }
     }
-
 
     private function buildStaffLoggedTimeStats(User $staff): array
     {
@@ -309,7 +326,7 @@ class StaffController extends Controller
 
         $projects = $staff->projects()
             ->with([
-                'statusLogs' => fn($query) => $query->orderBy('started_at'),
+                'statusLogs' => fn ($query) => $query->orderBy('started_at'),
                 'tasks:id,project_id,assignees,followers',
             ])
             ->get();
@@ -348,12 +365,12 @@ class StaffController extends Controller
     private function getStaffRatioForProject(Project $project, int $staffId): float
     {
         $memberIds = collect($project->members ?? [])
-            ->map(fn($id) => (int) $id)
-            ->filter(fn($id) => $id > 0)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn ($id) => $id > 0)
             ->unique()
             ->values();
 
-        if (!$memberIds->contains($staffId)) {
+        if (! $memberIds->contains($staffId)) {
             return 0.0;
         }
 
@@ -365,8 +382,8 @@ class StaffController extends Controller
 
         foreach ($project->tasks as $task) {
             $participants = collect(array_merge($task->assignees ?? [], $task->followers ?? []))
-                ->map(fn($id) => (int) $id)
-                ->filter(fn($participantId) => isset($memberWeights[$participantId]))
+                ->map(fn ($id) => (int) $id)
+                ->filter(fn ($participantId) => isset($memberWeights[$participantId]))
                 ->unique()
                 ->values();
 
@@ -398,7 +415,7 @@ class StaffController extends Controller
         $inProgressLogs = $project->statusLogs->where('status', 'in_progress')->values();
         foreach ($inProgressLogs as $log) {
             $logStart = $this->toBusinessTz($log->started_at);
-            if (!$logStart) {
+            if (! $logStart) {
                 continue;
             }
 
@@ -430,6 +447,7 @@ class StaffController extends Controller
         foreach ($intervals as [$start, $end]) {
             $minutes += $this->calculateWorkingMinutes($start, $end);
         }
+
         return $minutes;
     }
 
@@ -457,13 +475,13 @@ class StaffController extends Controller
     private function getElapsedBoundary(Project $project): Carbon
     {
         $now = now($this->businessTimezone());
-        if (!$project->deadline) {
+        if (! $project->deadline) {
             return $now;
         }
 
         $workSchedule = $this->workSchedule();
         $deadlineAtEndOfWork = Carbon::parse(
-            $project->deadline->format('Y-m-d') . ' ' . $workSchedule['office_end_time'] . ':00',
+            $project->deadline->format('Y-m-d').' '.$workSchedule['office_end_time'].':00',
             $this->businessTimezone()
         );
 
@@ -473,17 +491,17 @@ class StaffController extends Controller
     private function getFallbackActiveStart(Project $project): ?Carbon
     {
         $createdAt = $this->toBusinessTz($project->created_at);
-        if (!$project->start_date) {
+        if (! $project->start_date) {
             return $createdAt;
         }
 
         $workSchedule = $this->workSchedule();
         $startDateAtWorkStart = Carbon::parse(
-            $project->start_date->format('Y-m-d') . ' ' . $workSchedule['office_start_time'] . ':00',
+            $project->start_date->format('Y-m-d').' '.$workSchedule['office_start_time'].':00',
             $this->businessTimezone()
         );
 
-        if (!$createdAt) {
+        if (! $createdAt) {
             return $startDateAtWorkStart;
         }
 
@@ -492,7 +510,7 @@ class StaffController extends Controller
 
     private function toBusinessTz($value): ?Carbon
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
@@ -516,10 +534,10 @@ class StaffController extends Controller
         while ($cursor->lte($lastDay)) {
             if ($cursor->dayOfWeek !== Carbon::SUNDAY) {
                 $dayDate = $cursor->format('Y-m-d');
-                $workMorningStart = Carbon::parse($dayDate . ' ' . $workSchedule['office_start_time'] . ':00', $businessTz);
-                $workMorningEnd = Carbon::parse($dayDate . ' ' . $workSchedule['lunch_start_time'] . ':00', $businessTz);
-                $workEveningStart = Carbon::parse($dayDate . ' ' . $workSchedule['lunch_end_time'] . ':00', $businessTz);
-                $workEveningEnd = Carbon::parse($dayDate . ' ' . $workSchedule['office_end_time'] . ':00', $businessTz);
+                $workMorningStart = Carbon::parse($dayDate.' '.$workSchedule['office_start_time'].':00', $businessTz);
+                $workMorningEnd = Carbon::parse($dayDate.' '.$workSchedule['lunch_start_time'].':00', $businessTz);
+                $workEveningStart = Carbon::parse($dayDate.' '.$workSchedule['lunch_end_time'].':00', $businessTz);
+                $workEveningEnd = Carbon::parse($dayDate.' '.$workSchedule['office_end_time'].':00', $businessTz);
 
                 if ($workMorningEnd->gt($workMorningStart)) {
                     $minutes += $this->calculateOverlapMinutes($start, $end, $workMorningStart, $workMorningEnd);
@@ -586,7 +604,7 @@ class StaffController extends Controller
         );
 
         $isOrderValid = ($officeStart < $lunchStart) && ($lunchStart < $lunchEnd) && ($lunchEnd < $officeEnd);
-        if (!$isOrderValid) {
+        if (! $isOrderValid) {
             return [
                 'office_start_time' => self::DEFAULT_WORK_START_TIME,
                 'lunch_start_time' => self::DEFAULT_LUNCH_START_TIME,
@@ -606,7 +624,7 @@ class StaffController extends Controller
     private function normalizeWorkTime($value, string $fallback): string
     {
         $time = is_string($value) ? trim($value) : '';
-        if (!preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
+        if (! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $time)) {
             return $fallback;
         }
 
@@ -622,14 +640,14 @@ class StaffController extends Controller
             ->withTrashed()
             ->with(['roles', 'teams', 'departments'])
             ->whereNotNull('role')
-            ->when(!$request->boolean('include_trashed'), function ($query) {
+            ->when(! $request->boolean('include_trashed'), function ($query) {
                 $query->whereNull('deleted_at');
             })
             ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
+            'data' => $staff->map(fn (User $member) => $this->formatStaffResource($member)),
         ]);
     }
 
@@ -678,7 +696,11 @@ class StaffController extends Controller
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->withoutTrashed(),
+            ],
             'phone' => 'required|string|max:20',
             'role' => 'required|string|max:255',
             'password' => 'required|string|min:8',
@@ -704,10 +726,10 @@ class StaffController extends Controller
             }
 
             $status = $payload['status'] ?? 'active';
-            $team = !empty($payload['team']) ? $payload['team'] : null;
+            $team = ! empty($payload['team']) ? $payload['team'] : null;
             $departments = collect($payload['departments'] ?? [])
-                ->filter(fn($department) => is_string($department) && trim($department) !== '')
-                ->map(fn($department) => trim($department))
+                ->filter(fn ($department) => is_string($department) && trim($department) !== '')
+                ->map(fn ($department) => trim($department))
                 ->unique()
                 ->values()
                 ->all();
@@ -737,15 +759,16 @@ class StaffController extends Controller
             $sendWelcomeEmail = $sendWelcomeEmail ?? true;
 
             if ($sendWelcomeEmail) {
-                $staffName = $payload['first_name'] . ' ' . $payload['last_name'];
+                $staffName = $payload['first_name'].' '.$payload['last_name'];
                 try {
                     Mail::to($payload['email'])->send(new StaffInviteMail($staffName, $payload['email'], $payload['password']));
                 } catch (\Exception $mailException) {
-                    Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                    Log::error('Failed to send staff invitation email: '.$mailException->getMessage());
                 }
             }
 
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => $sendWelcomeEmail ? 'Staff created successfully. Invitation email sent.' : 'Staff created successfully. Welcome email was not sent.',
@@ -753,9 +776,10 @@ class StaffController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create staff: ' . $e->getMessage(),
+                'message' => 'Failed to create staff: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -791,6 +815,7 @@ class StaffController extends Controller
             $this->refreshPermissionCache();
 
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Staff updated successfully.',
@@ -798,9 +823,10 @@ class StaffController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update staff: ' . $e->getMessage(),
+                'message' => 'Failed to update staff: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -830,9 +856,10 @@ class StaffController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete staff: ' . $e->getMessage(),
+                'message' => 'Failed to delete staff: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -844,7 +871,7 @@ class StaffController extends Controller
     {
         $staff = User::withTrashed()->findOrFail($id);
 
-        if (!$staff->trashed()) {
+        if (! $staff->trashed()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Staff member is already active.',
@@ -857,6 +884,7 @@ class StaffController extends Controller
             $this->refreshPermissionCache();
 
             DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Staff restored successfully.',
@@ -864,9 +892,10 @@ class StaffController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restore staff: ' . $e->getMessage(),
+                'message' => 'Failed to restore staff: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -889,9 +918,10 @@ class StaffController extends Controller
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to permanently delete staff: ' . $e->getMessage(),
+                'message' => 'Failed to permanently delete staff: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -965,8 +995,8 @@ class StaffController extends Controller
 
         $departmentIds = Department::query()
             ->whereIn('name', collect($departmentNames)
-                ->filter(fn($department) => is_string($department) && trim($department) !== '')
-                ->map(fn($department) => trim($department))
+                ->filter(fn ($department) => is_string($department) && trim($department) !== '')
+                ->map(fn ($department) => trim($department))
                 ->unique()
                 ->values()
                 ->all())
@@ -979,7 +1009,7 @@ class StaffController extends Controller
 
         $timestamp = now();
         DB::table('staff_department')->insert(
-            collect($departmentIds)->map(fn($departmentId) => [
+            collect($departmentIds)->map(fn ($departmentId) => [
                 'user_id' => $user->id,
                 'department_id' => $departmentId,
                 'created_at' => $timestamp,
@@ -998,7 +1028,7 @@ class StaffController extends Controller
         }
 
         $team = Team::query()->where('name', $teamName)->first();
-        if (!$team) {
+        if (! $team) {
             return;
         }
 
@@ -1014,13 +1044,13 @@ class StaffController extends Controller
     {
         $extension = $image->getClientOriginalExtension();
         $imageName = $staffId
-            ? time() . '_' . $staffId . '.' . $extension
-            : time() . '.' . $extension;
+            ? time().'_'.$staffId.'.'.$extension
+            : time().'.'.$extension;
 
         $image->move(public_path('uploads/staff'), $imageName);
 
         if ($oldImage) {
-            $oldImagePath = public_path('uploads/staff/' . $oldImage);
+            $oldImagePath = public_path('uploads/staff/'.$oldImage);
             if (file_exists($oldImagePath)) {
                 @unlink($oldImagePath);
             }
@@ -1036,7 +1066,7 @@ class StaffController extends Controller
             DB::table('staff_team')->where('user_id', $staff->id)->delete();
 
             if ($staff->profile_image) {
-                $imagePath = public_path('uploads/staff/' . $staff->profile_image);
+                $imagePath = public_path('uploads/staff/'.$staff->profile_image);
                 if (file_exists($imagePath)) {
                     @unlink($imagePath);
                 }
@@ -1045,6 +1075,7 @@ class StaffController extends Controller
             $staff->forceDelete();
 
             $this->refreshPermissionCache();
+
             return;
         }
 
@@ -1058,7 +1089,7 @@ class StaffController extends Controller
         return [
             'id' => $staff->id,
             'profile_image' => $staff->profile_image,
-            'profile_image_url' => $staff->profile_image ? asset('uploads/staff/' . $staff->profile_image) : null,
+            'profile_image_url' => $staff->profile_image ? asset('uploads/staff/'.$staff->profile_image) : null,
             'first_name' => $staff->first_name,
             'last_name' => $staff->last_name,
             'full_name' => $staff->full_name,
@@ -1087,11 +1118,11 @@ class StaffController extends Controller
                     'force_delete' => route('staff.force-delete', $staff->id),
                 ],
                 'api' => [
-                    'show' => url('/api/staff/' . $staff->id),
-                    'update' => url('/api/staff/' . $staff->id),
-                    'delete' => url('/api/staff/' . $staff->id),
-                    'restore' => url('/api/staff/' . $staff->id . '/restore'),
-                    'force_delete' => url('/api/staff/' . $staff->id . '/force'),
+                    'show' => url('/api/staff/'.$staff->id),
+                    'update' => url('/api/staff/'.$staff->id),
+                    'delete' => url('/api/staff/'.$staff->id),
+                    'restore' => url('/api/staff/'.$staff->id.'/restore'),
+                    'force_delete' => url('/api/staff/'.$staff->id.'/force'),
                 ],
             ],
         ];
