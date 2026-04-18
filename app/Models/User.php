@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -11,7 +12,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable, HasRoles;
+    use HasApiTokens, HasFactory, Notifiable, HasRoles, SoftDeletes;
 
     /**
      * The attributes that are mass assignable.
@@ -19,9 +20,14 @@ class User extends Authenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
         'email',
+        'phone',
         'password',
+        'profile_image',
+        'status',
+        'role',
     ];
 
     /**
@@ -42,6 +48,20 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function getNameAttribute(): string
+    {
+        return trim(collect([$this->first_name, $this->last_name])->filter()->implode(' '));
+    }
+
+    public function setNameAttribute($value): void
+    {
+        $value = trim((string) $value);
+        $parts = preg_split('/\s+/', $value, 2) ?: [];
+
+        $this->attributes['first_name'] = $parts[0] ?? '';
+        $this->attributes['last_name'] = $parts[1] ?? '';
+    }
 
     /**
      * Get the staff record associated with the user.
@@ -69,7 +89,7 @@ class User extends Authenticatable
      */
     public function isStaff()
     {
-        return $this->staff()->exists();
+        return !$this->isCustomer() && !empty($this->role);
     }
 
     /**
@@ -93,13 +113,48 @@ class User extends Authenticatable
      */
     public function getUserTypeAttribute()
     {
-        if ($this->isStaff()) {
-            return 'staff';
-        } elseif ($this->isCustomer()) {
+        if ($this->isCustomer()) {
             return 'customer';
         }
+
+        if ($this->isStaff()) {
+            return 'staff';
+        }
+
         return 'admin';
     }
+
+    // Departments using pivot table
+    public function departments()
+    {
+        return $this->belongsToMany(Department::class, 'staff_department')
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
+
+    public function teams()
+    {
+        return $this->belongsToMany(Team::class, 'staff_team')
+            ->withTimestamps()
+            ->wherePivotNull('deleted_at');
+    }
+
+    public function projects()
+    {
+        return Project::whereJsonContains('members', (string) $this->id);
+    }
+
+    public function tasks()
+    {
+        return Task::whereJsonContains('assignees', (string) $this->id)
+            ->orWhereJsonContains('followers', (string) $this->id);
+    }
+
+    public function getFullNameAttribute(): string
+    {
+        return $this->name;
+    }
+
 }
 
 

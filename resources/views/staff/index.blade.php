@@ -4,19 +4,7 @@
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
+            @include('layout.errors')
 
             <!--breadcrumb-->
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -48,7 +36,7 @@
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
                         <div class="ms-auto">
-                            <a href="{{route('add-staff')}}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                            <a href="{{ route('add-staff') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Staff
                             </a>
                         </div>
@@ -67,47 +55,52 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($staff as $member)
-                                <tr>
-                                    <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $member->id }}"></td>
-                                    {{-- <td>
-                                        <div class="d-flex align-items-center">
-                                            <h6 class="mb-0 font-14">{{ $member->id }}</h6>
-                                        </div>
-                                    </td> --}}
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <a href="#" class="avatar online avatar-rounded">
-                                                <img src="{{ asset('uploads/staff/' . $member->profile_image) }}" style="width: 30px; height: 30px; border-radius: 50%;" alt="img">
-                                            </a>
-                                            <div class="ms-2">
-                                                <h6 class="fs-14 fw-medium m-0"><a href="#">{{ $member->first_name . ' ' . $member->last_name }}</a></h6>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>{{ $member->email }}</td>
-                                    <td>{{ ucwords( str_replace('_', ' ', $member->role)) }}</td>
-                                    <td>{{ $member->created_at->format('Y-m-d H:i A') }}</td>
-                                    <td>
-                                        <div class="badge rounded-pill {{ $member->status == 'active' ? 'text-success bg-light-success' : 'text-warning bg-light-warning' }} p-2 text-uppercase px-3">
-                                            <i class='bx bxs-circle me-1'></i>{{ ucfirst($member->status) }}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex order-actions">
-                                            <a href="{{ route('view-staff', $member->id) }}" class=""><i class='bx bxs-show'></i></a>
-                                            <form method="POST" action="{{ route('staff.destroy', $member->id) }}"
-                                                class="d-inline ms-3"
-                                                onsubmit="return confirm('Are you sure you want to delete this staff?')">
-                                                @csrf
-                                                @method('DELETE')
-                                                <a>
-                                                    <button type="submit" style="border: none;"><i class='bx bxs-trash'></i></button>
+                                @foreach ($staff as $member)
+                                    <tr>
+                                        <td>
+                                            <input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
+                                                value="{{ $member->id }}">
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <a href="#" class="avatar online avatar-rounded">
+                                                    <img src="{{ asset('uploads/staff/' . $member->profile_image) }}"
+                                                        style="width: 30px; height: 30px; border-radius: 50%;"
+                                                        alt="img">
                                                 </a>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
+                                                <div class="ms-2">
+                                                    <h6 class="fs-14 fw-medium m-0"><a
+                                                            href="#">{{ $member->first_name . ' ' . $member->last_name }}</a>
+                                                    </h6>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>{{ $member->email }}</td>
+                                        <td>{{ ucwords(str_replace('_', ' ', $member->role)) }}</td>
+                                        <td>{{ $member->created_at->format('Y-m-d H:i A') }}</td>
+                                        <td>
+                                            <div
+                                                class="badge rounded-pill {{ $member->status == 'active' ? 'text-success bg-light-success' : 'text-warning bg-light-warning' }} p-2 text-uppercase px-3">
+                                                <i class='bx bxs-circle me-1'></i>{{ ucfirst($member->status) }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex order-actions">
+                                                <a href="{{ route('view-staff', $member->id) }}" class=""><i
+                                                        class='bx bxs-show'></i></a>
+                                                <form method="POST" action="{{ route('staff.destroy', $member->id) }}"
+                                                    class="d-inline ms-3"
+                                                    onsubmit="return confirm('Are you sure you want to delete this staff?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <a>
+                                                        <button type="submit" style="border: none;"><i
+                                                                class='bx bxs-trash'></i></button>
+                                                    </a>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
                                 @endforeach
                             </tbody>
                         </table>

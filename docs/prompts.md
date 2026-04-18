@@ -33,3 +33,65 @@ Route::controller(RoleController::class)->group(function () {
     Route::delete('/role/delete-selected', 'deleteSelected')->name('delete.selected.role')->middleware('permission:delete_roles');
     // permanent delete & restore 
 });
+
+
+
+check following tables structures and make migration files if not already available. and if already available then update those tables.
+
+
+update users table: 
+
+users: 
+
+first_name
+last_name
+email
+email_verified_at
+phone
+password
+status - enum('active', 'inactive') - default('active')
+remember_token
+profile_image 
+created_at
+updated_at
+deleted_at
+
+
+
+user_address:
+
+user_id 
+address_line_1 
+address_line_2 
+city 
+state
+country 
+pincode 
+created_at
+updated_at
+deleted_at
+
+
+staff_team 
+
+user_id 
+team_id 
+created_at
+updated_at
+deleted_at
+
+
+staff_department 
+
+user_id 
+department_id 
+created_at
+updated_at
+deleted_at
+
+client_business_details 
+
+user_id
+client_type 
+industry (optional)
+website (optional)

@@ -11,12 +11,24 @@
         }
 
         $availableTabs = [];
-        if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'general';
-        if (auth()->user()->hasPermissionTo('view_company_information')) $availableTabs[] = 'company';
-        if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'email';
-        if (auth()->user()->hasPermissionTo('view_email_settings')) $availableTabs[] = 'renewal';
-        if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'teams';
-        if (auth()->user()->hasPermissionTo('view_general_settings')) $availableTabs[] = 'departments';
+        if (auth()->user()->hasPermissionTo('view_general_settings')) {
+            $availableTabs[] = 'general';
+        }
+        if (auth()->user()->hasPermissionTo('view_company_information')) {
+            $availableTabs[] = 'company';
+        }
+        if (auth()->user()->hasPermissionTo('view_email_settings')) {
+            $availableTabs[] = 'email';
+        }
+        if (auth()->user()->hasPermissionTo('view_email_settings')) {
+            $availableTabs[] = 'renewal';
+        }
+        if (auth()->user()->hasPermissionTo('view_general_settings')) {
+            $availableTabs[] = 'teams';
+        }
+        if (auth()->user()->hasPermissionTo('view_general_settings')) {
+            $availableTabs[] = 'departments';
+        }
         if (!in_array($activeSettingsTab, $availableTabs, true)) {
             $activeSettingsTab = $availableTabs[0] ?? 'general';
         }
@@ -49,58 +61,71 @@
             <!--end breadcrumb-->
 
             <!-- Success/Error Messages -->
-            @if(session('success'))
-                <div class="alert alert-success border-0 bg-success alert-dismissible fade show">
-                    <div class="text-white">{{ session('success') }}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if(session('error'))
-                <div class="alert alert-danger border-0 bg-danger alert-dismissible fade show">
-                    <div class="text-white">{{ session('error') }}</div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
+            @include('layout.errors')
 
             <div class="row">
-                
+
 
                 <!-- RIGHT SIDE: Vertical Nav Tabs -->
                 <div class="col-lg-4">
                     <div class="card">
                         <div class="card-body">
                             <h5 class="card-title mb-4">Settings Menu</h5>
-                            <div class="nav flex-column nav-pills" id="settingsTabs" role="tablist" aria-orientation="vertical">
-                                @if(auth()->user()->hasPermissionTo('view_general_settings'))
-                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'general' ? 'active' : '' }}" id="general-tab" data-bs-toggle="pill" data-bs-target="#general" type="button" role="tab" aria-controls="general" aria-selected="{{ $activeSettingsTab === 'general' ? 'true' : 'false' }}">
-                                    <i class="bx bx-cog me-2"></i> General
-                                </button>
+                            <div class="nav flex-column nav-pills" id="settingsTabs" role="tablist"
+                                aria-orientation="vertical">
+                                @if (auth()->user()->hasPermissionTo('view_general_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'general' ? 'active' : '' }}"
+                                        id="general-tab" data-bs-toggle="pill" data-bs-target="#general" type="button"
+                                        role="tab" aria-controls="general"
+                                        aria-selected="{{ $activeSettingsTab === 'general' ? 'true' : 'false' }}">
+                                        <i class="bx bx-cog me-2"></i> General
+                                    </button>
                                 @endif
-                                @if(auth()->user()->hasPermissionTo('view_company_information'))
-                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'company' ? 'active' : '' }}" id="company-tab" data-bs-toggle="pill" data-bs-target="#company" type="button" role="tab" aria-controls="company" aria-selected="{{ $activeSettingsTab === 'company' ? 'true' : 'false' }}">
-                                    <i class="bx bx-building me-2"></i> Company Information
-                                </button>
+                                @if (auth()->user()->hasPermissionTo('view_company_information'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'company' ? 'active' : '' }}"
+                                        id="company-tab" data-bs-toggle="pill" data-bs-target="#company" type="button"
+                                        role="tab" aria-controls="company"
+                                        aria-selected="{{ $activeSettingsTab === 'company' ? 'true' : 'false' }}">
+                                        <i class="bx bx-building me-2"></i> Company Information
+                                    </button>
                                 @endif
-                                @if(auth()->user()->hasPermissionTo('view_email_settings'))
-                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'email' ? 'active' : '' }}" id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button" role="tab" aria-controls="email" aria-selected="{{ $activeSettingsTab === 'email' ? 'true' : 'false' }}">
-                                    <i class="bx bx-envelope me-2"></i> Email Settings
-                                </button>
+                                @if (auth()->user()->hasPermissionTo('view_email_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'email' ? 'active' : '' }}"
+                                        id="email-tab" data-bs-toggle="pill" data-bs-target="#email" type="button"
+                                        role="tab" aria-controls="email"
+                                        aria-selected="{{ $activeSettingsTab === 'email' ? 'true' : 'false' }}">
+                                        <i class="bx bx-envelope me-2"></i> Email Settings
+                                    </button>
                                 @endif
-                                @if(auth()->user()->hasPermissionTo('view_email_settings'))
-                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'renewal' ? 'active' : '' }}" id="renewal-tab" data-bs-toggle="pill" data-bs-target="#renewal" type="button" role="tab" aria-controls="renewal" aria-selected="{{ $activeSettingsTab === 'renewal' ? 'true' : 'false' }}">
-                                    <i class="bx bx-bell me-2"></i> Renewal Manage
-                                </button>
+                                @if (auth()->user()->hasPermissionTo('view_email_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'renewal' ? 'active' : '' }}"
+                                        id="renewal-tab" data-bs-toggle="pill" data-bs-target="#renewal" type="button"
+                                        role="tab" aria-controls="renewal"
+                                        aria-selected="{{ $activeSettingsTab === 'renewal' ? 'true' : 'false' }}">
+                                        <i class="bx bx-bell me-2"></i> Renewal Manage
+                                    </button>
                                 @endif
-                                @if(auth()->user()->hasPermissionTo('view_general_settings'))
-                                <button class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'teams' ? 'active' : '' }}" id="teams-tab" data-bs-toggle="pill" data-bs-target="#teams" type="button" role="tab" aria-controls="teams" aria-selected="{{ $activeSettingsTab === 'teams' ? 'true' : 'false' }}">
-                                    <i class="bx bx-group me-2"></i> Teams
-                                </button>
+                                @if (auth()->user()->hasPermissionTo('view_general_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'teams' ? 'active' : '' }}"
+                                        id="teams-tab" data-bs-toggle="pill" data-bs-target="#teams" type="button"
+                                        role="tab" aria-controls="teams"
+                                        aria-selected="{{ $activeSettingsTab === 'teams' ? 'true' : 'false' }}">
+                                        <i class="bx bx-group me-2"></i> Teams
+                                    </button>
                                 @endif
-                                @if(auth()->user()->hasPermissionTo('view_general_settings'))
-                                <button class="nav-link text-start py-3 px-3 {{ $activeSettingsTab === 'departments' ? 'active' : '' }}" id="departments-tab" data-bs-toggle="pill" data-bs-target="#departments" type="button" role="tab" aria-controls="departments" aria-selected="{{ $activeSettingsTab === 'departments' ? 'true' : 'false' }}">
-                                    <i class="bx bx-briefcase me-2"></i> Departments
-                                </button>
+                                @if (auth()->user()->hasPermissionTo('view_general_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 {{ $activeSettingsTab === 'departments' ? 'active' : '' }}"
+                                        id="departments-tab" data-bs-toggle="pill" data-bs-target="#departments"
+                                        type="button" role="tab" aria-controls="departments"
+                                        aria-selected="{{ $activeSettingsTab === 'departments' ? 'true' : 'false' }}">
+                                        <i class="bx bx-briefcase me-2"></i> Departments
+                                    </button>
                                 @endif
                             </div>
                         </div>
@@ -130,59 +155,72 @@
                         <div class="card-body p-4">
                             <div class="tab-content" id="settingsTabContent">
                                 <!-- TAB 1: GENERAL -->
-                                <div class="tab-pane fade {{ $activeSettingsTab === 'general' ? 'show active' : '' }}" id="general" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'general' ? 'show active' : '' }}"
+                                    id="general" role="tabpanel">
                                     <h5 class="card-title">General Settings</h5>
                                     <hr />
-                                    <form action="{{ route('settings.update.general') }}" method="POST" enctype="multipart/form-data">
+                                    <form action="{{ route('settings.update.general') }}" method="POST"
+                                        enctype="multipart/form-data">
                                         @csrf
                                         @method('PUT')
                                         <div class="row g-3">
                                             <div class="col-12">
                                                 <label for="company_name" class="form-label">Company Name *</label>
-                                                <input type="text" class="form-control" id="company_name" name="company_name" 
-                                                    value="{{ old('company_name', $settings['company_name'] ?? '') }}" placeholder="Enter company name" required>
+                                                <input type="text" class="form-control" id="company_name"
+                                                    name="company_name"
+                                                    value="{{ old('company_name', $settings['company_name'] ?? '') }}"
+                                                    placeholder="Enter company name" required>
                                                 @error('company_name')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="crm_logo" class="form-label">CRM Logo</label>
-                                                <input type="file" class="form-control" id="crm_logo" name="crm_logo" accept="image/*">
-                                                <small class="text-muted">Max size: 2MB. Formats: JPEG, PNG, JPG, GIF, WEBP</small>
+                                                <input type="file" class="form-control" id="crm_logo"
+                                                    name="crm_logo" accept="image/*">
+                                                <small class="text-muted">Max size: 2MB. Formats: JPEG, PNG, JPG, GIF,
+                                                    WEBP</small>
                                                 @error('crm_logo')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                                 @php($crmLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['crm_logo'] ?? ''))
-                                                @if($crmLogoUrl)
-                                                <div class="mt-2">
-                                                    <img src="{{ $crmLogoUrl }}" alt="CRM Logo" style="max-height: 60px;" class="img-thumbnail">
-                                                </div>
+                                                @if ($crmLogoUrl)
+                                                    <div class="mt-2">
+                                                        <img src="{{ $crmLogoUrl }}" alt="CRM Logo"
+                                                            style="max-height: 60px;" class="img-thumbnail">
+                                                    </div>
                                                 @elseif(!empty($settings['crm_logo']))
-                                                <div class="mt-2 text-warning small">CRM logo image not found. Please upload again.</div>
+                                                    <div class="mt-2 text-warning small">CRM logo image not found. Please
+                                                        upload again.</div>
                                                 @endif
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="favicon" class="form-label">Favicon</label>
-                                                <input type="file" class="form-control" id="favicon" name="favicon" accept="image/*">
-                                                <small class="text-muted">Max size: 2MB. Max dimensions: 32x32. Formats: ICO, PNG, JPG</small>
+                                                <input type="file" class="form-control" id="favicon" name="favicon"
+                                                    accept="image/*">
+                                                <small class="text-muted">Max size: 2MB. Max dimensions: 32x32. Formats:
+                                                    ICO, PNG, JPG</small>
                                                 @error('favicon')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                                 @php($faviconUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['favicon'] ?? ''))
-                                                @if($faviconUrl)
-                                                <div class="mt-2">
-                                                    <img src="{{ $faviconUrl }}" alt="Favicon" style="max-height: 32px;" class="img-thumbnail">
-                                                </div>
+                                                @if ($faviconUrl)
+                                                    <div class="mt-2">
+                                                        <img src="{{ $faviconUrl }}" alt="Favicon"
+                                                            style="max-height: 32px;" class="img-thumbnail">
+                                                    </div>
                                                 @elseif(!empty($settings['favicon']))
-                                                <div class="mt-2 text-warning small">Favicon image not found. Please upload again.</div>
+                                                    <div class="mt-2 text-warning small">Favicon image not found. Please
+                                                        upload again.</div>
                                                 @endif
                                             </div>
-                                            
+
                                             <div class="col-12">
                                                 <div class="d-grid">
-                                                    <button type="submit" class="btn btn-primary">Save General Settings</button>
+                                                    <button type="submit" class="btn btn-primary">Save General
+                                                        Settings</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -190,7 +228,8 @@
                                 </div>
 
                                 <!-- TAB 2: COMPANY INFORMATION -->
-                                <div class="tab-pane fade {{ $activeSettingsTab === 'company' ? 'show active' : '' }}" id="company" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'company' ? 'show active' : '' }}"
+                                    id="company" role="tabpanel">
                                     <h5 class="card-title">Company Information</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.company') }}" method="POST">
@@ -199,40 +238,46 @@
                                         <div class="row g-3">
                                             <div class="col-md-6">
                                                 <label for="company_name" class="form-label">Company Name *</label>
-                                                <input type="text" class="form-control" id="company_name" name="company_name" 
-                                                    value="{{ old('company_name', $settings['company_name'] ?? '') }}" required>
+                                                <input type="text" class="form-control" id="company_name"
+                                                    name="company_name"
+                                                    value="{{ old('company_name', $settings['company_name'] ?? '') }}"
+                                                    required>
                                                 @error('company_name')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="company_email" class="form-label">Company Email *</label>
-                                                <input type="email" class="form-control" id="company_email" name="company_email" 
-                                                    value="{{ old('company_email', $settings['company_email'] ?? '') }}" required>
+                                                <input type="email" class="form-control" id="company_email"
+                                                    name="company_email"
+                                                    value="{{ old('company_email', $settings['company_email'] ?? '') }}"
+                                                    required>
                                                 @error('company_email')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="company_phone" class="form-label">Phone</label>
-                                                <input type="text" class="form-control" id="company_phone" name="company_phone" 
+                                                <input type="text" class="form-control" id="company_phone"
+                                                    name="company_phone"
                                                     value="{{ old('company_phone', $settings['company_phone'] ?? '') }}">
                                                 @error('company_phone')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="website" class="form-label">Website</label>
-                                                <input type="text" class="form-control" id="website" name="website" 
-                                                    value="{{ old('website', $settings['website'] ?? '') }}" placeholder="https://example.com">
+                                                <input type="text" class="form-control" id="website" name="website"
+                                                    value="{{ old('website', $settings['website'] ?? '') }}"
+                                                    placeholder="https://example.com">
                                                 @error('website')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-12">
                                                 <label for="address" class="form-label">Address</label>
                                                 <textarea class="form-control" id="address" name="address" rows="2">{{ old('address', $settings['address'] ?? '') }}</textarea>
@@ -240,46 +285,47 @@
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-4">
                                                 <label for="city" class="form-label">City</label>
-                                                <input type="text" class="form-control" id="city" name="city" 
+                                                <input type="text" class="form-control" id="city" name="city"
                                                     value="{{ old('city', $settings['city'] ?? '') }}">
                                                 @error('city')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-4">
                                                 <label for="state" class="form-label">State</label>
-                                                <input type="text" class="form-control" id="state" name="state" 
+                                                <input type="text" class="form-control" id="state" name="state"
                                                     value="{{ old('state', $settings['state'] ?? '') }}">
                                                 @error('state')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-4">
                                                 <label for="zip" class="form-label">ZIP Code</label>
-                                                <input type="text" class="form-control" id="zip" name="zip" 
+                                                <input type="text" class="form-control" id="zip" name="zip"
                                                     value="{{ old('zip', $settings['zip'] ?? '') }}">
                                                 @error('zip')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="country" class="form-label">Country</label>
-                                                <input type="text" class="form-control" id="country" name="country" 
+                                                <input type="text" class="form-control" id="country" name="country"
                                                     value="{{ old('country', $settings['country'] ?? '') }}">
                                                 @error('country')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="gst_number" class="form-label">GST Number</label>
-                                                <input type="text" class="form-control" id="gst_number" name="gst_number" 
+                                                <input type="text" class="form-control" id="gst_number"
+                                                    name="gst_number"
                                                     value="{{ old('gst_number', $settings['gst_number'] ?? '') }}">
                                                 @error('gst_number')
                                                     <div class="text-danger">{{ $message }}</div>
@@ -288,13 +334,18 @@
 
                                             <div class="col-12">
                                                 <h6 class="mb-2 mt-2">Office Work Time</h6>
-                                                <small class="text-muted d-block mb-2">Working slots will use: Office Start to Lunch Start, and Lunch End to Office End. Weekly off remains Sunday.</small>
+                                                <small class="text-muted d-block mb-2">Working slots will use: Office Start
+                                                    to Lunch Start, and Lunch End to Office End. Weekly off remains
+                                                    Sunday.</small>
                                             </div>
 
                                             <div class="col-md-6">
-                                                <label for="office_start_time" class="form-label">Office Start Time *</label>
-                                                <input type="time" class="form-control" id="office_start_time" name="office_start_time"
-                                                    value="{{ old('office_start_time', $settings['office_start_time'] ?? '09:00') }}" required>
+                                                <label for="office_start_time" class="form-label">Office Start Time
+                                                    *</label>
+                                                <input type="time" class="form-control" id="office_start_time"
+                                                    name="office_start_time"
+                                                    value="{{ old('office_start_time', $settings['office_start_time'] ?? '09:00') }}"
+                                                    required>
                                                 @error('office_start_time')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
@@ -302,17 +353,22 @@
 
                                             <div class="col-md-6">
                                                 <label for="office_end_time" class="form-label">Office End Time *</label>
-                                                <input type="time" class="form-control" id="office_end_time" name="office_end_time"
-                                                    value="{{ old('office_end_time', $settings['office_end_time'] ?? '18:00') }}" required>
+                                                <input type="time" class="form-control" id="office_end_time"
+                                                    name="office_end_time"
+                                                    value="{{ old('office_end_time', $settings['office_end_time'] ?? '18:00') }}"
+                                                    required>
                                                 @error('office_end_time')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
 
                                             <div class="col-md-6">
-                                                <label for="lunch_start_time" class="form-label">Lunch Start Time *</label>
-                                                <input type="time" class="form-control" id="lunch_start_time" name="lunch_start_time"
-                                                    value="{{ old('lunch_start_time', $settings['lunch_start_time'] ?? '13:00') }}" required>
+                                                <label for="lunch_start_time" class="form-label">Lunch Start Time
+                                                    *</label>
+                                                <input type="time" class="form-control" id="lunch_start_time"
+                                                    name="lunch_start_time"
+                                                    value="{{ old('lunch_start_time', $settings['lunch_start_time'] ?? '13:00') }}"
+                                                    required>
                                                 @error('lunch_start_time')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
@@ -320,16 +376,19 @@
 
                                             <div class="col-md-6">
                                                 <label for="lunch_end_time" class="form-label">Lunch End Time *</label>
-                                                <input type="time" class="form-control" id="lunch_end_time" name="lunch_end_time"
-                                                    value="{{ old('lunch_end_time', $settings['lunch_end_time'] ?? '14:00') }}" required>
+                                                <input type="time" class="form-control" id="lunch_end_time"
+                                                    name="lunch_end_time"
+                                                    value="{{ old('lunch_end_time', $settings['lunch_end_time'] ?? '14:00') }}"
+                                                    required>
                                                 @error('lunch_end_time')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-12">
                                                 <div class="d-grid">
-                                                    <button type="submit" class="btn btn-primary">Save Company Information</button>
+                                                    <button type="submit" class="btn btn-primary">Save Company
+                                                        Information</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -337,7 +396,8 @@
                                 </div>
 
                                 <!-- TAB 3: EMAIL SETTINGS -->
-                                <div class="tab-pane fade {{ $activeSettingsTab === 'email' ? 'show active' : '' }}" id="email" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'email' ? 'show active' : '' }}"
+                                    id="email" role="tabpanel">
                                     <h5 class="card-title">Email Settings / SMTP</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.email') }}" method="POST">
@@ -347,65 +407,93 @@
                                             <div class="col-md-6">
                                                 <label for="mail_engine" class="form-label">Mail Engine *</label>
                                                 <select class="form-select" id="mail_engine" name="mail_engine" required>
-                                                    <option value="phpmailer" {{ old('mail_engine', $settings['mail_engine'] ?? '') == 'phpmailer' ? 'selected' : '' }}>PHPMailer</option>
-                                                    <option value="codeigniter" {{ old('mail_engine', $settings['mail_engine'] ?? '') == 'codeigniter' ? 'selected' : '' }}>CodeIgniter</option>
+                                                    <option value="phpmailer"
+                                                        {{ old('mail_engine', $settings['mail_engine'] ?? '') == 'phpmailer' ? 'selected' : '' }}>
+                                                        PHPMailer</option>
+                                                    <option value="codeigniter"
+                                                        {{ old('mail_engine', $settings['mail_engine'] ?? '') == 'codeigniter' ? 'selected' : '' }}>
+                                                        CodeIgniter</option>
                                                 </select>
                                                 @error('mail_engine')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="email_protocol" class="form-label">Email Protocol *</label>
-                                                <select class="form-select" id="email_protocol" name="email_protocol" required>
-                                                    <option value="smtp" {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'smtp' ? 'selected' : '' }}>SMTP</option>
-                                                    <option value="microsoft_oauth" {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'microsoft_oauth' ? 'selected' : '' }}>Microsoft OAuth</option>
-                                                    <option value="gmail_oauth" {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'gmail_oauth' ? 'selected' : '' }}>Gmail OAuth</option>
-                                                    <option value="sendmail" {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'sendmail' ? 'selected' : '' }}>Sendmail</option>
-                                                    <option value="mail" {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'mail' ? 'selected' : '' }}>PHP Mail</option>
+                                                <select class="form-select" id="email_protocol" name="email_protocol"
+                                                    required>
+                                                    <option value="smtp"
+                                                        {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'smtp' ? 'selected' : '' }}>
+                                                        SMTP</option>
+                                                    <option value="microsoft_oauth"
+                                                        {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'microsoft_oauth' ? 'selected' : '' }}>
+                                                        Microsoft OAuth</option>
+                                                    <option value="gmail_oauth"
+                                                        {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'gmail_oauth' ? 'selected' : '' }}>
+                                                        Gmail OAuth</option>
+                                                    <option value="sendmail"
+                                                        {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'sendmail' ? 'selected' : '' }}>
+                                                        Sendmail</option>
+                                                    <option value="mail"
+                                                        {{ old('email_protocol', $settings['email_protocol'] ?? '') == 'mail' ? 'selected' : '' }}>
+                                                        PHP Mail</option>
                                                 </select>
                                                 @error('email_protocol')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="email_encryption" class="form-label">Email Encryption</label>
-                                                <select class="form-select" id="email_encryption" name="email_encryption">
-                                                    <option value="tls" {{ old('email_encryption', $settings['email_encryption'] ?? '') == 'tls' ? 'selected' : '' }}>TLS</option>
-                                                    <option value="ssl" {{ old('email_encryption', $settings['email_encryption'] ?? '') == 'ssl' ? 'selected' : '' }}>SSL</option>
-                                                    <option value="none" {{ old('email_encryption', $settings['email_encryption'] ?? '') == 'none' ? 'selected' : '' }}>None</option>
+                                                <select class="form-select" id="email_encryption"
+                                                    name="email_encryption">
+                                                    <option value="tls"
+                                                        {{ old('email_encryption', $settings['email_encryption'] ?? '') == 'tls' ? 'selected' : '' }}>
+                                                        TLS</option>
+                                                    <option value="ssl"
+                                                        {{ old('email_encryption', $settings['email_encryption'] ?? '') == 'ssl' ? 'selected' : '' }}>
+                                                        SSL</option>
+                                                    <option value="none"
+                                                        {{ old('email_encryption', $settings['email_encryption'] ?? '') == 'none' ? 'selected' : '' }}>
+                                                        None</option>
                                                 </select>
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="email_charset" class="form-label">Email Charset</label>
-                                                <input type="text" class="form-control" id="email_charset" name="email_charset" 
+                                                <input type="text" class="form-control" id="email_charset"
+                                                    name="email_charset"
                                                     value="{{ old('email_charset', $settings['email_charset'] ?? 'utf-8') }}">
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="smtp_host" class="form-label">SMTP Host *</label>
-                                                <input type="text" class="form-control" id="smtp_host" name="smtp_host" 
-                                                    value="{{ old('smtp_host', $settings['smtp_host'] ?? '') }}" placeholder="smtp.example.com">
+                                                <input type="text" class="form-control" id="smtp_host"
+                                                    name="smtp_host"
+                                                    value="{{ old('smtp_host', $settings['smtp_host'] ?? '') }}"
+                                                    placeholder="smtp.example.com">
                                                 @error('smtp_host')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="smtp_port" class="form-label">SMTP Port *</label>
-                                                <input type="number" class="form-control" id="smtp_port" name="smtp_port" 
-                                                    value="{{ old('smtp_port', $settings['smtp_port'] ?? 587) }}" placeholder="587">
+                                                <input type="number" class="form-control" id="smtp_port"
+                                                    name="smtp_port"
+                                                    value="{{ old('smtp_port', $settings['smtp_port'] ?? 587) }}"
+                                                    placeholder="587">
                                                 @error('smtp_port')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="email" class="form-label">Email Address *</label>
-                                                <input type="email" class="form-control" id="email" name="email" 
-                                                    value="{{ old('email', $settings['email'] ?? '') }}" placeholder="your@email.com" required>
+                                                <input type="email" class="form-control" id="email" name="email"
+                                                    value="{{ old('email', $settings['email'] ?? '') }}"
+                                                    placeholder="your@email.com" required>
                                                 @error('email')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
@@ -413,28 +501,35 @@
 
                                             <div class="col-md-6">
                                                 <label for="mail_from_name" class="form-label">From Name</label>
-                                                <input type="text" class="form-control" id="mail_from_name" name="mail_from_name"
-                                                    value="{{ old('mail_from_name', $settings['mail_from_name'] ?? ($settings['company_name'] ?? '')) }}" placeholder="Technofra">
+                                                <input type="text" class="form-control" id="mail_from_name"
+                                                    name="mail_from_name"
+                                                    value="{{ old('mail_from_name', $settings['mail_from_name'] ?? ($settings['company_name'] ?? '')) }}"
+                                                    placeholder="Technofra">
                                                 @error('mail_from_name')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="smtp_username" class="form-label">SMTP Username *</label>
-                                                <input type="text" class="form-control" id="smtp_username" name="smtp_username" 
-                                                    value="{{ old('smtp_username', $settings['smtp_username'] ?? '') }}" placeholder="your@email.com">
+                                                <input type="text" class="form-control" id="smtp_username"
+                                                    name="smtp_username"
+                                                    value="{{ old('smtp_username', $settings['smtp_username'] ?? '') }}"
+                                                    placeholder="your@email.com">
                                                 @error('smtp_username')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="smtp_password" class="form-label">SMTP Password *</label>
                                                 <div class="input-group">
-                                                    <input type="password" class="form-control" id="smtp_password" name="smtp_password" 
-                                                        value="{{ old('smtp_password', $settings['smtp_password'] ?? '') }}" placeholder="********">
-                                                    <button class="btn btn-outline-secondary toggle-password" type="button">
+                                                    <input type="password" class="form-control" id="smtp_password"
+                                                        name="smtp_password"
+                                                        value="{{ old('smtp_password', $settings['smtp_password'] ?? '') }}"
+                                                        placeholder="********">
+                                                    <button class="btn btn-outline-secondary toggle-password"
+                                                        type="button">
                                                         <i class="bx bx-show"></i>
                                                     </button>
                                                 </div>
@@ -442,31 +537,38 @@
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            
+
                                             <div class="col-md-6">
                                                 <label for="bcc_all" class="form-label">BCC All Emails To</label>
-                                                <input type="email" class="form-control" id="bcc_all" name="bcc_all" 
-                                                    value="{{ old('bcc_all', $settings['bcc_all'] ?? '') }}" placeholder="bcc@example.com">
+                                                <input type="email" class="form-control" id="bcc_all" name="bcc_all"
+                                                    value="{{ old('bcc_all', $settings['bcc_all'] ?? '') }}"
+                                                    placeholder="bcc@example.com">
                                             </div>
-                                            
+
                                             <div class="col-12">
                                                 <label for="email_signature" class="form-label">Email Signature</label>
-                                                <textarea class="form-control" id="email_signature" name="email_signature" rows="3" placeholder="Best regards,&#10;Your Company">{{ old('email_signature', $settings['email_signature'] ?? '') }}</textarea>
+                                                <textarea class="form-control" id="email_signature" name="email_signature" rows="3"
+                                                    placeholder="Best regards,&#10;Your Company">{{ old('email_signature', $settings['email_signature'] ?? '') }}</textarea>
                                             </div>
-                                            
+
                                             <div class="col-12">
-                                                <label for="predefined_header" class="form-label">Predefined Email Header</label>
-                                                <textarea class="form-control" id="predefined_header" name="predefined_header" rows="3" placeholder="<h1>Welcome</h1>">{{ old('predefined_header', $settings['predefined_header'] ?? '') }}</textarea>
+                                                <label for="predefined_header" class="form-label">Predefined Email
+                                                    Header</label>
+                                                <textarea class="form-control" id="predefined_header" name="predefined_header" rows="3"
+                                                    placeholder="<h1>Welcome</h1>">{{ old('predefined_header', $settings['predefined_header'] ?? '') }}</textarea>
                                             </div>
-                                            
+
                                             <div class="col-12">
-                                                <label for="predefined_footer" class="form-label">Predefined Email Footer</label>
-                                                <textarea class="form-control" id="predefined_footer" name="predefined_footer" rows="3" placeholder="<p>Thank you for your business!</p>">{{ old('predefined_footer', $settings['predefined_footer'] ?? '') }}</textarea>
+                                                <label for="predefined_footer" class="form-label">Predefined Email
+                                                    Footer</label>
+                                                <textarea class="form-control" id="predefined_footer" name="predefined_footer" rows="3"
+                                                    placeholder="<p>Thank you for your business!</p>">{{ old('predefined_footer', $settings['predefined_footer'] ?? '') }}</textarea>
                                             </div>
-                                            
+
                                             <div class="col-12">
                                                 <div class="d-grid gap-2 d-md-flex">
-                                                    <button type="submit" class="btn btn-primary">Save Email Settings</button>
+                                                    <button type="submit" class="btn btn-primary">Save Email
+                                                        Settings</button>
                                                 </div>
                                             </div>
                                         </div>
@@ -477,9 +579,11 @@
                                         <div class="card bg-light">
                                             <div class="card-body">
                                                 <h6>Send Test Email</h6>
-                                                <form action="{{ route('settings.test.email') }}" method="POST" class="d-flex gap-2">
+                                                <form action="{{ route('settings.test.email') }}" method="POST"
+                                                    class="d-flex gap-2">
                                                     @csrf
-                                                    <input type="email" class="form-control" name="test_email" placeholder="Enter email address" required>
+                                                    <input type="email" class="form-control" name="test_email"
+                                                        placeholder="Enter email address" required>
                                                     <button type="submit" class="btn btn-success flex-shrink-0">
                                                         <i class="bx bx-paper-plane"></i> Send Test
                                                     </button>
@@ -491,7 +595,8 @@
 
 
                                 <!-- TAB 4: RENEWAL MANAGE -->
-                                <div class="tab-pane fade {{ $activeSettingsTab === 'renewal' ? 'show active' : '' }}" id="renewal" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'renewal' ? 'show active' : '' }}"
+                                    id="renewal" role="tabpanel">
                                     <h5 class="card-title">Renewal Manage</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.renewal') }}" method="POST">
@@ -500,14 +605,21 @@
                                         <div class="row g-3">
                                             <div class="col-12">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox" id="renewal_notifications_enabled" name="renewal_notifications_enabled" value="1" {{ !in_array(strtolower((string) old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
-                                                    <label class="form-check-label" for="renewal_notifications_enabled">Enable Daily Renewal Email Notifications</label>
+                                                    <input class="form-check-input" type="checkbox"
+                                                        id="renewal_notifications_enabled"
+                                                        name="renewal_notifications_enabled" value="1"
+                                                        {{ !in_array(strtolower((string) old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                    <label class="form-check-label"
+                                                        for="renewal_notifications_enabled">Enable Daily Renewal Email
+                                                        Notifications</label>
                                                 </div>
                                             </div>
 
                                             <div class="col-md-6">
-                                                <label for="renewal_admin_email" class="form-label">Renewal Admin Email *</label>
-                                                <input type="email" class="form-control" id="renewal_admin_email" name="renewal_admin_email"
+                                                <label for="renewal_admin_email" class="form-label">Renewal Admin Email
+                                                    *</label>
+                                                <input type="email" class="form-control" id="renewal_admin_email"
+                                                    name="renewal_admin_email"
                                                     value="{{ old('renewal_admin_email', $settings['renewal_admin_email'] ?? ($settings['company_email'] ?? '')) }}"
                                                     placeholder="admin@example.com" required>
                                                 @error('renewal_admin_email')
@@ -516,82 +628,110 @@
                                             </div>
 
                                             <div class="col-md-6">
-                                                <label for="renewal_notification_time" class="form-label">Daily Notify Time *</label>
-                                                <input type="time" class="form-control" id="renewal_notification_time" name="renewal_notification_time"
-                                                    value="{{ old('renewal_notification_time', $settings['renewal_notification_time'] ?? '16:00') }}" required>
+                                                <label for="renewal_notification_time" class="form-label">Daily Notify
+                                                    Time *</label>
+                                                <input type="time" class="form-control" id="renewal_notification_time"
+                                                    name="renewal_notification_time"
+                                                    value="{{ old('renewal_notification_time', $settings['renewal_notification_time'] ?? '16:00') }}"
+                                                    required>
                                                 @error('renewal_notification_time')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
 
                                             <div class="col-md-6">
-                                                <label for="renewal_notice_days" class="form-label">Notify Before (Days) *</label>
-                                                <input type="number" class="form-control" id="renewal_notice_days" name="renewal_notice_days" min="1" max="30"
-                                                    value="{{ old('renewal_notice_days', $settings['renewal_notice_days'] ?? 5) }}" required>
-                                                <small class="text-muted">Default 5 days means: 5, 4, 3, 2, 1, 0 days left par daily email.</small>
+                                                <label for="renewal_notice_days" class="form-label">Notify Before (Days)
+                                                    *</label>
+                                                <input type="number" class="form-control" id="renewal_notice_days"
+                                                    name="renewal_notice_days" min="1" max="30"
+                                                    value="{{ old('renewal_notice_days', $settings['renewal_notice_days'] ?? 5) }}"
+                                                    required>
+                                                <small class="text-muted">Default 5 days means: 5, 4, 3, 2, 1, 0 days left
+                                                    par daily email.</small>
                                                 @error('renewal_notice_days')
                                                     <div class="text-danger">{{ $message }}</div>
                                                 @enderror
                                             </div>
 
                                             <div class="col-12">
-                                                <small class="text-muted">Note: Server cron must run Laravel scheduler every minute for this timing to work exactly.</small>
+                                                <small class="text-muted">Note: Server cron must run Laravel scheduler
+                                                    every minute for this timing to work exactly.</small>
                                             </div>
 
                                             <div class="col-12">
-                                                <button type="submit" class="btn btn-primary">Save Renewal Settings</button>
+                                                <button type="submit" class="btn btn-primary">Save Renewal
+                                                    Settings</button>
                                             </div>
                                         </div>
                                     </form>
                                 </div>
                                 <!-- TAB 4: TEAMS -->
-                                <div class="tab-pane fade {{ $activeSettingsTab === 'teams' ? 'show active' : '' }}" id="teams" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'teams' ? 'show active' : '' }}"
+                                    id="teams" role="tabpanel">
                                     <h5 class="card-title">Team Settings</h5>
                                     <hr />
-                                    <form action="{{ route('settings.update.teams') }}" method="POST" enctype="multipart/form-data">
+                                    <form action="{{ route('settings.update.teams') }}" method="POST"
+                                        enctype="multipart/form-data">
                                         @csrf
                                         @method('PUT')
                                         <div class="row g-3">
                                             <div class="col-12">
                                                 <label class="form-label">Teams</label>
                                                 <div id="teams-rows" class="d-flex flex-column gap-2">
-                                                    @foreach($teamRows as $index => $teamRow)
+                                                    @foreach ($teamRows as $index => $teamRow)
                                                         <div class="team-row border rounded p-3">
                                                             <div class="row g-2 align-items-end">
                                                                 <div class="col-md-4">
                                                                     <label class="form-label mb-1">Team Name</label>
-                                                                    <input type="text" class="form-control" name="teams[{{ $index }}][name]" value="{{ $teamRow['name'] ?? '' }}" placeholder="Enter team name" required>
+                                                                    <input type="text" class="form-control"
+                                                                        name="teams[{{ $index }}][name]"
+                                                                        value="{{ $teamRow['name'] ?? '' }}"
+                                                                        placeholder="Enter team name" required>
                                                                 </div>
                                                                 <div class="col-md-5">
                                                                     <label class="form-label mb-1">Description</label>
-                                                                    <input type="text" class="form-control" name="teams[{{ $index }}][description]" value="{{ $teamRow['description'] ?? '' }}" placeholder="Enter team description">
+                                                                    <input type="text" class="form-control"
+                                                                        name="teams[{{ $index }}][description]"
+                                                                        value="{{ $teamRow['description'] ?? '' }}"
+                                                                        placeholder="Enter team description">
                                                                 </div>
                                                                 <div class="col-md-2">
                                                                     <label class="form-label mb-1">Icon</label>
-                                                                    <input type="file" class="form-control" name="teams[{{ $index }}][icon]" accept="image/*">
-                                                                    <input type="hidden" name="teams[{{ $index }}][existing_icon_path]" value="{{ $teamRow['icon_path'] ?? '' }}">
+                                                                    <input type="file" class="form-control"
+                                                                        name="teams[{{ $index }}][icon]"
+                                                                        accept="image/*">
+                                                                    <input type="hidden"
+                                                                        name="teams[{{ $index }}][existing_icon_path]"
+                                                                        value="{{ $teamRow['icon_path'] ?? '' }}">
                                                                 </div>
                                                                 <div class="col-md-1 d-grid">
-                                                                    <button type="button" class="btn btn-outline-danger remove-team-row">
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-danger remove-team-row">
                                                                         <i class="bx bx-trash"></i>
                                                                     </button>
                                                                 </div>
                                                             </div>
                                                             @php($teamIconPath = ltrim(str_replace('\\', '/', trim((string) ($teamRow['icon_path'] ?? ''))), '/'))
                                                             @php($teamIconUrl = '')
-                                                            @if($teamIconPath !== '' && str_starts_with($teamIconPath, 'uploads/') && file_exists(public_path($teamIconPath)))
+                                                            @if ($teamIconPath !== '' && str_starts_with($teamIconPath, 'uploads/') && file_exists(public_path($teamIconPath)))
                                                                 @php($teamIconUrl = asset($teamIconPath))
-                                                            @elseif($teamIconPath !== '' && str_starts_with($teamIconPath, 'team-icons/') && \Illuminate\Support\Facades\Storage::disk('public')->exists($teamIconPath))
+                                                            @elseif(
+                                                                $teamIconPath !== '' &&
+                                                                    str_starts_with($teamIconPath, 'team-icons/') &&
+                                                                    \Illuminate\Support\Facades\Storage::disk('public')->exists($teamIconPath))
                                                                 @php($teamIconUrl = \Illuminate\Support\Facades\Storage::url($teamIconPath))
                                                             @elseif($teamIconPath !== '' && file_exists(public_path($teamIconPath)))
                                                                 @php($teamIconUrl = asset($teamIconPath))
                                                             @endif
-                                                            @if($teamIconUrl !== '')
+                                                            @if ($teamIconUrl !== '')
                                                                 <div class="mt-2">
-                                                                    <img src="{{ $teamIconUrl }}" alt="Team Icon" style="height: 34px; width: 34px; object-fit: cover;" class="rounded border">
+                                                                    <img src="{{ $teamIconUrl }}" alt="Team Icon"
+                                                                        style="height: 34px; width: 34px; object-fit: cover;"
+                                                                        class="rounded border">
                                                                 </div>
                                                             @elseif($teamIconPath !== '')
-                                                                <div class="mt-2 text-warning small">Team icon image not found. Please upload again.</div>
+                                                                <div class="mt-2 text-warning small">Team icon image not
+                                                                    found. Please upload again.</div>
                                                             @endif
                                                         </div>
                                                     @endforeach
@@ -605,7 +745,8 @@
                                                 @error('teams.*.icon')
                                                     <div class="text-danger mt-1">{{ $message }}</div>
                                                 @enderror
-                                                <small class="text-muted d-block mt-2">These teams will appear in staff forms and client issue assignment popup.</small>
+                                                <small class="text-muted d-block mt-2">These teams will appear in staff
+                                                    forms and client issue assignment popup.</small>
                                             </div>
 
                                             <div class="col-12 d-flex gap-2">
@@ -621,7 +762,8 @@
                                 </div>
 
                                 <!-- TAB 5: DEPARTMENTS -->
-                                <div class="tab-pane fade {{ $activeSettingsTab === 'departments' ? 'show active' : '' }}" id="departments" role="tabpanel">
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'departments' ? 'show active' : '' }}"
+                                    id="departments" role="tabpanel">
                                     <h5 class="card-title">Department Settings</h5>
                                     <hr />
                                     <form action="{{ route('settings.update.departments') }}" method="POST">
@@ -631,15 +773,19 @@
                                             <div class="col-12">
                                                 <label class="form-label">Departments</label>
                                                 <div id="departments-rows" class="d-flex flex-column gap-2">
-                                                    @foreach($departmentRows as $index => $departmentRow)
+                                                    @foreach ($departmentRows as $index => $departmentRow)
                                                         <div class="department-row border rounded p-3">
                                                             <div class="row g-2 align-items-end">
                                                                 <div class="col-md-11">
                                                                     <label class="form-label mb-1">Department Name</label>
-                                                                    <input type="text" class="form-control" name="departments[{{ $index }}][name]" value="{{ $departmentRow['name'] ?? '' }}" placeholder="Enter department name" required>
+                                                                    <input type="text" class="form-control"
+                                                                        name="departments[{{ $index }}][name]"
+                                                                        value="{{ $departmentRow['name'] ?? '' }}"
+                                                                        placeholder="Enter department name" required>
                                                                 </div>
                                                                 <div class="col-md-1 d-grid">
-                                                                    <button type="button" class="btn btn-outline-danger remove-department-row">
+                                                                    <button type="button"
+                                                                        class="btn btn-outline-danger remove-department-row">
                                                                         <i class="bx bx-trash"></i>
                                                                     </button>
                                                                 </div>
@@ -653,11 +799,13 @@
                                                 @error('departments.*.name')
                                                     <div class="text-danger mt-1">{{ $message }}</div>
                                                 @enderror
-                                                <small class="text-muted d-block mt-2">Add department names that should be available in the system.</small>
+                                                <small class="text-muted d-block mt-2">Add department names that should be
+                                                    available in the system.</small>
                                             </div>
 
                                             <div class="col-12 d-flex gap-2">
-                                                <button type="button" class="btn btn-light border" id="add-department-row">
+                                                <button type="button" class="btn btn-light border"
+                                                    id="add-department-row">
                                                     <i class="bx bx-plus"></i> Add Department
                                                 </button>
                                                 <button type="submit" class="btn btn-primary">
@@ -696,8 +844,10 @@
                         <div class="mb-3">
                             <label for="tagColor" class="form-label">Color</label>
                             <div class="input-group">
-                                <input type="color" class="form-control form-control-color" id="tagColor" name="color" value="#3498db">
-                                <input type="text" class="form-control ms-2" id="tagColorText" value="#3498db" style="max-width: 100px;">
+                                <input type="color" class="form-control form-control-color" id="tagColor"
+                                    name="color" value="#3498db">
+                                <input type="text" class="form-control ms-2" id="tagColorText" value="#3498db"
+                                    style="max-width: 100px;">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -738,8 +888,10 @@
                         <div class="mb-3">
                             <label for="editTagColor" class="form-label">Color</label>
                             <div class="input-group">
-                                <input type="color" class="form-control form-control-color" id="editTagColor" name="color" value="#3498db">
-                                <input type="text" class="form-control ms-2" id="editTagColorText" value="#3498db" style="max-width: 100px;">
+                                <input type="color" class="form-control form-control-color" id="editTagColor"
+                                    name="color" value="#3498db">
+                                <input type="text" class="form-control ms-2" id="editTagColorText" value="#3498db"
+                                    style="max-width: 100px;">
                             </div>
                         </div>
                         <div class="mb-3">
@@ -748,7 +900,8 @@
                         </div>
                         <div class="mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="editTagActive" name="is_active" value="1">
+                                <input class="form-check-input" type="checkbox" id="editTagActive" name="is_active"
+                                    value="1">
                                 <label class="form-check-label" for="editTagActive">Active</label>
                             </div>
                         </div>
@@ -794,38 +947,38 @@
 @endsection
 
 @push('scripts')
-<script>
-$(document).ready(function() {
-    // Toggle password visibility
-    $('.toggle-password').on('click', function() {
-        const input = $(this).siblings('input');
-        const icon = $(this).find('i');
-        if (input.attr('type') === 'password') {
-            input.attr('type', 'text');
-            icon.removeClass('bx-show').addClass('bx-hide');
-        } else {
-            input.attr('type', 'password');
-            icon.removeClass('bx-hide').addClass('bx-show');
-        }
-    });
+    <script>
+        $(document).ready(function() {
+            // Toggle password visibility
+            $('.toggle-password').on('click', function() {
+                const input = $(this).siblings('input');
+                const icon = $(this).find('i');
+                if (input.attr('type') === 'password') {
+                    input.attr('type', 'text');
+                    icon.removeClass('bx-show').addClass('bx-hide');
+                } else {
+                    input.attr('type', 'password');
+                    icon.removeClass('bx-hide').addClass('bx-show');
+                }
+            });
 
-    // Color picker sync
-    $('#tagColor').on('input', function() {
-        $('#tagColorText').val($(this).val());
-    });
-    $('#tagColorText').on('input', function() {
-        $('#tagColor').val($(this).val());
-    });
-    $('#editTagColor').on('input', function() {
-        $('#editTagColorText').val($(this).val());
-    });
-    $('#editTagColorText').on('input', function() {
-        $('#editTagColor').val($(this).val());
-    });
+            // Color picker sync
+            $('#tagColor').on('input', function() {
+                $('#tagColorText').val($(this).val());
+            });
+            $('#tagColorText').on('input', function() {
+                $('#tagColor').val($(this).val());
+            });
+            $('#editTagColor').on('input', function() {
+                $('#editTagColorText').val($(this).val());
+            });
+            $('#editTagColorText').on('input', function() {
+                $('#editTagColor').val($(this).val());
+            });
 
-    $('#add-team-row').on('click', function() {
-        const nextIndex = Date.now();
-        $('#teams-rows').append(`
+            $('#add-team-row').on('click', function() {
+                const nextIndex = Date.now();
+                $('#teams-rows').append(`
             <div class="team-row border rounded p-3">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-4">
@@ -849,23 +1002,23 @@ $(document).ready(function() {
                 </div>
             </div>
         `);
-    });
+            });
 
-    $(document).on('click', '.remove-team-row', function() {
-        const rows = $('#teams-rows .team-row');
-        if (rows.length <= 1) {
-            rows.find('input[type=\"text\"]').val('');
-            rows.find('input[type=\"file\"]').val('');
-            rows.find('input[type=\"hidden\"]').val('');
-            return;
-        }
-        $(this).closest('.team-row').remove();
-    });
+            $(document).on('click', '.remove-team-row', function() {
+                const rows = $('#teams-rows .team-row');
+                if (rows.length <= 1) {
+                    rows.find('input[type=\"text\"]').val('');
+                    rows.find('input[type=\"file\"]').val('');
+                    rows.find('input[type=\"hidden\"]').val('');
+                    return;
+                }
+                $(this).closest('.team-row').remove();
+            });
 
 
-    $("#add-department-row").on("click", function() {
-        const nextIndex = Date.now();
-        $("#departments-rows").append(`
+            $("#add-department-row").on("click", function() {
+                const nextIndex = Date.now();
+                $("#departments-rows").append(`
             <div class="department-row border rounded p-3">
                 <div class="row g-2 align-items-end">
                     <div class="col-md-11">
@@ -880,186 +1033,184 @@ $(document).ready(function() {
                 </div>
             </div>
         `);
-    });
+            });
 
-    $(document).on("click", ".remove-department-row", function() {
-        const rows = $("#departments-rows .department-row");
-        if (rows.length <= 1) {
-            rows.find("input[type=\"text\"]").val("");
-            return;
-        }
-        $(this).closest(".department-row").remove();
-    });
-    // Add Tag Form Submit
-    $('#addTagForm').on('submit', function(e) {
-        e.preventDefault();
-        const btn = $('#saveTagBtn');
-        const spinner = btn.find('.spinner-border');
-        
-        spinner.removeClass('d-none');
-        btn.prop('disabled', true);
+            $(document).on("click", ".remove-department-row", function() {
+                const rows = $("#departments-rows .department-row");
+                if (rows.length <= 1) {
+                    rows.find("input[type=\"text\"]").val("");
+                    return;
+                }
+                $(this).closest(".department-row").remove();
+            });
+            // Add Tag Form Submit
+            $('#addTagForm').on('submit', function(e) {
+                e.preventDefault();
+                const btn = $('#saveTagBtn');
+                const spinner = btn.find('.spinner-border');
 
-        $.ajax({
-            url: '{{ route('tags.store') }}',
-            method: 'POST',
-            data: $(this).serialize(),
-            success: function(response) {
-                if (response.success) {
-                    $('#addTagModal').modal('hide');
-                    $('#addTagForm')[0].reset();
-                    $('#tagColor').val('#3498db');
-                    $('#tagColorText').val('#3498db');
-                    
-                    // Reload page or update table
-                    location.reload();
-                } else {
-                    alert(response.message || 'Failed to create tag');
-                }
-            },
-            error: function(xhr) {
-                if (xhr.status === 422) {
-                    const errors = xhr.responseJSON.errors;
-                    $('#tagName').addClass('is-invalid');
-                    $('#tagNameError').text(errors.name ? errors.name[0] : '');
-                } else {
-                    alert('Failed to create tag: ' + xhr.responseJSON.message);
-                }
-            },
-            complete: function() {
-                spinner.addClass('d-none');
-                btn.prop('disabled', false);
-            }
+                spinner.removeClass('d-none');
+                btn.prop('disabled', true);
+
+                $.ajax({
+                    url: '{{ route('tags.store') }}',
+                    method: 'POST',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#addTagModal').modal('hide');
+                            $('#addTagForm')[0].reset();
+                            $('#tagColor').val('#3498db');
+                            $('#tagColorText').val('#3498db');
+
+                            // Reload page or update table
+                            location.reload();
+                        } else {
+                            alert(response.message || 'Failed to create tag');
+                        }
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 422) {
+                            const errors = xhr.responseJSON.errors;
+                            $('#tagName').addClass('is-invalid');
+                            $('#tagNameError').text(errors.name ? errors.name[0] : '');
+                        } else {
+                            alert('Failed to create tag: ' + xhr.responseJSON.message);
+                        }
+                    },
+                    complete: function() {
+                        spinner.addClass('d-none');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Edit Tag - Open Modal
+            $('.edit-tag').on('click', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                const color = $(this).data('color');
+                const description = $(this).data('description');
+                const isActive = $(this).closest('tr').find('.badge.bg-success').length > 0;
+
+                $('#editTagId').val(id);
+                $('#editTagName').val(name);
+                $('#editTagColor').val(color);
+                $('#editTagColorText').val(color);
+                $('#editTagDescription').val(description || '');
+                $('#editTagActive').prop('checked', isActive);
+
+                $('#editTagModal').modal('show');
+            });
+
+            // Edit Tag Form Submit
+            $('#editTagForm').on('submit', function(e) {
+                e.preventDefault();
+                const btn = $('#updateTagBtn');
+                const spinner = btn.find('.spinner-border');
+                const id = $('#editTagId').val();
+
+                spinner.removeClass('d-none');
+                btn.prop('disabled', true);
+
+                $.ajax({
+                    url: '/tags/' + id,
+                    method: 'PUT',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#editTagModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert(response.message || 'Failed to update tag');
+                        }
+                    },
+                    error: function(xhr) {
+                        if (xhr.status === 422) {
+                            const errors = xhr.responseJSON.errors;
+                            $('#editTagName').addClass('is-invalid');
+                            $('#editTagNameError').text(errors.name ? errors.name[0] : '');
+                        } else {
+                            alert('Failed to update tag: ' + xhr.responseJSON.message);
+                        }
+                    },
+                    complete: function() {
+                        spinner.addClass('d-none');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Delete Tag - Open Modal
+            $('.delete-tag').on('click', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                $('#deleteTagName').text(name);
+                $('#deleteTagForm').attr('action', '/tags/' + id);
+
+                $('#deleteTagModal').modal('show');
+            });
+
+            // Delete Tag Form Submit
+            $('#deleteTagForm').on('submit', function(e) {
+                e.preventDefault();
+                const btn = $('#deleteTagBtn');
+                const spinner = btn.find('.spinner-border');
+
+                spinner.removeClass('d-none');
+                btn.prop('disabled', true);
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    method: 'DELETE',
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        if (response.success) {
+                            $('#deleteTagModal').modal('hide');
+                            location.reload();
+                        } else {
+                            alert(response.message || 'Failed to delete tag');
+                        }
+                    },
+                    error: function(xhr) {
+                        alert('Failed to delete tag: ' + xhr.responseJSON.message);
+                    },
+                    complete: function() {
+                        spinner.addClass('d-none');
+                        btn.prop('disabled', false);
+                    }
+                });
+            });
+
+            // Tag Search
+            $('#tagSearch').on('keyup', function() {
+                const query = $(this).val().toLowerCase();
+
+                $('#tagsTable tbody tr').each(function() {
+                    const name = $(this).find('td:first').text().toLowerCase();
+                    const slug = $(this).find('code').text().toLowerCase();
+
+                    if (name.includes(query) || slug.includes(query)) {
+                        $(this).show();
+                    } else {
+                        $(this).hide();
+                    }
+                });
+            });
+
+            // Clear form on modal close
+            $('#addTagModal').on('hidden.bs.modal', function() {
+                $('#addTagForm')[0].reset();
+                $('#tagName').removeClass('is-invalid');
+                $('#tagColor').val('#3498db');
+                $('#tagColorText').val('#3498db');
+            });
+
+            // Clear edit form errors on modal close
+            $('#editTagModal').on('hidden.bs.modal', function() {
+                $('#editTagName').removeClass('is-invalid');
+            });
         });
-    });
-
-    // Edit Tag - Open Modal
-    $('.edit-tag').on('click', function() {
-        const id = $(this).data('id');
-        const name = $(this).data('name');
-        const color = $(this).data('color');
-        const description = $(this).data('description');
-        const isActive = $(this).closest('tr').find('.badge.bg-success').length > 0;
-
-        $('#editTagId').val(id);
-        $('#editTagName').val(name);
-        $('#editTagColor').val(color);
-        $('#editTagColorText').val(color);
-        $('#editTagDescription').val(description || '');
-        $('#editTagActive').prop('checked', isActive);
-
-        $('#editTagModal').modal('show');
-    });
-
-    // Edit Tag Form Submit
-    $('#editTagForm').on('submit', function(e) {
-        e.preventDefault();
-        const btn = $('#updateTagBtn');
-        const spinner = btn.find('.spinner-border');
-        const id = $('#editTagId').val();
-        
-        spinner.removeClass('d-none');
-        btn.prop('disabled', true);
-
-        $.ajax({
-            url: '/tags/' + id,
-            method: 'PUT',
-            data: $(this).serialize(),
-            success: function(response) {
-                if (response.success) {
-                    $('#editTagModal').modal('hide');
-                    location.reload();
-                } else {
-                    alert(response.message || 'Failed to update tag');
-                }
-            },
-            error: function(xhr) {
-                if (xhr.status === 422) {
-                    const errors = xhr.responseJSON.errors;
-                    $('#editTagName').addClass('is-invalid');
-                    $('#editTagNameError').text(errors.name ? errors.name[0] : '');
-                } else {
-                    alert('Failed to update tag: ' + xhr.responseJSON.message);
-                }
-            },
-            complete: function() {
-                spinner.addClass('d-none');
-                btn.prop('disabled', false);
-            }
-        });
-    });
-
-    // Delete Tag - Open Modal
-    $('.delete-tag').on('click', function() {
-        const id = $(this).data('id');
-        const name = $(this).data('name');
-        
-        $('#deleteTagName').text(name);
-        $('#deleteTagForm').attr('action', '/tags/' + id);
-        
-        $('#deleteTagModal').modal('show');
-    });
-
-    // Delete Tag Form Submit
-    $('#deleteTagForm').on('submit', function(e) {
-        e.preventDefault();
-        const btn = $('#deleteTagBtn');
-        const spinner = btn.find('.spinner-border');
-        
-        spinner.removeClass('d-none');
-        btn.prop('disabled', true);
-
-        $.ajax({
-            url: $(this).attr('action'),
-            method: 'DELETE',
-            data: $(this).serialize(),
-            success: function(response) {
-                if (response.success) {
-                    $('#deleteTagModal').modal('hide');
-                    location.reload();
-                } else {
-                    alert(response.message || 'Failed to delete tag');
-                }
-            },
-            error: function(xhr) {
-                alert('Failed to delete tag: ' + xhr.responseJSON.message);
-            },
-            complete: function() {
-                spinner.addClass('d-none');
-                btn.prop('disabled', false);
-            }
-        });
-    });
-
-    // Tag Search
-    $('#tagSearch').on('keyup', function() {
-        const query = $(this).val().toLowerCase();
-        
-        $('#tagsTable tbody tr').each(function() {
-            const name = $(this).find('td:first').text().toLowerCase();
-            const slug = $(this).find('code').text().toLowerCase();
-            
-            if (name.includes(query) || slug.includes(query)) {
-                $(this).show();
-            } else {
-                $(this).hide();
-            }
-        });
-    });
-
-    // Clear form on modal close
-    $('#addTagModal').on('hidden.bs.modal', function() {
-        $('#addTagForm')[0].reset();
-        $('#tagName').removeClass('is-invalid');
-        $('#tagColor').val('#3498db');
-        $('#tagColorText').val('#3498db');
-    });
-
-    // Clear edit form errors on modal close
-    $('#editTagModal').on('hidden.bs.modal', function() {
-        $('#editTagName').removeClass('is-invalid');
-    });
-});
-</script>
+    </script>
 @endpush
-
-
