@@ -6,11 +6,13 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
@@ -69,7 +71,9 @@ class AuthController extends Controller
      */
     public function showLoginForm()
     {
-        return view('auth-basic-signin');
+        $rememberedEmail = request()->cookie('remembered_login_email');
+
+        return view('auth-basic-signin', compact('rememberedEmail'));
     }
 
     /**
@@ -111,6 +115,12 @@ class AuthController extends Controller
                 'user_roles' => $roles,
                 'user_type' => $user->user_type,
             ]);
+
+            if ($remember) {
+                Cookie::queue('remembered_login_email', $request->email, 60 * 24 * 30);
+            } else {
+                Cookie::queue(Cookie::forget('remembered_login_email'));
+            }
             
             // Always redirect to dashboard after login
             return redirect()->route('dashboard')
@@ -135,6 +145,151 @@ class AuthController extends Controller
 
         return redirect()->route('login')
             ->with('success', 'You have been logged out successfully.');
+    }
+
+    /**
+     * Show the logged-in user's profile form.
+     */
+    public function profile(Request $request)
+    {
+        $user = $request->user()->load(['staff', 'customer']);
+
+        return view('user-profile', compact('user'));
+    }
+
+    /**
+     * Update the logged-in user's profile.
+     */
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user()->load(['staff', 'customer']);
+        $staff = $user->staff;
+        $customer = $user->customer;
+
+        $emailRules = ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)];
+
+        if ($staff) {
+            $emailRules[] = Rule::unique('staff', 'email')->ignore($staff->id);
+        }
+
+        if ($customer) {
+            $emailRules[] = Rule::unique('customers', 'email')->ignore($customer->id);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'profileImage' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => $emailRules,
+            'phone' => [$staff ? 'required' : 'nullable', 'string', 'max:20'],
+            'current_password' => ['nullable', 'required_with:password', 'string'],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        if ($request->filled('password') && ! Hash::check($request->current_password, $user->password)) {
+            return redirect()->back()
+                ->withErrors(['current_password' => 'Current password is incorrect.'])
+                ->withInput();
+        }
+
+        DB::beginTransaction();
+
+        try {
+            $user->name = $request->name;
+            $user->email = $request->email;
+
+            if ($request->filled('password')) {
+                $user->password = Hash::make($request->password);
+            }
+
+            if ($request->hasFile('profileImage') && ! $staff) {
+                $user->profile_image = $this->uploadProfileImage(
+                    $request->file('profileImage'),
+                    $user->profile_image,
+                    'profile'
+                );
+            }
+
+            $user->save();
+
+            if ($staff) {
+                $nameParts = preg_split('/\s+/', trim($request->name), 2);
+
+                $staff->first_name = $nameParts[0] ?? $request->name;
+                $staff->last_name = $nameParts[1] ?? '';
+                $staff->email = $request->email;
+                $staff->phone = $request->phone;
+
+                if ($request->filled('password')) {
+                    $staff->password = $user->password;
+                }
+
+                if ($request->hasFile('profileImage')) {
+                    $staff->profile_image = $this->uploadProfileImage(
+                        $request->file('profileImage'),
+                        $staff->profile_image,
+                        'staff',
+                        $staff->id
+                    );
+                }
+
+                $staff->save();
+            }
+
+            if ($customer) {
+                $customer->contact_person = $request->name;
+                $customer->email = $request->email;
+                $customer->phone = $request->phone;
+
+                if ($request->filled('password')) {
+                    $customer->password = $user->password;
+                }
+
+                $customer->save();
+            }
+
+            DB::commit();
+
+            return redirect()->route('user-profile')->with('success', 'Profile updated successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Profile update failed: ' . $e->getMessage());
+
+            return redirect()->back()
+                ->with('error', 'Failed to update profile. Please try again.')
+                ->withInput();
+        }
+    }
+
+    /**
+     * Upload a profile image and remove the previous file when present.
+     */
+    private function uploadProfileImage($image, ?string $oldImage = null, string $folder = 'profile', ?int $recordId = null): string
+    {
+        $extension = $image->getClientOriginalExtension();
+        $imageName = time() . ($recordId ? '_' . $recordId : '') . '.' . $extension;
+        $uploadPath = public_path('uploads/' . $folder);
+
+        if (! is_dir($uploadPath)) {
+            mkdir($uploadPath, 0755, true);
+        }
+
+        $image->move($uploadPath, $imageName);
+
+        if ($oldImage) {
+            $oldImagePath = $uploadPath . DIRECTORY_SEPARATOR . $oldImage;
+
+            if (file_exists($oldImagePath)) {
+                @unlink($oldImagePath);
+            }
+        }
+
+        return $imageName;
     }
 
     /**
