@@ -66,6 +66,8 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard route (protected by auth middleware) - also serves as index
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/user-profile', [AuthController::class, 'profile'])->name('user-profile');
+    Route::put('/user-profile', [AuthController::class, 'updateProfile'])->name('user-profile.update');
 
     // ============================= Permissions Controller ====================
     Route::controller(PermissionController::class)->group(function () {
@@ -337,11 +339,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/servies', function () {
         return view('servies');
     })->name('servies')->middleware('permission:view_renewals');
-
-    Route::get('/user-profile', function () {
-        return view('user-profile');
-    })->name('user-profile');
-
 
     // Mail routes for sending renewal emails
     Route::controller(MailController::class)->group(function () {

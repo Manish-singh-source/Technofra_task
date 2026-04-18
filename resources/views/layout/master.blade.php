@@ -527,7 +527,7 @@
      </ul>
     </li>
     <li>
-     <a href="user-profile.html">
+     <a href="{{ route('user-profile') }}">
       <div class="parent-icon"><i class="bx bx-user-circle"></i>
       </div>
       <div class="menu-title">User Profile</div>
@@ -950,8 +950,8 @@
                     <div class="user-box dropdown px-3">
                         <a class="d-flex align-items-center nav-link dropdown-toggle gap-3 dropdown-toggle-nocaret"
                             href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <img src="{{ asset('assets/images/avatars/technofra.png') }}" class="user-img"
-                                alt="user avatar">
+                            <img src="{{ Auth::check() && optional(Auth::user()->staff)->profile_image ? asset('uploads/staff/' . Auth::user()->staff->profile_image) : (Auth::check() && Auth::user()->profile_image ? asset('uploads/profile/' . Auth::user()->profile_image) : asset('assets/images/avatars/technofra.png')) }}"
+                                class="user-img" alt="user avatar">
                             <div class="user-info">
                                 <p class="user-name mb-0">{{ Auth::check() ? Auth::user()->name : 'Guest' }}</p>
                                 <p class="designattion mb-0">
@@ -959,6 +959,14 @@
                             </div>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <a class="dropdown-item d-flex align-items-center" href="{{ route('user-profile') }}">
+                                    <i class="bx bx-user fs-5"></i><span>Profile</span>
+                                </a>
+                            </li>
+                            <li>
+                                <div class="dropdown-divider mb-0"></div>
+                            </li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}" class="d-inline">
                                     @csrf

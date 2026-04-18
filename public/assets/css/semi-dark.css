@@ -30,7 +30,7 @@ html.semi-dark .simplebar-scrollbar:before {
 	background: rgba(255, 255, 255, .4)
 }
 html.semi-dark .logo-icon {
-	filter: invert(1) grayscale(100%) brightness(200%)
+    filter: drop-shadow(2px 4px 6px black);
 }
 html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-1, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-10, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-11, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-12, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-2, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-3, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-4, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-5, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-6, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-7, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-8, html.ColorLessIcons .sidebar-wrapper .metismenu .icon-color-9 {
 	color: inherit
