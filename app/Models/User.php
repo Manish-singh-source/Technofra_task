@@ -155,6 +155,13 @@ class User extends Authenticatable
         return $this->name;
     }
 
+    // Clients Roles 
+
+    /**
+     * Get the services for the client.
+     */
+    public function services()
+    {
+        return $this->hasMany(Service::class, 'id', 'client_id');
+    }
 }
-
-

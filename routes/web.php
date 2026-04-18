@@ -142,14 +142,15 @@ Route::middleware('auth')->group(function () {
 
     // ============================= Client Controller ====================
     Route::controller(ClientController::class)->group(function () {
-        Route::get('/client', 'client')->name('client')->middleware('permission:view_renewals');
+        Route::get('/client', 'index')->name('client');
+        Route::get('/add-clients', 'create')->name('client.create')->middleware('permission:create_renewals');
+        Route::post('/client/store', 'store')->name('client.store')->middleware('permission:create_renewals');
+        Route::get('/client-details/{id}', 'view')->name('client.view')->middleware('permission:view_renewals');
+        Route::get('/edit-client/{id}', 'edit')->name('client.edit')->middleware('permission:edit_renewals');
+
         Route::post('/client/toggle-status',  'toggleStatus')->name('client.toggleStatus')->middleware('permission:edit_renewals');
-        Route::get('/add-client', 'addclient')->name('add-client')->middleware('permission:create_renewals');
-        Route::post('/client/store', 'storeclient')->name('client.store')->middleware('permission:create_renewals');
-        Route::get('/edit-client/{id}', 'editclient')->name('client.edit')->middleware('permission:edit_renewals');
         Route::put('/update-client/{id}', 'updateclient')->name('client.update')->middleware('permission:edit_renewals');
         Route::delete('/client/delete/{id}', 'deleteclient')->name('client.delete')->middleware('permission:delete_renewals');
-        Route::get('/client-details/{id}', 'viewclient')->name('client.view')->middleware('permission:view_renewals');
         Route::delete('/client/delete-selected',  'deleteSelected')->name('delete.selected.client')->middleware('permission:delete_renewals');
         // Client bulk upload routes
         Route::post('/client/bulk-upload', 'bulkUpload')->name('client.bulk-upload')->middleware('permission:create_renewals');
@@ -160,15 +161,15 @@ Route::middleware('auth')->group(function () {
     // Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('permission:create_renewals');
 
     // Clients routes
-    Route::controller(CustomerController::class)->group(function () {
-        Route::get('/clients', 'index')->name('clients')->middleware('permission:view_clients');
-        Route::delete('/clients/{id}', 'delete')->name('clients.delete')->middleware('permission:delete_clients');
-        Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.clients')->middleware('permission:delete_clients');
-        Route::get('/add-clients', 'create')->name('add-clients')->middleware('permission:create_clients');
-        Route::post('/store-client', 'storeclient')->name('store-client')->middleware('permission:create_clients');
-        Route::get('/clients-details/{id}', 'show')->name('clients-details')->middleware('permission:view_clients');
-        Route::put('/clients-details/{id}', 'update')->name('clients.update')->middleware('permission:edit_clients');
-    });
+    // Route::controller(CustomerController::class)->group(function () {
+    //     Route::get('/clients', 'index')->name('clients')->middleware('permission:view_clients');
+    //     Route::delete('/clients/{id}', 'delete')->name('clients.delete')->middleware('permission:delete_clients');
+    //     Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.clients')->middleware('permission:delete_clients');
+    //     Route::get('/add-clients', 'create')->name('add-clients')->middleware('permission:create_clients');
+    //     Route::post('/store-client', 'storeclient')->name('store-client')->middleware('permission:create_clients');
+    //     Route::get('/clients-details/{id}', 'show')->name('clients-details')->middleware('permission:view_clients');
+    //     Route::put('/clients-details/{id}', 'update')->name('clients.update')->middleware('permission:edit_clients');
+    // });
 
     // ============================= End Client Controller ====================
 

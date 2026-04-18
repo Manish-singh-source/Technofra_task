@@ -278,7 +278,7 @@
                 @endcan
                 @can('view_clients')
                     <li>
-                        <a href="{{ route('clients') }}">
+                        <a href="{{ route('client') }}">
                             <div class="parent-icon"><i class="bx bx-user-check"></i>
                             </div>
                             <div class="menu-title">Client</div>
