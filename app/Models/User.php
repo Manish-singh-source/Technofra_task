@@ -162,6 +162,16 @@ class User extends Authenticatable
      */
     public function services()
     {
-        return $this->hasMany(Service::class, 'id', 'client_id');
+        return $this->hasMany(Service::class, 'client_id', 'id');
+    }
+
+    public function address()
+    {
+        return $this->hasOne(UserAddress::class, 'user_id', 'id');
+    }
+
+    public function businessDetail()
+    {
+        return $this->hasOne(ClientBusinessDetail::class, 'user_id', 'id');
     }
 }

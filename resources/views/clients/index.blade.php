@@ -1,4 +1,4 @@
-@extends('/layout/master')
+@extends('layout.master')
 @section('content')
     <!--start page wrapper -->
     <div class="page-wrapper">
@@ -87,7 +87,7 @@
                                             <div class="form-switch form-check-success">
                                                 <input class="form-check-input status-switch43" type="checkbox"
                                                     role="switch" data-client-id="{{ $client->id }}"
-                                                    {{ $client->status == 1 ? 'checked' : '' }}>
+                                                    {{ $client->status === 'active' ? 'checked' : '' }}>
                                             </div>
                                         </td>
                                         <td>
@@ -176,8 +176,8 @@
                             <ul class="mb-0">
                                 <li>Download the template file first</li>
                                 <li>Fill in your client data following the template format</li>
-                                <li>Required columns: client_name, company_name, email, phone</li>
-                                <li>Optional columns: address, status (1 for active, 0 for inactive)</li>
+                                <li>Required columns: first_name, last_name, email, phone, address_line_1, city, state, country, pincode, client_type</li>
+                                <li>Optional columns: address_line_2, industry, website, status</li>
                             </ul>
                         </div>
                     </div>

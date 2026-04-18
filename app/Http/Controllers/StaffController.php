@@ -35,6 +35,7 @@ class StaffController extends Controller
     {
         $staff = User::query()
             ->whereNotNull('role')
+            ->where('role', 'staff')
             ->orderBy('first_name')
             ->get()
             ->map(fn(User $user) => $this->hydrateStaffUser($user));

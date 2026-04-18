@@ -1,32 +1,29 @@
-@extends('/layout/master')
+@extends('layout.master')
 @section('content')
     <div class="page-wrapper">
         <div class="page-content">
+            @include('layout.errors')
+
+            @php
+                $address = $client->address;
+                $businessDetail = $client->businessDetail;
+            @endphp
+
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
+                <div class="breadcrumb-title pe-3">Clients</div>
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0 p-0">
                             <li class="breadcrumb-item"><a href="javascript:;"><i class="bx bx-home-alt"></i></a>
                             </li>
-                            <li class="breadcrumb-item active" aria-current="page">Client details</li>
+                            <li class="breadcrumb-item"><a href="{{ route('client') }}">Clients</a></li>
+                            <li class="breadcrumb-item active" aria-current="page">Client Details</li>
                         </ol>
                     </nav>
                 </div>
-                <div class="ms-auto">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary">Settings</button>
-                        <button type="button"
-                            class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
-                            data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end"> <a class="dropdown-item"
-                                href="javascript:;">Action</a>
-                            <a class="dropdown-item" href="javascript:;">Another action</a>
-                            <a class="dropdown-item" href="javascript:;">Something else here</a>
-                            <div class="dropdown-divider"></div> <a class="dropdown-item" href="javascript:;">Separated
-                                link</a>
-                        </div>
-                    </div>
+                <div class="ms-auto d-flex gap-2">
+                    <a href="{{ route('client.edit', $client->id) }}" class="btn btn-primary">Edit Client</a>
+                    <a href="{{ route('client') }}" class="btn btn-outline-secondary">Back to Clients</a>
                 </div>
             </div>
             <div class="card">
@@ -35,8 +32,8 @@
                         <li class="list-group-item d-flex justify-content-between"><b>Client Name :</b>
                             <p>{{ $client->first_name . ' ' . $client->last_name }}</p>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between"><b>Company Name :</b>
-                            <p>{{ $client->coname }}</p>
+                        <li class="list-group-item d-flex justify-content-between"><b>Status :</b>
+                            <p>{{ ucfirst($client->status ?? 'inactive') }}</p>
                         </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Email ID :</b>
                             <p>{{ $client->email }}</p>
@@ -44,10 +41,25 @@
                         <li class="list-group-item d-flex justify-content-between"><b>Contact No :</b>
                             <p>{{ $client->phone }}</p>
                         </li>
+                        <li class="list-group-item d-flex justify-content-between"><b>Address :</b>
+                            <p>
+                                {{ $address ? collect([$address->address_line_1, $address->address_line_2, $address->city, $address->state, $address->country, $address->pincode])->filter()->implode(', ') : 'N/A' }}
+                            </p>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between"><b>Client Type :</b>
+                            <p>{{ $businessDetail->client_type ?? 'N/A' }}</p>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between"><b>Industry :</b>
+                            <p>{{ $businessDetail->industry ?? 'N/A' }}</p>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between"><b>Website :</b>
+                            <p>{{ $businessDetail->website ?? 'N/A' }}</p>
+                        </li>
                     </ul>
                 </div>
             </div>
-            <div class="card">
+            {{-- 
+			<div class="card">
                 <div class="card-header">
                     <h5 class="mb-0">Client Services</h5>
                 </div>
@@ -139,7 +151,8 @@
                         </table>
                     </div>
                 </div>
-            </div>
+            </div> 
+			--}}
         </div>
     </div>
     <div class="overlay toggle-icon"></div>

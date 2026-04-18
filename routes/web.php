@@ -142,20 +142,17 @@ Route::middleware('auth')->group(function () {
 
     // ============================= Client Controller ====================
     Route::controller(ClientController::class)->group(function () {
-        Route::get('/client', 'index')->name('client');
-        Route::get('/add-clients', 'create')->name('client.create')->middleware('permission:create_renewals');
-        Route::post('/client/store', 'store')->name('client.store')->middleware('permission:create_renewals');
-        Route::get('/client-details/{id}', 'view')->name('client.view')->middleware('permission:view_renewals');
-        Route::get('/edit-client/{id}', 'edit')->name('client.edit')->middleware('permission:edit_renewals');
-
-        Route::post('/client/toggle-status',  'toggleStatus')->name('client.toggleStatus')->middleware('permission:edit_renewals');
-        Route::put('/update-client/{id}', 'updateclient')->name('client.update')->middleware('permission:edit_renewals');
-        Route::delete('/client/delete/{id}', 'deleteclient')->name('client.delete')->middleware('permission:delete_renewals');
-        Route::delete('/client/delete-selected',  'deleteSelected')->name('delete.selected.client')->middleware('permission:delete_renewals');
-        // Client bulk upload routes
-        Route::post('/client/bulk-upload', 'bulkUpload')->name('client.bulk-upload')->middleware('permission:create_renewals');
-        Route::get('/client/download-template', 'downloadTemplate')->name('client.download-template')->middleware('permission:view_renewals');
-        //end Client controller
+        Route::get('/clients', 'index')->name('client')->middleware('permission:view_renewals');
+        Route::get('/clients/create', 'create')->name('client.create')->middleware('permission:create_renewals');
+        Route::post('/clients', 'store')->name('client.store')->middleware('permission:create_renewals');
+        Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.client')->middleware('permission:delete_renewals');
+        Route::get('/clients/{id}', 'show')->name('client.view')->middleware('permission:view_renewals');
+        Route::get('/clients/{id}/edit', 'edit')->name('client.edit')->middleware('permission:edit_renewals');
+        Route::put('/clients/{id}', 'update')->name('client.update')->middleware('permission:edit_renewals');
+        Route::delete('/clients/{id}', 'destroy')->name('client.delete')->middleware('permission:delete_renewals');
+        Route::patch('/clients/{id}/status', 'toggleStatus')->name('client.toggleStatus')->middleware('permission:edit_renewals');
+        Route::post('/clients/bulk-upload', 'bulkUpload')->name('client.bulk-upload')->middleware('permission:create_renewals');
+        Route::get('/clients/download-template', 'downloadTemplate')->name('client.download-template')->middleware('permission:view_renewals');
     });
 
     // Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('permission:create_renewals');
