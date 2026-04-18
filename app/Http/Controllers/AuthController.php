@@ -6,6 +6,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -70,7 +71,9 @@ class AuthController extends Controller
      */
     public function showLoginForm()
     {
-        return view('auth-basic-signin');
+        $rememberedEmail = request()->cookie('remembered_login_email');
+
+        return view('auth-basic-signin', compact('rememberedEmail'));
     }
 
     /**
@@ -112,6 +115,12 @@ class AuthController extends Controller
                 'user_roles' => $roles,
                 'user_type' => $user->user_type,
             ]);
+
+            if ($remember) {
+                Cookie::queue('remembered_login_email', $request->email, 60 * 24 * 30);
+            } else {
+                Cookie::queue(Cookie::forget('remembered_login_email'));
+            }
             
             // Always redirect to dashboard after login
             return redirect()->route('dashboard')

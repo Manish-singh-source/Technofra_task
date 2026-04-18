@@ -565,8 +565,8 @@
                             <div class="form-group auth-floating-group">
                                 <label for="inputEmailAddress" class="form-label">Email</label>
                                 <input type="email" class="form-control @error('email') is-invalid @enderror"
-                                    id="inputEmailAddress" name="email" value="{{ old('email') }}"
-                                    placeholder="Enter your email" required>
+                                    id="inputEmailAddress" name="email" value="{{ old('email', $rememberedEmail ?? '') }}"
+                                    placeholder="Enter your email" autocomplete="username" required>
                                 @error('email')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -577,7 +577,7 @@
                                 <div class="input-group" id="show_hide_password">
                                     <input type="password" class="form-control @error('password') is-invalid @enderror"
                                         id="inputChoosePassword" name="password" placeholder="Enter your password"
-                                        required>
+                                        autocomplete="current-password" required>
                                     <a href="javascript:;" class="input-group-text">
                                         <i class='bx bx-hide'></i>
                                     </a>
@@ -590,7 +590,7 @@
                             <div class="auth-meta">
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="rememberCheck" name="remember"
-                                        value="1" {{ old('remember') ? 'checked' : '' }}>
+                                        value="1" {{ old('remember', !empty($rememberedEmail ?? '')) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="rememberCheck">Remember me</label>
                                 </div>
                                 <a class="auth-link" href="{{ route('password.request') }}">Forgot Password?</a>
