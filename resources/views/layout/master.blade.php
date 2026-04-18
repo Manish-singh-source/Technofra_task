@@ -209,6 +209,7 @@
                                     <div class="menu-title">Vendor Renewal</div>
                                 </a>
                             </li>
+                            {{-- 
                             <li>
                                 <a href="{{ route('client') }}">
                                     <div class="parent-icon">
@@ -216,7 +217,7 @@
                                     </div>
                                     <div class="menu-title">Client</div>
                                 </a>
-                            </li>
+                            </li> --}}
                             <li>
                                 <a href="{{ route('vendor1') }}">
                                     <div class="parent-icon">
@@ -278,7 +279,7 @@
                 @endcan
                 @can('view_clients')
                     <li>
-                        <a href="{{ route('clients') }}">
+                        <a href="{{ route('client') }}">
                             <div class="parent-icon"><i class="bx bx-user-check"></i>
                             </div>
                             <div class="menu-title">Client</div>
@@ -1362,14 +1363,13 @@
     <script>
         $(document).on('change', '.status-switch43', function() {
             var clientId = $(this).data('client-id');
-            var status = $(this).is(':checked') ? 1 : 0;
+            var status = $(this).is(':checked') ? 'active' : 'inactive';
 
             $.ajax({
-                url: '{{ route('client.toggleStatus') }}',
-                type: 'POST',
+                url: '/clients/' + clientId + '/status',
+                type: 'PATCH',
                 data: {
                     _token: '{{ csrf_token() }}',
-                    id: clientId,
                     status: status
                 },
                 success: function(response) {

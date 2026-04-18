@@ -155,6 +155,23 @@ class User extends Authenticatable
         return $this->name;
     }
 
+    // Clients Roles 
+
+    /**
+     * Get the services for the client.
+     */
+    public function services()
+    {
+        return $this->hasMany(Service::class, 'client_id', 'id');
+    }
+
+    public function address()
+    {
+        return $this->hasOne(UserAddress::class, 'user_id', 'id');
+    }
+
+    public function businessDetail()
+    {
+        return $this->hasOne(ClientBusinessDetail::class, 'user_id', 'id');
+    }
 }
-
-

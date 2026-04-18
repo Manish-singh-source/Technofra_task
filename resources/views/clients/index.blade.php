@@ -1,21 +1,10 @@
-@extends('/layout/master')
+@extends('layout.master')
 @section('content')
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
-            @if(session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
 
-            @if(session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
+            @include('layout.errors')
 
             <!--breadcrumb-->
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -49,19 +38,21 @@
 
                         <div class="ms-auto d-flex gap-2">
                             <div class="btn-group">
-                                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown"
+                                    aria-expanded="false">
                                     <i class="bx bx-upload"></i> Bulk Upload
                                 </button>
                                 <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">
-                                        <i class="bx bx-upload"></i> Upload Excel File
-                                    </a></li>
+                                    <li><a class="dropdown-item" href="#" data-bs-toggle="modal"
+                                            data-bs-target="#bulkUploadModal">
+                                            <i class="bx bx-upload"></i> Upload Excel File
+                                        </a></li>
                                     <li><a class="dropdown-item" href="{{ route('client.download-template') }}">
-                                        <i class="bx bx-download"></i> Download Template
-                                    </a></li>
+                                            <i class="bx bx-download"></i> Download Template
+                                        </a></li>
                                 </ul>
                             </div>
-                            <a href="{{ route('add-client') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
+                            <a href="{{ route('client.create') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Client
                             </a>
                         </div>
@@ -72,8 +63,7 @@
                                 <tr>
                                     <th> <input class="form-check-input" type="checkbox" id="select-all"></th>
                                     <th>ID</th>
-                                    <th>Client Name</th>
-                                    <th>Company Name</th>
+                                    <th>Full Name</th>
                                     <th>Email ID</th>
                                     <th>Contact No</th>
                                     <th>Status</th>
@@ -84,23 +74,21 @@
                                 @foreach ($clients as $client)
                                     <tr>
                                         <td> <input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
-                                                    value="{{ $client->id }}"></td>
+                                                value="{{ $client->id }}"></td>
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <h6 class="mb-0 font-14">{{ $client->id }}</h6>
                                             </div>
                                         </td>
-                                        <td>{{ $client->cname }}</td>
-                                        <td>{{ $client->coname }}</td>
+                                        <td>{{ $client->first_name . ' ' . $client->last_name }}</td>
                                         <td>{{ $client->email }}</td>
                                         <td>{{ $client->phone }}</td>
                                         <td>
                                             <div class="form-switch form-check-success">
                                                 <input class="form-check-input status-switch43" type="checkbox"
                                                     role="switch" data-client-id="{{ $client->id }}"
-                                                    {{ $client->status == 1 ? 'checked' : '' }}>
+                                                    {{ $client->status === 'active' ? 'checked' : '' }}>
                                             </div>
-
                                         </td>
                                         <td>
                                             <div class="d-flex order-actions">
@@ -118,19 +106,14 @@
                                                     </a>
                                                 </form>
                                             </div>
-
                                         </td>
                                     </tr>
                                 @endforeach
-
-
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
-
         </div>
     </div>
     <script>
@@ -182,7 +165,8 @@
                     <div class="modal-body">
                         <div class="mb-3">
                             <label for="file" class="form-label">Choose Excel File</label>
-                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls,.csv" required>
+                            <input type="file" class="form-control" id="file" name="file"
+                                accept=".xlsx,.xls,.csv" required>
                             <div class="form-text">
                                 Supported formats: .xlsx, .xls, .csv (Max size: 2MB)
                             </div>
@@ -192,8 +176,8 @@
                             <ul class="mb-0">
                                 <li>Download the template file first</li>
                                 <li>Fill in your client data following the template format</li>
-                                <li>Required columns: client_name, company_name, email, phone</li>
-                                <li>Optional columns: address, status (1 for active, 0 for inactive)</li>
+                                <li>Required columns: first_name, last_name, email, phone, address_line_1, city, state, country, pincode, client_type</li>
+                                <li>Optional columns: address_line_2, industry, website, status</li>
                             </ul>
                         </div>
                     </div>
@@ -210,10 +194,6 @@
             </div>
         </div>
     </div>
-
-    <!--end page wrapper -->
-    <!--start overlay-->
     <div class="overlay toggle-icon"></div>
-    <!--end overlay-->
-    <!--Start Back To Top Button--> <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
+    <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 @endsection
