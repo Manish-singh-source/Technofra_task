@@ -21,43 +21,20 @@ class RoleController extends Controller
     public function create()
     {
         $permissions = Permission::all();
-
-        // $modules = $permissions
-        //     ->pluck('name')                 // get only names
-        //     ->map(function ($name) {
-        //         return explode('_', $name)[1] ?? null; // get module part
-        //     })
-        //     ->filter()                      // remove nulls
-        //     ->unique()                      // get unique modules
-        //     ->values();                     // reset index
-
-        $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls', 'digital_marketing_leads'];
-        $settingsPermissions = [
-            'view_general_settings',
-            'view_company_information',
-            'view_email_settings'
-        ];
-        $welcomePermissions = [
-            'view_dashboard_welcome'
-        ];
-        $calendarPermissions = [
-            'view_calendar'
-        ];
-
-        return view('access-control.roles.create', compact('permissions', 'modules', 'settingsPermissions', 'welcomePermissions', 'calendarPermissions'));
+        return view('access-control.roles.create', compact('permissions'));
     }
 
     public function store(Request $request)
     {
         $request->validate([
             'name' => 'required|string|unique:roles,name',
-            'permissions' => 'array',
+            'permission' => 'array',
         ]);
 
         $role = Role::create(['name' => $request->name]);
 
-        if ($request->has('permissions')) {
-            $permissions = Permission::whereIn('id', $request->permissions)->get();
+        if ($request->has('permission')) {
+            $permissions = Permission::whereIn('id', $request->permission)->get();
             $role->syncPermissions($permissions);
         }
 
@@ -70,21 +47,8 @@ class RoleController extends Controller
     {
         $role = Role::with('permissions')->findOrFail($id);
         $permissions = Permission::all();
-        $modules = ['renewals', 'leads', 'projects', 'tasks', 'raise_issue', 'clients', 'staff', 'roles', 'permissions', 'services', 'vendors', 'dashboard', 'book_calls', 'digital_marketing_leads'];
-        $settingsPermissions = [
-            'view_general_settings',
-            'view_company_information',
-            'view_email_settings'
-        ];
-        $welcomePermissions = [
-            'view_dashboard_welcome'
-        ];
-        $calendarPermissions = [
-            'view_calendar'
-        ];
         $rolePermissions = $role->permissions->pluck('id')->toArray();
-
-        return view('edit-role', compact('role', 'permissions', 'modules', 'settingsPermissions', 'welcomePermissions', 'calendarPermissions', 'rolePermissions'));
+        return view('access-control.roles.edit', compact('role', 'permissions', 'rolePermissions'));
     }
 
     public function update(Request $request, $id)
@@ -93,13 +57,13 @@ class RoleController extends Controller
 
         $request->validate([
             'name' => 'required|string|unique:roles,name,' . $id,
-            'permissions' => 'array',
+            'permission' => 'array',
         ]);
 
         $role->update(['name' => $request->name]);
 
-        if ($request->has('permissions')) {
-            $permissions = Permission::whereIn('id', $request->permissions)->get();
+        if ($request->has('permission')) {
+            $permissions = Permission::whereIn('id', $request->permission)->get();
             $role->syncPermissions($permissions);
         } else {
             $role->syncPermissions([]);
@@ -114,9 +78,7 @@ class RoleController extends Controller
     {
         $role = Role::findOrFail($id);
         $role->delete();
-
         Cache::forget('spatie.permission.cache');
-
         return redirect()->route('roles.index')->with('success', 'Role deleted successfully.');
     }
 

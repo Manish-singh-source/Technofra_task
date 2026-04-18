@@ -91,7 +91,7 @@
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                     <th>ID</th>
                                     <th>Role Name</th>
-                                    <th>Description</th>
+                                    {{-- <th>Description</th> --}}
                                     <th>Permissions</th>
                                     <th>Status</th>
                                     <th>Action</th>
@@ -112,7 +112,7 @@
                                                 <span>{{ $role->name }}</span>
                                             </div>
                                         </td>
-                                        <td>{{ $role->name }} role with permissions</td>
+                                        {{-- <td>{{ $role->name }} role with permissions</td> --}}
                                         <td>{{ $role->permissions->count() }} permissions</td>
                                         <td>
                                             <div

@@ -19,3 +19,17 @@ always return valid errors formats and proper http codes.
 check authentication and authorization properly.
 
 after making all apis create a readme file in docs/ folder where all these apis curl will be written
+
+
+
+Check following routes and correct my methods for store and update as i have already updated my views. according to my views use same for store and then update methods correct edit blade page also. 
+Route::controller(RoleController::class)->group(function () {
+    Route::get('/roles', 'index')->name('roles.index')->middleware('permission:view_roles');
+    Route::get('/create-role', 'create')->name('role.create')->middleware('permission:create_roles');
+    Route::post('/store-role', 'store')->name('role.store')->middleware('permission:create_roles');
+    Route::get('/edit-role/{id}', 'edit')->name('role.edit')->middleware('permission:edit_roles');
+    Route::put('/edit-role/{id}', 'update')->name('role.update')->middleware('permission:edit_roles');
+    Route::delete('/role/delete/{id}', 'destroy')->name('role.delete')->middleware('permission:delete_roles');
+    Route::delete('/role/delete-selected', 'deleteSelected')->name('delete.selected.role')->middleware('permission:delete_roles');
+    // permanent delete & restore 
+});
