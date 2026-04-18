@@ -194,7 +194,7 @@
                         </a>
                         <ul>
                             <li>
-                                <a href="{{ route('servies') }}">
+                                <a href="{{ route('services') }}">
                                     <div class="parent-icon">
 
                                     </div>
