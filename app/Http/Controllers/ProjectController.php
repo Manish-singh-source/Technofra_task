@@ -11,8 +11,8 @@ use App\Models\ProjectFile;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
-use App\Models\Staff;
 use App\Models\Task;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ProjectController extends Controller
 {
@@ -40,7 +41,7 @@ class ProjectController extends Controller
         }
 
         return Customer::query()
-            ->where('user_id', $user->id)
+            ->where('id', $user->id)
             ->orWhere('email', $user->email)
             ->first();
     }
@@ -67,8 +68,8 @@ class ProjectController extends Controller
             return $user->staff;
         }
 
-        return Staff::query()
-            ->where('user_id', $user->id)
+        return User::staffMembers()
+            ->where('id', $user->id)
             ->orWhere('email', $user->email)
             ->first();
     }
@@ -142,7 +143,11 @@ class ProjectController extends Controller
             ->with('customer')
             ->get();
 
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
         $inProgressProjects = $projects->where('status', 'in_progress')->count();
@@ -154,8 +159,15 @@ class ProjectController extends Controller
 
     public function create()
     {
-        $customers = Customer::all();
-        $staff = Staff::all();
+        $customers = User::query()
+            ->where('role', 'client')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         return view('add-project', compact('customers', 'staff'));
     }
 
@@ -163,7 +175,10 @@ class ProjectController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
-            'customer' => 'nullable|exists:customers,id',
+            'customer' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client')),
+            ],
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
@@ -173,7 +188,9 @@ class ProjectController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'members' => 'nullable|array',
-            'members.*' => 'exists:staff,id',
+            'members.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'description' => 'nullable|string',
             'priority' => 'nullable|in:low,medium,high',
             'technologies' => 'nullable|array',
@@ -224,8 +241,15 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($id);
         $this->authorizeProjectAccess($project, 'You are not authorized to edit this project.');
-        $customers = Customer::all();
-        $staff = Staff::all();
+        $customers = User::query()
+            ->where('role', 'client')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         $projectFiles = ProjectFile::where('project_id', $id)->orderBy('created_at', 'desc')->get();
         return view('edit-project', compact('project', 'customers', 'staff', 'projectFiles'));
     }
@@ -237,7 +261,10 @@ class ProjectController extends Controller
 
         $validator = Validator::make($request->all(), [
             'project_name' => 'required|string|max:255',
-            'customer' => 'nullable|exists:customers,id',
+            'customer' => [
+                'nullable',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client')),
+            ],
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
@@ -247,7 +274,9 @@ class ProjectController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'members' => 'nullable|array',
-            'members.*' => 'exists:staff,id',
+            'members.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'description' => 'nullable|string',
             'priority' => 'nullable|in:low,medium,high',
             'technologies' => 'nullable|array',
@@ -305,7 +334,11 @@ class ProjectController extends Controller
         
         $this->authorizeProjectAccess($project);
 
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
         $memberIds = collect($project->members ?? [])->filter()->values();
 
         $elapsedBoundary = $this->getElapsedBoundary();
@@ -953,7 +986,7 @@ class ProjectController extends Controller
             }
         }
 
-        $memberEmails = Staff::query()
+        $memberEmails = User::staffMembers()
             ->whereIn('id', collect($project->members ?? [])->filter()->map(fn ($id) => (int) $id)->all())
             ->whereNotNull('email')
             ->pluck('email')
@@ -987,7 +1020,11 @@ class ProjectController extends Controller
         
         // Customer can only see their own projects
         $projects = Project::with('customer')->where('customer_id', $customer->id)->get();
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
         $inProgressProjects = $projects->where('status', 'in_progress')->count();

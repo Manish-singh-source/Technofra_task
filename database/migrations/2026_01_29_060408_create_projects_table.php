@@ -16,7 +16,7 @@ return new class extends Migration
         Schema::create('projects', function (Blueprint $table) {
             $table->id();
             $table->string('project_name');
-            $table->unsignedBigInteger('customer_id');
+            $table->foreignId('customer_id')->nullable()->constrained('users')->nullOnDelete();
             $table->enum('status', ['not_started', 'in_progress', 'on_hold', 'completed', 'cancelled'])->default('not_started');
             $table->date('start_date')->nullable();
             $table->date('deadline')->nullable();
@@ -27,8 +27,6 @@ return new class extends Migration
             $table->json('members')->nullable();
             $table->text('description')->nullable();
             $table->timestamps();
-
-            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('cascade');
         });
     }
 

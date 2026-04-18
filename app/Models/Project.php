@@ -44,7 +44,11 @@ class Project extends Model
     {
         $memberIds = $this->members ?? [];
 
-        return Staff::whereIn('id', $memberIds)->get();
+        return User::staffMembers()
+            ->whereIn('id', $memberIds)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
     }
 
     public function tasks()
@@ -67,12 +71,13 @@ class Project extends Model
     {
         $memberIds = $this->members ?? [];
 
-        return Staff::whereIn('id', $memberIds)
+        return User::staffMembers()
+            ->whereIn('id', $memberIds)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
             ->get()
             ->map(function ($staff) {
-                $staff->profile_image = $staff->profile_image
-                                    ? asset('uploads/staff/'.$staff->profile_image)
-                                    : null;
+                $staff->profile_image = $staff->profile_image_url;
 
                 return $staff;
             })

@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('client_id')->constrained('clients')->onDelete('cascade');
+            $table->foreignId('client_id')->nullable()->constrained('users')->nullOnDelete();
             $table->foreignId('vendor_id')->constrained('vendors')->onDelete('cascade');
             $table->string('service_name');
             $table->date('start_date');

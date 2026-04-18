@@ -717,7 +717,7 @@
 						<div id="comments-list" class="mb-3">
 							@forelse($projectComments as $comment)
 								<div class="d-flex align-items-start mb-3 comment-item">
-									<img src="{{ $comment->user && $comment->user->staff && $comment->user->staff->profile_image ? asset('uploads/staff/' . $comment->user->staff->profile_image) : 'https://placehold.co/40x40' }}" class="rounded-circle me-3" alt="User" width="40" height="40">
+									<img src="{{ $comment->user?->profile_image_url ?? 'https://placehold.co/40x40' }}" class="rounded-circle me-3" alt="User" width="40" height="40">
 									<div class="flex-grow-1">
 										<h6 class="mb-1">{{ $comment->user->name ?? 'Unknown User' }}</h6>
 										<p class="mb-1">{{ $comment->comment }}</p>

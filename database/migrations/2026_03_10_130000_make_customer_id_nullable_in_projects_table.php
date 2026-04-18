@@ -16,13 +16,13 @@ return new class extends Migration
         DB::statement('ALTER TABLE projects MODIFY customer_id BIGINT UNSIGNED NULL');
 
         Schema::table('projects', function (Blueprint $table) {
-            $table->foreign('customer_id')->references('id')->on('customers')->nullOnDelete();
+            $table->foreign('customer_id')->references('id')->on('users')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
-        $fallbackCustomerId = DB::table('customers')->orderBy('id')->value('id');
+        $fallbackCustomerId = DB::table('users')->where('role', 'client')->orderBy('id')->value('id');
 
         if ($fallbackCustomerId !== null) {
             DB::table('projects')->whereNull('customer_id')->update(['customer_id' => $fallbackCustomerId]);
@@ -35,7 +35,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE projects MODIFY customer_id BIGINT UNSIGNED NOT NULL');
 
         Schema::table('projects', function (Blueprint $table) {
-            $table->foreign('customer_id')->references('id')->on('customers')->onDelete('cascade');
+            $table->foreign('customer_id')->references('id')->on('users')->onDelete('cascade');
         });
     }
 };

@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('client_issue_team_assignments', function (Blueprint $table) {
-            $table->string('assigned_to')->nullable()->after('team_name');
+            $table->foreignId('assigned_to')->nullable()->after('team_name')->constrained('users')->nullOnDelete();
         });
     }
 
@@ -22,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('client_issue_team_assignments', function (Blueprint $table) {
-            $table->dropColumn('assigned_to');
+            $table->dropConstrainedForeignId('assigned_to');
         });
     }
 };

@@ -168,6 +168,21 @@ class User extends Authenticatable
         return $this->name;
     }
 
+    public function getClientNameAttribute(): string
+    {
+        return $this->name;
+    }
+
+    public function getContactPersonAttribute(): string
+    {
+        return $this->name;
+    }
+
+    public function getCnameAttribute(): string
+    {
+        return $this->name;
+    }
+
     // Clients Roles 
 
     /**

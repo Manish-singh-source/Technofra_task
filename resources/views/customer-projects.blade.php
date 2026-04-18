@@ -469,7 +469,7 @@
                                                     @if($project->members)
                                                         @foreach(array_slice($project->members, 0, 2) as $memberId)
                                                             @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->project_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                             @endif
                                                         @endforeach
                                                         @if(count($project->members) > 2)
