@@ -703,6 +703,7 @@ class CustomerController extends Controller
             'name' => $payload['client_name'],
             'email' => $payload['email'],
             'password' => Hash::make($payload['password']),
+            'role' => $payload['role'] ?? 'customer',
         ]);
 
         $roleName = $payload['role'] ?? 'customer';
@@ -762,6 +763,7 @@ class CustomerController extends Controller
         $user->update([
             'name' => $payload['client_name'],
             'email' => $payload['email'],
+            'role' => $payload['role'] ?? $customer->role ?? 'customer',
         ]);
 
         $newRoleName = $payload['role'] ?? $customer->role ?? 'customer';
