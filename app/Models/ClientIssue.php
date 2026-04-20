@@ -31,11 +31,11 @@ class ClientIssue extends Model
     }
 
     /**
-     * Get the customer that owns the issue.
+     * Get the client (user) that owns the issue.
      */
     public function customer()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     /**

@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Mail\ProjectCreatedMail;
-use App\Models\ProjectIssue;
 use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ProjectComment;
 use App\Models\ProjectFile;
+use App\Models\ProjectIssue;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
@@ -18,7 +18,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -27,28 +26,21 @@ class ProjectController extends Controller
     private const DEFAULT_BUSINESS_TZ = 'UTC';
 
     /**
-     * Get the logged-in customer
+     * Get the logged-in client user
      */
-    private function getLoggedInCustomer()
+    private function getLoggedInClient()
     {
         $user = Auth::user();
-        if (!$user) {
-            return null;
+        if ($user && $user->hasRole('client')) {
+            return $user;
         }
 
-        if ($user->relationLoaded('customer') && $user->customer) {
-            return $user->customer;
-        }
-
-        return Customer::query()
-            ->where('user_id', $user->id)
-            ->orWhere('email', $user->email)
-            ->first();
+        return null;
     }
 
-    private function customerProjectOwnerIds(Customer $customer): array
+    private function clientProjectOwnerIds(User $clientUser): array
     {
-        return collect([$customer->user_id, $customer->id])
+        return collect([$clientUser->id])
             ->filter()
             ->map(fn ($id) => (int) $id)
             ->unique()
@@ -56,17 +48,17 @@ class ProjectController extends Controller
             ->all();
     }
 
-    private function projectBelongsToCustomer(Project $project, Customer $customer): bool
+    private function projectBelongsToClient(Project $project, User $clientUser): bool
     {
-        return in_array((int) $project->customer_id, $this->customerProjectOwnerIds($customer), true);
+        return in_array((int) $project->customer_id, $this->clientProjectOwnerIds($clientUser), true);
     }
 
     /**
-     * Check if current user is a customer
+     * Check if current user is a client
      */
-    private function isCustomer()
+    private function isClient()
     {
-        return $this->getLoggedInCustomer() !== null;
+        return $this->getLoggedInClient() !== null;
     }
 
     /**
@@ -75,7 +67,7 @@ class ProjectController extends Controller
     private function getLoggedInStaff()
     {
         $user = Auth::user();
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -104,9 +96,9 @@ class ProjectController extends Controller
      */
     private function visibleProjectsQuery()
     {
-        $customer = $this->getLoggedInCustomer();
-        if ($customer) {
-            return Project::query()->whereIn('customer_id', $this->customerProjectOwnerIds($customer));
+        $clientUser = $this->getLoggedInClient();
+        if ($clientUser) {
+            return Project::query()->where('customer_id', $clientUser->id);
         }
 
         if ($this->isPrivilegedProjectUser()) {
@@ -114,7 +106,7 @@ class ProjectController extends Controller
         }
 
         $staff = $this->getLoggedInStaff();
-        if (!$staff) {
+        if (! $staff) {
             return Project::query();
         }
 
@@ -134,14 +126,15 @@ class ProjectController extends Controller
             return;
         }
 
-        $customer = $this->getLoggedInCustomer();
-        if ($customer) {
-            abort_if(!$this->projectBelongsToCustomer($project, $customer), 403, $message);
+        $clientUser = $this->getLoggedInClient();
+        if ($clientUser) {
+            abort_if(! $this->projectBelongsToClient($project, $clientUser), 403, $message);
+
             return;
         }
 
         $staff = $this->getLoggedInStaff();
-        if (!$staff) {
+        if (! $staff) {
             return;
         }
 
@@ -149,7 +142,7 @@ class ProjectController extends Controller
             ->filter(fn ($memberId) => $memberId !== null && $memberId !== '')
             ->map(fn ($memberId) => (int) $memberId);
 
-        abort_if(!$memberIds->contains((int) $staff->id), 403, $message);
+        abort_if(! $memberIds->contains((int) $staff->id), 403, $message);
     }
 
     public function index()
@@ -169,6 +162,7 @@ class ProjectController extends Controller
         $onHoldProjects = $projects->where('status', 'on_hold')->count();
         $completedProjects = $projects->where('status', 'completed')->count();
         $cancelledProjects = $projects->where('status', 'cancelled')->count();
+
         return view('project', compact('projects', 'staff', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects'));
     }
 
@@ -184,6 +178,7 @@ class ProjectController extends Controller
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get();
+
         return view('add-project', compact('customers', 'staff'));
     }
 
@@ -241,8 +236,9 @@ class ProjectController extends Controller
                 try {
                     $this->storeProjectFile($project->id, $file);
                 } catch (\Exception $e) {
-                    \Log::error('File upload failed: ' . $e->getMessage());
-                    return redirect()->back()->with('error', 'Failed to upload file: ' . $e->getMessage())->withInput();
+                    \Log::error('File upload failed: '.$e->getMessage());
+
+                    return redirect()->back()->with('error', 'Failed to upload file: '.$e->getMessage())->withInput();
                 }
             }
         }
@@ -268,6 +264,7 @@ class ProjectController extends Controller
             ->orderBy('last_name')
             ->get();
         $projectFiles = ProjectFile::where('project_id', $id)->orderBy('created_at', 'desc')->get();
+
         return view('edit-project', compact('project', 'customers', 'staff', 'projectFiles'));
     }
 
@@ -329,8 +326,9 @@ class ProjectController extends Controller
                 try {
                     $this->storeProjectFile($project->id, $file);
                 } catch (\Exception $e) {
-                    \Log::error('File upload failed: ' . $e->getMessage());
-                    return redirect()->back()->with('error', 'Failed to upload file: ' . $e->getMessage())->withInput();
+                    \Log::error('File upload failed: '.$e->getMessage());
+
+                    return redirect()->back()->with('error', 'Failed to upload file: '.$e->getMessage())->withInput();
                 }
             }
         }
@@ -350,7 +348,7 @@ class ProjectController extends Controller
                 $query->orderBy('started_at');
             },
         ])->findOrFail($id);
-        
+
         $this->authorizeProjectAccess($project);
 
         $staff = User::staffMembers()
@@ -429,9 +427,9 @@ class ProjectController extends Controller
                 'assignment_started_at' => $assignmentStartAt?->toDateTimeString(),
             ];
         }
-        
+
         $allProjects = $this->visibleProjectsQuery()->get();
-        
+
         // Get project files
         $projectFiles = ProjectFile::where('project_id', $id)->orderBy('created_at', 'desc')->get();
         $milestones = ProjectMilestone::where('project_id', $id)
@@ -461,13 +459,12 @@ class ProjectController extends Controller
             'closed' => $issues->where('status', 'closed')->count(),
         ];
 
-
         $completedTasks = $tasks->where('status', 'completed')->count();
         $inProgressTasks = $tasks->where('status', 'in_progress')->count();
         $overdueTasks = $tasks->filter(function ($task) {
             return $task->deadline
                 && $task->deadline->isPast()
-                && !in_array($task->status, ['completed', 'cancelled'], true);
+                && ! in_array($task->status, ['completed', 'cancelled'], true);
         })->count();
         $notStartedTasks = $tasks->where('status', 'not_started')->count();
         $doneMilestones = $milestoneStats['completed'] ?? 0;
@@ -488,7 +485,7 @@ class ProjectController extends Controller
                 return $value !== null;
             }));
 
-            if (!empty($availableProgressSignals)) {
+            if (! empty($availableProgressSignals)) {
                 $overallProgress = (int) round(array_sum($availableProgressSignals) / count($availableProgressSignals));
             } else {
                 $overallProgress = match ($project->status) {
@@ -514,7 +511,6 @@ class ProjectController extends Controller
             'resolved_issues' => $resolvedIssues,
             'total_issues' => $issueStats['total'] ?? 0,
         ];
-
 
         // Get project comments
         $projectComments = ProjectComment::where('project_id', $id)
@@ -548,9 +544,9 @@ class ProjectController extends Controller
     public function storeMilestone(Request $request, $projectId)
     {
         $project = Project::findOrFail($projectId);
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -578,13 +574,14 @@ class ProjectController extends Controller
             ->route('project-details', $projectId)
             ->with('success', 'Milestone created successfully.');
     }
+
     public function updateMilestone(Request $request, $projectId, $milestoneId)
     {
         $project = Project::findOrFail($projectId);
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -616,9 +613,9 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -632,9 +629,9 @@ class ProjectController extends Controller
     public function storeIssue(Request $request, $projectId)
     {
         $project = Project::findOrFail($projectId);
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -661,9 +658,9 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -688,9 +685,9 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -704,9 +701,9 @@ class ProjectController extends Controller
     public function storeComment(Request $request, $projectId)
     {
         $project = Project::findOrFail($projectId);
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
 
-        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
+        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to comment on this project.');
         }
 
@@ -743,7 +740,7 @@ class ProjectController extends Controller
             ->first();
 
         if ($oldStatus === $newStatus) {
-            if (!$openLog) {
+            if (! $openLog) {
                 ProjectStatusLog::create([
                     'project_id' => $project->id,
                     'status' => $newStatus,
@@ -751,6 +748,7 @@ class ProjectController extends Controller
                     'ended_at' => null,
                 ]);
             }
+
             return;
         }
 
@@ -780,7 +778,7 @@ class ProjectController extends Controller
         $inProgressLogs = $project->statusLogs->where('status', 'in_progress')->values();
         foreach ($inProgressLogs as $log) {
             $logStart = $this->toBusinessTz($log->started_at);
-            if (!$logStart) {
+            if (! $logStart) {
                 continue;
             }
 
@@ -842,16 +840,16 @@ class ProjectController extends Controller
     private function getFallbackActiveStart(Project $project): ?Carbon
     {
         $createdAt = $this->toBusinessTz($project->created_at);
-        if (!$project->start_date) {
+        if (! $project->start_date) {
             return $createdAt;
         }
 
         $startDateAtDayStart = Carbon::parse(
-            $project->start_date->format('Y-m-d') . ' 00:00:00',
+            $project->start_date->format('Y-m-d').' 00:00:00',
             $this->businessTimezone()
         );
 
-        if (!$createdAt) {
+        if (! $createdAt) {
             return $startDateAtDayStart;
         }
 
@@ -860,7 +858,7 @@ class ProjectController extends Controller
 
     private function toBusinessTz($value): ?Carbon
     {
-        if (!$value) {
+        if (! $value) {
             return null;
         }
 
@@ -876,6 +874,7 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($id);
         $project->delete();
+
         return redirect()->route('project')->with('success', 'Project deleted successfully!');
     }
 
@@ -897,7 +896,7 @@ class ProjectController extends Controller
 
             return redirect()->route('project')->with('success', 'Selected projects deleted successfully.');
         } catch (\Exception $e) {
-            return redirect()->route('project')->with('error', 'Failed to delete selected projects: ' . $e->getMessage());
+            return redirect()->route('project')->with('error', 'Failed to delete selected projects: '.$e->getMessage());
         }
     }
 
@@ -908,26 +907,26 @@ class ProjectController extends Controller
     {
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
-        $fileName = uniqid() . '_' . time() . '.' . $extension;
+        $fileName = uniqid().'_'.time().'.'.$extension;
         $fileSize = $file->getSize();
         $fileType = $file->getMimeType();
-        
+
         // Create directory if it doesn't exist
-        $directory = public_path('uploads/project_files/' . $projectId);
-        if (!file_exists($directory)) {
+        $directory = public_path('uploads/project_files/'.$projectId);
+        if (! file_exists($directory)) {
             mkdir($directory, 0755, true);
         }
-        
+
         // Store the file
         $file->move($directory, $fileName);
-        
+
         ProjectFile::create([
             'project_id' => $projectId,
             'file_name' => $fileName,
             'original_name' => $originalName,
             'file_type' => $fileType,
             'file_size' => $fileSize,
-            'file_path' => 'uploads/project_files/' . $projectId . '/' . $fileName,
+            'file_path' => 'uploads/project_files/'.$projectId.'/'.$fileName,
             'uploaded_by' => Auth::id(),
         ]);
     }
@@ -941,12 +940,13 @@ class ProjectController extends Controller
             'file' => 'required|file|max:10240|mimes:jpeg,jpg,png,gif,svg,webp,bmp,pdf,doc,docx,xls,xlsx,ppt,pptx,txt,zip,rar',
             'description' => 'nullable|string|max:255',
         ]);
-        
+
         if ($request->hasFile('file')) {
             $this->storeProjectFile($projectId, $request->file('file'));
+
             return response()->json(['success' => true, 'message' => 'File uploaded successfully!']);
         }
-        
+
         return response()->json(['success' => false, 'message' => 'No file uploaded'], 400);
     }
 
@@ -957,11 +957,11 @@ class ProjectController extends Controller
     {
         $file = ProjectFile::findOrFail($fileId);
         $filePath = public_path($file->file_path);
-        
-        if (!file_exists($filePath)) {
+
+        if (! file_exists($filePath)) {
             return redirect()->back()->with('error', 'File not found!');
         }
-        
+
         return response()->download($filePath, $file->original_name);
     }
 
@@ -972,20 +972,20 @@ class ProjectController extends Controller
     {
         $file = ProjectFile::findOrFail($fileId);
         $filePath = public_path($file->file_path);
-        
+
         // Delete physical file
         if (file_exists($filePath)) {
             unlink($filePath);
         }
-        
+
         // Delete database record
         $file->delete();
-        
+
         // Check if request is AJAX
         if (request()->expectsJson()) {
             return response()->json(['success' => true, 'message' => 'File deleted successfully!']);
         }
-        
+
         return redirect()->back()->with('success', 'File deleted successfully!');
     }
 
@@ -998,7 +998,7 @@ class ProjectController extends Controller
             try {
                 Mail::to($adminEmail)->send(new ProjectCreatedMail($project, 'admin'));
             } catch (\Throwable $e) {
-                Log::error('Failed to send project creation email to admin: ' . $e->getMessage(), [
+                Log::error('Failed to send project creation email to admin: '.$e->getMessage(), [
                     'project_id' => $project->id,
                     'admin_email' => $adminEmail,
                 ]);
@@ -1018,25 +1018,26 @@ class ProjectController extends Controller
             try {
                 Mail::to($memberEmail)->send(new ProjectCreatedMail($project, 'member'));
             } catch (\Throwable $e) {
-                Log::error('Failed to send project creation email to member: ' . $e->getMessage(), [
+                Log::error('Failed to send project creation email to member: '.$e->getMessage(), [
                     'project_id' => $project->id,
                     'member_email' => $memberEmail,
                 ]);
             }
         }
     }
+
     /**
      * Customer's own projects - simplified view for customers
      */
     public function myProjects()
     {
-        $customer = $this->getLoggedInCustomer();
-        
-        if (!$customer) {
+        $clientUser = $this->getLoggedInClient();
+
+        if (! $customer) {
             // Redirect non-customers to the main project page
             return redirect()->route('project');
         }
-        
+
         // Customer can only see their own projects
         $projects = Project::with('customer')->whereIn('customer_id', $this->customerProjectOwnerIds($customer))->get();
         $staff = User::staffMembers()
@@ -1050,15 +1051,7 @@ class ProjectController extends Controller
         $onHoldProjects = $projects->where('status', 'on_hold')->count();
         $completedProjects = $projects->where('status', 'completed')->count();
         $cancelledProjects = $projects->where('status', 'cancelled')->count();
-        
+
         return view('customer-projects', compact('projects', 'staff', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects', 'customer'));
     }
-
 }
-
-
-
-
-
-
-

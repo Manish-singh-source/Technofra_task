@@ -3,37 +3,39 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClientIssue;
-use App\Models\ClientIssueTeamAssignment;
 use App\Models\ClientIssueTask;
-use App\Models\Customer;
+use App\Models\ClientIssueTeamAssignment;
 use App\Models\Project;
 use App\Models\Team;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class ClientIssueController extends Controller
 {
     /**
-     * Get the logged-in customer
+     * Get the logged-in client user
      */
-    private function getLoggedInCustomer()
+    private function getLoggedInClient()
     {
         $user = Auth::user();
-        if ($user && $user->hasRole('customer')) {
-            return Customer::where('email', $user->email)->first();
+        if ($user && $user->hasRole('client')) {
+            return $user;
         }
+
         return null;
     }
 
     /**
-     * Check if current user is a customer
+     * Check if current user is a client
      */
-    private function isCustomer()
+    private function isClient()
     {
-        return Auth::user() && Auth::user()->hasRole('customer');
+        return Auth::user() && Auth::user()->hasRole('client');
     }
 
     /**
@@ -41,16 +43,25 @@ class ClientIssueController extends Controller
      */
     public function index()
     {
-        $customer = $this->getLoggedInCustomer();
+        $clientUser = $this->getLoggedInClient();
+        $isClient = $this->isClient();
 
-        if ($customer) {
-            // Client users should not see client issue listing items.
-            $clientIssues = collect();
-            $projects = Project::where('customer_id', $customer->id)->get();
-            $customers = collect([$customer]);
+        if ($clientUser) {
+            // Client users should see their own issues only
+            $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])
+                ->where('customer_id', $clientUser->id)
+                ->get();
+            $projects = Project::where('customer_id', $clientUser->id)->get();
+            $clientUsers = collect([$clientUser]);
+            // Auto-select project if only one exists
+            $selectedProjectId = $projects->count() === 1 ? $projects->first()->id : null;
         } else {
             $user = Auth::user();
-            if ($user && $user->isStaff()) {
+            if ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin'])) {
+                // Super-admin/Admin can see all issues
+                $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])->get();
+            } elseif ($user && $user->isStaff()) {
+                // Staff can see assigned issues only
                 $staff = $user->staff;
                 $staffId = optional($user->staff)->id;
                 $staffTeam = trim((string) optional($staff)->team);
@@ -58,18 +69,18 @@ class ClientIssueController extends Controller
                 $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])
                     ->get();
                 $clientIssues = $clientIssues
-                    ->filter(fn($issue) => $this->staffCanAccessIssue($issue, $staffId, $staffTeam))
+                    ->filter(fn ($issue) => $this->staffCanAccessIssue($issue, $staffId, $staffTeam))
                     ->values();
             } else {
-                // Admin can see all issues
-                $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])->get();
+                $clientIssues = collect();
             }
-            // Admin/Staff can see all projects and customers
+            // Admin/Staff can see all projects and client users
             $projects = Project::all();
-            $customers = Customer::all();
+            $clientUsers = User::where('role', 'client')->get();
+            $selectedProjectId = null;
         }
-        
-        return view('client-issue', compact('clientIssues', 'projects', 'customers'));
+
+        return view('client-issue', compact('clientIssues', 'projects', 'clientUsers', 'selectedProjectId', 'isClient'));
     }
 
     /**
@@ -79,7 +90,7 @@ class ClientIssueController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'project_id' => 'required|exists:projects,id',
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => 'required|exists:users,id',
             'issue_description' => 'required|string',
             'priority' => 'nullable|in:low,medium,high,critical',
             'status' => 'nullable|in:open,in_progress,resolved,closed',
@@ -89,11 +100,11 @@ class ClientIssueController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // If user is a customer, verify they own this project
-        $customer = $this->getLoggedInCustomer();
-        if ($customer) {
+        // If user is a client, verify they own this project
+        $clientUser = $this->getLoggedInClient();
+        if ($clientUser) {
             $project = Project::findOrFail($request->project_id);
-            if ($project->customer_id !== $customer->id) {
+            if ($project->customer_id !== $clientUser->id) {
                 return redirect()->back()->with('error', 'You are not authorized to create issues for this project.');
             }
         }
@@ -119,19 +130,23 @@ class ClientIssueController extends Controller
      */
     public function create()
     {
-        $customer = $this->getLoggedInCustomer();
-        
-        if ($customer) {
-            // Customer can only see their own projects
-            $projects = Project::where('customer_id', $customer->id)->get();
-            $customers = collect([$customer]);
+        $clientUser = $this->getLoggedInClient();
+        $isClient = $this->isClient();
+
+        if ($clientUser) {
+            // Client can only see their own projects
+            $projects = Project::where('customer_id', $clientUser->id)->get();
+            $clientUsers = collect([$clientUser]);
+            // Auto-select project if only one exists
+            $selectedProjectId = $projects->count() === 1 ? $projects->first()->id : null;
         } else {
-            // Admin/Staff can see all projects and customers
+            // Admin/Staff can see all projects and clients
             $projects = Project::all();
-            $customers = Customer::all();
+            $clientUsers = User::where('role', 'client')->get();
+            $selectedProjectId = null;
         }
-        
-        return view('client-issue', compact('projects', 'customers'));
+
+        return view('client-issue', compact('projects', 'clientUsers', 'selectedProjectId', 'isClient'));
     }
 
     /**
@@ -146,10 +161,10 @@ class ClientIssueController extends Controller
             'teamAssignments.assignedBy',
             'teamAssignments.assignedStaff',
         ])->findOrFail($id);
-        
+
         // Client users should not be able to access issue detail pages.
-        $customer = $this->getLoggedInCustomer();
-        if ($customer) {
+        $clientUser = $this->getLoggedInClient();
+        if ($clientUser) {
             abort(403, 'You are not authorized to view this issue.');
         }
 
@@ -158,13 +173,13 @@ class ClientIssueController extends Controller
             $staff = $user->staff;
             $staffId = optional($user->staff)->id;
             $staffTeam = trim((string) optional($staff)->team);
-            if (!$this->staffCanAccessIssue($clientIssue, $staffId, $staffTeam)) {
+            if (! $this->staffCanAccessIssue($clientIssue, $staffId, $staffTeam)) {
                 abort(403, 'You are not authorized to view this issue.');
             }
         }
 
         $teams = Team::getTeamCards();
-        
+
         return view('client-issue-details', compact('clientIssue', 'teams'));
     }
 
@@ -184,8 +199,8 @@ class ClientIssueController extends Controller
 
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
 
-        $customer = $this->getLoggedInCustomer();
-        if ($customer) {
+        $clientUser = $this->getLoggedInClient();
+        if ($clientUser) {
             abort(403, 'You are not authorized to assign this issue.');
         }
 
@@ -205,7 +220,7 @@ class ClientIssueController extends Controller
 
     private function staffCanAccessIssue(ClientIssue $clientIssue, $staffId, string $staffTeam): bool
     {
-        if (!$staffId) {
+        if (! $staffId) {
             return false;
         }
 
@@ -213,11 +228,11 @@ class ClientIssueController extends Controller
             ->sortByDesc('id')
             ->first();
 
-        if (!$latestAssignment) {
+        if (! $latestAssignment) {
             return false;
         }
 
-        if (!empty($latestAssignment->assigned_to) && (int) $latestAssignment->assigned_to === (int) $staffId) {
+        if (! empty($latestAssignment->assigned_to) && (int) $latestAssignment->assigned_to === (int) $staffId) {
             return true;
         }
 
@@ -272,7 +287,7 @@ class ClientIssueController extends Controller
         }
 
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
-        
+
         // If user is a customer, verify they own this issue's project
         $customer = $this->getLoggedInCustomer();
         if ($customer && $clientIssue->project->customer_id !== $customer->id) {
@@ -341,7 +356,7 @@ class ClientIssueController extends Controller
 
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
-        
+
         // If user is a customer, verify they own this issue's project
         $customer = $this->getLoggedInCustomer();
         if ($customer && $clientIssue->project->customer_id !== $customer->id) {
@@ -407,7 +422,7 @@ class ClientIssueController extends Controller
 
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
-        
+
         // If user is a customer, verify they own this issue's project
         $customer = $this->getLoggedInCustomer();
         if ($customer && $clientIssue->project->customer_id !== $customer->id) {
@@ -428,7 +443,7 @@ class ClientIssueController extends Controller
     {
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
-        
+
         // If user is a customer, verify they own this issue's project
         $customer = $this->getLoggedInCustomer();
         if ($customer && $clientIssue->project->customer_id !== $customer->id) {
@@ -459,7 +474,7 @@ class ClientIssueController extends Controller
     {
         $clientIssue = ClientIssue::findOrFail($id);
         $clientIssue->delete();
-        
+
         return redirect()->route('client-issue')->with('success', 'Client issue deleted successfully!');
     }
 
@@ -469,7 +484,7 @@ class ClientIssueController extends Controller
     public function deleteSelected(Request $request)
     {
         $ids = explode(',', $request->ids);
-        
+
         if (empty($ids)) {
             return redirect()->route('client-issue')->with('error', 'No client issues selected for deletion.');
         }
@@ -486,10 +501,10 @@ class ClientIssueController extends Controller
                     $clientIssue->delete();
                 }
             }
-            
+
             return redirect()->route('client-issue')->with('success', 'Selected client issues deleted successfully.');
         } catch (\Exception $e) {
-            return redirect()->route('client-issue')->with('error', 'Failed to delete selected client issues: ' . $e->getMessage());
+            return redirect()->route('client-issue')->with('error', 'Failed to delete selected client issues: '.$e->getMessage());
         }
     }
 
@@ -504,13 +519,13 @@ class ClientIssueController extends Controller
             ]);
 
             $clientIssue = ClientIssue::findOrFail($id);
-            
+
             // Check authorization - allow if user can edit issues or is admin
-            if (!Auth::user()->can('edit_raise_issue') && 
-                !Auth::user()->hasAnyRole(['super-admin', 'super_admin', 'admin'])) {
+            if (! Auth::user()->can('edit_raise_issue') &&
+                ! Auth::user()->hasAnyRole(['super-admin', 'super_admin', 'admin'])) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unauthorized - You do not have permission to close issues'
+                    'message' => 'Unauthorized - You do not have permission to close issues',
                 ], 403);
             }
 
@@ -519,30 +534,31 @@ class ClientIssueController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Issue status updated to ' . ucfirst(str_replace('_', ' ', $validated['status'])),
-                    'status' => $validated['status']
+                    'message' => 'Issue status updated to '.ucfirst(str_replace('_', ' ', $validated['status'])),
+                    'status' => $validated['status'],
                 ]);
             }
 
             return redirect()->back()->with('success', 'Issue status updated successfully');
-        } catch (\Illuminate\Validation\ValidationException $e) {
+        } catch (ValidationException $e) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation error',
-                    'errors' => $e->errors()
+                    'errors' => $e->errors(),
                 ], 422);
             }
+
             return redirect()->back()->withErrors($e->errors());
         } catch (\Exception $e) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Error updating issue status: ' . $e->getMessage()
+                    'message' => 'Error updating issue status: '.$e->getMessage(),
                 ], 500);
             }
-            return redirect()->back()->with('error', 'Error updating issue status: ' . $e->getMessage());
+
+            return redirect()->back()->with('error', 'Error updating issue status: '.$e->getMessage());
         }
     }
 }
-

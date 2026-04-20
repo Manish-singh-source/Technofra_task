@@ -81,7 +81,7 @@
                                             </div>
                                         </td>
                                         <td>{{ $issue->project->project_name ?? 'N/A' }}</td>
-                                        <td>{{ $issue->customer->client_name ?? 'N/A' }}</td>
+                                        <td>{{ $issue->customer->name ?? 'N/A' }}</td>
                                         <td>{{ Str::limit($issue->issue_description, 50) }}</td>
                                         <td>
                                             @if($issue->priority == 'low')
@@ -168,7 +168,7 @@
                             <select class="form-select @error('project_id') is-invalid @enderror" id="project_id" name="project_id" required>
                                 <option value="">Select Project</option>
                                 @foreach($projects as $project)
-                                    <option value="{{ $project->id }}" {{ old('project_id') == $project->id ? 'selected' : '' }}>
+                                    <option value="{{ $project->id }}" {{ (old('project_id') == $project->id) || (isset($selectedProjectId) && $selectedProjectId == $project->id) ? 'selected' : '' }}>
                                         {{ $project->project_name }}
                                     </option>
                                 @endforeach
@@ -179,14 +179,19 @@
                         </div>
                         <div class="col-md-6 mb-3">
                             <label for="customer_id" class="form-label">Client Name <span class="text-danger">*</span></label>
-                            <select class="form-select @error('customer_id') is-invalid @enderror" id="customer_id" name="customer_id" required>
-                                <option value="">Select Client</option>
-                                @foreach($customers as $customer)
-                                    <option value="{{ $customer->id }}" {{ old('customer_id') == $customer->id ? 'selected' : '' }}>
-                                        {{ $customer->client_name }}
-                                    </option>
-                                @endforeach
-                            </select>
+                            @if(isset($isClient) && $isClient && $clientUsers->count() == 1)
+                                <input type="hidden" id="customer_id" name="customer_id" value="{{ $clientUsers->first()->id }}">
+                                <input type="text" class="form-control" value="{{ $clientUsers->first()->name }}" disabled>
+                            @else
+                                <select class="form-select @error('customer_id') is-invalid @enderror" id="customer_id" name="customer_id" required>
+                                    <option value="">Select Client</option>
+                                    @foreach($clientUsers as $clientUser)
+                                        <option value="{{ $clientUser->id }}" {{ old('customer_id') == $clientUser->id ? 'selected' : '' }}>
+                                            {{ $clientUser->name }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            @endif
                             @error('customer_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
@@ -199,32 +204,8 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="priority" class="form-label">Priority</label>
-                            <select class="form-select @error('priority') is-invalid @enderror" id="priority" name="priority">
-                                <option value="low" {{ old('priority') == 'low' ? 'selected' : '' }}>Low</option>
-                                <option value="medium" {{ old('priority') == 'medium' ? 'selected' : '' }}>Medium</option>
-                                <option value="high" {{ old('priority') == 'high' ? 'selected' : '' }}>High</option>
-                                <option value="critical" {{ old('priority') == 'critical' ? 'selected' : '' }}>Critical</option>
-                            </select>
-                            @error('priority')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="status" class="form-label">Status</label>
-                            <select class="form-select @error('status') is-invalid @enderror" id="status" name="status">
-                                <option value="open" {{ old('status') == 'open' ? 'selected' : '' }}>Open</option>
-                                <option value="in_progress" {{ old('status') == 'in_progress' ? 'selected' : '' }}>In Progress</option>
-                                <option value="resolved" {{ old('status') == 'resolved' ? 'selected' : '' }}>Resolved</option>
-                                <option value="closed" {{ old('status') == 'closed' ? 'selected' : '' }}>Closed</option>
-                            </select>
-                            @error('status')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
-                    </div>
+                    <input type="hidden" name="priority" value="medium">
+                    <input type="hidden" name="status" value="open">
                 </form>
             </div>
             <div class="modal-footer">
@@ -281,12 +262,15 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('saveIssueBtn').addEventListener('click', function() {
         var form = document.getElementById('addIssueForm');
         var projectSelect = document.getElementById('project_id');
-        var customerSelect = document.getElementById('customer_id');
+        var customerHidden = document.getElementById('customer_id');
+        var customerSelect = document.querySelector('#customer_id:not([type="hidden"])');
         var descriptionTextarea = document.getElementById('issue_description');
         
         // Reset validation
         projectSelect.classList.remove('is-invalid');
-        customerSelect.classList.remove('is-invalid');
+        if (customerSelect) {
+            customerSelect.classList.remove('is-invalid');
+        }
         descriptionTextarea.classList.remove('is-invalid');
         
         var isValid = true;
@@ -297,9 +281,12 @@ document.addEventListener('DOMContentLoaded', function() {
             isValid = false;
         }
         
-        // Validate customer
-        if (!customerSelect.value) {
-            customerSelect.classList.add('is-invalid');
+        // Validate customer (check hidden input for client case, or select for admin case)
+        var customerValue = customerHidden ? customerHidden.value : (customerSelect ? customerSelect.value : '');
+        if (!customerValue) {
+            if (customerSelect) {
+                customerSelect.classList.add('is-invalid');
+            }
             isValid = false;
         }
         
