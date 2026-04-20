@@ -37,7 +37,12 @@ class Project extends Model
 
     public function customer()
     {
-        return $this->belongsTo(Customer::class);
+        return $this->hasOne(Customer::class, 'user_id', 'customer_id');
+    }
+
+    public function customerUser()
+    {
+        return $this->belongsTo(User::class, 'customer_id');
     }
 
     public function staffMembers()

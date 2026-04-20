@@ -147,29 +147,44 @@
 						<h5 class="mb-0">Client Information</h5>
 					</div>
 					<div class="card-body">
+						@php
+							$client = $project->customer;
+							$clientUser = $project->customerUser;
+							$userAddress = $clientUser?->address;
+							$clientName = $client->client_name ?? $clientUser->name ?? null;
+							$clientSubtitle = $client
+								? collect([$client->client_type, $client->industry])->filter()->implode(' / ')
+								: ($clientUser->role ?? null);
+							$clientProfileAddress = $client
+								? collect([$client->address_line1, $client->address_line2, $client->city, $client->state, $client->postal_code, $client->country])->filter()->implode(', ')
+								: null;
+							$clientAddress = $userAddress
+								? collect([$userAddress->address_line_1, $userAddress->address_line_2, $userAddress->city, $userAddress->state, $userAddress->country, $userAddress->pincode])->filter()->implode(', ')
+								: $clientProfileAddress;
+						@endphp
 						<div class="d-flex align-items-center mb-3">
 							<img src="https://placehold.co/60x60" alt="Client Logo" class="rounded-circle me-3">
 							<div>
-								<h6 class="mb-0">{{ $project->customer->client_name ?? 'N/A' }}</h6>
-								<small class="text-muted font-13">{{ $project->customer->company ?? 'N/A' }}</small>
+								<h6 class="mb-0">{{ $clientName ?: 'N/A' }}</h6>
+								<small class="text-muted font-13">{{ $clientSubtitle ?: 'N/A' }}</small>
 							</div>
 						</div>
 						<div class="row">
 							<div class="col-6">
 								<small class="text-muted">Contact Person</small>
-								<p class="mb-1 font-13">{{ $project->customer->contact_person ?? 'N/A' }}</p>
+								<p class="mb-1 font-13">{{ $client->contact_person ?? $clientUser->name ?? 'N/A' }}</p>
 							</div>
 							<div class="col-6">
 								<small class="text-muted">Email</small>
-								<p class="mb-1 font-13">{{ $project->customer->email ?? 'N/A' }}</p>
+								<p class="mb-1 font-13">{{ $client->email ?? $clientUser->email ?? 'N/A' }}</p>
 							</div>
 							<div class="col-6">
 								<small class="text-muted">Phone</small>
-								<p class="mb-1 font-13">{{ $project->customer->phone ?? 'N/A' }}</p>
+								<p class="mb-1 font-13">{{ $client->phone ?? $clientUser->phone ?? 'N/A' }}</p>
 							</div>
 							<div class="col-6">
 								<small class="text-muted">Address</small>
-								<p class="mb-1 font-13">{{ $project->customer->address ?? 'N/A' }}</p>
+								<p class="mb-1 font-13">{{ $clientAddress ?: 'N/A' }}</p>
 							</div>
 						</div>
 					</div>

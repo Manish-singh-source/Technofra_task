@@ -62,7 +62,8 @@
                             <thead class="table-light">
                                 <tr>
                                     <th> <input class="form-check-input" type="checkbox" id="select-all"></th>
-                                    <th>ID</th>
+                                    {{-- <th>ID</th> --}}
+                                    <th>Profile</th>
                                     <th>Full Name</th>
                                     <th>Email ID</th>
                                     <th>Contact No</th>
@@ -75,10 +76,18 @@
                                     <tr>
                                         <td> <input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                                 value="{{ $client->id }}"></td>
-                                        <td>
+                                        {{-- <td>
                                             <div class="d-flex align-items-center">
                                                 <h6 class="mb-0 font-14">{{ $client->id }}</h6>
                                             </div>
+                                        </td> --}}
+                                        <td>
+                                            <img src="{{ $client->profile_image ? asset('uploads/clients/' . $client->profile_image) : asset('assets/images/avatars/technofra.png') }}"
+                                                alt="{{ trim($client->first_name . ' ' . $client->last_name) ?: 'Client' }}"
+                                                class="rounded-circle"
+                                                width="42"
+                                                height="42"
+                                                style="object-fit: cover;">
                                         </td>
                                         <td>{{ $client->first_name . ' ' . $client->last_name }}</td>
                                         <td>{{ $client->email }}</td>

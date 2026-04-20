@@ -47,7 +47,7 @@ class Customer extends Model
      */
     public function projects()
     {
-        return $this->hasMany(Project::class);
+        return $this->hasMany(Project::class, 'customer_id', 'user_id');
     }
 
     /**

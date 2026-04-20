@@ -41,9 +41,24 @@ class ProjectController extends Controller
         }
 
         return Customer::query()
-            ->where('id', $user->id)
+            ->where('user_id', $user->id)
             ->orWhere('email', $user->email)
             ->first();
+    }
+
+    private function customerProjectOwnerIds(Customer $customer): array
+    {
+        return collect([$customer->user_id, $customer->id])
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function projectBelongsToCustomer(Project $project, Customer $customer): bool
+    {
+        return in_array((int) $project->customer_id, $this->customerProjectOwnerIds($customer), true);
     }
 
     /**
@@ -91,7 +106,7 @@ class ProjectController extends Controller
     {
         $customer = $this->getLoggedInCustomer();
         if ($customer) {
-            return Project::query()->where('customer_id', $customer->id);
+            return Project::query()->whereIn('customer_id', $this->customerProjectOwnerIds($customer));
         }
 
         if ($this->isPrivilegedProjectUser()) {
@@ -121,7 +136,7 @@ class ProjectController extends Controller
 
         $customer = $this->getLoggedInCustomer();
         if ($customer) {
-            abort_if($project->customer_id !== $customer->id, 403, $message);
+            abort_if(!$this->projectBelongsToCustomer($project, $customer), 403, $message);
             return;
         }
 
@@ -160,6 +175,7 @@ class ProjectController extends Controller
     public function create()
     {
         $customers = User::query()
+            ->with('customer')
             ->where('role', 'client')
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -242,6 +258,7 @@ class ProjectController extends Controller
         $project = Project::findOrFail($id);
         $this->authorizeProjectAccess($project, 'You are not authorized to edit this project.');
         $customers = User::query()
+            ->with('customer')
             ->where('role', 'client')
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -327,6 +344,8 @@ class ProjectController extends Controller
     {
         $project = Project::with([
             'customer',
+            'customerUser.address',
+            'customerUser',
             'statusLogs' => function ($query) {
                 $query->orderBy('started_at');
             },
@@ -531,7 +550,7 @@ class ProjectController extends Controller
         $project = Project::findOrFail($projectId);
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -565,7 +584,7 @@ class ProjectController extends Controller
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -599,7 +618,7 @@ class ProjectController extends Controller
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -615,7 +634,7 @@ class ProjectController extends Controller
         $project = Project::findOrFail($projectId);
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -644,7 +663,7 @@ class ProjectController extends Controller
         $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -671,7 +690,7 @@ class ProjectController extends Controller
         $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to update this project.');
         }
 
@@ -687,7 +706,7 @@ class ProjectController extends Controller
         $project = Project::findOrFail($projectId);
         $customer = $this->getLoggedInCustomer();
 
-        if ($customer && $project->customer_id !== $customer->id) {
+        if ($customer && !$this->projectBelongsToCustomer($project, $customer)) {
             abort(403, 'You are not authorized to comment on this project.');
         }
 
@@ -1019,7 +1038,7 @@ class ProjectController extends Controller
         }
         
         // Customer can only see their own projects
-        $projects = Project::with('customer')->where('customer_id', $customer->id)->get();
+        $projects = Project::with('customer')->whereIn('customer_id', $this->customerProjectOwnerIds($customer))->get();
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
