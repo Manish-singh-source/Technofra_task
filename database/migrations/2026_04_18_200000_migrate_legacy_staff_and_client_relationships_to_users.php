@@ -27,15 +27,11 @@ return new class extends Migration
         $this->syncAssignedToForeignKey();
     }
 
-    public function down(): void
-    {
-        // This migration remaps live foreign keys and JSON id arrays from legacy tables to users.
-        // Reversing it safely is not practical without a preserved legacy-id snapshot.
-    }
+    public function down(): void {}
 
     private function staffUserMap(): array
     {
-        if (!Schema::hasTable('staff') || !Schema::hasColumn('staff', 'user_id')) {
+        if (! Schema::hasTable('staff') || ! Schema::hasColumn('staff', 'user_id')) {
             return [];
         }
 
@@ -48,7 +44,7 @@ return new class extends Migration
 
     private function customerUserMap(): array
     {
-        if (!Schema::hasTable('customers') || !Schema::hasColumn('customers', 'user_id')) {
+        if (! Schema::hasTable('customers') || ! Schema::hasColumn('customers', 'user_id')) {
             return [];
         }
 
@@ -61,7 +57,7 @@ return new class extends Migration
 
     private function clientUserMap(): array
     {
-        if (!Schema::hasTable('clients')) {
+        if (! Schema::hasTable('clients')) {
             return [];
         }
 
@@ -85,7 +81,7 @@ return new class extends Migration
 
     private function migrateJsonIdColumn(string $table, string $column, array $legacyToUserMap): void
     {
-        if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column)) {
             return;
         }
 
@@ -96,7 +92,7 @@ return new class extends Migration
             ->each(function ($row) use ($table, $column, $legacyToUserMap) {
                 $currentIds = json_decode((string) $row->{$column}, true);
 
-                if (!is_array($currentIds)) {
+                if (! is_array($currentIds)) {
                     return;
                 }
 
@@ -127,7 +123,7 @@ return new class extends Migration
 
     private function migrateProjectCustomerIds(array $customerMap): void
     {
-        if (!Schema::hasTable('projects') || !Schema::hasColumn('projects', 'customer_id')) {
+        if (! Schema::hasTable('projects') || ! Schema::hasColumn('projects', 'customer_id')) {
             return;
         }
 
@@ -146,7 +142,7 @@ return new class extends Migration
 
     private function migrateIssueCustomerIds(string $table, array $customerMap): void
     {
-        if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'customer_id')) {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'customer_id')) {
             return;
         }
 
@@ -165,7 +161,7 @@ return new class extends Migration
 
     private function migrateServiceClientIds(array $clientMap): void
     {
-        if (!Schema::hasTable('services') || !Schema::hasColumn('services', 'client_id')) {
+        if (! Schema::hasTable('services') || ! Schema::hasColumn('services', 'client_id')) {
             return;
         }
 
@@ -184,7 +180,7 @@ return new class extends Migration
 
     private function migrateClientIssueAssignedTo(array $staffMap): void
     {
-        if (!Schema::hasTable('client_issue_team_assignments') || !Schema::hasColumn('client_issue_team_assignments', 'assigned_to')) {
+        if (! Schema::hasTable('client_issue_team_assignments') || ! Schema::hasColumn('client_issue_team_assignments', 'assigned_to')) {
             return;
         }
 
@@ -209,62 +205,74 @@ return new class extends Migration
 
     private function syncServiceClientForeignKey(): void
     {
-        if (!Schema::hasTable('services') || !Schema::hasColumn('services', 'client_id')) {
+        if (! Schema::hasTable('services') || ! Schema::hasColumn('services', 'client_id')) {
             return;
         }
 
         $this->dropForeignIfExists('services', 'client_id');
 
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::statement('ALTER TABLE services MODIFY client_id BIGINT UNSIGNED NULL');
 
         Schema::table('services', function (Blueprint $table) {
             $table->foreign('client_id')->references('id')->on('users')->nullOnDelete();
         });
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     private function syncProjectCustomerForeignKey(): void
     {
-        if (!Schema::hasTable('projects') || !Schema::hasColumn('projects', 'customer_id')) {
+        if (! Schema::hasTable('projects') || ! Schema::hasColumn('projects', 'customer_id')) {
             return;
         }
 
         $this->dropForeignIfExists('projects', 'customer_id');
 
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::statement('ALTER TABLE projects MODIFY customer_id BIGINT UNSIGNED NULL');
 
         Schema::table('projects', function (Blueprint $table) {
             $table->foreign('customer_id')->references('id')->on('users')->nullOnDelete();
         });
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     private function syncIssueCustomerForeignKey(string $table): void
     {
-        if (!Schema::hasTable($table) || !Schema::hasColumn($table, 'customer_id')) {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, 'customer_id')) {
             return;
         }
 
         $this->dropForeignIfExists($table, 'customer_id');
 
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::statement("ALTER TABLE {$table} MODIFY customer_id BIGINT UNSIGNED NULL");
 
         Schema::table($table, function (Blueprint $blueprint) {
             $blueprint->foreign('customer_id')->references('id')->on('users')->nullOnDelete();
         });
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     private function syncAssignedToForeignKey(): void
     {
-        if (!Schema::hasTable('client_issue_team_assignments') || !Schema::hasColumn('client_issue_team_assignments', 'assigned_to')) {
+        if (! Schema::hasTable('client_issue_team_assignments') || ! Schema::hasColumn('client_issue_team_assignments', 'assigned_to')) {
             return;
         }
 
         $this->dropForeignIfExists('client_issue_team_assignments', 'assigned_to');
 
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
         DB::statement('ALTER TABLE client_issue_team_assignments MODIFY assigned_to BIGINT UNSIGNED NULL');
 
         Schema::table('client_issue_team_assignments', function (Blueprint $table) {
             $table->foreign('assigned_to')->references('id')->on('users')->nullOnDelete();
         });
+
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
     }
 
     private function resolveUserId($legacyId, array $legacyToUserMap): ?int
@@ -284,7 +292,7 @@ return new class extends Migration
 
     private function userExists(int $userId): bool
     {
-        if (!Schema::hasTable('users')) {
+        if (! Schema::hasTable('users')) {
             return false;
         }
 
@@ -302,7 +310,7 @@ return new class extends Migration
             ->whereNotNull('REFERENCED_TABLE_NAME')
             ->value('CONSTRAINT_NAME');
 
-        if (!$constraint) {
+        if (! $constraint) {
             return;
         }
 
