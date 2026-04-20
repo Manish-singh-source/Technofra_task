@@ -179,7 +179,7 @@
                                         <input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                             value="{{ $service->id }}">
                                     </td>
-                                    <td>{{ $service->client->cname ?? 'N/A' }}</td>
+                                    <td>{{ $service->client?->name ?: 'N/A' }}</td>
                                     <td>{{ $service->vendor->name ?? 'N/A' }}</td>
                                     <td>{{ $service->service_name }}</td>
                                     <td>

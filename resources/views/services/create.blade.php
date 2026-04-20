@@ -36,7 +36,7 @@
                                 <option value="">Choose a client...</option>
                                 @foreach($clients as $client)
                                     <option value="{{ $client->id }}" {{ (old('client_id', $selectedClientId) == $client->id) ? 'selected' : '' }}>
-                                        {{ $client->cname }}
+                                        {{ $client->name ?: $client->email }}
                                     </option>
                                 @endforeach
                             </select>

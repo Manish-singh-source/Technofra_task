@@ -37,7 +37,7 @@
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
 
                         <div class="ms-auto d-flex gap-2">
-                            <div class="btn-group">
+                            {{-- <div class="btn-group">
                                 <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown"
                                     aria-expanded="false">
                                     <i class="bx bx-upload"></i> Bulk Upload
@@ -51,7 +51,7 @@
                                             <i class="bx bx-download"></i> Download Template
                                         </a></li>
                                 </ul>
-                            </div>
+                            </div> --}}
                             <a href="{{ route('client.create') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Client
                             </a>

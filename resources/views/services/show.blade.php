@@ -39,7 +39,7 @@
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <b>Client Name:</b>
-                                        <p class="mb-0">{{ $service->client->cname ?? 'N/A' }}</p>
+                                        <p class="mb-0">{{ $service->client?->name ?: 'N/A' }}</p>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <b>Client Email:</b>

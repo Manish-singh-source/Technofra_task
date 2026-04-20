@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Client;
 use App\Models\Service;
+use App\Models\User;
 use App\Models\Vendor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
@@ -73,7 +74,11 @@ class ServiceController extends Controller
      */
     public function create(Request $request)
     {
-        $clients = Client::orderBy('cname')->get();
+        $clients = User::query()
+            ->where('role', 'client')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         $vendors = Vendor::orderBy('name')->get();
         $selectedClientId = $request->get('client_id');
         $selectedVendorId = $request->get('vendor_id');
@@ -89,7 +94,10 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => [
+                'required',
+                Rule::exists('users', 'id')->where('role', 'client'),
+            ],
             'services' => 'required|array|min:1',
             'services.*.vendor_id' => 'required|exists:vendors,id',
             'services.*.service_name' => 'required|string|max:255',
@@ -162,7 +170,11 @@ class ServiceController extends Controller
     public function edit($id)
     {
         $service = Service::whereNotNull('client_id')->findOrFail($id);
-        $clients = Client::orderBy('cname')->get();
+        $clients = User::query()
+            ->where('role', 'client')
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
         $vendors = Vendor::orderBy('name')->get();
         return view('services.edit', compact('service', 'clients', 'vendors'));
     }
@@ -179,7 +191,10 @@ class ServiceController extends Controller
         $service = Service::whereNotNull('client_id')->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => [
+                'required',
+                Rule::exists('users', 'id')->where('role', 'client'),
+            ],
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
