@@ -4,12 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\Task;
 use App\Models\Project;
-use App\Models\Staff;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class TaskController extends Controller
 {
@@ -20,7 +21,7 @@ class TaskController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()->get()->keyBy('id');
         $today = now()->startOfDay();
 
         $runningTasks = $tasks->where('status', 'in_progress')->count();
@@ -39,7 +40,7 @@ class TaskController extends Controller
     public function create(Request $request)
     {
         $projects = Project::orderBy('project_name')->get();
-        $staff = Staff::orderBy('first_name')->orderBy('last_name')->get();
+        $staff = User::staffMembers()->orderBy('first_name')->orderBy('last_name')->get();
         $selectedProjectId = $request->query('project_id');
 
         return view('add-task', compact('projects', 'staff', 'selectedProjectId'));
@@ -55,9 +56,13 @@ class TaskController extends Controller
             'start_date' => 'nullable|date',
             'due_date' => 'nullable|date|after_or_equal:start_date',
             'assignees' => 'nullable|array',
-            'assignees.*' => 'exists:staff,id',
+            'assignees.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'followers' => 'nullable|array',
-            'followers.*' => 'exists:staff,id',
+            'followers.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'task_description' => 'nullable|string',
@@ -99,7 +104,7 @@ class TaskController extends Controller
         $task = $this->findAccessibleTaskOrFail((int) $id, ['project', 'attachments', 'comments']);
         $this->normalizeTaskAttachments($task);
         $task->load('attachments');
-        $staff = Staff::all()->keyBy('id');
+        $staff = User::staffMembers()->get()->keyBy('id');
 
         return view('task-details', compact('task', 'staff'));
     }
@@ -110,7 +115,7 @@ class TaskController extends Controller
         $this->normalizeTaskAttachments($task);
         $task->load('attachments');
         $projects = Project::all();
-        $staff = Staff::all();
+        $staff = User::staffMembers()->orderBy('first_name')->orderBy('last_name')->get();
 
         return view('edit-task', compact('task', 'projects', 'staff'));
     }
@@ -126,9 +131,13 @@ class TaskController extends Controller
             'start_date' => 'nullable|date',
             'due_date' => 'nullable|date|after_or_equal:start_date',
             'assignees' => 'nullable|array',
-            'assignees.*' => 'exists:staff,id',
+            'assignees.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'followers' => 'nullable|array',
-            'followers.*' => 'exists:staff,id',
+            'followers.*' => [
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+            ],
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'task_description' => 'nullable|string',
@@ -238,7 +247,7 @@ class TaskController extends Controller
             return $query;
         }
 
-        $staffId = $this->authenticatedStaffId();
+        $staffId = $this->authenticatedUserId();
 
         if ($staffId === null) {
             return $query;
@@ -265,29 +274,35 @@ class TaskController extends Controller
         return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin']));
     }
 
-    private function authenticatedStaffId(): ?int
+    private function authenticatedUserId(): ?int
     {
         $user = auth()->user();
         if (!$user || !$user->isStaff()) {
             return null;
         }
 
-        return optional($user->staff)->id;
+        return $user->id;
     }
 
     private function shouldRestrictToAssignedTasks(): bool
     {
-        return !$this->isPrivilegedTaskUser() && $this->authenticatedStaffId() !== null;
+        return !$this->isPrivilegedTaskUser() && $this->authenticatedUserId() !== null;
     }
 
     private function storeTaskAttachment(int $taskId, $file): void
     {
+        if (!$file || !$file->isValid()) {
+            throw new \RuntimeException('Uploaded file is not valid or is no longer readable.');
+        }
+
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
         $baseName = pathinfo($originalName, PATHINFO_FILENAME);
         $safeBaseName = preg_replace('/[^A-Za-z0-9\-_ ]/', '', $baseName) ?: 'attachment';
         $fileName = time() . '_' . $safeBaseName . ($extension ? '.' . $extension : '');
         $directory = public_path('uploads/task_attachments/' . $taskId);
+        $mimeType = $file->getMimeType();
+        $fileSize = $file->getSize();
 
         if (!file_exists($directory)) {
             mkdir($directory, 0755, true);
@@ -299,8 +314,8 @@ class TaskController extends Controller
             'task_id' => $taskId,
             'file_name' => $originalName,
             'file_path' => 'uploads/task_attachments/' . $taskId . '/' . $fileName,
-            'file_type' => $file->getMimeType(),
-            'file_size' => $file->getSize(),
+            'file_type' => $mimeType,
+            'file_size' => $fileSize,
         ]);
     }
 

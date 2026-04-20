@@ -558,6 +558,10 @@ class TaskController extends Controller
 
     private function storeTaskAttachment(int $taskId, $file): void
     {
+        if (! $file || ! $file->isValid()) {
+            throw new \RuntimeException('Uploaded file is not valid or is no longer readable.');
+        }
+
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
         $baseName = pathinfo($originalName, PATHINFO_FILENAME);

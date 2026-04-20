@@ -155,7 +155,7 @@ class ProjectController extends Controller
     public function index()
     {
         $projects = $this->visibleProjectsQuery()
-            ->with('customer')
+            ->with(['customer', 'customerUser'])
             ->get();
 
         $staff = User::staffMembers()
