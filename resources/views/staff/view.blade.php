@@ -4,25 +4,14 @@
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
+            
+            @include('layout.errors')
+
             @php
                 $isDeleted = $staff->trashed();
                 $staffDepartments = is_array($staff->departments) ? $staff->departments : (json_decode($staff->departments, true) ?: []);
             @endphp
 
-            @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            @if (session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-            <!--breadcrumb-->
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="breadcrumb-title pe-3">Staff</div>
                 <div class="ps-3">
@@ -57,7 +46,6 @@
                     @endif
                 </div>
             </div>
-            <!--end breadcrumb-->
 
             <div class="row mb-4">
                 <div class="col-lg-3 col-md-6">
@@ -129,7 +117,7 @@
                 </div>
             </div>
 
-            <div class="">
+            <div class="row">
                 <div class="main-body">
                     <div class="row">
                         <div class="col-lg-4">
@@ -342,7 +330,7 @@
                 </div>
             </div>
 
-            <div class="row">
+            <div class="row mb-4">
                 <div class="col-12">
                     <div class="card">
                         <div class="card-body">
@@ -395,6 +383,7 @@
                 </div>
 
             </div>
+
             <!-- Recent Tasks Card -->
             <div class="row">
                 <div class="col-sm-12">
@@ -462,10 +451,6 @@
                 </div>
             </div>
 
-
-
-
-
             <!-- Performance Reports Section -->
             <div class="row mb-4">
                 <div class="col-12">
@@ -482,6 +467,7 @@
                     ->where('status', 'completed')
                     ->count();
             @endphp
+            
             <div class="row mb-4">
                 <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-primary h-100">

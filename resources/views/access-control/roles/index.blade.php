@@ -93,7 +93,7 @@
                                     <th>Role Name</th>
                                     {{-- <th>Description</th> --}}
                                     <th>Permissions</th>
-                                    <th>Status</th>
+                                    {{-- <th>Status</th> --}}
                                     <th>Action</th>
                                 </tr>
                             </thead>
