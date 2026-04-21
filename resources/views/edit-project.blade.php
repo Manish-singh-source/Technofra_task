@@ -43,7 +43,7 @@
                         <select id="customer" name="customer" class="form-select @error('customer') is-invalid @enderror">
                             <option value="" {{ old('customer', $project->customer_id) ? '' : 'selected disabled' }}>Choose...</option>
                             @foreach($customers as $customer)
-                                <option value="{{ $customer->id }}" {{ old('customer', $project->customer_id) == $customer->id ? 'selected' : '' }}>{{ $customer->customer->client_name ?? $customer->name }}</option>
+                                <option value="{{ $customer->id }}" {{ old('customer', $project->customer_id) == $customer->id ? 'selected' : '' }}>{{ $customer->name ?: $customer->email ?: 'User #'.$customer->id }}</option>
                             @endforeach
                         </select>
                         @error('customer')

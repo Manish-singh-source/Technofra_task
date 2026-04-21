@@ -38,6 +38,41 @@ class ClientIssueController extends Controller
         return Auth::user() && Auth::user()->hasRole('client');
     }
 
+    private function isPrivilegedIssueUser(): bool
+    {
+        $user = Auth::user();
+
+        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin']));
+    }
+
+    private function clientCanAccessIssue(ClientIssue $clientIssue, User $clientUser): bool
+    {
+        return (int) $clientIssue->customer_id === (int) $clientUser->id
+            || (int) optional($clientIssue->project)->customer_id === (int) $clientUser->id;
+    }
+
+    private function authorizeIssueAccess(ClientIssue $clientIssue, string $message = 'You are not authorized to view this issue.'): void
+    {
+        if ($this->isPrivilegedIssueUser()) {
+            return;
+        }
+
+        $clientUser = $this->getLoggedInClient();
+        if ($clientUser) {
+            abort_if(! $this->clientCanAccessIssue($clientIssue, $clientUser), 403, $message);
+
+            return;
+        }
+
+        $user = Auth::user();
+        if ($user && $user->isStaff()) {
+            $staff = $user->staff;
+            $staffId = optional($staff)->id;
+            $staffTeam = trim((string) optional($staff)->team);
+            abort_if(! $this->staffCanAccessIssue($clientIssue, $staffId, $staffTeam), 403, $message);
+        }
+    }
+
     /**
      * Display a listing of client issues.
      */
@@ -100,18 +135,23 @@ class ClientIssueController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        $project = Project::findOrFail($request->project_id);
+
+        if ((int) $project->customer_id !== (int) $request->customer_id) {
+            return redirect()->back()->with('error', 'Selected client does not belong to this project.')->withInput();
+        }
+
         // If user is a client, verify they own this project
         $clientUser = $this->getLoggedInClient();
         if ($clientUser) {
-            $project = Project::findOrFail($request->project_id);
-            if ($project->customer_id !== $clientUser->id) {
+            if ((int) $project->customer_id !== (int) $clientUser->id) {
                 return redirect()->back()->with('error', 'You are not authorized to create issues for this project.');
             }
         }
 
         ClientIssue::create([
             'project_id' => $request->project_id,
-            'customer_id' => $request->customer_id,
+            'customer_id' => $project->customer_id,
             'issue_description' => $request->issue_description,
             'priority' => $request->priority ?? 'medium',
             'status' => $request->status ?? 'open',
@@ -162,21 +202,7 @@ class ClientIssueController extends Controller
             'teamAssignments.assignedStaff',
         ])->findOrFail($id);
 
-        // Client users should not be able to access issue detail pages.
-        $clientUser = $this->getLoggedInClient();
-        if ($clientUser) {
-            abort(403, 'You are not authorized to view this issue.');
-        }
-
-        $user = Auth::user();
-        if ($user && $user->isStaff()) {
-            $staff = $user->staff;
-            $staffId = optional($user->staff)->id;
-            $staffTeam = trim((string) optional($staff)->team);
-            if (! $this->staffCanAccessIssue($clientIssue, $staffId, $staffTeam)) {
-                abort(403, 'You are not authorized to view this issue.');
-            }
-        }
+        $this->authorizeIssueAccess($clientIssue);
 
         $teams = Team::getTeamCards();
 
@@ -199,10 +225,11 @@ class ClientIssueController extends Controller
 
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
 
-        $clientUser = $this->getLoggedInClient();
-        if ($clientUser) {
+        if ($this->getLoggedInClient()) {
             abort(403, 'You are not authorized to assign this issue.');
         }
+
+        $this->authorizeIssueAccess($clientIssue, 'You are not authorized to assign this issue.');
 
         $staffId = optional(Auth::user()->staff)->id;
 
@@ -251,11 +278,7 @@ class ClientIssueController extends Controller
         $clientIssue = ClientIssue::with(['project', 'customer'])->findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
 
-        // If user is a customer, verify they own this issue's project
-        $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
-            abort(403, 'You are not authorized to view this task.');
-        }
+        $this->authorizeIssueAccess($clientIssue, 'You are not authorized to view this task.');
 
         return view('client-issue-task-view', compact('clientIssue', 'task'));
     }
@@ -288,11 +311,7 @@ class ClientIssueController extends Controller
 
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
 
-        // If user is a customer, verify they own this issue's project
-        $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
-            abort(403, 'You are not authorized to create tasks for this issue.');
-        }
+        $this->authorizeIssueAccess($clientIssue, 'You are not authorized to create tasks for this issue.');
 
         // Handle multiple file uploads
         $attachmentsPaths = [];
@@ -357,11 +376,7 @@ class ClientIssueController extends Controller
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
 
-        // If user is a customer, verify they own this issue's project
-        $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
-            abort(403, 'You are not authorized to update tasks for this issue.');
-        }
+        $this->authorizeIssueAccess($clientIssue, 'You are not authorized to update tasks for this issue.');
 
         // Handle multiple file uploads (replace existing if new files provided)
         $attachmentsPaths = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
@@ -423,9 +438,9 @@ class ClientIssueController extends Controller
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
 
-        // If user is a customer, verify they own this issue's project
-        $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
+        try {
+            $this->authorizeIssueAccess($clientIssue, 'You are not authorized to update tasks for this issue.');
+        } catch (\Symfony\Component\HttpKernel\Exception\HttpException $e) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }
 
@@ -444,11 +459,7 @@ class ClientIssueController extends Controller
         $clientIssue = ClientIssue::findOrFail($clientIssueId);
         $task = ClientIssueTask::where('client_issue_id', $clientIssueId)->findOrFail($taskId);
 
-        // If user is a customer, verify they own this issue's project
-        $customer = $this->getLoggedInCustomer();
-        if ($customer && $clientIssue->project->customer_id !== $customer->id) {
-            abort(403, 'You are not authorized to delete tasks for this issue.');
-        }
+        $this->authorizeIssueAccess($clientIssue, 'You are not authorized to delete tasks for this issue.');
 
         // Delete attachments if exists
         $attachmentsPaths = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);

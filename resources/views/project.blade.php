@@ -202,7 +202,7 @@
                                             <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
                                             @endcan
                                             <td>{{ $project->project_name }}</td>
-                                            <td>{{ $project->customer->client_name ?? $project->customerUser->name ?? 'N/A' }}</td>
+                                            <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                                             <td>
                                                 @if($project->tags)
                                                     @foreach($project->tags as $tag)
@@ -305,7 +305,7 @@
                                         @forelse($projects->where('status', 'not_started') as $project)
                                         <tr>
                                             <td>{{ $project->project_name }}</td>
-                                            <td>{{ $project->customer->client_name ?? $project->customerUser->name ?? 'N/A' }}</td>
+                                            <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                                             <td>
                                                 @if($project->tags)
                                                     @foreach($project->tags as $tag)
@@ -386,7 +386,7 @@
                                         @forelse($projects->where('status', 'in_progress') as $project)
                                         <tr>
                                             <td>{{ $project->project_name }}</td>
-                                            <td>{{ $project->customer->client_name ?? $project->customerUser->name ?? 'N/A' }}</td>
+                                            <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                                             <td>
                                                 @if($project->tags)
                                                     @foreach($project->tags as $tag)
@@ -467,7 +467,7 @@
                                         @forelse($projects->where('status', 'on_hold') as $project)
                                         <tr>
                                             <td>{{ $project->project_name }}</td>
-                                            <td>{{ $project->customer->client_name ?? $project->customerUser->name ?? 'N/A' }}</td>
+                                            <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                                             <td>
                                                 @if($project->tags)
                                                     @foreach($project->tags as $tag)
@@ -570,7 +570,7 @@
                                         @forelse($projects->where('status', 'completed') as $project)
                                         <tr>
                                             <td>{{ $project->project_name }}</td>
-                                            <td>{{ $project->customer->client_name ?? $project->customerUser->name ?? 'N/A' }}</td>
+                                            <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                                             <td>
                                                 @if($project->tags)
                                                     @foreach($project->tags as $tag)
@@ -651,7 +651,7 @@
                                         @forelse($projects->where('status', 'cancelled') as $project)
                                         <tr>
                                             <td>{{ $project->project_name }}</td>
-                                            <td>{{ $project->customer->client_name ?? $project->customerUser->name ?? 'N/A' }}</td>
+                                            <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                                             <td>
                                                 @if($project->tags)
                                                     @foreach($project->tags as $tag)

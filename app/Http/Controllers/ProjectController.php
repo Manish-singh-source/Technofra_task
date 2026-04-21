@@ -544,11 +544,7 @@ class ProjectController extends Controller
     public function storeMilestone(Request $request, $projectId)
     {
         $project = Project::findOrFail($projectId);
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to update this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -579,11 +575,7 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to update this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $validated = $request->validate([
             'title' => 'required|string|max:255',
@@ -613,11 +605,7 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to update this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $milestone->delete();
 
@@ -629,11 +617,7 @@ class ProjectController extends Controller
     public function storeIssue(Request $request, $projectId)
     {
         $project = Project::findOrFail($projectId);
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to update this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $validated = $request->validate([
             'issue_description' => 'required|string',
@@ -658,11 +642,7 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to update this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $validated = $request->validate([
             'issue_description' => 'required|string',
@@ -685,11 +665,7 @@ class ProjectController extends Controller
     {
         $project = Project::findOrFail($projectId);
         $issue = ProjectIssue::where('id', $issueId)->where('project_id', $projectId)->firstOrFail();
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to update this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
         $issue->delete();
 
@@ -701,11 +677,7 @@ class ProjectController extends Controller
     public function storeComment(Request $request, $projectId)
     {
         $project = Project::findOrFail($projectId);
-        $clientUser = $this->getLoggedInClient();
-
-        if ($customer && ! $this->projectBelongsToCustomer($project, $customer)) {
-            abort(403, 'You are not authorized to comment on this project.');
-        }
+        $this->authorizeProjectAccess($project, 'You are not authorized to comment on this project.');
 
         $validated = $request->validate([
             'comment' => 'required|string',
@@ -991,7 +963,7 @@ class ProjectController extends Controller
 
     private function sendProjectCreationNotifications(Project $project): void
     {
-        $project->loadMissing('customer');
+        $project->loadMissing(['customer', 'customerUser']);
 
         $adminEmail = trim((string) Setting::get('company_email', ''));
         if ($adminEmail !== '') {
@@ -1033,13 +1005,15 @@ class ProjectController extends Controller
     {
         $clientUser = $this->getLoggedInClient();
 
-        if (! $customer) {
+        if (! $clientUser) {
             // Redirect non-customers to the main project page
             return redirect()->route('project');
         }
 
         // Customer can only see their own projects
-        $projects = Project::with('customer')->whereIn('customer_id', $this->customerProjectOwnerIds($customer))->get();
+        $projects = Project::with(['customer', 'customerUser'])
+            ->whereIn('customer_id', $this->clientProjectOwnerIds($clientUser))
+            ->get();
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -1051,6 +1025,8 @@ class ProjectController extends Controller
         $onHoldProjects = $projects->where('status', 'on_hold')->count();
         $completedProjects = $projects->where('status', 'completed')->count();
         $cancelledProjects = $projects->where('status', 'cancelled')->count();
+
+        $customer = $clientUser;
 
         return view('customer-projects', compact('projects', 'staff', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects', 'customer'));
     }
