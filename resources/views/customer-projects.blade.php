@@ -29,7 +29,7 @@
             <!-- Welcome Message for Customer -->
             <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title">Welcome, {{ $customer->client_name ?? 'Customer' }}!</h5>
+                    <h5 class="card-title">Welcome, {{ $customer->name ?: $customer->email ?: 'Customer' }}!</h5>
                     <p class="card-text">Here are your projects. You can only view projects that belong to your account.</p>
                 </div>
             </div>

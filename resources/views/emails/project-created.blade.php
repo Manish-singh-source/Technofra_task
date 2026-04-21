@@ -76,7 +76,7 @@
                 </tr>
                 <tr>
                     <td>Client</td>
-                    <td>{{ optional($project->customer)->client_name ?? 'N/A' }}</td>
+                    <td>{{ optional($project->customerUser)->name ?: optional($project->customerUser)->email ?: 'N/A' }}</td>
                 </tr>
                 <tr>
                     <td>Status</td>
