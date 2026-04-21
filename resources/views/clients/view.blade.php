@@ -32,6 +32,9 @@
                         <li class="list-group-item d-flex justify-content-between"><b>Client Name :</b>
                             <p>{{ $client->first_name . ' ' . $client->last_name }}</p>
                         </li>
+                        <li class="list-group-item d-flex justify-content-between"><b>Company Name :</b>
+                            <p>{{ $businessDetail->company_name ?? 'N/A' }}</p>
+                        </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Status :</b>
                             <p>{{ ucfirst($client->status ?? 'inactive') }}</p>
                         </li>
@@ -47,7 +50,7 @@
                             </p>
                         </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Client Type :</b>
-                            <p>{{ $businessDetail->client_type ?? 'N/A' }}</p>
+                            <p>{{ $businessDetail->client_type ? $businessDetail->client_type : 'N/A' }}</p>
                         </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Industry :</b>
                             <p>{{ $businessDetail->industry ?? 'N/A' }}</p>

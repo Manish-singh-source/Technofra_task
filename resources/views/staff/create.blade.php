@@ -58,12 +58,14 @@
                                                 <label for="firstName" class="form-label">First Name <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" class="form-control" id="firstName" name="firstName"
+                                                    value="{{ old('firstName') }}"
                                                     placeholder="Enter first name">
                                             </div>
                                             <div class="col-6 mb-3">
                                                 <label for="lastName" class="form-label">Last Name <span
                                                         class="text-danger">*</span></label>
                                                 <input type="text" class="form-control" id="lastName" name="lastName"
+                                                    value="{{ old('lastName') }}"
                                                     placeholder="Enter last name">
                                             </div>
                                         </div>
@@ -71,12 +73,14 @@
                                             <label for="email" class="form-label">Email <span
                                                     class="text-danger">*</span></label>
                                             <input type="email" class="form-control" id="email" name="email"
+                                                value="{{ old('email') }}"
                                                 placeholder="Enter email">
                                         </div>
                                         <div class="mb-3">
                                             <label for="phone" class="form-label">Phone <span
                                                     class="text-danger">*</span></label>
                                             <input type="text" class="form-control" id="phone" name="phone"
+                                                value="{{ old('phone') }}"
                                                 placeholder="Enter phone number">
                                         </div>
                                         <div class="row g-3">
@@ -86,15 +90,15 @@
                                                 <select class="form-select" id="role" name="role">
                                                     <option>Select Role</option>
                                                     @foreach ($roles as $role)
-                                                        <option value="{{ $role->name }}">{{ $role->name }}</option>
+                                                        <option value="{{ $role->name }}" {{ old('role') == $role->name ? 'selected' : '' }}>{{ $role->name }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
                                             <div class="col-12">
                                                 <label for="status" class="form-label">Status</label>
                                                 <select class="form-select" id="status" name="status">
-                                                    <option value="active">Active</option>
-                                                    <option value="inactive">Inactive</option>
+                                                    <option value="active" {{ old('status') == 'active' ? 'selected' : ''}}>Active</option>
+                                                    <option value="inactive" {{ old('status') == 'inactive' ? 'selected' : ''}}>Inactive</option>
                                                 </select>
                                             </div>
                                             <div class="col-12">
@@ -111,12 +115,12 @@
                                             <div class="col-12">
                                                 <label class="form-label">Member Departments</label>
                                                 @php($selectedDepartments = old('departments', []))
-                                                @forelse($departments as $department)
+                                                @forelse($departments as $key => $department)
                                                     <div class="form-check">
                                                         <input class="form-check-input" type="checkbox"
-                                                            name="departments[]" value="{{ $department }}"
+                                                            name="departments[]" value="{{ $department }}" id="department[{{ $key }}]"
                                                             {{ in_array($department, $selectedDepartments ?? [], true) ? 'checked' : '' }}>
-                                                        <label class="form-check-label">{{ $department }}</label>
+                                                        <label class="form-check-label" for="department[{{ $key }}]">{{ $department }}</label>
                                                     </div>
                                                 @empty
                                                     <div class="text-muted small">No departments found. Please add

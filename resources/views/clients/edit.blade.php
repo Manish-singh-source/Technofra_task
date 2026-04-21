@@ -116,7 +116,7 @@
                                         <h6>Address Information</h6>
                                         <div class="row">
                                             <div class="col-md-6 mb-3">
-                                                <label for="address_line1" class="form-label">Address Line 1 <span class="text-danger">*</span></label>
+                                                <label for="address_line1" class="form-label">Address Line 1 </label>
                                                 <input type="text" class="form-control @error('address_line1') is-invalid @enderror" id="address_line1" name="address_line1" value="{{ old('address_line1', $address->address_line_1 ?? '') }}" placeholder="Enter address line 1">
                                                 @error('address_line1')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -130,28 +130,28 @@
                                                 @enderror
                                             </div>
                                             <div class="col-md-3 mb-3">
-                                                <label for="city" class="form-label">City <span class="text-danger">*</span></label>
+                                                <label for="city" class="form-label">City </label>
                                                 <input type="text" class="form-control @error('city') is-invalid @enderror" id="city" name="city" value="{{ old('city', $address->city ?? '') }}" placeholder="City">
                                                 @error('city')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
                                             <div class="col-md-3 mb-3">
-                                                <label for="state" class="form-label">State <span class="text-danger">*</span></label>
+                                                <label for="state" class="form-label">State </label>
                                                 <input type="text" class="form-control @error('state') is-invalid @enderror" id="state" name="state" value="{{ old('state', $address->state ?? '') }}" placeholder="State">
                                                 @error('state')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
                                             <div class="col-md-3 mb-3">
-                                                <label for="country" class="form-label">Country <span class="text-danger">*</span></label>
+                                                <label for="country" class="form-label">Country </label>
                                                 <input type="text" class="form-control @error('country') is-invalid @enderror" id="country" name="country" value="{{ old('country', $address->country ?? '') }}" placeholder="Country">
                                                 @error('country')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
                                             <div class="col-md-3 mb-3">
-                                                <label for="pincode" class="form-label">Pincode <span class="text-danger">*</span></label>
+                                                <label for="pincode" class="form-label">Pincode </label>
                                                 <input type="text" class="form-control @error('pincode') is-invalid @enderror" id="pincode" name="pincode" value="{{ old('pincode', $address->pincode ?? '') }}" placeholder="Pincode">
                                                 @error('pincode')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -167,8 +167,8 @@
                                     <div class="border border-3 p-4 rounded">
                                         <h6>Business Information</h6>
                                         <div class="row">
-                                            <div class="col-md-4 mb-3">
-                                                <label for="client_type" class="form-label">Client Type <span class="text-danger">*</span></label>
+                                            <div class="col-md-6 mb-3">
+                                                <label for="client_type" class="form-label">Client Type </label>
                                                 <select class="form-select @error('client_type') is-invalid @enderror" id="client_type" name="client_type">
                                                     <option value="">Select Type</option>
                                                     @foreach (['Individual', 'Company', 'Organization'] as $type)
@@ -179,14 +179,21 @@
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            <div class="col-md-4 mb-3">
+                                            <div class="col-md-6 mb-3">
+                                                <label for="company_name" class="form-label">Company Name</label>
+                                                <input type="text" class="form-control @error('company_name') is-invalid @enderror" id="company_name" name="company_name" value="{{ old('company_name', $businessDetail->company_name ?? '') }}" placeholder="Enter Company Name">
+                                                @error('company_name')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-6 mb-3">
                                                 <label for="industry" class="form-label">Industry</label>
                                                 <input type="text" class="form-control @error('industry') is-invalid @enderror" id="industry" name="industry" value="{{ old('industry', $businessDetail->industry ?? '') }}" placeholder="Enter industry">
                                                 @error('industry')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
                                             </div>
-                                            <div class="col-md-4 mb-3">
+                                            <div class="col-md-6 mb-3">
                                                 <label for="website" class="form-label">Website</label>
                                                 <input type="url" class="form-control @error('website') is-invalid @enderror" id="website" name="website" value="{{ old('website', $businessDetail->website ?? '') }}" placeholder="https://example.com">
                                                 @error('website')

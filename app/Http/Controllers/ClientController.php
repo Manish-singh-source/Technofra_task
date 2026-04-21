@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
@@ -301,13 +302,13 @@ class ClientController extends Controller
             'last_name' => 'required|string|min:3|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($clientId)],
             'phone' => 'required|string|min:10|max:20',
-            'address_line1' => 'required|string|max:255',
+            'address_line1' => 'nullable|string|max:255',
             'address_line2' => 'nullable|string|max:255',
-            'city' => 'required|string|max:255',
-            'state' => 'required|string|max:255',
-            'country' => 'required|string|max:255',
-            'pincode' => 'required|string|max:20',
-            'client_type' => 'required|in:Individual,Company,Organization',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'pincode' => 'nullable|string|max:20',
+            'client_type' => 'nullable|in:Individual,Company,Organization',
             'industry' => 'nullable|string|max:255',
             'website' => 'nullable|url|max:255',
             'status' => 'nullable|in:active,inactive',
@@ -333,6 +334,15 @@ class ClientController extends Controller
                 $client?->profile_image,
                 $client?->id
             );
+        } else {
+            if (!isset($profileImagePath)) {
+                $fileName = Str::uuid() . '.png';
+                $path = public_path('uploads/clients/' . $fileName);
+
+                $avatar = app('avatar');
+                $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
+                $profileImagePath = $fileName;
+            }
         }
 
         return [
@@ -348,6 +358,7 @@ class ClientController extends Controller
             'country' => trim((string) $request->country),
             'pincode' => trim((string) $request->pincode),
             'client_type' => trim((string) $request->client_type),
+            'company_name' => trim((string) $request->company_name),
             'industry' => $request->filled('industry') ? trim((string) $request->industry) : null,
             'website' => $request->filled('website') ? trim((string) $request->website) : null,
             'status' => $this->normalizeClientStatus($request->input('status')),
@@ -375,6 +386,7 @@ class ClientController extends Controller
             [
                 'deleted_at' => null,
                 'client_type' => $payload['client_type'],
+                'company_name' => $payload['company_name'],
                 'industry' => $payload['industry'],
                 'website' => $payload['website'],
             ]

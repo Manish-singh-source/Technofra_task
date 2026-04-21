@@ -4,12 +4,15 @@
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
-            
+
             @include('layout.errors')
 
             @php
                 $isDeleted = $staff->trashed();
-                $staffDepartments = is_array($staff->departments) ? $staff->departments : (json_decode($staff->departments, true) ?: []);
+                $staffDepartments = is_array($staff->departments)
+                    ? $staff->departments
+                    : (json_decode($staff->departments, true) ?:
+                    []);
             @endphp
 
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -191,7 +194,8 @@
                                     <div class="card-body">
                                         @if ($isDeleted)
                                             <div class="alert alert-warning">
-                                                This staff member is soft deleted. Editing is disabled until the record is restored.
+                                                This staff member is soft deleted. Editing is disabled until the record is
+                                                restored.
                                             </div>
                                         @endif
 
@@ -222,9 +226,11 @@
                                                 </div>
                                                 <div class="col-sm-9 text-secondary">
                                                     <input type="text" name="first_name" class="form-control"
-                                                        value="{{ $staff->first_name }}" placeholder="First Name" required />
+                                                        value="{{ $staff->first_name }}" placeholder="First Name"
+                                                        required />
                                                     <input type="text" name="last_name" class="form-control mt-2"
-                                                        value="{{ $staff->last_name }}" placeholder="Last Name" required />
+                                                        value="{{ $staff->last_name }}" placeholder="Last Name"
+                                                        required />
                                                 </div>
                                             </div>
                                             <div class="row mb-3">
@@ -267,9 +273,11 @@
                                                 <div class="col-sm-9 text-secondary">
                                                     <select name="status" class="form-control" required>
                                                         <option value="active"
-                                                            {{ $staff->status == 'active' ? 'selected' : '' }}>Active</option>
+                                                            {{ $staff->status == 'active' ? 'selected' : '' }}>Active
+                                                        </option>
                                                         <option value="inactive"
-                                                            {{ $staff->status == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                                            {{ $staff->status == 'inactive' ? 'selected' : '' }}>Inactive
+                                                        </option>
                                                     </select>
                                                 </div>
                                             </div>
@@ -295,8 +303,8 @@
                                                 <div class="col-sm-9 text-secondary">
                                                     @forelse ($departments as $department)
                                                         <div class="form-check">
-                                                            <input class="form-check-input" type="checkbox" name="departments[]"
-                                                                value="{{ $department }}"
+                                                            <input class="form-check-input" type="checkbox"
+                                                                name="departments[]" value="{{ $department }}"
                                                                 {{ in_array($department, $staffDepartments, true) ? 'checked' : '' }}>
                                                             <label class="form-check-label">{{ $department }}</label>
                                                         </div>
@@ -323,12 +331,12 @@
 
 
 
-                        </div>
                     </div>
-
-
                 </div>
+
+
             </div>
+
 
             <div class="row mb-4">
                 <div class="col-12">
@@ -389,7 +397,7 @@
                 <div class="col-sm-12">
                     <div class="card">
                         <div class="card-body">
-                           
+
                             <h5 class="d-flex align-items-center mb-3">Recent Tasks
 
                             </h5>
@@ -467,12 +475,12 @@
                     ->where('status', 'completed')
                     ->count();
             @endphp
-            
+
             <div class="row mb-4">
                 <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-primary h-100">
                         <div class="card-body">
-                            
+
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Project Complete</p>
@@ -489,7 +497,7 @@
                 <div class="col-md-6 col-sm-6">
                     <div class="card radius-10 border-start border-0 border-4 border-success h-100">
                         <div class="card-body">
-                           
+
                             <div class="d-flex align-items-center">
                                 <div>
                                     <p class="mb-0 text-secondary">Total Task Completed</p>
@@ -513,7 +521,7 @@
                             <h5>Monthly Performance Trend</h5>
                         </div>
                         <div class="card-body">
-                           
+
                             <div class="chart-container-1">
                                 <canvas id="performanceChart" width="400" height="250"></canvas>
                             </div>
@@ -546,7 +554,7 @@
                             <h5>Task Completion Breakdown</h5>
                         </div>
                         <div class="card-body">
-                            
+
                             <div class="chart-container-1">
                                 <canvas id="taskBreakdownChart" width="400" height="250"></canvas>
                             </div>
@@ -570,146 +578,131 @@
                     </div>
                 </div>
             </div>
-
-
-
-
         </div>
+
     </div>
-    <!--end page wrapper -->
-    <!--start overlay-->
+
     <div class="overlay toggle-icon"></div>
-    <!--end overlay-->
-    <!--Start Back To Top Button--> <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
-    <!--End Back To Top Button-->
-    <footer class="page-footer">
-        <p class="mb-0">Copyright © 2023. All right reserved.</p>
-    </footer>
-    </div>
-    <!--end wrapper-->
+    <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
+@endsection
 
-    @push('scripts')
-        <script>
-            $(function() {
-                "use strict";
+@push('scripts')
+    <script>
+        $(function() {
+            "use strict";
 
-                // Monthly Performance Trend Chart
-                if ($('#performanceChart').length) {
-                    var ctx = document.getElementById('performanceChart').getContext('2d');
-                    new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
-                            datasets: [{
-                                label: 'Performance',
-                                data: [82, 85, 88, 92, 89, 95],
-                                borderColor: '#007bff',
-                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                                fill: true,
-                                tension: 0.4
-                            }]
+            // Monthly Performance Trend Chart
+            if ($('#performanceChart').length) {
+                var ctx = document.getElementById('performanceChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+                        datasets: [{
+                            label: 'Performance',
+                            data: [82, 85, 88, 92, 89, 95],
+                            borderColor: '#007bff',
+                            backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
                         },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    display: false
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    max: 100
-                                }
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                max: 100
                             }
                         }
-                    });
-                }
-
-                // Task Completion Breakdown Chart
-                if ($('#taskBreakdownChart').length) {
-                    var ctx2 = document.getElementById('taskBreakdownChart').getContext('2d');
-                    new Chart(ctx2, {
-                        type: 'doughnut',
-                        data: {
-                            labels: ['High Priority', 'Medium Priority', 'Low Priority'],
-                            datasets: [{
-                                data: [65, 25, 10],
-                                backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
-                                borderWidth: 0
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: {
-                                    position: 'bottom'
-                                }
-                            }
-                        }
-                    });
-                }
-
-                // Initialize DataTable for Projects
-                if ($('#table').length) {
-                    $('#table').DataTable({
-                        paging: true,
-                        searching: true,
-                        ordering: true,
-                        info: true,
-                        lengthChange: true,
-                        pageLength: 10,
-                        language: {
-                            search: "Search:",
-                            lengthMenu: "Show _MENU_ entries",
-                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                            paginate: {
-                                first: "First",
-                                last: "Last",
-                                next: "Next",
-                                previous: "Previous"
-                            }
-                        }
-                    });
-                }
-
-                // Initialize DataTable for Tasks
-                if ($('#tasks-table').length) {
-                    $('#tasks-table').DataTable({
-                        paging: true,
-                        searching: true,
-                        ordering: true,
-                        info: true,
-                        lengthChange: true,
-                        pageLength: 10,
-                        language: {
-                            search: "Search:",
-                            lengthMenu: "Show _MENU_ entries",
-                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                            paginate: {
-                                first: "First",
-                                last: "Last",
-                                next: "Next",
-                                previous: "Previous"
-                            }
-                        }
-                    });
-                }
-
-                // Filter functionality
-                $('.filter-option').on('click', function() {
-                    var filterType = $(this).data('filter');
-                    console.log('Filter applied: ' + filterType);
-                    // Add your filter logic here
-                    // You can filter the table data based on the selected filter type
+                    }
                 });
+            }
+
+            // Task Completion Breakdown Chart
+            if ($('#taskBreakdownChart').length) {
+                var ctx2 = document.getElementById('taskBreakdownChart').getContext('2d');
+                new Chart(ctx2, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['High Priority', 'Medium Priority', 'Low Priority'],
+                        datasets: [{
+                            data: [65, 25, 10],
+                            backgroundColor: ['#28a745', '#ffc107', '#dc3545'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Initialize DataTable for Projects
+            if ($('#table').length) {
+                $('#table').DataTable({
+                    paging: true,
+                    searching: true,
+                    ordering: true,
+                    info: true,
+                    lengthChange: true,
+                    pageLength: 10,
+                    language: {
+                        search: "Search:",
+                        lengthMenu: "Show _MENU_ entries",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        paginate: {
+                            first: "First",
+                            last: "Last",
+                            next: "Next",
+                            previous: "Previous"
+                        }
+                    }
+                });
+            }
+
+            // Initialize DataTable for Tasks
+            if ($('#tasks-table').length) {
+                $('#tasks-table').DataTable({
+                    paging: true,
+                    searching: true,
+                    ordering: true,
+                    info: true,
+                    lengthChange: true,
+                    pageLength: 10,
+                    language: {
+                        search: "Search:",
+                        lengthMenu: "Show _MENU_ entries",
+                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                        paginate: {
+                            first: "First",
+                            last: "Last",
+                            next: "Next",
+                            previous: "Previous"
+                        }
+                    }
+                });
+            }
+
+            // Filter functionality
+            $('.filter-option').on('click', function() {
+                var filterType = $(this).data('filter');
+                console.log('Filter applied: ' + filterType);
+                // Add your filter logic here
+                // You can filter the table data based on the selected filter type
             });
-        </script>
-    @endpush
-
-
-
-
-
+        });
+    </script>
+@endpush

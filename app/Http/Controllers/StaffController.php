@@ -98,7 +98,7 @@ class StaffController extends Controller
                 $profileImagePath = $this->uploadProfileImage($request->file('profileImage'));
             } else {
                 $fileName = Str::uuid() . '.png';
-                $path = public_path($fileName);
+                $path = public_path('uploads/staff/' . $fileName);
 
                 $avatar = app('avatar');
                 $avatar->create($request->firstName . ' ' . $request->lastName)->save($path);
@@ -114,16 +114,34 @@ class StaffController extends Controller
                 ->values()
                 ->all();
 
-            $user = User::create([
-                'first_name' => $request->firstName,
-                'last_name' => $request->lastName,
-                'email' => $request->email,
-                'phone' => $request->phone,
-                'password' => Hash::make($request->password),
-                'profile_image' => $profileImagePath,
-                'status' => $status,
-                'role' => 'staff',
-            ]);
+            $existingUser = User::withTrashed()->where('email', $request->email)->first();
+            
+            if ($existingUser) {
+                $existingUser->restore();
+
+                $existingUser->update([
+                    'first_name' => $request->firstName,
+                    'last_name' => $request->lastName,
+                    'phone' => $request->phone,
+                    'password' => Hash::make($request->password),
+                    'profile_image' => $profileImagePath,
+                    'status' => $status,
+                    'role' => 'staff',
+                ]);
+
+                $user = $existingUser;
+            } else {
+                $user = User::create([
+                    'first_name' => $request->firstName,
+                    'last_name' => $request->lastName,
+                    'email' => $request->email,
+                    'phone' => $request->phone,
+                    'password' => Hash::make($request->password),
+                    'profile_image' => $profileImagePath,
+                    'status' => $status,
+                    'role' => 'staff',
+                ]);
+            }
 
             $role = Role::where('name', $request->role)->first();
             if ($role) {
@@ -154,7 +172,7 @@ class StaffController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage())->withInput();
         }
     }
 

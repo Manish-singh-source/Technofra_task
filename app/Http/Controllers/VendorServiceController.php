@@ -49,8 +49,8 @@ class VendorServiceController extends Controller
                 'CASE WHEN end_date < ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END',
                 [$today, $today, $fiveDaysFromNow]
             )
+            ->latest('updated_at')
             ->orderBy('end_date')
-            ->latest('created_at')
             ->get();
 
         $tabCounts = [

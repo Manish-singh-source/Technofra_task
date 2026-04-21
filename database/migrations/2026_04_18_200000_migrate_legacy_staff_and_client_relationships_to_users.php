@@ -9,6 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Drop all foreign key constraints FIRST to allow data migration
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        $this->dropForeignIfExists('services', 'client_id');
+        $this->dropForeignIfExists('projects', 'customer_id');
+        $this->dropForeignIfExists('client_issues', 'customer_id');
+        $this->dropForeignIfExists('project_issues', 'customer_id');
+        $this->dropForeignIfExists('client_issue_team_assignments', 'assigned_to');
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
         $staffMap = $this->staffUserMap();
         $customerMap = $this->customerUserMap();
         $clientMap = $this->clientUserMap();

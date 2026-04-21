@@ -961,7 +961,8 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             <li>
-                                <a class="dropdown-item d-flex align-items-center" href="{{ route('user-profile') }}">
+                                <a class="dropdown-item d-flex align-items-center"
+                                    href="{{ route('user-profile') }}">
                                     <i class="bx bx-user fs-5"></i><span>Profile</span>
                                 </a>
                             </li>
@@ -1193,9 +1194,14 @@
     <script>
         $(document).ready(function() {
             var $defaultTable = $('#example');
-            if ($defaultTable.length && !$defaultTable.is('[data-no-default-datatable]') && !$.fn.DataTable
-                .isDataTable($defaultTable)) {
-                $defaultTable.DataTable();
+
+            if ($defaultTable.length &&
+                !$defaultTable.is('[data-no-default-datatable]') &&
+                !$.fn.DataTable.isDataTable($defaultTable)) {
+
+                $defaultTable.DataTable({
+                    order: [] // 🔥 disables default sorting
+                });
             }
         });
     </script>
