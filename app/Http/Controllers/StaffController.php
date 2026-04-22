@@ -40,6 +40,7 @@ class StaffController extends Controller
     public function index()
     {
         $staff = User::query()
+            ->with('address')
             ->whereNotNull('role')
             ->where('role', 'staff')
             ->orderBy('first_name')
@@ -115,7 +116,7 @@ class StaffController extends Controller
                 ->all();
 
             $existingUser = User::withTrashed()->where('email', $request->email)->first();
-            
+
             if ($existingUser) {
                 $existingUser->restore();
 
@@ -677,7 +678,7 @@ class StaffController extends Controller
         //     'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
         // ]);
 
-        $staffs = User::withTrashed()->with(['roles', 'teams', 'departments'])->where('role', 'staff')->latest()->get();
+        $staffs = User::withTrashed()->with(['address', 'roles', 'teams', 'departments'])->where('role', 'staff')->latest()->get();
 
         return response()->json([
             'success' => true,
@@ -706,7 +707,7 @@ class StaffController extends Controller
      */
     public function apiShow($id)
     {
-        $staff = User::withTrashed()->with(['roles', 'teams', 'departments'])->findOrFail($id);
+        $staff = User::withTrashed()->with(['address', 'roles', 'teams', 'departments'])->findOrFail($id);
 
         return response()->json([
             'success' => true,

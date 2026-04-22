@@ -174,7 +174,7 @@ class User extends Authenticatable
         }
 
         if (is_array($roles) || $roles instanceof \Illuminate\Support\Collection) {
-            return collect($roles)->contains(fn ($role) => $role === $this->role);
+            return collect($roles)->contains(fn($role) => $role === $this->role);
         }
 
         if ($roles instanceof Role) {
@@ -192,7 +192,7 @@ class User extends Authenticatable
 
         return Role::query()
             ->where('name', $this->role)
-            ->when($guardName, fn ($query) => $query->where('guard_name', $guardName))
+            ->when($guardName, fn($query) => $query->where('guard_name', $guardName))
             ->with('permissions')
             ->first();
     }

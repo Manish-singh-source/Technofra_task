@@ -77,6 +77,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::controller(App\Http\Controllers\Api\StaffController::class)->group(function () {
             Route::prefix('staff-v2')->group(function () {
+                Route::get('/departments', 'departments');
+                Route::get('/teams', 'teams');
+
                 Route::get('/', 'index')->middleware('permission:view_staff');
                 Route::get('/{id}', 'show')->middleware('permission:view_staff');
                 Route::post('/', 'store')->middleware('permission:create_staff');
@@ -85,6 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/{id}/restore', 'restore')->middleware('permission:edit_staff');
                 Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
             });
+            
             Route::prefix('staff')->group(function () {
                 Route::get('/{id}/tasks', 'staffTasks')->middleware('permission:view_staff');
                 Route::get('/{id}/projects', 'staffProjects')->middleware('permission:view_staff');

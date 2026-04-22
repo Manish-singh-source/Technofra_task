@@ -1675,22 +1675,5 @@ jobs:
 
 
 
-
-
-
-want to fetch data from clients table: 
-`cname`, `coname`, `email`, `phone`, `address`, `status`, `created_at`, `updated_at`
-
-and insert if not already existed into users table: 
-`first_name` (from clients table cname), `last_name` (null), `email`, `phone`, `password` (default - 123456789), `status`(default - active), `role`(default - client), `created_at`, `updated_at`, `deleted_at`
-
-and insert if not already existed into user_address table:
-`user_id` (from users table as new id), `address_line_1` (from clients table address), `created_at`, `updated_at`, `deleted_at`
-
-and insert if not already existed into client_business_details table:
-`user_id` (from users table as new id), `company_name` (from clients table coname), `created_at`, `updated_at`, `deleted_at`
-
-and update services table client_id: 
-client_id (old from clients table) to client_id (new from users table)
-
-create query that will fulfill my above requirements
+Series TV Light Load Springs - Round Wire
+Series VL Extra Light Load Springs

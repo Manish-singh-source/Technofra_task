@@ -196,7 +196,7 @@ class CustomerController extends Controller
      */
     public function apiIndex(Request $request)
     {
-        $clients = User::withTrashed()->where('role', 'client')->latest()->get();
+        $clients = User::withTrashed()->with('address', 'businessDetail')->where('role', 'client')->latest()->get();
 
         return response()->json([
             'success' => true,
@@ -209,7 +209,7 @@ class CustomerController extends Controller
      */
     public function apiShow($id)
     {
-        $clientDetail = User::with('services')->where('role', 'client')->find($id);
+        $clientDetail = User::with('services', 'address', 'businessDetail')->where('role', 'client')->find($id);
 
         if (! $clientDetail) {
             return response()->json([

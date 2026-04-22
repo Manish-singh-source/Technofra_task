@@ -34,6 +34,7 @@ class AuthController extends Controller
 
             return ApiResponse::success([
                 'user' => $user,
+                'permissions' => $user->getPermissionsViaRoles(),
                 'token' => $token
             ], 'Login successful');
         } catch (\Exception $e) {
