@@ -70,14 +70,14 @@ class CustomerController extends Controller
             DB::commit();
 
             $successMessage = $sendWelcomeEmail
-                ? 'Customer added successfully. Invitation email sent to '.$payload['email']
+                ? 'Customer added successfully. Invitation email sent to ' . $payload['email']
                 : 'Customer added successfully. Welcome email was not sent.';
 
             return redirect()->route('clients')->with('success', $successMessage);
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'Failed to create customer: '.$e->getMessage());
+            return back()->with('error', 'Failed to create customer: ' . $e->getMessage());
         }
     }
 
@@ -133,7 +133,7 @@ class CustomerController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'Failed to update customer: '.$e->getMessage());
+            return back()->with('error', 'Failed to update customer: ' . $e->getMessage());
         }
     }
 
@@ -157,7 +157,7 @@ class CustomerController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return back()->with('error', 'Failed to delete customer: '.$e->getMessage());
+            return back()->with('error', 'Failed to delete customer: ' . $e->getMessage());
         }
     }
 
@@ -187,7 +187,7 @@ class CustomerController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
 
-            return redirect()->route('clients')->with('error', 'Failed to delete selected customers: '.$e->getMessage());
+            return redirect()->route('clients')->with('error', 'Failed to delete selected customers: ' . $e->getMessage());
         }
     }
 
@@ -196,17 +196,11 @@ class CustomerController extends Controller
      */
     public function apiIndex(Request $request)
     {
-        $customers = Customer::withTrashed()
-            ->with('user.roles')
-            ->when(! $request->boolean('include_trashed'), function ($query) {
-                $query->whereNull('deleted_at');
-            })
-            ->latest()
-            ->get();
+        $clients = User::withTrashed()->where('role', 'client')->latest()->get();
 
         return response()->json([
             'success' => true,
-            'data' => $customers->map(fn (Customer $customer) => $this->formatCustomerResource($customer)),
+            'data' => $clients,
         ]);
     }
 
@@ -215,11 +209,18 @@ class CustomerController extends Controller
      */
     public function apiShow($id)
     {
-        $customer = Customer::withTrashed()->with('user.roles')->findOrFail($id);
+        $clientDetail = User::with('services')->where('role', 'client')->find($id);
+
+        if (! $clientDetail) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Service not found',
+            ], 404);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $this->formatCustomerResource($customer),
+            'data' => $clientDetail,
         ]);
     }
 
@@ -259,7 +260,7 @@ class CustomerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create customer: '.$e->getMessage(),
+                'message' => 'Failed to create customer: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -308,7 +309,7 @@ class CustomerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update customer: '.$e->getMessage(),
+                'message' => 'Failed to update customer: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -341,7 +342,7 @@ class CustomerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete customer: '.$e->getMessage(),
+                'message' => 'Failed to delete customer: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -377,7 +378,7 @@ class CustomerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to restore customer: '.$e->getMessage(),
+                'message' => 'Failed to restore customer: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -395,7 +396,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $projects->map(fn (Project $project) => $this->formatProjectResource($project)),
+            'data' => $projects->map(fn(Project $project) => $this->formatProjectResource($project)),
         ]);
     }
 
@@ -434,7 +435,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $tasks->map(fn (Task $task) => $this->formatTaskResource($task)),
+            'data' => $tasks->map(fn(Task $task) => $this->formatTaskResource($task)),
         ]);
     }
 
@@ -473,7 +474,7 @@ class CustomerController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $issues->map(fn (ClientIssue $issue) => $this->formatClientIssueResource($issue)),
+            'data' => $issues->map(fn(ClientIssue $issue) => $this->formatClientIssueResource($issue)),
         ]);
     }
 
@@ -517,19 +518,19 @@ class CustomerController extends Controller
         ];
 
         if ($detailed) {
-            $data['tasks'] = $project->tasks->map(fn (Task $task) => $this->formatTaskResource($task));
-            $data['staff_members'] = $project->membersList()->map(fn (Staff $staff) => [
+            $data['tasks'] = $project->tasks->map(fn(Task $task) => $this->formatTaskResource($task));
+            $data['staff_members'] = $project->membersList()->map(fn(Staff $staff) => [
                 'id' => $staff->id,
                 'name' => $staff->name,
                 'email' => $staff->email,
             ]);
-            $data['milestones'] = $project->milestones->map(fn (ProjectMilestone $milestone) => [
+            $data['milestones'] = $project->milestones->map(fn(ProjectMilestone $milestone) => [
                 'id' => $milestone->id,
                 'title' => $milestone->title,
                 'status' => $milestone->status,
                 'due_date' => optional($milestone->due_date)?->toISOString(),
             ]);
-            $data['status_logs'] = $project->statusLogs->map(fn (ProjectStatusLog $log) => [
+            $data['status_logs'] = $project->statusLogs->map(fn(ProjectStatusLog $log) => [
                 'id' => $log->id,
                 'old_status' => $log->old_status,
                 'new_status' => $log->new_status,
@@ -561,12 +562,12 @@ class CustomerController extends Controller
                 'id' => $task->project->id,
                 'project_name' => $task->project->project_name,
             ] : null;
-            $data['attachments'] = $task->attachments->map(fn (TaskAttachment $attachment) => [
+            $data['attachments'] = $task->attachments->map(fn(TaskAttachment $attachment) => [
                 'id' => $attachment->id,
                 'file_name' => $attachment->file_name,
                 'file_path' => $attachment->file_path,
             ]);
-            $data['comments'] = $task->comments->map(fn (TaskComment $comment) => [
+            $data['comments'] = $task->comments->map(fn(TaskComment $comment) => [
                 'id' => $comment->id,
                 'comment' => $comment->comment,
                 'user' => $comment->user ? [
@@ -598,12 +599,12 @@ class CustomerController extends Controller
                 'id' => $issue->project->id,
                 'project_name' => $issue->project->project_name,
             ] : null;
-            $data['tasks'] = $issue->tasks->map(fn (ClientIssueTask $task) => [
+            $data['tasks'] = $issue->tasks->map(fn(ClientIssueTask $task) => [
                 'id' => $task->id,
                 'task_description' => $task->task_description,
                 'status' => $task->status,
             ]);
-            $data['team_assignments'] = $issue->teamAssignments->map(fn (ClientIssueTeamAssignment $assignment) => [
+            $data['team_assignments'] = $issue->teamAssignments->map(fn(ClientIssueTeamAssignment $assignment) => [
                 'id' => $assignment->id,
                 'assigned_staff' => $assignment->assignedStaff ? [
                     'id' => $assignment->assignedStaff->id,
@@ -638,7 +639,7 @@ class CustomerController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to permanently delete customer: '.$e->getMessage(),
+                'message' => 'Failed to permanently delete customer: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -646,7 +647,7 @@ class CustomerController extends Controller
     private function validateCustomerData(Request $request, int|string|null $id = null, bool $requirePassword = true)
     {
         $passwordRule = $requirePassword ? 'required|string|min:8' : 'nullable|string|min:8';
-        $customerEmailRule = 'unique:customers,email'.($id ? ','.$id : '');
+        $customerEmailRule = 'unique:customers,email' . ($id ? ',' . $id : '');
         $userEmailRule = 'unique:users,email';
 
         if ($id) {
@@ -658,7 +659,7 @@ class CustomerController extends Controller
             }
 
             if ($ignoreUserId) {
-                $userEmailRule .= ','.$ignoreUserId;
+                $userEmailRule .= ',' . $ignoreUserId;
             }
         }
 
@@ -806,7 +807,7 @@ class CustomerController extends Controller
         try {
             Mail::to($payload['email'])->send(new ClientInviteMail($clientName, $payload['email'], $payload['password']));
         } catch (\Exception $mailException) {
-            Log::error('Failed to send client invitation email: '.$mailException->getMessage());
+            Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
         }
     }
 
@@ -865,11 +866,11 @@ class CustomerController extends Controller
                     'delete' => route('clients.delete', $customer->id),
                 ],
                 'api' => [
-                    'show' => url('/api/clients/'.$customer->id),
-                    'update' => url('/api/clients/'.$customer->id),
-                    'delete' => url('/api/clients/'.$customer->id),
-                    'restore' => url('/api/clients/'.$customer->id.'/restore'),
-                    'force_delete' => url('/api/clients/'.$customer->id.'/force'),
+                    'show' => url('/api/clients/' . $customer->id),
+                    'update' => url('/api/clients/' . $customer->id),
+                    'delete' => url('/api/clients/' . $customer->id),
+                    'restore' => url('/api/clients/' . $customer->id . '/restore'),
+                    'force_delete' => url('/api/clients/' . $customer->id . '/force'),
                 ],
             ],
         ];

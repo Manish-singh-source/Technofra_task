@@ -31,466 +31,469 @@
                 <!--end summary row-->
 
                 <!-- Renewal Statistics Cards -->
-                <div class="row g-3">
-                    <div class="col-12 col-md-6 col-xl-4 d-flex">
-                        <div class="card radius-10 border-start border-0 border-4 border-info w-100 h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <p class="mb-0 text-secondary">Total Servies</p>
-                                        <h4 class="my-1 text-info">{{ $totalRenewals ?? 0 }}</h4>
-                                        <p class="mb-0 font-13">All services in system</p>
-                                    </div>
-                                    <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
-                                        <i class='bx bx-list-ul'></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-4 d-flex">
-                        <div class="card radius-10 border-start border-0 border-4 border-warning w-100 h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <p class="mb-0 text-secondary">Renewals Due This Week</p>
-                                        <h4 class="my-1 text-warning">{{ $renewalsDueThisWeek ?? 0 }}</h4>
-                                        <p class="mb-0 font-13">Expiring within 7 days</p>
-                                    </div>
-                                    <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
-                                        <i class='bx bx-time-five'></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-12 col-md-6 col-xl-4 d-flex">
-                        <div class="card radius-10 border-start border-0 border-4 border-danger w-100 h-100">
-                            <div class="card-body">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <p class="mb-0 text-secondary">Overdue Renewals</p>
-                                        <h4 class="my-1 text-danger">{{ $overdueRenewals ?? 0 }}</h4>
-                                        <p class="mb-0 font-13">Already expired</p>
-                                    </div>
-                                    <div class="widgets-icons-2 rounded-circle bg-gradient-bloody text-white ms-auto">
-                                        <i class='bx bx-error'></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!--end row-->
-                <!-- Critical Renewals Table (Overdue + Upcoming) -->
-                <div class="card radius-10 mt-4">
-                    <div class="card-header">
-                        <div class="d-flex flex-wrap align-items-center gap-3">
-                            <div>
-                                <h6 class="mb-0">Upcoming Renewals</h6>
-                                <p class="mb-0 text-muted font-13">Split view of overdue renewals and items expiring within the
-                                    next 5 days</p>
-                            </div>
-                            <div class="ms-auto d-flex align-items-center gap-2">
-                                <span class="badge bg-danger">
-                                    <p class="mb-0 p-2">{{ $overdueRenewals ?? 0 }} Total Overdue</p>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <div class="row g-4">
-                            <div class="col-12 col-xl-6 d-flex">
-                                <div class="border rounded w-100 h-100">
-                                    <div class="p-3 border-bottom bg-light">
-                                        <div class="d-flex flex-wrap align-items-center gap-2">
-                                            <div>
-                                                <h6 class="mb-1">Client Renewals</h6>
-                                                <p class="mb-0 text-muted font-13">Client services overdue or expiring in the
-                                                    next 5 days</p>
-                                            </div>
-                                            <div class="ms-auto d-flex align-items-center gap-2">
-                                                <span class="badge bg-warning text-dark">{{ $clientRenewalsDueThisWeek ?? 0 }}
-                                                    This Week</span>
-                                                <span class="badge bg-danger">{{ $clientOverdueRenewals ?? 0 }} Overdue</span>
-                                                <a href="{{ route('services.index') }}" class="btn btn-primary btn-sm">
-                                                    <i class="bx bx-list-ul"></i> View All
-                                                </a>
-                                            </div>
+                @can('view_renewals')
+                    <div class="row g-3">
+                        <div class="col-12 col-md-6 col-xl-4 d-flex">
+                            <div class="card radius-10 border-start border-0 border-4 border-info w-100 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <p class="mb-0 text-secondary">Total Servies</p>
+                                            <h4 class="my-1 text-info">{{ $totalRenewals ?? 0 }}</h4>
+                                            <p class="mb-0 font-13">All services in system</p>
+                                        </div>
+                                        <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
+                                            <i class='bx bx-list-ul'></i>
                                         </div>
                                     </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-bordered mb-0" id="client-renewals-table"
-                                            style="width:100%">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Priority</th>
-                                                    <th>Service ID</th>
-                                                    <th>Client Name</th>
-                                                    <th>Vendor Name</th>
-                                                    <th>Service Name</th>
-                                                    <th>Expiry Date</th>
-                                                    <th>Status</th>
-                                                    <th>Billing Date</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @forelse($clientCriticalRenewals->take(5) as $service)
-                                                    @php
-                                                        $today = \Carbon\Carbon::today();
-                                                        $daysLeft = $today->diffInDays($service->end_date, false);
-                                                        $isOverdue = $service->end_date < $today;
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-4 d-flex">
+                            <div class="card radius-10 border-start border-0 border-4 border-warning w-100 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <p class="mb-0 text-secondary">Renewals Due This Week</p>
+                                            <h4 class="my-1 text-warning">{{ $renewalsDueThisWeek ?? 0 }}</h4>
+                                            <p class="mb-0 font-13">Expiring within 7 days</p>
+                                        </div>
+                                        <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
+                                            <i class='bx bx-time-five'></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-md-6 col-xl-4 d-flex">
+                            <div class="card radius-10 border-start border-0 border-4 border-danger w-100 h-100">
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <p class="mb-0 text-secondary">Overdue Renewals</p>
+                                            <h4 class="my-1 text-danger">{{ $overdueRenewals ?? 0 }}</h4>
+                                            <p class="mb-0 font-13">Already expired</p>
+                                        </div>
+                                        <div class="widgets-icons-2 rounded-circle bg-gradient-bloody text-white ms-auto">
+                                            <i class='bx bx-error'></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--end row-->
+                    <!-- Critical Renewals Table (Overdue + Upcoming) -->
+                    <div class="card radius-10 mt-4">
+                        <div class="card-header">
+                            <div class="d-flex flex-wrap align-items-center gap-3">
+                                <div>
+                                    <h6 class="mb-0">Upcoming Renewals</h6>
+                                    <p class="mb-0 text-muted font-13">Split view of overdue renewals and items expiring within the
+                                        next 5 days</p>
+                                </div>
+                                <div class="ms-auto d-flex align-items-center gap-2">
+                                    <span class="badge bg-danger">
+                                        <p class="mb-0 p-2">{{ $overdueRenewals ?? 0 }} Total Overdue</p>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div class="row g-4">
+                                <div class="col-12 col-xl-6 d-flex">
+                                    <div class="border rounded w-100 h-100">
+                                        <div class="p-3 border-bottom bg-light">
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                <div>
+                                                    <h6 class="mb-1">Client Renewals</h6>
+                                                    <p class="mb-0 text-muted font-13">Client services overdue or expiring in the
+                                                        next 5 days</p>
+                                                </div>
+                                                <div class="ms-auto d-flex align-items-center gap-2">
+                                                    <span class="badge bg-warning text-dark">{{ $clientRenewalsDueThisWeek ?? 0 }}
+                                                        This Week</span>
+                                                    <span class="badge bg-danger">{{ $clientOverdueRenewals ?? 0 }} Overdue</span>
+                                                    <a href="{{ route('services.index') }}" class="btn btn-primary btn-sm">
+                                                        <i class="bx bx-list-ul"></i> View All
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered mb-0" id="client-renewals-table"
+                                                style="width:100%">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Priority</th>
+                                                        <th>Service ID</th>
+                                                        <th>Client Name</th>
+                                                        <th>Vendor Name</th>
+                                                        <th>Service Name</th>
+                                                        <th>Expiry Date</th>
+                                                        <th>Status</th>
+                                                        <th>Billing Date</th>
+                                                        <th>Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse($clientCriticalRenewals->take(5) as $service)
+                                                        @php
+                                                            $today = \Carbon\Carbon::today();
+                                                            $daysLeft = $today->diffInDays($service->end_date, false);
+                                                            $isOverdue = $service->end_date < $today;
 
-                                                        if ($isOverdue) {
-                                                            $urgencyClass = 'text-danger';
-                                                            $priorityBadge = 'bg-danger';
-                                                            $priorityText = 'OVERDUE';
-                                                            $statusText = abs($daysLeft) . ' days overdue';
-                                                        } else {
-                                                            $urgencyClass =
-                                                                $daysLeft <= 1
-                                                                    ? 'text-danger'
-                                                                    : ($daysLeft <= 3
-                                                                        ? 'text-warning'
-                                                                        : 'text-info');
-                                                            $priorityBadge =
-                                                                $daysLeft <= 1
-                                                                    ? 'bg-danger'
-                                                                    : ($daysLeft <= 3
-                                                                        ? 'bg-warning'
-                                                                        : 'bg-info');
-                                                            $priorityText =
-                                                                $daysLeft <= 1
-                                                                    ? 'URGENT'
-                                                                    : ($daysLeft <= 3
-                                                                        ? 'HIGH'
-                                                                        : 'MEDIUM');
-                                                            $statusText =
-                                                                $daysLeft == 0
-                                                                    ? 'Today'
-                                                                    : ($daysLeft == 1
-                                                                        ? 'Tomorrow'
-                                                                        : $daysLeft . ' days left');
-                                                        }
-                                                    @endphp
-                                                    <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
-                                                        <td><span
-                                                                class="badge {{ $priorityBadge }} font-11">{{ $priorityText }}</span>
-                                                        </td>
-                                                        <td>
-                                                            <h6 class="mb-0 font-14">#{{ $service->id }}</h6>
-                                                        </td>
-                                                        <td>{{ $service->client->cname ?? 'N/A' }}</td>
-                                                        <td>{{ $service->vendor->name ?? 'N/A' }}</td>
-                                                        <td>{{ $service->service_name }}</td>
-                                                        <td class="{{ $urgencyClass }}">
-                                                            <strong>{{ $service->end_date->format('d M Y') }}</strong><br>
-                                                            <small class="{{ $urgencyClass }}">{{ $statusText }}</small>
-                                                        </td>
-                                                        <td>
-                                                            @if ($isOverdue)
-                                                                <span class="badge bg-danger">Expired</span>
-                                                            @else
-                                                                <span
-                                                                    class="badge bg-{{ $service->status_badge }}">{{ ucfirst($service->status) }}</span>
-                                                            @endif
-                                                        </td>
-                                                        <td>{{ $service->billing_date->format('d M Y') }}</td>
-                                                        <td>
-                                                            <div class="d-flex order-actions">
-                                                                <a href="{{ route('services.show', $service->id) }}"
-                                                                    title="View"><i class='bx bxs-show'></i></a>
-                                                                <a href="{{ route('services.edit', $service->id) }}"
-                                                                    class="ms-2" title="Edit"><i
-                                                                        class='bx bxs-edit'></i></a>
-                                                                <a href="{{ route('send-mail', $service->id) }}"
-                                                                    class="ms-2 text-primary" title="Send Renewal Email"><i
-                                                                        class='bx bx-mail-send'></i></a>
-                                                                <form
-                                                                    action="{{ route('send-whatsapp-renewal', $service->id) }}"
-                                                                    method="POST" class="ms-2">
-                                                                    @csrf
-                                                                    <button type="submit"
-                                                                        class="btn btn-link text-success p-0 m-0"
-                                                                        title="Send WhatsApp Reminder"
-                                                                        onclick="return confirm('Send WhatsApp renewal reminder to client?')">
-                                                                        <i class='bx bxl-whatsapp'></i>
-                                                                    </button>
-                                                                </form>
+                                                            if ($isOverdue) {
+                                                                $urgencyClass = 'text-danger';
+                                                                $priorityBadge = 'bg-danger';
+                                                                $priorityText = 'OVERDUE';
+                                                                $statusText = abs($daysLeft) . ' days overdue';
+                                                            } else {
+                                                                $urgencyClass =
+                                                                    $daysLeft <= 1
+                                                                        ? 'text-danger'
+                                                                        : ($daysLeft <= 3
+                                                                            ? 'text-warning'
+                                                                            : 'text-info');
+                                                                $priorityBadge =
+                                                                    $daysLeft <= 1
+                                                                        ? 'bg-danger'
+                                                                        : ($daysLeft <= 3
+                                                                            ? 'bg-warning'
+                                                                            : 'bg-info');
+                                                                $priorityText =
+                                                                    $daysLeft <= 1
+                                                                        ? 'URGENT'
+                                                                        : ($daysLeft <= 3
+                                                                            ? 'HIGH'
+                                                                            : 'MEDIUM');
+                                                                $statusText =
+                                                                    $daysLeft == 0
+                                                                        ? 'Today'
+                                                                        : ($daysLeft == 1
+                                                                            ? 'Tomorrow'
+                                                                            : $daysLeft . ' days left');
+                                                            }
+                                                        @endphp
+                                                        <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
+                                                            <td><span
+                                                                    class="badge {{ $priorityBadge }} font-11">{{ $priorityText }}</span>
+                                                            </td>
+                                                            <td>
+                                                                <h6 class="mb-0 font-14">#{{ $service->id }}</h6>
+                                                            </td>
+                                                            <td>{{ $service->client->cname ?? 'N/A' }}</td>
+                                                            <td>{{ $service->vendor->name ?? 'N/A' }}</td>
+                                                            <td>{{ $service->service_name }}</td>
+                                                            <td class="{{ $urgencyClass }}">
+                                                                <strong>{{ $service->end_date->format('d M Y') }}</strong><br>
+                                                                <small class="{{ $urgencyClass }}">{{ $statusText }}</small>
+                                                            </td>
+                                                            <td>
                                                                 @if ($isOverdue)
+                                                                    <span class="badge bg-danger">Expired</span>
+                                                                @else
+                                                                    <span
+                                                                        class="badge bg-{{ $service->status_badge }}">{{ ucfirst($service->status) }}</span>
+                                                                @endif
+                                                            </td>
+                                                            <td>{{ $service->billing_date->format('d M Y') }}</td>
+                                                            <td>
+                                                                <div class="d-flex order-actions">
+                                                                    <a href="{{ route('services.show', $service->id) }}"
+                                                                        title="View"><i class='bx bxs-show'></i></a>
                                                                     <a href="{{ route('services.edit', $service->id) }}"
-                                                                        class="ms-2 text-success" title="Renew Service"><i
-                                                                            class='bx bx-refresh'></i></a>
-                                                                @endif
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                @empty
-                                                    <tr>
-                                                        <td colspan="9" class="text-center py-4">
-                                                            <div class="d-flex flex-column align-items-center">
-                                                                <i class='bx bx-calendar-check'
-                                                                    style="font-size: 48px; color: #28a745;"></i>
-                                                                <h6 class="mt-2 text-success">No critical client renewals</h6>
-                                                                <p class="text-muted mb-0">No overdue client services and
-                                                                    nothing expiring in the next 5 days</p>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                @endforelse
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12 col-xl-6 d-flex">
-                                <div class="border rounded w-100 h-100">
-                                    <div class="p-3 border-bottom bg-light">
-                                        <div class="d-flex flex-wrap align-items-center gap-2">
-                                            <div>
-                                                <h6 class="mb-1">Vendor Renewals</h6>
-                                                <p class="mb-0 text-muted font-13">Vendor services overdue or expiring in the
-                                                    next 5 days</p>
-                                            </div>
-                                            <div class="ms-auto d-flex align-items-center gap-2">
-                                                <span class="badge bg-warning text-dark">{{ $vendorRenewalsDueThisWeek ?? 0 }}
-                                                    This Week</span>
-                                                <span class="badge bg-danger">{{ $vendorOverdueRenewals ?? 0 }} Overdue</span>
-                                                <a href="{{ route('vendor-services.index') }}"
-                                                    class="btn btn-primary btn-sm">
-                                                    <i class="bx bx-list-ul"></i> View All
-                                                </a>
-                                            </div>
+                                                                        class="ms-2" title="Edit"><i
+                                                                            class='bx bxs-edit'></i></a>
+                                                                    <a href="{{ route('send-mail', $service->id) }}"
+                                                                        class="ms-2 text-primary" title="Send Renewal Email"><i
+                                                                            class='bx bx-mail-send'></i></a>
+                                                                    <form
+                                                                        action="{{ route('send-whatsapp-renewal', $service->id) }}"
+                                                                        method="POST" class="ms-2">
+                                                                        @csrf
+                                                                        <button type="submit"
+                                                                            class="btn btn-link text-success p-0 m-0"
+                                                                            title="Send WhatsApp Reminder"
+                                                                            onclick="return confirm('Send WhatsApp renewal reminder to client?')">
+                                                                            <i class='bx bxl-whatsapp'></i>
+                                                                        </button>
+                                                                    </form>
+                                                                    @if ($isOverdue)
+                                                                        <a href="{{ route('services.edit', $service->id) }}"
+                                                                            class="ms-2 text-success" title="Renew Service"><i
+                                                                                class='bx bx-refresh'></i></a>
+                                                                    @endif
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="9" class="text-center py-4">
+                                                                <div class="d-flex flex-column align-items-center">
+                                                                    <i class='bx bx-calendar-check'
+                                                                        style="font-size: 48px; color: #28a745;"></i>
+                                                                    <h6 class="mt-2 text-success">No critical client renewals</h6>
+                                                                    <p class="text-muted mb-0">No overdue client services and
+                                                                        nothing expiring in the next 5 days</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
                                         </div>
                                     </div>
-                                    <div class="table-responsive">
-                                        <table class="table table-striped table-bordered mb-0" id="vendor-renewals-table"
-                                            style="width:100%">
-                                            <thead class="table-light">
-                                                <tr>
-                                                    <th>Priority</th>
-                                                    <th>Service ID</th>
-                                                    <th>Vendor Name</th>
-                                                    <th>Service Name</th>
-                                                    <th>Plan Type</th>
-                                                    <th>Expiry Date</th>
-                                                    <th>Status</th>
-                                                    <th>Billing Date</th>
-                                                    <th>Actions</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                @forelse($vendorCriticalRenewals->take(5) as $service)
-                                                    @php
-                                                        $today = \Carbon\Carbon::today();
-                                                        $daysLeft = $today->diffInDays($service->end_date, false);
-                                                        $isOverdue = $service->end_date < $today;
-
-                                                        if ($isOverdue) {
-                                                            $urgencyClass = 'text-danger';
-                                                            $priorityBadge = 'bg-danger';
-                                                            $priorityText = 'OVERDUE';
-                                                            $statusText = abs($daysLeft) . ' days overdue';
-                                                        } else {
-                                                            $urgencyClass =
-                                                                $daysLeft <= 1
-                                                                    ? 'text-danger'
-                                                                    : ($daysLeft <= 3
-                                                                        ? 'text-warning'
-                                                                        : 'text-info');
-                                                            $priorityBadge =
-                                                                $daysLeft <= 1
-                                                                    ? 'bg-danger'
-                                                                    : ($daysLeft <= 3
-                                                                        ? 'bg-warning'
-                                                                        : 'bg-info');
-                                                            $priorityText =
-                                                                $daysLeft <= 1
-                                                                    ? 'URGENT'
-                                                                    : ($daysLeft <= 3
-                                                                        ? 'HIGH'
-                                                                        : 'MEDIUM');
-                                                            $statusText =
-                                                                $daysLeft == 0
-                                                                    ? 'Today'
-                                                                    : ($daysLeft == 1
-                                                                        ? 'Tomorrow'
-                                                                        : $daysLeft . ' days left');
-                                                        }
-                                                    @endphp
-                                                    <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
-                                                        <td><span
-                                                                class="badge {{ $priorityBadge }} font-11">{{ $priorityText }}</span>
-                                                        </td>
-                                                        <td>
-                                                            <h6 class="mb-0 font-14">#{{ $service->id }}</h6>
-                                                        </td>
-                                                        <td>{{ $service->vendor->name ?? 'N/A' }}</td>
-                                                        <td>{{ $service->service_name }}</td>
-                                                        <td>{{ $service->plan_type ? ucfirst($service->plan_type) : 'N/A' }}
-                                                        </td>
-                                                        <td class="{{ $urgencyClass }}">
-                                                            <strong>{{ $service->end_date->format('d M Y') }}</strong><br>
-                                                            <small class="{{ $urgencyClass }}">{{ $statusText }}</small>
-                                                        </td>
-                                                        <td>
-                                                            @if ($isOverdue)
-                                                                <span class="badge bg-danger">Expired</span>
-                                                            @else
-                                                                <span
-                                                                    class="badge bg-{{ $service->status_badge }}">{{ ucfirst($service->status) }}</span>
-                                                            @endif
-                                                        </td>
-                                                        <td>{{ $service->billing_date ? $service->billing_date->format('d M Y') : 'N/A' }}
-                                                        </td>
-                                                        <td>
-                                                            <div class="d-flex order-actions">
-                                                                <a href="{{ route('vendor-services.show', $service->id) }}"
-                                                                    title="View"><i class='bx bxs-show'></i></a>
-                                                                <a href="{{ route('vendor-services.edit', $service->id) }}"
-                                                                    class="ms-2" title="Edit"><i
-                                                                        class='bx bxs-edit'></i></a>
-                                                                @if ($isOverdue)
-                                                                    <a href="{{ route('vendor-services.edit', $service->id) }}"
-                                                                        class="ms-2 text-success" title="Renew Service"><i
-                                                                            class='bx bx-refresh'></i></a>
-                                                                @endif
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                @empty
+                                </div>
+                                <div class="col-12 col-xl-6 d-flex">
+                                    <div class="border rounded w-100 h-100">
+                                        <div class="p-3 border-bottom bg-light">
+                                            <div class="d-flex flex-wrap align-items-center gap-2">
+                                                <div>
+                                                    <h6 class="mb-1">Vendor Renewals</h6>
+                                                    <p class="mb-0 text-muted font-13">Vendor services overdue or expiring in the
+                                                        next 5 days</p>
+                                                </div>
+                                                <div class="ms-auto d-flex align-items-center gap-2">
+                                                    <span class="badge bg-warning text-dark">{{ $vendorRenewalsDueThisWeek ?? 0 }}
+                                                        This Week</span>
+                                                    <span class="badge bg-danger">{{ $vendorOverdueRenewals ?? 0 }} Overdue</span>
+                                                    <a href="{{ route('vendor-services.index') }}"
+                                                        class="btn btn-primary btn-sm">
+                                                        <i class="bx bx-list-ul"></i> View All
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="table-responsive">
+                                            <table class="table table-striped table-bordered mb-0" id="vendor-renewals-table"
+                                                style="width:100%">
+                                                <thead class="table-light">
                                                     <tr>
-                                                        <td colspan="9" class="text-center py-4">
-                                                            <div class="d-flex flex-column align-items-center">
-                                                                <i class='bx bx-calendar-check'
-                                                                    style="font-size: 48px; color: #28a745;"></i>
-                                                                <h6 class="mt-2 text-success">No critical vendor renewals</h6>
-                                                                <p class="text-muted mb-0">No overdue vendor services and
-                                                                    nothing expiring in the next 5 days</p>
-                                                            </div>
-                                                        </td>
+                                                        <th>Priority</th>
+                                                        <th>Service ID</th>
+                                                        <th>Vendor Name</th>
+                                                        <th>Service Name</th>
+                                                        <th>Plan Type</th>
+                                                        <th>Expiry Date</th>
+                                                        <th>Status</th>
+                                                        <th>Billing Date</th>
+                                                        <th>Actions</th>
                                                     </tr>
-                                                @endforelse
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse($vendorCriticalRenewals->take(5) as $service)
+                                                        @php
+                                                            $today = \Carbon\Carbon::today();
+                                                            $daysLeft = $today->diffInDays($service->end_date, false);
+                                                            $isOverdue = $service->end_date < $today;
 
-                <!-- CRM Dashboard Section -->
-                <div class="row">
-                    <div class="col-12 col-lg-8 d-flex">
-                        <div class="card radius-10 w-100">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <h6 class="mb-0">Projects Summary</h6>
-                                    </div>
-                                    <div class="dropdown ms-auto">
-                                        <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
-                                            data-bs-toggle="dropdown"><i
-                                                class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="javascript:;">Action</a>
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Another action</a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Something else here</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="d-flex align-items-center ms-auto font-13 gap-2 mb-3">
-                                    <span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1"
-                                            style="color: #14abef"></i>Projects</span>
-                                    <span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1"
-                                            style="color: #ffc107"></i>Tasks</span>
-                                </div>
-                                <div class="chart-container-1">
-                                    <canvas id="chart1" data-dashboard-labels='@json($projectSummaryLabels ?? [])'
-                                        data-dashboard-projects='@json($projectSummaryProjects ?? [])'
-                                        data-dashboard-tasks='@json($projectSummaryTasks ?? [])' width="1031" height="260"
-                                        style="display: block; box-sizing: border-box; height: 260px; width: 1031px;"></canvas>
-                                </div>
-                            </div>
-                            <div class="row row-cols-1 row-cols-md-3 row-cols-xl-3 g-0 row-group text-center border-top">
-                                <div class="col">
-                                    <div class="p-3">
-                                        <h5 class="mb-0">{{ $totalTasks ?? 0 }}</h5>
-                                        <small class="mb-0">Total Task</small>
-                                    </div>
-                                </div>
-                                <div class="col">
-                                    <div class="p-3">
-                                        <h5 class="mb-0">{{ $totalProjects ?? 0 }}</h5>
-                                        <small class="mb-0">Total Project</small>
+                                                            if ($isOverdue) {
+                                                                $urgencyClass = 'text-danger';
+                                                                $priorityBadge = 'bg-danger';
+                                                                $priorityText = 'OVERDUE';
+                                                                $statusText = abs($daysLeft) . ' days overdue';
+                                                            } else {
+                                                                $urgencyClass =
+                                                                    $daysLeft <= 1
+                                                                        ? 'text-danger'
+                                                                        : ($daysLeft <= 3
+                                                                            ? 'text-warning'
+                                                                            : 'text-info');
+                                                                $priorityBadge =
+                                                                    $daysLeft <= 1
+                                                                        ? 'bg-danger'
+                                                                        : ($daysLeft <= 3
+                                                                            ? 'bg-warning'
+                                                                            : 'bg-info');
+                                                                $priorityText =
+                                                                    $daysLeft <= 1
+                                                                        ? 'URGENT'
+                                                                        : ($daysLeft <= 3
+                                                                            ? 'HIGH'
+                                                                            : 'MEDIUM');
+                                                                $statusText =
+                                                                    $daysLeft == 0
+                                                                        ? 'Today'
+                                                                        : ($daysLeft == 1
+                                                                            ? 'Tomorrow'
+                                                                            : $daysLeft . ' days left');
+                                                            }
+                                                        @endphp
+                                                        <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
+                                                            <td><span
+                                                                    class="badge {{ $priorityBadge }} font-11">{{ $priorityText }}</span>
+                                                            </td>
+                                                            <td>
+                                                                <h6 class="mb-0 font-14">#{{ $service->id }}</h6>
+                                                            </td>
+                                                            <td>{{ $service->vendor->name ?? 'N/A' }}</td>
+                                                            <td>{{ $service->service_name }}</td>
+                                                            <td>{{ $service->plan_type ? ucfirst($service->plan_type) : 'N/A' }}
+                                                            </td>
+                                                            <td class="{{ $urgencyClass }}">
+                                                                <strong>{{ $service->end_date->format('d M Y') }}</strong><br>
+                                                                <small class="{{ $urgencyClass }}">{{ $statusText }}</small>
+                                                            </td>
+                                                            <td>
+                                                                @if ($isOverdue)
+                                                                    <span class="badge bg-danger">Expired</span>
+                                                                @else
+                                                                    <span
+                                                                        class="badge bg-{{ $service->status_badge }}">{{ ucfirst($service->status) }}</span>
+                                                                @endif
+                                                            </td>
+                                                            <td>{{ $service->billing_date ? $service->billing_date->format('d M Y') : 'N/A' }}
+                                                            </td>
+                                                            <td>
+                                                                <div class="d-flex order-actions">
+                                                                    <a href="{{ route('vendor-services.show', $service->id) }}"
+                                                                        title="View"><i class='bx bxs-show'></i></a>
+                                                                    <a href="{{ route('vendor-services.edit', $service->id) }}"
+                                                                        class="ms-2" title="Edit"><i
+                                                                            class='bx bxs-edit'></i></a>
+                                                                    @if ($isOverdue)
+                                                                        <a href="{{ route('vendor-services.edit', $service->id) }}"
+                                                                            class="ms-2 text-success" title="Renew Service"><i
+                                                                                class='bx bx-refresh'></i></a>
+                                                                    @endif
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="9" class="text-center py-4">
+                                                                <div class="d-flex flex-column align-items-center">
+                                                                    <i class='bx bx-calendar-check'
+                                                                        style="font-size: 48px; color: #28a745;"></i>
+                                                                    <h6 class="mt-2 text-success">No critical vendor renewals</h6>
+                                                                    <p class="text-muted mb-0">No overdue vendor services and
+                                                                        nothing expiring in the next 5 days</p>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="col-12 col-lg-4 d-flex">
-                        <div class="card radius-10 w-100">
-                            <div class="card-header">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <h6 class="mb-0">Tasks Summary</h6>
-                                    </div>
-                                    <div class="dropdown ms-auto">
-                                        <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
-                                            data-bs-toggle="dropdown"><i
-                                                class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="javascript:;">Action</a>
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Another action</a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Something else here</a>
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container-2">
-                                    <canvas id="chart2" data-task-summary-labels='@json($taskSummaryLabels ?? [])'
-                                        data-task-summary-counts='@json($taskSummaryCounts ?? [])' width="487" height="220"
-                                        style="display: block; box-sizing: border-box; height: 220px; width: 487px;"></canvas>
-                                </div>
-                            </div>
-                            <ul class="list-group list-group-flush">
-                                @forelse ($taskSummaryBreakdown ?? [] as $statusItem)
-                                    <li
-                                        class="list-group-item d-flex bg-transparent justify-content-between align-items-center {{ $loop->first ? 'border-top' : '' }}">
-                                        {{ $statusItem['label'] }}
-                                        <span
-                                            class="badge {{ $statusItem['badge'] }} rounded-pill">{{ $statusItem['count'] }}</span>
-                                    </li>
-                                @empty
-                                    <li
-                                        class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
-                                        No Tasks <span class="badge bg-secondary rounded-pill">0</span>
-                                    </li>
-                                @endforelse
-                            </ul>
-                        </div>
-                    </div>
-                </div>
+                @endcan
 
+                @can('view_projects')
+                    <!-- CRM Dashboard Section -->
+                    <div class="row mt-4">
+                        <div class="col-12 col-lg-8 d-flex">
+                            <div class="card radius-10 w-100">
+                                <div class="card-header">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Projects Summary</h6>
+                                        </div>
+                                        <div class="dropdown ms-auto">
+                                            <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
+                                                data-bs-toggle="dropdown"><i
+                                                    class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="javascript:;">Action</a>
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Another action</a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Something else here</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="d-flex align-items-center ms-auto font-13 gap-2 mb-3">
+                                        <span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1"
+                                                style="color: #14abef"></i>Projects</span>
+                                        <span class="border px-1 rounded cursor-pointer"><i class="bx bxs-circle me-1"
+                                                style="color: #ffc107"></i>Tasks</span>
+                                    </div>
+                                    <div class="chart-container-1">
+                                        <canvas id="chart1" data-dashboard-labels='@json($projectSummaryLabels ?? [])'
+                                            data-dashboard-projects='@json($projectSummaryProjects ?? [])'
+                                            data-dashboard-tasks='@json($projectSummaryTasks ?? [])' width="1031" height="260"
+                                            style="display: block; box-sizing: border-box; height: 260px; width: 1031px;"></canvas>
+                                    </div>
+                                </div>
+                                <div class="row row-cols-1 row-cols-md-3 row-cols-xl-3 g-0 row-group text-center border-top">
+                                    <div class="col">
+                                        <div class="p-3">
+                                            <h5 class="mb-0">{{ $totalTasks ?? 0 }}</h5>
+                                            <small class="mb-0">Total Task</small>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <div class="p-3">
+                                            <h5 class="mb-0">{{ $totalProjects ?? 0 }}</h5>
+                                            <small class="mb-0">Total Project</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-4 d-flex">
+                            <div class="card radius-10 w-100">
+                                <div class="card-header">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Tasks Summary</h6>
+                                        </div>
+                                        <div class="dropdown ms-auto">
+                                            <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
+                                                data-bs-toggle="dropdown"><i
+                                                    class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="javascript:;">Action</a>
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Another action</a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Something else here</a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <div class="chart-container-2">
+                                        <canvas id="chart2" data-task-summary-labels='@json($taskSummaryLabels ?? [])'
+                                            data-task-summary-counts='@json($taskSummaryCounts ?? [])' width="487" height="220"
+                                            style="display: block; box-sizing: border-box; height: 220px; width: 487px;"></canvas>
+                                    </div>
+                                </div>
+                                <ul class="list-group list-group-flush">
+                                    @forelse ($taskSummaryBreakdown ?? [] as $statusItem)
+                                        <li
+                                            class="list-group-item d-flex bg-transparent justify-content-between align-items-center {{ $loop->first ? 'border-top' : '' }}">
+                                            {{ $statusItem['label'] }}
+                                            <span
+                                                class="badge {{ $statusItem['badge'] }} rounded-pill">{{ $statusItem['count'] }}</span>
+                                        </li>
+                                    @empty
+                                        <li
+                                            class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
+                                            No Tasks <span class="badge bg-secondary rounded-pill">0</span>
+                                        </li>
+                                    @endforelse
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                @endcan
 
 
                 <div class="row row-cols-1 row-cols-lg-3">
@@ -522,141 +525,145 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col d-flex">
-                        <div class="card radius-10 w-100">
-                            <div class="card-header bg-transparent">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <h6 class="mb-0">Leads Overview</h6>
-                                    </div>
-                                    <div class="dropdown ms-auto">
-                                        <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
-                                            data-bs-toggle="dropdown"><i
-                                                class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="javascript:;">Action</a>
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Another action</a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Something else here</a>
-                                            </li>
-                                        </ul>
+                    @can('view_leads')
+                        <div class="col d-flex">
+                            <div class="card radius-10 w-100">
+                                <div class="card-header bg-transparent">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Leads Overview</h6>
+                                        </div>
+                                        <div class="dropdown ms-auto">
+                                            <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
+                                                data-bs-toggle="dropdown"><i
+                                                    class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="javascript:;">Action</a>
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Another action</a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Something else here</a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-body">
-                                <div class="chart-container-1 mt-3">
-                                    <canvas id="chart4" data-lead-summary-labels='@json($leadSummaryLabels ?? [])'
-                                        data-lead-summary-counts='@json($leadSummaryCounts ?? [])' width="487"
-                                        height="260"
-                                        style="display: block; box-sizing: border-box; height: 260px; width: 487px;"></canvas>
+                                <div class="card-body">
+                                    <div class="chart-container-1 mt-3">
+                                        <canvas id="chart4" data-lead-summary-labels='@json($leadSummaryLabels ?? [])'
+                                            data-lead-summary-counts='@json($leadSummaryCounts ?? [])' width="487"
+                                            height="260"
+                                            style="display: block; box-sizing: border-box; height: 260px; width: 487px;"></canvas>
+                                    </div>
                                 </div>
+                                <ul class="list-group list-group-flush">
+                                    @forelse ($leadSummaryBreakdown ?? [] as $leadStatusItem)
+                                        <li
+                                            class="list-group-item d-flex bg-transparent justify-content-between align-items-center {{ $loop->first ? 'border-top' : '' }}">
+                                            {{ $leadStatusItem['label'] }}
+                                            <span
+                                                class="badge {{ $leadStatusItem['badge'] }} rounded-pill">{{ $leadStatusItem['count'] }}</span>
+                                        </li>
+                                    @empty
+                                        <li
+                                            class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
+                                            No Leads <span class="badge bg-secondary rounded-pill">0</span>
+                                        </li>
+                                    @endforelse
+                                </ul>
                             </div>
-                            <ul class="list-group list-group-flush">
-                                @forelse ($leadSummaryBreakdown ?? [] as $leadStatusItem)
-                                    <li
-                                        class="list-group-item d-flex bg-transparent justify-content-between align-items-center {{ $loop->first ? 'border-top' : '' }}">
-                                        {{ $leadStatusItem['label'] }}
-                                        <span
-                                            class="badge {{ $leadStatusItem['badge'] }} rounded-pill">{{ $leadStatusItem['count'] }}</span>
-                                    </li>
-                                @empty
-                                    <li
-                                        class="list-group-item d-flex bg-transparent justify-content-between align-items-center border-top">
-                                        No Leads <span class="badge bg-secondary rounded-pill">0</span>
-                                    </li>
-                                @endforelse
-                            </ul>
                         </div>
-                    </div>
-                    <div class="col d-flex">
-                        <div class="card radius-10 w-100">
-                            <div class="card-header bg-transparent">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <h6 class="mb-0">Support Tickets Summary</h6>
-                                    </div>
-                                    <div class="dropdown ms-auto">
-                                        <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
-                                            data-bs-toggle="dropdown"><i
-                                                class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            <li><a class="dropdown-item" href="javascript:;">Refresh</a>
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">Export</a>
-                                            </li>
-                                            <li>
-                                                <hr class="dropdown-divider">
-                                            </li>
-                                            <li><a class="dropdown-item" href="javascript:;">View All</a>
-                                            </li>
-                                        </ul>
+                    @endcan
+                    @can('view_raise_issue')
+                        <div class="col d-flex">
+                            <div class="card radius-10 w-100">
+                                <div class="card-header bg-transparent">
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            <h6 class="mb-0">Support Tickets Summary</h6>
+                                        </div>
+                                        <div class="dropdown ms-auto">
+                                            <a class="dropdown-toggle dropdown-toggle-nocaret" href="#"
+                                                data-bs-toggle="dropdown"><i
+                                                    class="bx bx-dots-horizontal-rounded font-22 text-option"></i>
+                                            </a>
+                                            <ul class="dropdown-menu">
+                                                <li><a class="dropdown-item" href="javascript:;">Refresh</a>
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">Export</a>
+                                                </li>
+                                                <li>
+                                                    <hr class="dropdown-divider">
+                                                </li>
+                                                <li><a class="dropdown-item" href="javascript:;">View All</a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-body" style="max-height: 400px; overflow-y: auto;">
-                                @forelse($supportTickets as $ticket)
-                                    <div class="card radius-10 border shadow-none mb-2">
-                                        <div class="card-body p-2">
-                                            <div class="d-flex align-items-start justify-content-between">
-                                                <div style="flex: 1;">
-                                                    <p class="mb-1 text-secondary font-11">
-                                                        {{ $ticket->customer->client_name ?? 'N/A' }}</p>
-                                                    <h6 class="mb-1" title="{{ $ticket->issue_description }}">
-                                                        {{ Str::limit($ticket->issue_description, 50) }}
-                                                    </h6>
-                                                    <div class="d-flex justify-content-between align-items-center mb-2">
-                                                        <small class="text-muted">
-                                                            ðŸ“ {{ $ticket->project->project_name ?? 'N/A' }}
-                                                        </small>
-                                                        <small class="text-muted">
-                                                            <i class='bx bx-time-five'></i>
-                                                            {{ $ticket->created_at->format('M d, Y H:i') }}
-                                                        </small>
+                                <div class="card-body" style="max-height: 400px; overflow-y: auto;">
+                                    @forelse($supportTickets as $ticket)
+                                        <div class="card radius-10 border shadow-none mb-2">
+                                            <div class="card-body p-2">
+                                                <div class="d-flex align-items-start justify-content-between">
+                                                    <div style="flex: 1;">
+                                                        <p class="mb-1 text-secondary font-11">
+                                                            {{ $ticket->customer->client_name ?? 'N/A' }}</p>
+                                                        <h6 class="mb-1" title="{{ $ticket->issue_description }}">
+                                                            {{ Str::limit($ticket->issue_description, 50) }}
+                                                        </h6>
+                                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                                            <small class="text-muted">
+                                                                ðŸ“ {{ $ticket->project->project_name ?? 'N/A' }}
+                                                            </small>
+                                                            <small class="text-muted">
+                                                                <i class='bx bx-time-five'></i>
+                                                                {{ $ticket->created_at->format('M d, Y H:i') }}
+                                                            </small>
+                                                        </div>
+                                                        <div class="d-flex gap-1 flex-wrap">
+                                                            @if ($ticket->status == 'open')
+                                                                <span class="badge bg-danger">Open</span>
+                                                            @elseif($ticket->status == 'in_progress')
+                                                                <span class="badge bg-warning text-dark">In Progress</span>
+                                                            @elseif($ticket->status == 'resolved')
+                                                                <span class="badge bg-info">Resolved</span>
+                                                            @elseif($ticket->status == 'closed')
+                                                                <span class="badge bg-success">Closed</span>
+                                                            @endif
+                                                        </div>
                                                     </div>
-                                                    <div class="d-flex gap-1 flex-wrap">
-                                                        @if ($ticket->status == 'open')
-                                                            <span class="badge bg-danger">Open</span>
-                                                        @elseif($ticket->status == 'in_progress')
-                                                            <span class="badge bg-warning text-dark">In Progress</span>
-                                                        @elseif($ticket->status == 'resolved')
-                                                            <span class="badge bg-info">Resolved</span>
-                                                        @elseif($ticket->status == 'closed')
-                                                            <span class="badge bg-success">Closed</span>
+                                                    <div class="ms-2">
+                                                        @if ($ticket->priority == 'high')
+                                                            <span class="badge bg-danger">High</span>
+                                                        @elseif($ticket->priority == 'medium')
+                                                            <span class="badge bg-warning text-dark">Med</span>
+                                                        @else
+                                                            <span class="badge bg-info">Low</span>
                                                         @endif
                                                     </div>
                                                 </div>
-                                                <div class="ms-2">
-                                                    @if ($ticket->priority == 'high')
-                                                        <span class="badge bg-danger">High</span>
-                                                    @elseif($ticket->priority == 'medium')
-                                                        <span class="badge bg-warning text-dark">Med</span>
-                                                    @else
-                                                        <span class="badge bg-info">Low</span>
-                                                    @endif
-                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                @empty
-                                    <div class="text-center py-3">
-                                        <i class='bx bx-check-circle' style="font-size: 32px; color: #28a745;"></i>
-                                        <p class="mt-2 text-muted">No support tickets raised</p>
-                                    </div>
-                                @endforelse
+                                    @empty
+                                        <div class="text-center py-3">
+                                            <i class='bx bx-check-circle' style="font-size: 32px; color: #28a745;"></i>
+                                            <p class="mt-2 text-muted">No support tickets raised</p>
+                                        </div>
+                                    @endforelse
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    @endcan
                 </div>
             @endcan
 
 
-            @canany(['view_dashboard', 'view_calendar'])
+            @canany(['view_calendar'])
                 <!-- Calendar Widget -->
                 <div class="row mt-4">
                     <div class="col-12">
@@ -961,7 +968,7 @@
                     if (hasCalendarConflict($('#event_date').val(), $('#event_time').val())) {
                         showAlert('error',
                             'Another meeting is already scheduled within 30 minutes of this slot. Please select another time.'
-                            );
+                        );
                         return;
                     }
 
@@ -1063,7 +1070,7 @@
                     $('.invalid-feedback').text('');
 
                     if (!hasAnyRecipient($('#edit_email_recipients').val(), $('#edit_whatsapp_recipients')
-                        .val())) {
+                            .val())) {
                         showAlert('error', 'Please add at least one email or WhatsApp recipient.');
                         return;
                     }
@@ -1071,10 +1078,10 @@
                     var eventId = $('#edit_event_id').val();
 
                     if (hasCalendarConflict($('#edit_event_date').val(), $('#edit_event_time').val(),
-                        eventId)) {
+                            eventId)) {
                         showAlert('error',
                             'Another meeting is already scheduled within 30 minutes of this slot. Please select another time.'
-                            );
+                        );
                         return;
                     }
 

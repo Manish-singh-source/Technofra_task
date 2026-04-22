@@ -663,18 +663,25 @@ class StaffController extends Controller
      */
     public function apiIndex(Request $request)
     {
-        $staff = User::query()
-            ->withTrashed()
-            ->with(['roles', 'teams', 'departments'])
-            ->whereNotNull('role')
-            ->when(! $request->boolean('include_trashed'), function ($query) {
-                $query->whereNull('deleted_at');
-            })
-            ->get();
+        // $staff = User::query()
+        //     ->withTrashed()
+        //     ->with(['roles', 'teams', 'departments'])
+        //     ->whereNotNull('role')
+        //     ->when(! $request->boolean('include_trashed'), function ($query) {
+        //         $query->whereNull('deleted_at');
+        //     })
+        //     ->get();
+
+        // return response()->json([
+        //     'success' => true,
+        //     'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
+        // ]);
+
+        $staffs = User::withTrashed()->with(['roles', 'teams', 'departments'])->where('role', 'staff')->latest()->get();
 
         return response()->json([
             'success' => true,
-            'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
+            'data' => $staffs,
         ]);
     }
 

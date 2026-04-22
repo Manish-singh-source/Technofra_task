@@ -259,7 +259,7 @@ Route::middleware('auth:sanctum')->group(function () {
             })->middleware('permission:view_roles');
         });
 
-        Route::get('/clients', [ClientRenewalController::class, 'clientList']);
+        // Route::get('/clients', [ClientRenewalController::class, 'clientList']);
         Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
 
         // Client Renewal API routes
