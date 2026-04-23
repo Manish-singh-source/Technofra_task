@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\DigitalMarketingLead;
+use App\Models\WebappLead;
 
 class DigitalMarketingLeadController extends Controller
 {
@@ -13,7 +14,12 @@ class DigitalMarketingLeadController extends Controller
             ->orderByDesc('id')
             ->get();
 
-        return view('digital-marketing-leads.index', compact('leads'));
+        $webappLeads = WebappLead::query()
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('digital-marketing-leads.index', compact('leads', 'webappLeads'));
     }
 
     public function destroy(DigitalMarketingLead $digitalMarketingLead)
