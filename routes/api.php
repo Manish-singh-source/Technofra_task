@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
-use App\Http\Controllers\Api\RoleController as ApiRoleController;
+use App\Http\Controllers\Api\RolesController as ApiRoleController;
 use App\Http\Controllers\Api\ServiceController as ApiServiceController;
 use App\Http\Controllers\Api\SettingController as ApiSettingController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
@@ -20,7 +20,6 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TodoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use Spatie\Permission\Models\Role;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,8 +61,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [ApiRoleController::class, 'index'])->middleware('permission:view_roles');
             Route::post('/', [ApiRoleController::class, 'store'])->middleware('permission:create_roles');
             Route::match(['put', 'patch'], '/{id}', [ApiRoleController::class, 'update'])->middleware('permission:edit_roles');
-            Route::delete('/delete-all', [ApiRoleController::class, 'destroyAll'])->middleware('permission:delete_roles');
             Route::delete('/{id}', [ApiRoleController::class, 'destroy'])->middleware('permission:delete_roles');
+            Route::delete('/delete-all', [ApiRoleController::class, 'destroyAll'])->middleware('permission:delete_roles');
         });
 
         // Staff API routes
@@ -268,18 +267,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::match(['post', 'put', 'patch'], '/app-logo', [ApiSettingController::class, 'updateAppLogo'])->middleware('permission:view_general_settings');
             Route::get('/login-logo', [ApiSettingController::class, 'getLoginLogo'])->middleware('permission:view_general_settings');
             Route::match(['post', 'put', 'patch'], '/login-logo', [ApiSettingController::class, 'updateLoginLogo'])->middleware('permission:view_general_settings');
-        });
-
-        // Role API routes
-        Route::prefix('roles')->group(function () {
-            Route::get('/', function () {
-                $roles = Role::with('permissions')->get();
-
-                return response()->json([
-                    'success' => true,
-                    'data' => $roles,
-                ]);
-            })->middleware('permission:view_roles');
         });
 
         // Route::get('/clients', [ClientRenewalController::class, 'clientList']);

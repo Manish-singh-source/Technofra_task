@@ -5,15 +5,11 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
-use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
-use Spatie\Permission\PermissionRegistrar;
 
-class RoleController extends Controller
+class RolesController extends Controller
 {
-
+    //
 
     public function index()
     {
@@ -44,8 +40,7 @@ class RoleController extends Controller
     }
 
 
-    public function update(Request $request, $id)
-    {
+    public function update(Request $request, $id) {
         $role = Role::findOrFail($id);
 
         if (!$role) {
@@ -56,7 +51,7 @@ class RoleController extends Controller
             'name' => $request->name,
         ]);
 
-        if ($request->permissions) {
+        if($request->permissions) {
             $role->permissions()->detach();
             $role->permissions()->attach($request->permissions);
         }
@@ -68,7 +63,7 @@ class RoleController extends Controller
     {
         $role = Role::find($id);
 
-        if (!$role) {
+        if(!$role) {
             return ApiResponse::error('Role not found');
         }
 
