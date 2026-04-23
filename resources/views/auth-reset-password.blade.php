@@ -63,7 +63,7 @@
 										<img src="assets/images/logo-icon.png" width="60" alt="" />
 									</div>
 									<div class="text-center mb-4">
-										<h5 class="">Technofra Admin</h5>
+										<h5 class="">{{ $companyName }}</h5>
 										<p class="mb-0">Create your new password</p>
 										<small class="text-muted">Password must be at least 6 characters long</small>
 									</div>

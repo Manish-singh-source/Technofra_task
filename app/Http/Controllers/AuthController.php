@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -12,8 +13,8 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Validation\Rule;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class AuthController extends Controller
 {
@@ -104,12 +105,12 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
-            
+
             // Store user permissions in session for quick access
             $user = Auth::user();
             $permissions = $user->getAllPermissions()->pluck('name')->toArray();
             $roles = $user->getRoleNames()->toArray();
-            
+
             session([
                 'user_permissions' => $permissions,
                 'user_roles' => $roles,
@@ -121,10 +122,10 @@ class AuthController extends Controller
             } else {
                 Cookie::queue(Cookie::forget('remembered_login_email'));
             }
-            
+
             // Always redirect to dashboard after login
             return redirect()->route('dashboard')
-                ->with('success', 'Welcome back, ' . Auth::user()->name . '!');
+                ->with('success', 'Welcome back, '.Auth::user()->name.'!');
         }
 
         // Authentication failed
@@ -258,7 +259,7 @@ class AuthController extends Controller
             return redirect()->route('user-profile')->with('success', 'Profile updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Profile update failed: ' . $e->getMessage());
+            Log::error('Profile update failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('error', 'Failed to update profile. Please try again.')
@@ -272,8 +273,8 @@ class AuthController extends Controller
     private function uploadProfileImage($image, ?string $oldImage = null, string $folder = 'profile', ?int $recordId = null): string
     {
         $extension = $image->getClientOriginalExtension();
-        $imageName = time() . ($recordId ? '_' . $recordId : '') . '.' . $extension;
-        $uploadPath = public_path('uploads/' . $folder);
+        $imageName = time().($recordId ? '_'.$recordId : '').'.'.$extension;
+        $uploadPath = public_path('uploads/'.$folder);
 
         if (! is_dir($uploadPath)) {
             mkdir($uploadPath, 0755, true);
@@ -282,7 +283,7 @@ class AuthController extends Controller
         $image->move($uploadPath, $imageName);
 
         if ($oldImage) {
-            $oldImagePath = $uploadPath . DIRECTORY_SEPARATOR . $oldImage;
+            $oldImagePath = $uploadPath.DIRECTORY_SEPARATOR.$oldImage;
 
             if (file_exists($oldImagePath)) {
                 @unlink($oldImagePath);
@@ -297,7 +298,9 @@ class AuthController extends Controller
      */
     public function showForgotPasswordForm()
     {
-        return view('auth-forgot-password');
+        $companyName = Setting::get('company_name', 'Technofra Admin');
+
+        return view('auth-forgot-password', compact('companyName'));
     }
 
     /**
@@ -329,29 +332,31 @@ class AuthController extends Controller
             [
                 'email' => $request->email,
                 'token' => Hash::make($token),
-                'created_at' => Carbon::now()
+                'created_at' => Carbon::now(),
             ]
         );
 
         // Send the password reset email
         $user = User::where('email', $request->email)->first();
         $resetUrl = route('password.reset', ['token' => $token, 'email' => $request->email]);
+        $companyName = Setting::get('company_name', 'Technofra Admin');
 
         try {
             Mail::send('emails.password-reset', [
                 'user' => $user,
                 'resetUrl' => $resetUrl,
-                'token' => $token
-            ], function ($message) use ($user) {
+                'token' => $token,
+                'companyName' => $companyName,
+            ], function ($message) use ($user, $companyName) {
                 $message->to($user->email, $user->name)
-                        ->subject('Reset Your Password - Technofra Admin');
+                    ->subject('Reset Your Password - '.$companyName);
             });
 
             return redirect()->back()
                 ->with('success', 'We have sent a password reset link to your email address.');
         } catch (\Exception $e) {
             // Log the error for debugging
-            Log::error('Password reset email failed: ' . $e->getMessage());
+            Log::error('Password reset email failed: '.$e->getMessage());
 
             return redirect()->back()
                 ->with('error', 'Failed to send password reset email. Please try again.');
@@ -370,7 +375,7 @@ class AuthController extends Controller
             ->where('email', $email)
             ->first();
 
-        if (!$passwordReset || !Hash::check($token, $passwordReset->token)) {
+        if (! $passwordReset || ! Hash::check($token, $passwordReset->token)) {
             return redirect()->route('login')
                 ->with('error', 'Invalid or expired password reset token.');
         }
@@ -378,11 +383,14 @@ class AuthController extends Controller
         // Check if token is expired (24 hours)
         if (Carbon::parse($passwordReset->created_at)->addHours(24)->isPast()) {
             DB::table('password_resets')->where('email', $email)->delete();
+
             return redirect()->route('login')
                 ->with('error', 'Password reset token has expired. Please request a new one.');
         }
 
-        return view('auth-reset-password', compact('token', 'email'));
+        $companyName = Setting::get('company_name', 'Technofra Admin');
+
+        return view('auth-reset-password', compact('token', 'email', 'companyName'));
     }
 
     /**
@@ -415,7 +423,7 @@ class AuthController extends Controller
             ->where('email', $request->email)
             ->first();
 
-        if (!$passwordReset || !Hash::check($request->token, $passwordReset->token)) {
+        if (! $passwordReset || ! Hash::check($request->token, $passwordReset->token)) {
             return redirect()->route('login')
                 ->with('error', 'Invalid or expired password reset token.');
         }
@@ -423,6 +431,7 @@ class AuthController extends Controller
         // Check if token is expired (24 hours)
         if (Carbon::parse($passwordReset->created_at)->addHours(24)->isPast()) {
             DB::table('password_resets')->where('email', $request->email)->delete();
+
             return redirect()->route('login')
                 ->with('error', 'Password reset token has expired. Please request a new one.');
         }
@@ -438,6 +447,4 @@ class AuthController extends Controller
         return redirect()->route('login')
             ->with('success', 'Your password has been reset successfully. Please login with your new password.');
     }
-
 }
-
