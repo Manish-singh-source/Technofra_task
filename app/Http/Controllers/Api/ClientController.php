@@ -217,27 +217,45 @@ class ClientController extends Controller
             ]);
 
             if ($client) {
-                $address = UserAddress::updateOrCreate(
-                    ['user_id', $client->id],
-                    [
-                        'address_line_1' => $request->address_line_1 ?? '',
+                $address =  UserAddress::where('user_id', $client->id)->first();
+
+                if ($address) {
+                    $address->update([
+                        'address_line_1' => $request->address_line_1,
                         'address_line_2' => $request->address_line_2 ?? '',
                         'city' => $request->city ?? '',
                         'state' => $request->state ?? '',
                         'country' => $request->country ?? '',
                         'pincode' => $request->pincode ?? '',
-                    ]
-                );
+                    ]);
+                } else {
+                    $address = UserAddress::create([
+                        'address_line_1' => $request->address_line_1,
+                        'address_line_2' => $request->address_line_2 ?? '',
+                        'city' => $request->city ?? '',
+                        'state' => $request->state ?? '',
+                        'country' => $request->country ?? '',
+                        'pincode' => $request->pincode ?? '',
+                    ]);
+                }
 
-                $businessDetail = ClientBusinessDetail::createOrUpdate(
-                    ['user_id', $client->id],
-                    [
+                $businessDetail = ClientBusinessDetail::where('user_id', $client->id)->first();
+
+                if ($businessDetail) {
+                    $businessDetail->update([
                         'client_type' => $request->client_type,
                         'company_name' => $request->company_name,
                         'industry' => $request->industry,
                         'website' => $request->website,
-                    ]
-                );
+                    ]);
+                } else {
+                    $businessDetail = ClientBusinessDetail::create([
+                        'client_type' => $request->client_type,
+                        'company_name' => $request->company_name,
+                        'industry' => $request->industry,
+                        'website' => $request->website,
+                    ]);
+                }
 
                 // $staffName = $request->first_name . ' ' . $request->last_name;
                 // try {
