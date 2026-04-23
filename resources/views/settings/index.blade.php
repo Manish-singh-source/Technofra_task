@@ -196,26 +196,68 @@
                                                 @endif
                                             </div>
 
-                                            <div class="col-md-6">
-                                                <label for="favicon" class="form-label">Favicon</label>
-                                                <input type="file" class="form-control" id="favicon" name="favicon"
-                                                    accept="image/*">
-                                                <small class="text-muted">Max size: 2MB. Max dimensions: 32x32. Formats:
-                                                    ICO, PNG, JPG</small>
-                                                @error('favicon')
-                                                    <div class="text-danger">{{ $message }}</div>
-                                                @enderror
-                                                @php($faviconUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['favicon'] ?? ''))
-                                                @if ($faviconUrl)
-                                                    <div class="mt-2">
-                                                        <img src="{{ $faviconUrl }}" alt="Favicon"
-                                                            style="max-height: 32px;" class="img-thumbnail">
-                                                    </div>
-                                                @elseif(!empty($settings['favicon']))
-                                                    <div class="mt-2 text-warning small">Favicon image not found. Please
-                                                        upload again.</div>
-                                                @endif
-                                            </div>
+                                             <div class="col-md-6">
+                                                 <label for="favicon" class="form-label">Favicon</label>
+                                                 <input type="file" class="form-control" id="favicon" name="favicon"
+                                                     accept="image/*">
+                                                 <small class="text-muted">Max size: 2MB. Max dimensions: 32x32. Formats:
+                                                     ICO, PNG, JPG</small>
+                                                 @error('favicon')
+                                                     <div class="text-danger">{{ $message }}</div>
+                                                 @enderror
+                                                 @php($faviconUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['favicon'] ?? ''))
+                                                 @if ($faviconUrl)
+                                                     <div class="mt-2">
+                                                         <img src="{{ $faviconUrl }}" alt="Favicon"
+                                                             style="max-height: 32px;" class="img-thumbnail">
+                                                     </div>
+                                                 @elseif(!empty($settings['favicon']))
+                                                     <div class="mt-2 text-warning small">Favicon image not found. Please
+                                                         upload again.</div>
+                                                 @endif
+                                             </div>
+
+                                             <div class="col-md-6">
+                                                 <label for="app_logo" class="form-label">App Logo (Loading Screen)</label>
+                                                 <input type="file" class="form-control" id="app_logo" name="app_logo"
+                                                     accept="image/*">
+                                                 <small class="text-muted">Max size: 2MB. This logo will be shown on the
+                                                     loading screen and app header.</small>
+                                                 @error('app_logo')
+                                                     <div class="text-danger">{{ $message }}</div>
+                                                 @enderror
+                                                 @php($appLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['app_logo'] ?? ''))
+                                                 @if ($appLogoUrl)
+                                                     <div class="mt-2">
+                                                         <img src="{{ $appLogoUrl }}" alt="App Logo"
+                                                             style="max-height: 80px;" class="img-thumbnail">
+                                                     </div>
+                                                 @elseif(!empty($settings['app_logo']))
+                                                     <div class="mt-2 text-warning small">App logo image not found. Please
+                                                         upload again.</div>
+                                                 @endif
+                                             </div>
+
+                                             <div class="col-md-6">
+                                                 <label for="login_logo" class="form-label">Login Page Logo</label>
+                                                 <input type="file" class="form-control" id="login_logo" name="login_logo"
+                                                     accept="image/*">
+                                                 <small class="text-muted">Max size: 2MB. This logo will be shown on the
+                                                     login page.</small>
+                                                 @error('login_logo')
+                                                     <div class="text-danger">{{ $message }}</div>
+                                                 @enderror
+                                                 @php($loginLogoUrl = \App\Models\Setting::resolveGeneralAssetUrl($settings['login_logo'] ?? ''))
+                                                 @if ($loginLogoUrl)
+                                                     <div class="mt-2">
+                                                         <img src="{{ $loginLogoUrl }}" alt="Login Logo"
+                                                             style="max-height: 80px;" class="img-thumbnail">
+                                                     </div>
+                                                 @elseif(!empty($settings['login_logo']))
+                                                     <div class="mt-2 text-warning small">Login logo image not found. Please
+                                                         upload again.</div>
+                                                 @endif
+                                             </div>
 
                                             <div class="col-12">
                                                 <div class="d-grid">

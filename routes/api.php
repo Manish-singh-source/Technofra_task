@@ -88,7 +88,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/{id}/restore', 'restore')->middleware('permission:edit_staff');
                 Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
             });
-            
+
             Route::prefix('staff')->group(function () {
                 Route::get('/{id}/tasks', 'staffTasks')->middleware('permission:view_staff');
                 Route::get('/{id}/projects', 'staffProjects')->middleware('permission:view_staff');
@@ -249,6 +249,10 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::match(['post', 'put', 'patch'], '/departments', [ApiSettingController::class, 'updateDepartments'])->middleware('permission:view_general_settings');
             Route::post('/test-email', [ApiSettingController::class, 'sendTestEmail'])->middleware('permission:view_email_settings');
             Route::get('/search-tags', [ApiSettingController::class, 'searchTags']);
+            Route::get('/app-logo', [ApiSettingController::class, 'getAppLogo'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/app-logo', [ApiSettingController::class, 'updateAppLogo'])->middleware('permission:view_general_settings');
+            Route::get('/login-logo', [ApiSettingController::class, 'getLoginLogo'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/login-logo', [ApiSettingController::class, 'updateLoginLogo'])->middleware('permission:view_general_settings');
         });
 
         // Role API routes
@@ -295,5 +299,3 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-
