@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
@@ -88,20 +89,20 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/{id}/restore', 'restore')->middleware('permission:edit_staff');
                 Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
             });
-            
+
             Route::prefix('staff')->group(function () {
                 Route::get('/{id}/tasks', 'staffTasks')->middleware('permission:view_staff');
                 Route::get('/{id}/projects', 'staffProjects')->middleware('permission:view_staff');
             });
-        });
+        }); 
 
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
-            Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
-            Route::get('/{id}', [CustomerController::class, 'apiShow'])->middleware('permission:view_clients');
-            Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
-            Route::match(['put', 'patch'], '/{id}', [CustomerController::class, 'apiUpdate'])->middleware('permission:edit_clients');
-            Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
+            // Route::get('/', [CustomerController::class, 'apiIndex'])->middleware('permission:view_clients');
+            // Route::get('/{id}', [CustomerController::class, 'apiShow'])->middleware('permission:view_clients');
+            // Route::post('/', [CustomerController::class, 'apiStore'])->middleware('permission:create_clients');
+            // Route::match(['put', 'patch'], '/{id}', [CustomerController::class, 'apiUpdate'])->middleware('permission:edit_clients');
+            // Route::delete('/{id}', [CustomerController::class, 'apiDestroy'])->middleware('permission:delete_clients');
             Route::post('/{id}/restore', [CustomerController::class, 'apiRestore'])->middleware('permission:edit_clients');
             Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete'])->middleware('permission:delete_clients');
             // Client Tasks
@@ -113,6 +114,16 @@ Route::middleware('auth:sanctum')->group(function () {
             // Client issues
             Route::get('/{id}/issues', [CustomerController::class, 'apiClientIssues'])->middleware('permission:view_clients');
             Route::get('/{id}/issues/{issueId}', [CustomerController::class, 'apiClientIssueDetail'])->middleware('permission:view_clients');
+
+
+            Route::controller(ClientController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::get('/{id}', 'show');
+                Route::post('/', 'store');
+                Route::match(['put', 'patch'], '/{id}', 'update');
+                Route::delete('/{id}', 'destroy');
+            });
+            
         });
 
         // Vendor API routes
@@ -295,5 +306,3 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-

@@ -235,8 +235,8 @@ class User extends Authenticatable
 
     public function tasks()
     {
-        return Task::whereJsonContains('assignees', (string) $this->id)
-            ->orWhereJsonContains('followers', (string) $this->id);
+        return Task::whereJsonContains('assignees', (int) $this->id)
+            ->orWhereJsonContains('followers', (int) $this->id);
     }
 
     public function scopeStaffMembers($query)

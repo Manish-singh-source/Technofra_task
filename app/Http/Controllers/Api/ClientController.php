@@ -2,53 +2,70 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Models\ClientBusinessDetail;
+use App\Models\User;
+use App\Models\UserAddress;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
 {
     //
     public function index()
     {
-        $staffs = Staff::with('user')->get();
-        if (!$staffs) {
-            return ApiResponse::error('No staff found');
+        $clients = User::with('businessDetail:id,user_id,company_name')->where('role', 'client')->paginate(10);
+        $clientsCount = User::where('role', 'client')->count();
+        if (!$clients) {
+            return ApiResponse::error('No client found');
         }
-        return ApiResponse::success($staffs, 'Staff found');
+        return ApiResponse::success([
+            'clients' => $clients,
+            'count' => $clientsCount,
+        ], 'Clients found');
     }
 
     public function show($id)
     {
-        $staff = Staff::with('user')->findOrFail($id);
-        if (!$staff) {
-            return ApiResponse::error('Staff not found');
+        $client = User::with('address', 'businessDetail')->where('role', 'client')->findOrFail($id);
+        if (!$client) {
+            return ApiResponse::error('client not found');
         }
-        return ApiResponse::success($staff, 'Staff found');
+
+        $client->tasksCount = $client->tasks()->count();
+        $client->projectsCount = $client->projects()->count();
+
+        return ApiResponse::success($client, 'Client found');
     }
 
-    public function store($request)
+    public function store(Request $request)
     {
-        $teams = Team::getTeamOptions();
-
-        $payload = array_merge($request->all(), [
-            'first_name' => $request->input('first_name', $request->input('firstName')),
-            'last_name' => $request->input('last_name', $request->input('lastName')),
-            'sendWelcomeEmail' => $request->input('sendWelcomeEmail', $request->input('send_welcome_email')),
-        ]);
-
         $validated = Validator::make($request->all(), [
-            'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
-            'firstName' => 'required|string|max:255',
-            'lastName' => 'required|string|max:255',
-            'email' => 'required|email|unique:staff,email|unique:users,email',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
             'phone' => 'required|string|max:20',
-            'role' => 'required|string|max:255',
-            'password' => 'required|string|min:8',
-            'departments' => 'nullable|array',
-            'departments.*' => 'string|max:255',
-            'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
             'status' => ['nullable', 'string', Rule::in(['active', 'inactive'])],
-            'sendWelcomeEmail' => 'nullable|boolean',
+            'password' => 'required|string|min:8',
+
+            'address_line_1' => 'nullable|string|max:255',
+            'address_line_2' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'pincode' => 'nullable|string|max:20',
+
+            'client_type' => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'industry' => 'nullable|string|max:255',
+            'website' => 'nullable|string|max:255',
         ]);
 
 
@@ -61,59 +78,196 @@ class ClientController extends Controller
 
         DB::beginTransaction();
         try {
+
             $profileImagePath = null;
-            if ($request->hasFile('profileImage')) {
-                $profileImagePath = $this->uploadProfileImage($request->file('profileImage'));
+            if ($request->hasFile('profile_image')) {
+                $profileImagePath = $this->uploadProfileImage($request->file('profile_image'));
+            } else {
+                $fileName = Str::uuid() . '.png';
+                $path = public_path('uploads/client/' . $fileName);
+
+                $avatar = app('avatar');
+                $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
+                $profileImagePath = 'uploads/client/' . 'uploads/client/' . $fileName;
             }
 
-            $user = User::create([
-                'name' => $payload['first_name'] . ' ' . $payload['last_name'],
-                'email' => $payload['email'],
-                'password' => Hash::make($payload['password']),
-            ]);
-
-            $role = Role::where('name', $payload['role'])->first();
-            if ($role) {
-                $user->assignRole($role);
-            }
-
-            $staff = Staff::create([
-                'user_id' => $user->id,
+            $client = User::create([
                 'profile_image' => $profileImagePath,
-                'first_name' => $payload['first_name'],
-                'last_name' => $payload['last_name'],
-                'email' => $payload['email'],
-                'phone' => $payload['phone'],
-                'role' => $payload['role'],
-                'password' => Hash::make($payload['password']),
-                'status' => $payload['status'] ?? 'active',
-                'departments' => $payload['departments'] ?? [],
-                'team' => !empty($payload['team']) ? $payload['team'] : null,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'role' => 'client',
+                'password' => Hash::make($request->password),
+                'status' => $request->status ?? 'active',
             ]);
 
-            $this->refreshPermissionCache();
+            if ($client) {
+                $address = UserAddress::create([
+                    'user_id' => $client->id,
+                    'address_line_1' => $request->address_line_1,
+                    'address_line_2' => $request->address_line_2,
+                    'city' => $request->city,
+                    'state' => $request->state,
+                    'country' => $request->country,
+                    'pincode' => $request->pincode,
+                ]);
 
-            $sendWelcomeEmail = filter_var($payload['sendWelcomeEmail'] ?? true, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
-            $sendWelcomeEmail = $sendWelcomeEmail ?? true;
+                $businessDetail = ClientBusinessDetail::create([
+                    'user_id' => $client->id,
+                    'client_type' => $request->client_type,
+                    'company_name' => $request->company_name,
+                    'industry' => $request->industry,
+                    'website' => $request->website,
+                ]);
 
-            if ($sendWelcomeEmail) {
-                $staffName = $payload['first_name'] . ' ' . $payload['last_name'];
-                try {
-                    Mail::to($payload['email'])->send(new StaffInviteMail($staffName, $payload['email'], $payload['password']));
-                } catch (\Exception $mailException) {
-                    Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                // $staffName = $request->first_name . ' ' . $request->last_name;
+                // try {
+                //     Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+                // } catch (\Exception $mailException) {
+                //     Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                // }
+            }
+
+            if ($client && $address && $businessDetail) {
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client created successfully. Invitation email sent.',
+                    'data' => [
+                        'client' => $client,
+                        'address' => $address,
+                        'businessDetail' => $businessDetail,
+                    ]
+                ], 201);
+            }
+
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create client.',
+            ], 500);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to create client: ' . $e->getMessage());
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        $validated = Validator::make($request->all(), [
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
+            'first_name' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20',
+            'status' => ['nullable', 'string', Rule::in(['active', 'inactive'])],
+
+            'address_line_1' => 'nullable|string|max:255',
+            'address_line_2' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:255',
+            'state' => 'nullable|string|max:255',
+            'country' => 'nullable|string|max:255',
+            'pincode' => 'nullable|string|max:20',
+
+            'client_type' => 'nullable|string|max:255',
+            'company_name' => 'nullable|string|max:255',
+            'industry' => 'nullable|string|max:255',
+            'website' => 'nullable|string|max:255',
+        ]);
+
+
+        if ($validated->fails()) {
+            return response()->json([
+                'success' => false,
+                'errors' => $validated->errors(),
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+
+            $client = User::where('role', 'client')->find($id);
+
+            if ($client->profile_image && $client->profile_image !== 'default.png') {
+                // delete existing image if it's not the default
+                $imagePath = public_path($client->profile_image);
+                if (file_exists($imagePath)) {
+                    unlink($imagePath);
                 }
             }
 
-            DB::commit();
+            $profileImagePath = $client->profile_image; // keep existing if no new upload
+            if ($request->hasFile('profile_image')) {
+                $profileImagePath = $this->uploadProfileImage($request->file('profile_image'));
+            } elseif (!$client->profile_image || $client->profile_image === 'default.png') {
+                // generate avatar if no existing image or it's default
+                $fileName = Str::uuid() . '.png';
+                $path = public_path($fileName);
+                $avatar = app('avatar');
+                $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
+                $profileImagePath = $fileName;
+            }
+
+            $client->update([
+                'profile_image' => $profileImagePath,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
+                'phone' => $request->phone,
+                'status' => $request->status ?? 'active',
+            ]);
+
+            if ($client) {
+                $address = UserAddress::updateOrCreate(
+                    ['user_id', $client->id],
+                    [
+                        'address_line_1' => $request->address_line_1 ?? '',
+                        'address_line_2' => $request->address_line_2 ?? '',
+                        'city' => $request->city ?? '',
+                        'state' => $request->state ?? '',
+                        'country' => $request->country ?? '',
+                        'pincode' => $request->pincode ?? '',
+                    ]
+                );
+
+                $businessDetail = ClientBusinessDetail::createOrUpdate(
+                    ['user_id', $client->id],
+                    [
+                        'client_type' => $request->client_type,
+                        'company_name' => $request->company_name,
+                        'industry' => $request->industry,
+                        'website' => $request->website,
+                    ]
+                );
+
+                // $staffName = $request->first_name . ' ' . $request->last_name;
+                // try {
+                //     Mail::to($request->email)->send(new StaffInviteMail($staffName, $request->email, $request->password));
+                // } catch (\Exception $mailException) {
+                //     Log::error('Failed to send staff invitation email: ' . $mailException->getMessage());
+                // }
+            }
+
+            if ($client) {
+                DB::commit();
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Client created successfully. Invitation email sent.',
+                    'data' => [
+                        'client' => $client,
+                        'address' => $address,
+                        'businessDetail' => $businessDetail,
+                    ]
+                ], 201);
+            }
+
+            DB::rollBack();
             return response()->json([
-                'success' => true,
-                'message' => $sendWelcomeEmail ? 'Staff created successfully. Invitation email sent.' : 'Staff created successfully. Welcome email was not sent.',
-                'data' => $this->formatStaffResource($staff->load('user.roles')),
-            ], 201);
+                'success' => false,
+                'message' => 'Failed to create client.',
+            ], 500);
         } catch (\Exception $e) {
             DB::rollBack();
-            return redirect()->back()->with('error', 'Failed to create staff: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Failed to create client: ' . $e->getMessage());
         }
     }
 
@@ -122,69 +276,29 @@ class ClientController extends Controller
      */
     public function destroy($id)
     {
-        $staff = Staff::withTrashed()->find($id);
+        $client = User::withTrashed()->find($id);
 
-        if ($staff->trashed()) {
-            return ApiResponse::error('Staff member is already deleted');
+        if ($client->trashed()) {
+            return ApiResponse::error('Client is already deleted');
         }
 
         DB::beginTransaction();
         try {
-            $staff->delete();
+            $client->delete();
             DB::commit();
 
-            return ApiResponse::success('Staff deleted successfully.');
+            return ApiResponse::success('client deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-            return ApiResponse::error('Failed to delete staff' . $e->getMessage(), 500);
+            return ApiResponse::error('Failed to delete client' . $e->getMessage(), 500);
         }
     }
 
-    public function restore($id)
+    // Helper function for uploading profile image
+    private function uploadProfileImage($file)
     {
-        $staff = Staff::withTrashed()->find($id);
-
-        if (!$staff->trashed()) {
-            return ApiResponse::error('Staff member is already active');
-        }
-
-        DB::beginTransaction();
-        try {
-            $staff->restore();
-            DB::commit();
-
-            return ApiResponse::success($staff, 'Staff restored successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return ApiResponse::error('Failed to restore staff' . $e->getMessage(), 500);
-        }
-    }
-
-    /**
-     * Permanently delete a staff member.
-     */
-    public function forceDelete($id)
-    {
-        $staff = Staff::withTrashed()->find($id);
-        if (!$staff) {
-            return ApiResponse::error('Staff member not found');
-        }
-
-        DB::beginTransaction();
-        try {
-            if ($staff->profile_image) {
-                $imagePath = public_path('uploads/staff/' . $staff->profile_image);
-                if (file_exists($imagePath)) {
-                    @unlink($imagePath);
-                }
-            }
-            $staff->forceDelete();
-
-            DB::commit();
-            return ApiResponse::success('Staff permanently deleted successfully.');
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return ApiResponse::error('Failed to permanently delete staff' . $e->getMessage(), 500);
-        }
+        $fileName = time() . '_' . $file->getClientOriginalName();
+        $file->move(public_path('uploads/client'), $fileName);
+        return 'uploads/client/' . $fileName;
     }
 }

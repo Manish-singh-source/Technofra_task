@@ -101,7 +101,7 @@ class StaffController extends Controller
 
                 $avatar = app('avatar');
                 $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
-                $profileImagePath = 'uploads/staff/' . 'uploads/staff/' . $fileName;
+                $profileImagePath = 'uploads/staff/' . $fileName;
             }
 
             $user = User::create([
@@ -166,7 +166,7 @@ class StaffController extends Controller
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $id,
+            // 'email' => 'required|email|unique:users,email,' . $id,
             'phone' => 'required|string|max:20',
             'departments' => 'nullable|array',
             'departments.*' => 'integer',
@@ -199,10 +199,10 @@ class StaffController extends Controller
             } elseif (!$user->profile_image || $user->profile_image === 'default.png') {
                 // generate avatar if no existing image or it's default
                 $fileName = Str::uuid() . '.png';
-                $path = public_path($fileName);
+                $path = public_path('uploads/staff/' . $fileName);
                 $avatar = app('avatar');
                 $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
-                $profileImagePath = $fileName;
+                $profileImagePath = 'uploads/staff/' . $fileName;
             }
 
             // Update User
@@ -210,39 +210,24 @@ class StaffController extends Controller
                 'profile_image' => $profileImagePath,
                 'first_name' => $request->first_name,
                 'last_name' => $request->last_name,
-                'email' => $request->email,
                 'phone' => $request->phone,
                 'status' => $request->status ?? $user->status,
             ]);
 
-            // Update Staff
-            $staff = Staff::where('user_id', $user->id)->first();
-            if ($staff) {
-                $staff->update([
-                    'profile_image' => $profileImagePath,
-                    'first_name' => $request->first_name,
-                    'last_name' => $request->last_name,
-                    'email' => $request->email,
-                    'phone' => $request->phone,
-                    'status' => $request->status ?? $user->status,
-                    'team' => $request->team,
-                ]);
-            }
-
             // Update team: detach old and attach new
-            StaffTeam::where('user_id', $user->id)->delete(); // remove old
+            StaffTeam::where('user_id', $user->id)->delete();
             if ($request->team) {
-                StaffTeam::createOrUpdate([
+                StaffTeam::create([
                     'user_id' => $user->id,
                     'team_id' => $request->team,
                 ]);
             }
 
             // Update departments: detach old and attach new
-            StaffDepartment::where('user_id', $user->id)->delete(); // remove old
+            StaffDepartment::where('user_id', $user->id)->delete();
             if ($request->departments) {
                 foreach ($request->departments as $departmentId) {
-                    StaffDepartment::createOrUpdate([
+                    StaffDepartment::create([
                         'user_id' => $user->id,
                         'department_id' => $departmentId,
                     ]);
@@ -292,7 +277,7 @@ class StaffController extends Controller
 
     public function restore($id)
     {
-        $staff = Staff::withTrashed()->find($id);
+        $staff = User::withTrashed()->find($id);
 
         if (! $staff->trashed()) {
             return ApiResponse::error('Staff member is already active');
@@ -316,7 +301,7 @@ class StaffController extends Controller
      */
     public function forceDelete($id)
     {
-        $staff = Staff::withTrashed()->find($id);
+        $staff = User::withTrashed()->find($id);
         if (! $staff) {
             return ApiResponse::error('Staff member not found');
         }
@@ -341,45 +326,40 @@ class StaffController extends Controller
         }
     }
 
-    public function staffTasks($id)
-    {
-        $staff = Staff::find($id);
-        if (! $staff) {
-            return ApiResponse::error('Staff not found', 404);
-        }
-
-        $tasks = $staff->tasks()->with('project')->get()->map(function ($task) {
-            $task->assignees = Staff::whereIn('id', $task->assignees ?? [])->get();
-            $task->followers = Staff::whereIn('id', $task->followers ?? [])->get();
-            // $task->members = Staff::whereIn('id', $task->members ?? [])->get();
-
-            if ($task->project) {
-                // $task->project->members = Staff::whereIn('id', $task->project->membersList() ?? [])->get();
-                // $task->project->members = $task->project->membersList();
-            }
-
-            return $task;
-        });
-
-        return ApiResponse::success($tasks, 'Staff tasks retrieved successfully');
-    }
 
     public function staffProjects($id)
     {
-        $staff = Staff::find($id);
+        $staff = User::find($id);
         if (! $staff) {
             return ApiResponse::error('Staff not found', 404);
         }
 
-        $projects = $staff->projects()->with('customer')->get()->map(function ($project) {
-            $project->members = Staff::whereIn('id', $project->members ?? [])->get();
-
-            return $project;
-        });
+        $projects = $staff->projects()->get();
+        if (!$projects) {
+            return ApiResponse::error('Staff projects not found', 404);
+        }
 
         return ApiResponse::success($projects, 'Staff projects retrieved successfully');
     }
 
+    public function staffTasks($id)
+    {
+        $staff = User::find($id);
+        if (! $staff) {
+            return ApiResponse::error('Staff not found', 404);
+        }
+
+        $tasks = $staff->tasks()->get();
+
+        if (!$tasks) {
+            return ApiResponse::error('Staff tasks not found', 404);
+        }
+
+        return ApiResponse::success($tasks, 'Staff tasks retrieved successfully');
+    }
+
+
+    // Helper function for uploading profile image
     private function uploadProfileImage($file)
     {
         $fileName = time() . '_' . $file->getClientOriginalName();
