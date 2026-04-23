@@ -36,6 +36,10 @@ use Spatie\Permission\Models\Role;
 Route::prefix('/v1')->group(function () {
     // Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login', [AuthController::class, 'login']);
+
+    // Password Reset Routes
+    Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 });
 
 // Protected API routes (require authentication)
