@@ -39,14 +39,14 @@
                             <button class="nav-link active" id="digital-leads-tab" data-bs-toggle="tab"
                                 data-bs-target="#digital-leads-pane" type="button" role="tab"
                                 aria-controls="digital-leads-pane" aria-selected="true">
-                                Leads ({{ $leads->count() }})
+                                Digital Marketing Leads ({{ $leads->count() }})
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
                             <button class="nav-link" id="webapp-leads-tab" data-bs-toggle="tab"
                                 data-bs-target="#webapp-leads-pane" type="button" role="tab"
                                 aria-controls="webapp-leads-pane" aria-selected="false">
-                                Web App Leads ({{ $webappLeads->count() }})
+                                Web & App Leads ({{ $webappLeads->count() }})
                             </button>
                         </li>
                     </ul>

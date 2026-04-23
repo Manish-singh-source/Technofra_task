@@ -300,7 +300,7 @@
                         <a href="{{ route('digital-marketing-leads.index') }}">
                             <div class="parent-icon"><i class="bx bx-line-chart"></i>
                             </div>
-                            <div class="menu-title">Digital Marketing Leads</div>
+                            <div class="menu-title">Google Ads</div>
                         </a>
                     </li>
                 @endcan
