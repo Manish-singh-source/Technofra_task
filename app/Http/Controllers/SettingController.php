@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Mail\TestMail;
 use App\Models\Department;
 use App\Models\Setting;
+use App\Models\Tag;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -49,6 +50,7 @@ class SettingController extends Controller
             })
             ->values()
             ->all();
+
         return view('settings.index', compact('settings', 'teams', 'departments'));
     }
 
@@ -61,6 +63,8 @@ class SettingController extends Controller
             'company_name' => 'required|string|max:255',
             'crm_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,ico|dimensions:max_width=32,max_height=32',
+            'app_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'login_logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
         if ($validator->fails()) {
@@ -87,14 +91,27 @@ class SettingController extends Controller
                 Setting::set('favicon', $this->storeGeneralAsset($favicon, 'favicon'), 'image');
             }
 
+            if ($request->hasFile('app_logo')) {
+                $this->deleteGeneralAsset(Setting::get('app_logo'));
+                $appLogo = $request->file('app_logo');
+                Setting::set('app_logo', $this->storeGeneralAsset($appLogo, 'app_logo'), 'image');
+            }
+
+            if ($request->hasFile('login_logo')) {
+                $this->deleteGeneralAsset(Setting::get('login_logo'));
+                $loginLogo = $request->file('login_logo');
+                Setting::set('login_logo', $this->storeGeneralAsset($loginLogo, 'login_logo'), 'image');
+            }
+
             DB::commit();
 
             return redirect()->route('settings')
                 ->with('success', 'General settings updated successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Failed to update general settings: ' . $e->getMessage())
+                ->with('error', 'Failed to update general settings: '.$e->getMessage())
                 ->withInput();
         }
     }
@@ -131,7 +148,7 @@ class SettingController extends Controller
                 return;
             }
 
-            if (!($officeStart < $lunchStart && $lunchStart < $lunchEnd && $lunchEnd < $officeEnd)) {
+            if (! ($officeStart < $lunchStart && $lunchStart < $lunchEnd && $lunchEnd < $officeEnd)) {
                 $validator->errors()->add('office_start_time', 'Office timings must follow: Office Start < Lunch Start < Lunch End < Office End.');
             }
         });
@@ -174,8 +191,9 @@ class SettingController extends Controller
                 ->with('active_settings_tab', 'company');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Failed to update company information: ' . $e->getMessage())
+                ->with('error', 'Failed to update company information: '.$e->getMessage())
                 ->withInput()
                 ->with('active_settings_tab', 'company');
         }
@@ -263,13 +281,13 @@ class SettingController extends Controller
                 ->with('active_settings_tab', 'email');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Failed to update email settings: ' . $e->getMessage())
+                ->with('error', 'Failed to update email settings: '.$e->getMessage())
                 ->withInput()
                 ->with('active_settings_tab', 'email');
         }
     }
-
 
     /**
      * Update renewal notification settings.
@@ -309,12 +327,14 @@ class SettingController extends Controller
                 ->with('active_settings_tab', 'renewal');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Failed to update renewal notification settings: ' . $e->getMessage())
+                ->with('error', 'Failed to update renewal notification settings: '.$e->getMessage())
                 ->withInput()
                 ->with('active_settings_tab', 'renewal');
         }
     }
+
     /**
      * Send test email.
      */
@@ -340,11 +360,11 @@ class SettingController extends Controller
             Mail::to($request->test_email)->send(new TestMail($settings));
 
             return redirect()->route('settings')
-                ->with('success', 'Test email sent successfully to ' . $request->test_email)
+                ->with('success', 'Test email sent successfully to '.$request->test_email)
                 ->with('active_settings_tab', 'email');
         } catch (\Exception $e) {
             return redirect()->route('settings')
-                ->with('error', 'Failed to send test email: ' . $e->getMessage())
+                ->with('error', 'Failed to send test email: '.$e->getMessage())
                 ->with('active_settings_tab', 'email');
         }
     }
@@ -421,7 +441,7 @@ class SettingController extends Controller
                 ->values()
                 ->all();
             foreach ($oldIconPaths as $oldPath) {
-                if (!in_array($oldPath, $usedIconPaths, true)) {
+                if (! in_array($oldPath, $usedIconPaths, true)) {
                     $this->deleteTeamIcon($oldPath);
                 }
             }
@@ -431,8 +451,9 @@ class SettingController extends Controller
                 ->with('active_settings_tab', 'teams');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Failed to update teams: ' . $e->getMessage())
+                ->with('error', 'Failed to update teams: '.$e->getMessage())
                 ->withInput()
                 ->with('active_settings_tab', 'teams');
         }
@@ -490,8 +511,9 @@ class SettingController extends Controller
                 ->with('active_settings_tab', 'departments');
         } catch (\Exception $e) {
             DB::rollBack();
+
             return redirect()->back()
-                ->with('error', 'Failed to update departments: ' . $e->getMessage())
+                ->with('error', 'Failed to update departments: '.$e->getMessage())
                 ->withInput()
                 ->with('active_settings_tab', 'departments');
         }
@@ -500,14 +522,14 @@ class SettingController extends Controller
     private function storeTeamIcon($iconFile): string
     {
         $destinationPath = public_path('uploads/team-icons');
-        if (!is_dir($destinationPath)) {
+        if (! is_dir($destinationPath)) {
             mkdir($destinationPath, 0755, true);
         }
 
-        $fileName = uniqid('team_', true) . '.' . strtolower($iconFile->getClientOriginalExtension());
+        $fileName = uniqid('team_', true).'.'.strtolower($iconFile->getClientOriginalExtension());
         $iconFile->move($destinationPath, $fileName);
 
-        return 'uploads/team-icons/' . $fileName;
+        return 'uploads/team-icons/'.$fileName;
     }
 
     private function normalizeTeamIconPath(string $iconPath): string
@@ -528,15 +550,15 @@ class SettingController extends Controller
         }
 
         if (str_starts_with($normalized, 'team-icons/')) {
-            $legacyStoragePath = storage_path('app/public/' . $normalized);
+            $legacyStoragePath = storage_path('app/public/'.$normalized);
             $destinationPath = public_path('uploads/team-icons');
-            if (!is_dir($destinationPath)) {
+            if (! is_dir($destinationPath)) {
                 mkdir($destinationPath, 0755, true);
             }
 
-            $targetRelativePath = 'uploads/team-icons/' . basename($normalized);
+            $targetRelativePath = 'uploads/team-icons/'.basename($normalized);
             $targetAbsolutePath = public_path($targetRelativePath);
-            if (is_file($legacyStoragePath) && !is_file($targetAbsolutePath)) {
+            if (is_file($legacyStoragePath) && ! is_file($targetAbsolutePath)) {
                 copy($legacyStoragePath, $targetAbsolutePath);
             }
 
@@ -576,14 +598,14 @@ class SettingController extends Controller
     private function storeGeneralAsset($file, string $prefix): string
     {
         $destinationPath = public_path('uploads/settings');
-        if (!is_dir($destinationPath)) {
+        if (! is_dir($destinationPath)) {
             mkdir($destinationPath, 0755, true);
         }
 
-        $fileName = uniqid($prefix . '_', true) . '.' . strtolower($file->getClientOriginalExtension());
+        $fileName = uniqid($prefix.'_', true).'.'.strtolower($file->getClientOriginalExtension());
         $file->move($destinationPath, $fileName);
 
-        return 'uploads/settings/' . $fileName;
+        return 'uploads/settings/'.$fileName;
     }
 
     private function deleteGeneralAsset(?string $path): void
@@ -608,7 +630,7 @@ class SettingController extends Controller
 
         $legacyCandidates = [];
         if (basename($raw) !== '') {
-            $legacyCandidates[] = 'settings/' . basename($raw);
+            $legacyCandidates[] = 'settings/'.basename($raw);
         }
         if (str_starts_with($raw, 'settings/')) {
             $legacyCandidates[] = $raw;
@@ -670,14 +692,14 @@ class SettingController extends Controller
     private function readEnvironmentFile(): array
     {
         $path = base_path('.env');
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return [];
         }
 
         $values = [];
         foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
             $trimmed = trim((string) $line);
-            if ($trimmed === '' || str_starts_with($trimmed, '#') || !str_contains($line, '=')) {
+            if ($trimmed === '' || str_starts_with($trimmed, '#') || ! str_contains($line, '=')) {
                 continue;
             }
 
@@ -691,7 +713,7 @@ class SettingController extends Controller
     private function updateEnvironmentFile(array $updates): void
     {
         $path = base_path('.env');
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             throw new \RuntimeException('.env file not found.');
         }
 
@@ -701,13 +723,13 @@ class SettingController extends Controller
         }
 
         foreach ($updates as $key => $value) {
-            $formatted = $key . '=' . $this->formatEnvironmentValue($value);
-            $pattern = '/^' . preg_quote($key, '/') . '=.*$/m';
+            $formatted = $key.'='.$this->formatEnvironmentValue($value);
+            $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
 
             if (preg_match($pattern, $contents)) {
                 $contents = preg_replace($pattern, $formatted, $contents, 1) ?? $contents;
             } else {
-                $contents .= rtrim($contents) === '' ? $formatted : PHP_EOL . $formatted;
+                $contents .= rtrim($contents) === '' ? $formatted : PHP_EOL.$formatted;
             }
         }
 
@@ -747,25 +769,23 @@ class SettingController extends Controller
         }
 
         if (preg_match('/\s|#|=|"|\'/', $value)) {
-            return '"' . addcslashes($value, "\"\\") . '"';
+            return '"'.addcslashes($value, '"\\').'"';
         }
 
         return $value;
     }
+
     /**
      * API: Search tags.
      */
     public function searchTags(Request $request)
     {
         $query = $request->get('q', '');
-        $tags = \App\Models\Tag::search($query);
-        
+        $tags = Tag::search($query);
+
         return response()->json([
             'success' => true,
             'data' => $tags,
         ]);
     }
 }
-
-
-

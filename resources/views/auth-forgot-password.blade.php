@@ -20,7 +20,7 @@
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&amp;display=swap" rel="stylesheet">
 	<link href="{{ asset('assets/css/app.css')}}" rel="stylesheet">
 	<link href="{{ asset('assets/css/icons.css')}}" rel="stylesheet">
-	<title>Forgot Password - Technofra Renewal Master</title>
+	<title>Forgot Password - {{ $companyName }}</title>
 </head>
 
 <body class="">
@@ -37,7 +37,7 @@
 										<img src="assets/images/logo-icon.png" width="60" alt="" />
 									</div>
 									<div class="text-center mb-4">
-										<h5 class="">Technofra Admin</h5>
+										<h5 class="">{{ $companyName }}</h5>
 										<p class="mb-0">Enter your email address and we'll send you a link to reset your password</p>
 									</div>
 									<div class="form-body">

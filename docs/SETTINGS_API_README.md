@@ -61,6 +61,88 @@ curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/general' \
 }'
 ```
 
+## 3a. Get App Logo
+
+- Method: `GET`
+- URL: `/api/v1/settings/app-logo`
+- Permission required: `view_general_settings`
+
+Returns the app logo (loading screen logo) URL.
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/v1/settings/app-logo' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_SANCTUM_TOKEN'
+```
+
+## 3b. Update App Logo
+
+- Method: `POST` (or `PUT`/`PATCH`)
+- URL: `/api/v1/settings/app-logo`
+- Permission required: `view_general_settings`
+
+Use multipart form data when uploading `app_logo`.
+
+```bash
+curl --location --request POST 'http://127.0.0.1:8000/api/v1/settings/app-logo' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
+--form 'app_logo=@"/full/path/app-logo.png"'
+```
+
+To remove existing app logo:
+
+```bash
+curl --location --request POST 'http://127.0.0.1:8000/api/v1/settings/app-logo' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
+--header 'Content-Type: application/json' \
+--data '{
+  "remove_app_logo": true
+}'
+```
+
+## 3c. Get Login Logo
+
+- Method: `GET`
+- URL: `/api/v1/settings/login-logo`
+- Permission required: `view_general_settings`
+
+Returns the login page logo URL.
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/v1/settings/login-logo' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_SANCTUM_TOKEN'
+```
+
+## 3d. Update Login Logo
+
+- Method: `POST` (or `PUT`/`PATCH`)
+- URL: `/api/v1/settings/login-logo`
+- Permission required: `view_general_settings`
+
+Use multipart form data when uploading `login_logo`.
+
+```bash
+curl --location --request POST 'http://127.0.0.1:8000/api/v1/settings/login-logo' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
+--form 'login_logo=@"/full/path/login-logo.png"'
+```
+
+To remove existing login logo:
+
+```bash
+curl --location --request POST 'http://127.0.0.1:8000/api/v1/settings/login-logo' \
+--header 'Accept: application/json' \
+--header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
+--header 'Content-Type: application/json' \
+--data '{
+  "remove_login_logo": true
+}'
+```
+
 ## 4. Get Company Information
 
 - Method: `GET`

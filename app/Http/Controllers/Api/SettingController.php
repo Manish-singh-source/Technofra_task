@@ -64,17 +64,25 @@ class SettingController extends Controller
             'company_name' => 'sometimes|required|string|max:255',
             'crm_logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'favicon' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,ico|dimensions:max_width=32,max_height=32',
+            'app_logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'login_logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'remove_crm_logo' => 'sometimes|boolean',
             'remove_favicon' => 'sometimes|boolean',
+            'remove_app_logo' => 'sometimes|boolean',
+            'remove_login_logo' => 'sometimes|boolean',
         ]);
 
         $validator->after(function ($validator) use ($request) {
             if (
-                !$request->filled('company_name')
-                && !$request->hasFile('crm_logo')
-                && !$request->hasFile('favicon')
-                && !$request->boolean('remove_crm_logo')
-                && !$request->boolean('remove_favicon')
+                ! $request->filled('company_name')
+                && ! $request->hasFile('crm_logo')
+                && ! $request->hasFile('favicon')
+                && ! $request->hasFile('app_logo')
+                && ! $request->hasFile('login_logo')
+                && ! $request->boolean('remove_crm_logo')
+                && ! $request->boolean('remove_favicon')
+                && ! $request->boolean('remove_app_logo')
+                && ! $request->boolean('remove_login_logo')
             ) {
                 $validator->errors()->add('settings', 'Please provide at least one general setting to update.');
             }
@@ -101,6 +109,16 @@ class SettingController extends Controller
                 Setting::set('favicon', null, 'image');
             }
 
+            if ($request->boolean('remove_app_logo')) {
+                $this->deleteGeneralAsset(Setting::get('app_logo'));
+                Setting::set('app_logo', null, 'image');
+            }
+
+            if ($request->boolean('remove_login_logo')) {
+                $this->deleteGeneralAsset(Setting::get('login_logo'));
+                Setting::set('login_logo', null, 'image');
+            }
+
             if ($request->hasFile('crm_logo')) {
                 $this->deleteGeneralAsset(Setting::get('crm_logo'));
                 Setting::set('crm_logo', $this->storeGeneralAsset($request->file('crm_logo'), 'logo'), 'image');
@@ -109,6 +127,16 @@ class SettingController extends Controller
             if ($request->hasFile('favicon')) {
                 $this->deleteGeneralAsset(Setting::get('favicon'));
                 Setting::set('favicon', $this->storeGeneralAsset($request->file('favicon'), 'favicon'), 'image');
+            }
+
+            if ($request->hasFile('app_logo')) {
+                $this->deleteGeneralAsset(Setting::get('app_logo'));
+                Setting::set('app_logo', $this->storeGeneralAsset($request->file('app_logo'), 'app_logo'), 'image');
+            }
+
+            if ($request->hasFile('login_logo')) {
+                $this->deleteGeneralAsset(Setting::get('login_logo'));
+                Setting::set('login_logo', $this->storeGeneralAsset($request->file('login_logo'), 'login_logo'), 'image');
             }
 
             DB::commit();
@@ -150,8 +178,9 @@ class SettingController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request, $fields) {
-            if (!$this->requestHasAny($request, array_keys($fields))) {
+            if (! $this->requestHasAny($request, array_keys($fields))) {
                 $validator->errors()->add('settings', 'Please provide at least one company information setting to update.');
+
                 return;
             }
 
@@ -165,7 +194,7 @@ class SettingController extends Controller
                 return;
             }
 
-            if (!($officeStart < $lunchStart && $lunchStart < $lunchEnd && $lunchEnd < $officeEnd)) {
+            if (! ($officeStart < $lunchStart && $lunchStart < $lunchEnd && $lunchEnd < $officeEnd)) {
                 $validator->errors()->add('office_start_time', 'Office timings must follow: Office Start < Lunch Start < Lunch End < Office End.');
             }
         });
@@ -222,7 +251,7 @@ class SettingController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request, $fields) {
-            if (!$this->requestHasAny($request, array_keys($fields))) {
+            if (! $this->requestHasAny($request, array_keys($fields))) {
                 $validator->errors()->add('settings', 'Please provide at least one email setting to update.');
             }
         });
@@ -285,7 +314,7 @@ class SettingController extends Controller
         ]);
 
         $validator->after(function ($validator) use ($request, $fields) {
-            if (!$this->requestHasAny($request, array_keys($fields))) {
+            if (! $this->requestHasAny($request, array_keys($fields))) {
                 $validator->errors()->add('settings', 'Please provide at least one renewal notification setting to update.');
             }
         });
@@ -298,7 +327,7 @@ class SettingController extends Controller
 
         try {
             foreach ($fields as $field => $type) {
-                if (!array_key_exists($field, $request->all())) {
+                if (! array_key_exists($field, $request->all())) {
                     continue;
                 }
 
@@ -390,7 +419,7 @@ class SettingController extends Controller
 
             $usedIconPaths = collect($teams)->pluck('icon_path')->filter()->values()->all();
             foreach ($oldIconPaths as $oldPath) {
-                if (!in_array($oldPath, $usedIconPaths, true)) {
+                if (! in_array($oldPath, $usedIconPaths, true)) {
                     $this->deleteTeamIcon($oldPath);
                 }
             }
@@ -502,11 +531,167 @@ class SettingController extends Controller
         return ApiResponse::success($tags, 'Tags fetched successfully.');
     }
 
+    /**
+     * Get app logo (loading screen logo).
+     */
+    public function getAppLogo(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! $user->can('view_general_settings')) {
+            return ApiResponse::error('Unauthorized.', [], 403);
+        }
+
+        $settings = Setting::getAllSettings();
+        $appLogoPath = $settings['app_logo'] ?? null;
+
+        return ApiResponse::success([
+            'app_logo' => [
+                'path' => $appLogoPath,
+                'url' => Setting::resolveGeneralAssetUrl($appLogoPath),
+            ],
+            'links' => [
+                'show' => url('/api/v1/settings/app-logo'),
+                'update' => url('/api/v1/settings/app-logo'),
+            ],
+        ], 'App logo fetched successfully.');
+    }
+
+    /**
+     * Update app logo (loading screen logo).
+     */
+    public function updateAppLogo(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! $user->can('view_general_settings')) {
+            return ApiResponse::error('Unauthorized.', [], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'app_logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'remove_app_logo' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::error('Validation error.', $validator->errors(), 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            if ($request->boolean('remove_app_logo')) {
+                $this->deleteGeneralAsset(Setting::get('app_logo'));
+                Setting::set('app_logo', null, 'image');
+            }
+
+            if ($request->hasFile('app_logo')) {
+                $this->deleteGeneralAsset(Setting::get('app_logo'));
+                Setting::set('app_logo', $this->storeGeneralAsset($request->file('app_logo'), 'app_logo'), 'image');
+            }
+
+            DB::commit();
+
+            $settings = Setting::getAllSettings();
+            $appLogoPath = $settings['app_logo'] ?? null;
+
+            return ApiResponse::success([
+                'app_logo' => [
+                    'path' => $appLogoPath,
+                    'url' => Setting::resolveGeneralAssetUrl($appLogoPath),
+                ],
+            ], 'App logo updated successfully.');
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+
+            return ApiResponse::error('Failed to update app logo.', [
+                'server' => [$exception->getMessage()],
+            ], 500);
+        }
+    }
+
+    /**
+     * Get login logo.
+     */
+    public function getLoginLogo(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! $user->can('view_general_settings')) {
+            return ApiResponse::error('Unauthorized.', [], 403);
+        }
+
+        $settings = Setting::getAllSettings();
+        $loginLogoPath = $settings['login_logo'] ?? null;
+
+        return ApiResponse::success([
+            'login_logo' => [
+                'path' => $loginLogoPath,
+                'url' => Setting::resolveGeneralAssetUrl($loginLogoPath),
+            ],
+            'links' => [
+                'show' => url('/api/v1/settings/login-logo'),
+                'update' => url('/api/v1/settings/login-logo'),
+            ],
+        ], 'Login logo fetched successfully.');
+    }
+
+    /**
+     * Update login logo.
+     */
+    public function updateLoginLogo(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user || ! $user->can('view_general_settings')) {
+            return ApiResponse::error('Unauthorized.', [], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'login_logo' => 'sometimes|nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'remove_login_logo' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::error('Validation error.', $validator->errors(), 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            if ($request->boolean('remove_login_logo')) {
+                $this->deleteGeneralAsset(Setting::get('login_logo'));
+                Setting::set('login_logo', null, 'image');
+            }
+
+            if ($request->hasFile('login_logo')) {
+                $this->deleteGeneralAsset(Setting::get('login_logo'));
+                Setting::set('login_logo', $this->storeGeneralAsset($request->file('login_logo'), 'login_logo'), 'image');
+            }
+
+            DB::commit();
+
+            $settings = Setting::getAllSettings();
+            $loginLogoPath = $settings['login_logo'] ?? null;
+
+            return ApiResponse::success([
+                'login_logo' => [
+                    'path' => $loginLogoPath,
+                    'url' => Setting::resolveGeneralAssetUrl($loginLogoPath),
+                ],
+            ], 'Login logo updated successfully.');
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+
+            return ApiResponse::error('Failed to update login logo.', [
+                'server' => [$exception->getMessage()],
+            ], 500);
+        }
+    }
+
     private function formatGeneralSettings(): array
     {
         $settings = Setting::getAllSettings();
         $crmLogoPath = $settings['crm_logo'] ?? null;
         $faviconPath = $settings['favicon'] ?? null;
+        $appLogoPath = $settings['app_logo'] ?? null;
+        $loginLogoPath = $settings['login_logo'] ?? null;
 
         return [
             'company_name' => $settings['company_name'] ?? null,
@@ -518,9 +703,19 @@ class SettingController extends Controller
                 'path' => $faviconPath,
                 'url' => Setting::resolveGeneralAssetUrl($faviconPath),
             ],
+            'app_logo' => [
+                'path' => $appLogoPath,
+                'url' => Setting::resolveGeneralAssetUrl($appLogoPath),
+            ],
+            'login_logo' => [
+                'path' => $loginLogoPath,
+                'url' => Setting::resolveGeneralAssetUrl($loginLogoPath),
+            ],
             'links' => [
                 'show' => url('/api/v1/settings/general'),
                 'update' => url('/api/v1/settings/general'),
+                'app_logo' => url('/api/v1/settings/app-logo'),
+                'login_logo' => url('/api/v1/settings/login-logo'),
             ],
         ];
     }
@@ -700,14 +895,14 @@ class SettingController extends Controller
     private function storeTeamIcon($iconFile): string
     {
         $destinationPath = public_path('uploads/team-icons');
-        if (!is_dir($destinationPath)) {
+        if (! is_dir($destinationPath)) {
             mkdir($destinationPath, 0755, true);
         }
 
-        $fileName = uniqid('team_', true) . '.' . strtolower($iconFile->getClientOriginalExtension());
+        $fileName = uniqid('team_', true).'.'.strtolower($iconFile->getClientOriginalExtension());
         $iconFile->move($destinationPath, $fileName);
 
-        return 'uploads/team-icons/' . $fileName;
+        return 'uploads/team-icons/'.$fileName;
     }
 
     private function normalizeTeamIconPath(string $iconPath): string
@@ -728,15 +923,15 @@ class SettingController extends Controller
         }
 
         if (str_starts_with($normalized, 'team-icons/')) {
-            $legacyStoragePath = storage_path('app/public/' . $normalized);
+            $legacyStoragePath = storage_path('app/public/'.$normalized);
             $destinationPath = public_path('uploads/team-icons');
-            if (!is_dir($destinationPath)) {
+            if (! is_dir($destinationPath)) {
                 mkdir($destinationPath, 0755, true);
             }
 
-            $targetRelativePath = 'uploads/team-icons/' . basename($normalized);
+            $targetRelativePath = 'uploads/team-icons/'.basename($normalized);
             $targetAbsolutePath = public_path($targetRelativePath);
-            if (is_file($legacyStoragePath) && !is_file($targetAbsolutePath)) {
+            if (is_file($legacyStoragePath) && ! is_file($targetAbsolutePath)) {
                 copy($legacyStoragePath, $targetAbsolutePath);
             }
 
@@ -776,14 +971,14 @@ class SettingController extends Controller
     private function storeGeneralAsset($file, string $prefix): string
     {
         $destinationPath = public_path('uploads/settings');
-        if (!is_dir($destinationPath)) {
+        if (! is_dir($destinationPath)) {
             mkdir($destinationPath, 0755, true);
         }
 
-        $fileName = uniqid($prefix . '_', true) . '.' . strtolower($file->getClientOriginalExtension());
+        $fileName = uniqid($prefix.'_', true).'.'.strtolower($file->getClientOriginalExtension());
         $file->move($destinationPath, $fileName);
 
-        return 'uploads/settings/' . $fileName;
+        return 'uploads/settings/'.$fileName;
     }
 
     private function deleteGeneralAsset(?string $path): void
@@ -808,7 +1003,7 @@ class SettingController extends Controller
 
         $legacyCandidates = [];
         if (basename($raw) !== '') {
-            $legacyCandidates[] = 'settings/' . basename($raw);
+            $legacyCandidates[] = 'settings/'.basename($raw);
         }
         if (str_starts_with($raw, 'settings/')) {
             $legacyCandidates[] = $raw;
@@ -870,14 +1065,14 @@ class SettingController extends Controller
     private function readEnvironmentFile(): array
     {
         $path = base_path('.env');
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             return [];
         }
 
         $values = [];
         foreach (file($path, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
             $trimmed = trim((string) $line);
-            if ($trimmed === '' || str_starts_with($trimmed, '#') || !str_contains($line, '=')) {
+            if ($trimmed === '' || str_starts_with($trimmed, '#') || ! str_contains($line, '=')) {
                 continue;
             }
 
@@ -891,7 +1086,7 @@ class SettingController extends Controller
     private function updateEnvironmentFile(array $updates): void
     {
         $path = base_path('.env');
-        if (!is_file($path)) {
+        if (! is_file($path)) {
             throw new \RuntimeException('.env file not found.');
         }
 
@@ -901,13 +1096,13 @@ class SettingController extends Controller
         }
 
         foreach ($updates as $key => $value) {
-            $formatted = $key . '=' . $this->formatEnvironmentValue($value);
-            $pattern = '/^' . preg_quote($key, '/') . '=.*$/m';
+            $formatted = $key.'='.$this->formatEnvironmentValue($value);
+            $pattern = '/^'.preg_quote($key, '/').'=.*$/m';
 
             if (preg_match($pattern, $contents)) {
                 $contents = preg_replace($pattern, $formatted, $contents, 1) ?? $contents;
             } else {
-                $contents .= rtrim($contents) === '' ? $formatted : PHP_EOL . $formatted;
+                $contents .= rtrim($contents) === '' ? $formatted : PHP_EOL.$formatted;
             }
         }
 
@@ -947,7 +1142,7 @@ class SettingController extends Controller
         }
 
         if (preg_match('/\s|#|=|"|\'/', $value)) {
-            return '"' . addcslashes($value, "\"\\") . '"';
+            return '"'.addcslashes($value, '"\\').'"';
         }
 
         return $value;
