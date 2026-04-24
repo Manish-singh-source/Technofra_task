@@ -90,8 +90,8 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/departments', 'departments');
                 Route::get('/teams', 'teams');
 
-                Route::get('/', 'index')->middleware('permission:view_staff');
-                Route::get('/{id}', 'show')->middleware('permission:view_staff');
+                Route::get('/', 'index');
+                Route::get('/{id}', 'show');
                 Route::post('/', 'store')->middleware('permission:create_staff');
                 Route::put('/{id}', 'update')->middleware('permission:edit_staff');
                 Route::delete('/{id}', 'destroy')->middleware('permission:delete_staff');
