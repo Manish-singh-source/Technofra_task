@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Service;
@@ -11,31 +12,74 @@ use Illuminate\Support\Facades\Validator;
 
 class ClientRenewalController extends Controller
 {
-    public function clientList()
+
+    public function index()
     {
-        $clients = Client::where('status', 1)
-            ->select('id', 'cname', 'coname', 'email', 'phone')
-            ->orderBy('cname')
-            ->get();
+        $services = Service::with(['client', 'vendor'])
+            ->whereNotNull('client_id')
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($service) {
+                return [
+                    'id' => $service->id,
+                    'client_name' => $service->client->cname ?? null,
+                    'vendor_name' => $service->vendor->name ?? null,
+                    'service_name' => $service->service_name,
+                    'remark' => $service->remark_text,
+                    'start_date' => $service->start_date?->toDateString(),
+                    'end_date' => $service->end_date?->toDateString(),
+                    'billing_date' => $service->billing_date?->toDateString(),
+                    'status' => $service->status,
+                ];
+            });
+
+        if(!$services) {
+            return ApiResponse::error('No client renewals found');
+        }
+        
+        return ApiResponse::success($services, 'Client renewals found');
+    }
+
+    public function show($id)
+    {
+        $service = Service::with(['client', 'vendor'])->whereNotNull('client_id')->find($id);
+
+        if (! $service) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Service not found',
+            ], 404);
+        }
+
+        $startDate = $service->start_date;
+        $endDate = $service->end_date;
+        $duration = null;
+        if ($startDate && $endDate) {
+            $duration = $startDate->diffInDays($endDate);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $clients,
+            'data' => [
+                'service_id' => $service->id,
+                'client_name' => $service->client->cname ?? null,
+                'client_email' => $service->client->email ?? null,
+                'vendor_name' => $service->vendor->name ?? null,
+                'vendor_email' => $service->vendor->email ?? null,
+                'service_name' => $service->service_name,
+                'service_details' => $service->service_details,
+                'remark' => $service->remark_text,
+                'start_date' => $service->start_date?->toDateString(),
+                'end_date' => $service->end_date?->toDateString(),
+                'duration' => $duration,
+                'billing_date' => $service->billing_date?->toDateString(),
+                'status' => $service->status,
+                'created_at' => $service->created_at?->toDateTimeString(),
+                'last_updated' => $service->updated_at?->toDateTimeString(),
+            ],
         ]);
     }
 
-    public function vendorList()
-    {
-        $vendors = Vendor::where('status', 1)
-            ->select('id', 'name', 'email', 'phone')
-            ->orderBy('name')
-            ->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $vendors,
-        ]);
-    }
 
     public function store(Request $request)
     {
@@ -79,71 +123,6 @@ class ClientRenewalController extends Controller
         ]);
     }
 
-    public function index()
-    {
-        $services = Service::with(['client', 'vendor'])
-            ->whereNotNull('client_id')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($service) {
-                return [
-                    'id' => $service->id,
-                    'client_name' => $service->client->cname ?? null,
-                    'vendor_name' => $service->vendor->name ?? null,
-                    'service_name' => $service->service_name,
-                    'remark' => $service->remark_text,
-                    'start_date' => $service->start_date?->toDateString(),
-                    'end_date' => $service->end_date?->toDateString(),
-                    'billing_date' => $service->billing_date?->toDateString(),
-                    'status' => $service->status,
-                ];
-            });
-
-        return response()->json([
-            'success' => true,
-            'data' => $services,
-        ]);
-    }
-
-    public function show($id)
-    {
-        $service = Service::with(['client', 'vendor'])->whereNotNull('client_id')->find($id);
-
-        if (! $service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Service not found',
-            ], 404);
-        }
-
-        $startDate = $service->start_date;
-        $endDate = $service->end_date;
-        $duration = null;
-        if ($startDate && $endDate) {
-            $duration = $startDate->diffInDays($endDate);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'service_id' => $service->id,
-                'client_name' => $service->client->cname ?? null,
-                'client_email' => $service->client->email ?? null,
-                'vendor_name' => $service->vendor->name ?? null,
-                'vendor_email' => $service->vendor->email ?? null,
-                'service_name' => $service->service_name,
-                'service_details' => $service->service_details,
-                'remark' => $service->remark_text,
-                'start_date' => $service->start_date?->toDateString(),
-                'end_date' => $service->end_date?->toDateString(),
-                'duration' => $duration,
-                'billing_date' => $service->billing_date?->toDateString(),
-                'status' => $service->status,
-                'created_at' => $service->created_at?->toDateTimeString(),
-                'last_updated' => $service->updated_at?->toDateTimeString(),
-            ],
-        ]);
-    }
 
     public function update(Request $request, $id)
     {
@@ -196,6 +175,7 @@ class ClientRenewalController extends Controller
         ]);
     }
 
+
     public function destroy($id)
     {
         $service = Service::whereNotNull('client_id')->find($id);
@@ -215,23 +195,30 @@ class ClientRenewalController extends Controller
         ]);
     }
 
-    public function destroyAll()
+    public function clientList()
     {
-        Service::whereNotNull('client_id')->withTrashed()->delete();
+        $clients = Client::where('status', 1)
+            ->select('id', 'cname', 'coname', 'email', 'phone')
+            ->orderBy('cname')
+            ->get();
 
         return response()->json([
             'success' => true,
-            'message' => 'All client renewals deleted successfully',
+            'data' => $clients,
         ]);
     }
 
-    public function forceDeleteAll()
+    public function vendorList()
     {
-        Service::whereNotNull('client_id')->withTrashed()->forceDelete();
+        $vendors = Vendor::where('status', 1)
+            ->select('id', 'name', 'email', 'phone')
+            ->orderBy('name')
+            ->get();
 
         return response()->json([
             'success' => true,
-            'message' => 'All client renewals permanently deleted',
+            'data' => $vendors,
         ]);
     }
+
 }

@@ -11,13 +11,13 @@ use App\Http\Controllers\Api\RolesController as ApiRoleController;
 use App\Http\Controllers\Api\ServiceController as ApiServiceController;
 use App\Http\Controllers\Api\SettingController as ApiSettingController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
+use App\Http\Controllers\Api\TodoController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\StaffController;
-use App\Http\Controllers\TodoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -152,16 +152,26 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{id}', [VendorRenewalController::class, 'destroy']);
         });
 
-        
+
         // Client Renewal API routes
         Route::prefix('client-renewals')->group(function () {
             Route::get('/', [ClientRenewalController::class, 'index']);
-            Route::post('/', [ClientRenewalController::class, 'store']);
-            Route::delete('/force', [ClientRenewalController::class, 'forceDeleteAll']);
-            Route::delete('/', [ClientRenewalController::class, 'destroyAll']);
             Route::get('/{id}', [ClientRenewalController::class, 'show']);
-            Route::match(['put', 'patch'], '/{id}', [ClientRenewalController::class, 'update']);
+            Route::post('/', [ClientRenewalController::class, 'store']);
+            Route::put('/{id}', [ClientRenewalController::class, 'update']);
             Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
+        });
+
+
+        Route::prefix('todos')->group(function () {
+            Route::get('/', [TodoController::class, 'index']);
+            Route::get('/{todo}', [TodoController::class, 'show']);
+            Route::post('/', [TodoController::class, 'store']);
+            Route::match(['put', 'patch'], '/{todo}', [TodoController::class, 'update']);
+            Route::delete('/{todo}', [TodoController::class, 'delete']);
+
+            Route::get('/options', [TodoController::class, 'apiTodoOptions']);
+            Route::patch('/{todo}/status', [TodoController::class, 'apiToggleTodoStatus']);
         });
 
 
@@ -185,16 +195,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/events/{id}', [CalendarEventController::class, 'apiDestroy'])->middleware('permission:view_calendar|view_dashboard');
         });
 
-        // Todo API routes
-        Route::prefix('todos')->group(function () {
-            Route::get('/options', [TodoController::class, 'apiTodoOptions']);
-            Route::get('/', [TodoController::class, 'apiTodoCollection']);
-            Route::get('/{todo}', [TodoController::class, 'apiTodoDetail']);
-            Route::post('/', [TodoController::class, 'apiCreateTodo']);
-            Route::match(['put', 'patch'], '/{todo}', [TodoController::class, 'apiUpdateTodo']);
-            Route::delete('/{todo}', [TodoController::class, 'apiDeleteTodo']);
-            Route::patch('/{todo}/status', [TodoController::class, 'apiToggleTodoStatus']);
-        });
 
         // Project API routes
         Route::prefix('projects')->group(function () {

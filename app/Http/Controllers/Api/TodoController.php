@@ -1,7 +1,8 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
 use App\Models\Todo;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -11,25 +12,32 @@ use Illuminate\Support\Str;
 
 class TodoController extends Controller
 {
-    public function index()
+    //
+    public function index(Request $request): JsonResponse
     {
-        $todos = Todo::ownedBy(Auth::id())->latest()->get();
-
-        $formattedTodos = $todos->map(function ($todo) {
-            return $this->formatTodoResource($todo);
-        })->values();
-
-        return view('to-do-list', compact('todos', 'formattedTodos'));
-    }
-
-    public function list(): JsonResponse
-    {
-        $todos = Todo::ownedBy(Auth::id())->latest()->get();
+        $todos = Todo::ownedBy(Auth::id())
+            ->when($request->filled('is_completed'), function ($query) use ($request) {
+                $query->where('is_completed', $request->boolean('is_completed'));
+            })
+            ->latest()
+            ->get();
 
         return response()->json([
+            'success' => true,
             'data' => $todos->map(fn(Todo $todo) => $this->formatTodoResource($todo))->values(),
         ]);
     }
+
+    public function show(Todo $todo): JsonResponse
+    {
+        $this->authorizeTodo($todo);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatTodoResource($todo),
+        ]);
+    }
+
 
     public function store(Request $request): JsonResponse
     {
@@ -40,6 +48,7 @@ class TodoController extends Controller
         $todo = Todo::create($data);
 
         return response()->json([
+            'success' => true,
             'message' => 'Todo created successfully.',
             'data' => $this->formatTodoResource($todo),
         ], 201);
@@ -55,40 +64,22 @@ class TodoController extends Controller
         $todo->update($data);
 
         return response()->json([
+            'success' => true,
             'message' => 'Todo updated successfully.',
             'data' => $this->formatTodoResource($todo->fresh()),
         ]);
     }
 
-    public function destroy(Todo $todo): JsonResponse
+
+    public function delete(Todo $todo): JsonResponse
     {
         $this->authorizeTodo($todo);
         $this->deleteTodoAttachments($todo);
         $todo->delete();
 
         return response()->json([
+            'success' => true,
             'message' => 'Todo deleted successfully.',
-        ]);
-    }
-
-    public function toggleStatus(Request $request, Todo $todo): JsonResponse
-    {
-        $this->authorizeTodo($todo);
-
-        $request->validate([
-            'is_completed' => 'required|boolean',
-        ]);
-
-        $completed = (bool) $request->boolean('is_completed');
-
-        $todo->update([
-            'is_completed' => $completed,
-            'completed_at' => $completed ? now() : null,
-        ]);
-
-        return response()->json([
-            'message' => 'Todo status updated successfully.',
-            'data' => $this->formatTodoResource($todo->fresh()),
         ]);
     }
 
@@ -131,9 +122,40 @@ class TodoController extends Controller
         return $data;
     }
 
-    protected function authorizeTodo(Todo $todo): void
+    public function apiTodoOptions(): JsonResponse
     {
-        abort_unless($todo->user_id === Auth::id(), 403);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'repeat_units' => ['day', 'week', 'month', 'year'],
+                'repeat_days' => ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
+                'ends_types' => ['never', 'on', 'after'],
+            ],
+        ]);
+    }
+
+
+
+    public function apiToggleTodoStatus(Request $request, Todo $todo): JsonResponse
+    {
+        $this->authorizeTodo($todo);
+
+        $request->validate([
+            'is_completed' => 'required|boolean',
+        ]);
+
+        $completed = (bool) $request->boolean('is_completed');
+
+        $todo->update([
+            'is_completed' => $completed,
+            'completed_at' => $completed ? now() : null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Todo status updated successfully.',
+            'data' => $this->formatTodoResource($todo->fresh()),
+        ]);
     }
 
     public function formatTodoResource(Todo $todo): array
@@ -191,6 +213,46 @@ class TodoController extends Controller
         ];
     }
 
+    protected function authorizeTodo(Todo $todo): void
+    {
+        abort_unless($todo->user_id === Auth::id(), 403);
+    }
+
+    protected function deleteTodoAttachments(Todo $todo): void
+    {
+        foreach ($todo->attachments ?? [] as $attachment) {
+            if (! is_array($attachment) || empty($attachment['path'])) {
+                continue;
+            }
+
+            $absolutePath = public_path($attachment['path']);
+            if (File::exists($absolutePath)) {
+                File::delete($absolutePath);
+            }
+        }
+    }
+
+
+    protected function mergeTodoAttachments(Todo $todo, Request $request): array
+    {
+        $existingAttachments = collect($todo->attachments ?? [])
+            ->filter(fn($attachment) => is_array($attachment) && ! empty($attachment['path']))
+            ->values()
+            ->all();
+
+        $removeIds = $request->input('remove_attachments', []);
+        if (! empty($removeIds)) {
+            $existingAttachments = collect($existingAttachments)
+                ->filter(fn($attachment, $index) => ! in_array($index, $removeIds))
+                ->values()
+                ->all();
+        }
+
+        $newAttachments = $this->storeUploadedAttachments($request);
+
+        return array_values(array_merge($existingAttachments, $newAttachments));
+    }
+
     protected function storeUploadedAttachments(Request $request): array
     {
         $storedAttachments = [];
@@ -221,39 +283,5 @@ class TodoController extends Controller
         }
 
         return $storedAttachments;
-    }
-
-    protected function mergeTodoAttachments(Todo $todo, Request $request): array
-    {
-        $existingAttachments = collect($todo->attachments ?? [])
-            ->filter(fn($attachment) => is_array($attachment) && ! empty($attachment['path']))
-            ->values()
-            ->all();
-
-        $removeIds = $request->input('remove_attachments', []);
-        if (! empty($removeIds)) {
-            $existingAttachments = collect($existingAttachments)
-                ->filter(fn($attachment, $index) => ! in_array($index, $removeIds))
-                ->values()
-                ->all();
-        }
-
-        $newAttachments = $this->storeUploadedAttachments($request);
-
-        return array_values(array_merge($existingAttachments, $newAttachments));
-    }
-
-    protected function deleteTodoAttachments(Todo $todo): void
-    {
-        foreach ($todo->attachments ?? [] as $attachment) {
-            if (! is_array($attachment) || empty($attachment['path'])) {
-                continue;
-            }
-
-            $absolutePath = public_path($attachment['path']);
-            if (File::exists($absolutePath)) {
-                File::delete($absolutePath);
-            }
-        }
     }
 }
