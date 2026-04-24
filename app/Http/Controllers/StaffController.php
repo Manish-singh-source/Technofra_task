@@ -218,10 +218,8 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
-            $oldRole = $staff->role;
-
             $staff->update($this->buildStaffUpdateData($request, $staff));
-            $this->syncUserForStaffUpdate($staff, $request, $oldRole);
+            $this->syncUserForStaffUpdate($staff, $request);
             $this->refreshPermissionCache();
 
             DB::commit();
@@ -843,10 +841,8 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
-            $oldRole = $staff->role;
-
             $staff->update($this->buildStaffUpdateData($request, $staff));
-            $this->syncUserForStaffUpdate($staff, $request, $oldRole);
+            $this->syncUserForStaffUpdate($staff, $request);
             $this->refreshPermissionCache();
 
             DB::commit();
@@ -971,7 +967,7 @@ class StaffController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($id)],
             'phone' => 'required|string|max:20',
-            'role' => 'required|string|max:255',
+            'role' => ['required', 'string', 'max:255', Rule::exists('roles', 'name')],
             'status' => 'required|in:active,inactive',
             'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
             'departments' => 'nullable|array',
@@ -997,7 +993,7 @@ class StaffController extends Controller
         return $updateData;
     }
 
-    private function syncUserForStaffUpdate(User $staff, Request $request, string $oldRole): void
+    private function syncUserForStaffUpdate(User $staff, Request $request): void
     {
         $staff->update([
             'first_name' => $request->first_name,
@@ -1008,15 +1004,9 @@ class StaffController extends Controller
             'status' => $request->status,
         ]);
 
-        if ($oldRole !== $request->role) {
-            if ($staff->hasRole($oldRole)) {
-                $staff->removeRole($oldRole);
-            }
-
-            $newRole = Role::where('name', $request->role)->first();
-            if ($newRole) {
-                $staff->assignRole($newRole);
-            }
+        $spatieRole = trim((string) $request->role);
+        if ($spatieRole !== '') {
+            $staff->syncRoles([$spatieRole]);
         }
 
         $this->syncUserDepartmentAssignments($staff, $request->input('departments', []));

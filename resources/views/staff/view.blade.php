@@ -13,6 +13,7 @@
                     ? $staff->departments
                     : (json_decode($staff->departments, true) ?:
                     []);
+                $currentSpatieRole = old('role', optional($staff->roles->first())->name);
             @endphp
 
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -133,7 +134,8 @@
                                         <div class="mt-3">
                                             <h4>{{ $staff->first_name . ' ' . $staff->last_name }}</h4>
                                             <p class="text-secondary mb-1">
-                                                {{ ucwords(str_replace('_', ' ', $staff->role)) }}</p>
+                                                {{ $currentSpatieRole ? ucwords(str_replace('_', ' ', $currentSpatieRole)) : 'N/A' }}
+                                            </p>
                                             <p class="text-muted font-size-sm">{{ $staff->email }}</p>
 
                                         </div>
@@ -144,7 +146,7 @@
                                             class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
                                             <h6 class="mb-0"><i class='bx bx-user me-2'></i>Role</h6>
                                             <span
-                                                class="text-secondary">{{ ucwords(str_replace('_', ' ', $staff->role)) }}</span>
+                                                class="text-secondary">{{ $currentSpatieRole ? ucwords(str_replace('_', ' ', $currentSpatieRole)) : 'N/A' }}</span>
                                         </li>
                                         <li
                                             class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
@@ -260,7 +262,7 @@
                                                         <option value="">Select Role</option>
                                                         @foreach ($roles as $role)
                                                             <option value="{{ $role->name }}"
-                                                                {{ $staff->role == $role->name ? 'selected' : '' }}>
+                                                                {{ $currentSpatieRole == $role->name ? 'selected' : '' }}>
                                                                 {{ $role->name }}</option>
                                                         @endforeach
                                                     </select>
