@@ -77,6 +77,7 @@
 		</div>
 
 		<!-- Vendor Services Section -->
+		{{-- 
 		<div class="card mt-4">
 			<div class="card-header">
 				<h5 class="mb-0">Vendor Services</h5>
@@ -161,12 +162,14 @@
 					</table>
 				</div>
 			</div>
-		</div>
+		</div> 
+		--}}
 	</div>
 </div>
 <!--end page wrapper -->
 <!--start overlay-->
 <div class="overlay toggle-icon"></div>
 <!--end overlay-->
-<!--Start Back To Top Button--> <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
+<!--Start Back To Top Button--> 
+<a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 @endsection	

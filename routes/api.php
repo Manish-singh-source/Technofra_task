@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
+use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RolesController as ApiRoleController;
 use App\Http\Controllers\Api\ServiceController as ApiServiceController;
@@ -15,7 +16,6 @@ use App\Http\Controllers\Api\VendorRenewalController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\LeadController;
-use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TodoController;
 use Illuminate\Http\Request;
@@ -56,13 +56,19 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout-all', 'logoutAll');
         });
 
+
+        // Permission API routes
+        Route::prefix('permissions')->group(function () {
+            Route::get('/', [PermissionController::class, 'index']);
+            Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions']);
+        });
+
         // Role API routes
         Route::prefix('roles')->group(function () {
-            Route::get('/', [ApiRoleController::class, 'index'])->middleware('permission:view_roles');
-            Route::post('/', [ApiRoleController::class, 'store'])->middleware('permission:create_roles');
-            Route::match(['put', 'patch'], '/{id}', [ApiRoleController::class, 'update'])->middleware('permission:edit_roles');
-            Route::delete('/{id}', [ApiRoleController::class, 'destroy'])->middleware('permission:delete_roles');
-            Route::delete('/delete-all', [ApiRoleController::class, 'destroyAll'])->middleware('permission:delete_roles');
+            Route::get('/', [ApiRoleController::class, 'index']);
+            Route::post('/', [ApiRoleController::class, 'store']);
+            Route::match(['put', 'patch'], '/{id}', [ApiRoleController::class, 'update']);
+            Route::delete('/{id}', [ApiRoleController::class, 'destroy']);
         });
 
         // Staff API routes
@@ -97,7 +103,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/{id}/tasks', 'staffTasks')->middleware('permission:view_staff');
                 Route::get('/{id}/projects', 'staffProjects')->middleware('permission:view_staff');
             });
-        }); 
+        });
 
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
@@ -126,18 +132,26 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::match(['put', 'patch'], '/{id}', 'update');
                 Route::delete('/{id}', 'destroy');
             });
-            
         });
 
         // Vendor API routes
         Route::prefix('vendors')->group(function () {
-            Route::get('/', [ApiVendorController::class, 'index'])->middleware('permission:view_vendors');
-            Route::get('/{id}', [ApiVendorController::class, 'show'])->middleware('permission:view_vendors');
-            Route::post('/', [ApiVendorController::class, 'store'])->middleware('permission:create_vendors');
-            Route::match(['put', 'patch'], '/{id}', [ApiVendorController::class, 'update'])->middleware('permission:edit_vendors');
-            Route::delete('/delete-all', [ApiVendorController::class, 'destroyAll'])->middleware('permission:delete_vendors');
-            Route::delete('/{id}', [ApiVendorController::class, 'destroy'])->middleware('permission:delete_vendors');
+            Route::get('/', [ApiVendorController::class, 'index']);
+            Route::get('/{id}', [ApiVendorController::class, 'show']);
+            Route::post('/', [ApiVendorController::class, 'store']);
+            Route::match(['put', 'patch'], '/{id}', [ApiVendorController::class, 'update']);
+            Route::delete('/{id}', [ApiVendorController::class, 'destroy']);
         });
+
+        // Vendor Renewal API routes
+        Route::prefix('vendor-renewals')->group(function () {
+            Route::get('/', [VendorRenewalController::class, 'index']);
+            Route::get('/{id}', [VendorRenewalController::class, 'show']);
+            Route::post('/', [VendorRenewalController::class, 'store']);
+            Route::match(['put', 'patch'], '/{id}', [VendorRenewalController::class, 'update']);
+            Route::delete('/{id}', [VendorRenewalController::class, 'destroy']);
+        });
+
 
         // Service API routes
         Route::prefix('services')->group(function () {
@@ -240,11 +254,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskDestroy']);
         });
 
-        // Permission API routes
-        Route::prefix('permissions')->group(function () {
-            Route::get('/', [PermissionController::class, 'apiIndex'])->middleware('permission:view_roles');
-            Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_roles');
-        });
 
         // Settings API routes
         Route::prefix('settings')->group(function () {
@@ -270,7 +279,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         // Route::get('/clients', [ClientRenewalController::class, 'clientList']);
-        Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
+        // Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
 
         // Client Renewal API routes
         Route::prefix('client-renewals')->group(function () {
@@ -281,18 +290,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{id}', [ClientRenewalController::class, 'show']);
             Route::match(['put', 'patch'], '/{id}', [ClientRenewalController::class, 'update']);
             Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
-        });
-
-        // Vendor Renewal API routes
-        Route::prefix('vendor-renewals')->group(function () {
-            Route::get('/', [VendorRenewalController::class, 'index']);
-            Route::post('/', [VendorRenewalController::class, 'store']);
-            Route::delete('/force', [VendorRenewalController::class, 'forceDeleteAll']);
-            Route::delete('/', [VendorRenewalController::class, 'destroyAll']);
-            Route::get('/{id}', [VendorRenewalController::class, 'show']);
-            Route::match(['put', 'patch'], '/{id}', [VendorRenewalController::class, 'update']);
-            // Route::patch('/{id}/vendor', [VendorRenewalController::class, 'updateVendor']);
-            Route::delete('/{id}', [VendorRenewalController::class, 'destroy']);
         });
     });
 });

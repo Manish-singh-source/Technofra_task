@@ -15,7 +15,7 @@ class VendorController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-     public function deleteSelected(Request $request)
+    public function deleteSelected(Request $request)
     {
         $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
         Vendor::destroy($ids);
@@ -222,10 +222,8 @@ class VendorController extends Controller
         ];
 
         $sampleData = [
-            [
-               
-            ],
-           
+            [],
+
         ];
 
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();

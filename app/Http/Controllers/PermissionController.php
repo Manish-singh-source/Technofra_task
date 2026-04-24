@@ -190,46 +190,7 @@ class PermissionController extends Controller
         ];
     }
 
-    /**
-     * API: Get all permissions.
-     */
-    public function apiIndex()
-    {
-        $permissions = Permission::all();
-        return response()->json([
-            'success' => true,
-            'data' => $permissions,
-        ]);
-    }
-
-    /**
-     * API: Get permissions grouped by module.
-     */
-    public function apiGroupedPermissions()
-    {
-        $permissions = Permission::all();
-        $grouped = [];
-
-        foreach ($permissions as $permission) {
-            $parts = explode('_', $permission->name);
-            $action = $parts[0] ?? 'other';
-            $module = implode('_', array_slice($parts, 1)) ?: 'other';
-
-            if (!isset($grouped[$module])) {
-                $grouped[$module] = [];
-            }
-            $grouped[$module][] = [
-                'id' => $permission->id,
-                'name' => $permission->name,
-                'action' => $action,
-            ];
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $grouped,
-        ]);
-    }
+    
 }
 
 

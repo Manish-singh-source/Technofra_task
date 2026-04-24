@@ -12,14 +12,14 @@ class VendorController extends Controller
 {
     public function index()
     {
-        $vendors = Vendor::orderBy('created_at', 'desc')->get();
+        $vendors = Vendor::orderBy('created_at', 'desc')->paginate(10);
 
         return ApiResponse::success($vendors, 'Vendors retrieved successfully');
     }
 
     public function show($id)
     {
-        $vendor = Vendor::with(['services.client'])->find($id);
+        $vendor = Vendor::find($id);
 
         if (! $vendor) {
             return ApiResponse::error('Vendor not found', null, 404);
@@ -35,7 +35,7 @@ class VendorController extends Controller
             'email' => 'required|email|unique:vendors,email',
             'phone' => 'required|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
-            'status' => 'nullable|string|in:1,0',
+            'status' => 'nullable|string|in:active,inactive',
         ], [
             'name.required' => 'The vendor name field is required.',
             'email.required' => 'The email field is required.',
@@ -44,6 +44,8 @@ class VendorController extends Controller
             'phone.required' => 'The phone field is required.',
             'phone.numeric' => 'The phone must be a number.',
             'phone.digits_between' => 'The phone must be between 10 and 15 digits.',
+            'status.nullable' => 'The status field is optional.',
+            'status.in' => 'The status must be either "active" or "inactive".',
         ]);
 
         if ($validator->fails()) {
@@ -72,7 +74,7 @@ class VendorController extends Controller
             'email' => 'required|email|unique:vendors,email,' . $vendor->id,
             'phone' => 'required|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
-            'status' => 'nullable|string|in:1,0',
+            'status' => 'nullable|string|in:active,inactive',
         ], [
             'name.required' => 'The vendor name field is required.',
             'email.required' => 'The email field is required.',
@@ -81,6 +83,8 @@ class VendorController extends Controller
             'phone.required' => 'The phone field is required.',
             'phone.numeric' => 'The phone must be a number.',
             'phone.digits_between' => 'The phone must be between 10 and 15 digits.',
+            'status.nullable' => 'The status field is optional.',
+            'status.in' => 'The status must be either "active" or "inactive".',
         ]);
 
         if ($validator->fails()) {
@@ -113,14 +117,4 @@ class VendorController extends Controller
         }
     }
 
-    public function destroyAll()
-    {
-        try {
-            Vendor::query()->delete();
-
-            return ApiResponse::success(null, 'All vendors deleted successfully');
-        } catch (\Exception $e) {
-            return ApiResponse::error('Failed to delete all vendors.', ['exception' => $e->getMessage()], 500);
-        }
-    }
 }
