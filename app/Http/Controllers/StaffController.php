@@ -43,6 +43,7 @@ class StaffController extends Controller
             ->with('address')
             ->whereNotNull('role')
             ->where('role', 'staff')
+            ->where('role', 'super_admin2')
             ->orderBy('first_name')
             ->get()
             ->map(fn(User $user) => $this->hydrateStaffUser($user));
