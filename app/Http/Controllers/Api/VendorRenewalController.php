@@ -52,10 +52,7 @@ class VendorRenewalController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
+            return ApiResponse::error($validator->errors());
         }
 
         $vendorService = VendorService::create([
@@ -69,11 +66,11 @@ class VendorRenewalController extends Controller
             'status' => $request->status,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Vendor renewal created successfully',
-            'data' => $vendorService,
-        ]);
+        if (!$vendorService) {
+            return ApiResponse::error('Vendor renewal creation failed.');
+        }
+
+        return ApiResponse::success($vendorService, 'Vendor renewal created successfully');
     }
 
     public function update(Request $request, $id)
@@ -81,13 +78,11 @@ class VendorRenewalController extends Controller
         $service = VendorService::find($id);
 
         if (! $service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vendor renewal not found',
-            ], 404);
+            return ApiResponse::error('Vendor renewal not found.');
         }
 
         $validator = Validator::make($request->all(), [
+            'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
             'plan_type' => 'nullable|string|max:100',
@@ -98,13 +93,11 @@ class VendorRenewalController extends Controller
         ]);
 
         if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors(),
-            ], 422);
+            return ApiResponse::error($validator->errors());
         }
 
         $service->update([
+            'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
             'plan_type' => $request->plan_type,
@@ -114,11 +107,7 @@ class VendorRenewalController extends Controller
             'status' => $request->status,
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Vendor renewal updated successfully',
-            'data' => $service,
-        ]);
+        return ApiResponse::success($service, 'Vendor renewal updated successfully');
     }
 
     public function destroy($id)
@@ -126,17 +115,10 @@ class VendorRenewalController extends Controller
         $service = VendorService::find($id);
 
         if (! $service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Vendor renewal not found',
-            ], 404);
+            return ApiResponse::error('Vendor renewal not found.');
         }
 
         $service->delete();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Vendor renewal deleted successfully',
-        ]);
+        return ApiResponse::success($service, 'Vendor renewal deleted successfully');
     }
 }

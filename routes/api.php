@@ -148,8 +148,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', [VendorRenewalController::class, 'index']);
             Route::get('/{id}', [VendorRenewalController::class, 'show']);
             Route::post('/', [VendorRenewalController::class, 'store']);
-            Route::match(['put', 'patch'], '/{id}', [VendorRenewalController::class, 'update']);
+            Route::put('/{id}', [VendorRenewalController::class, 'update']);
             Route::delete('/{id}', [VendorRenewalController::class, 'destroy']);
+        });
+
+        
+        // Client Renewal API routes
+        Route::prefix('client-renewals')->group(function () {
+            Route::get('/', [ClientRenewalController::class, 'index']);
+            Route::post('/', [ClientRenewalController::class, 'store']);
+            Route::delete('/force', [ClientRenewalController::class, 'forceDeleteAll']);
+            Route::delete('/', [ClientRenewalController::class, 'destroyAll']);
+            Route::get('/{id}', [ClientRenewalController::class, 'show']);
+            Route::match(['put', 'patch'], '/{id}', [ClientRenewalController::class, 'update']);
+            Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
         });
 
 
@@ -281,16 +293,6 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::get('/clients', [ClientRenewalController::class, 'clientList']);
         // Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
 
-        // Client Renewal API routes
-        Route::prefix('client-renewals')->group(function () {
-            Route::get('/', [ClientRenewalController::class, 'index']);
-            Route::post('/', [ClientRenewalController::class, 'store']);
-            Route::delete('/force', [ClientRenewalController::class, 'forceDeleteAll']);
-            Route::delete('/', [ClientRenewalController::class, 'destroyAll']);
-            Route::get('/{id}', [ClientRenewalController::class, 'show']);
-            Route::match(['put', 'patch'], '/{id}', [ClientRenewalController::class, 'update']);
-            Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
-        });
     });
 });
 
