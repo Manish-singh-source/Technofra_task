@@ -1006,7 +1006,6 @@ class StaffController extends Controller
             'phone' => $request->phone,
             'profile_image' => $staff->profile_image,
             'status' => $request->status,
-            'role' => $request->role,
         ]);
 
         if ($oldRole !== $request->role) {
