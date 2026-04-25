@@ -17,26 +17,26 @@ class ClientRenewalController extends Controller
     {
         $services = Service::with(['client', 'vendor'])
             ->whereNotNull('client_id')
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function ($service) {
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->through(function ($service) {
                 return [
                     'id' => $service->id,
-                    'client_name' => $service->client->cname ?? null,
-                    'vendor_name' => $service->vendor->name ?? null,
+                    'client_name' => $service->client?->cname,
+                    'vendor_name' => $service->vendor?->name,
                     'service_name' => $service->service_name,
                     'remark' => $service->remark_text,
-                    'start_date' => $service->start_date?->toDateString(),
-                    'end_date' => $service->end_date?->toDateString(),
-                    'billing_date' => $service->billing_date?->toDateString(),
+                    'start_date' => optional($service->start_date)->toDateString(),
+                    'end_date' => optional($service->end_date)->toDateString(),
+                    'billing_date' => optional($service->billing_date)->toDateString(),
                     'status' => $service->status,
                 ];
             });
 
-        if(!$services) {
+        if (!$services) {
             return ApiResponse::error('No client renewals found');
         }
-        
+
         return ApiResponse::success($services, 'Client renewals found');
     }
 
@@ -220,5 +220,4 @@ class ClientRenewalController extends Controller
             'data' => $vendors,
         ]);
     }
-
 }
