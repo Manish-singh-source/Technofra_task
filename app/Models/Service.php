@@ -77,7 +77,7 @@ class Service extends Model
     public function getEffectiveStatusAttribute(): string
     {
         $today = Carbon::today();
-        $fiveDaysFromNow = $today->copy()->addDays(5);
+        $fiveDaysFromNow = $today->copy()->addDays(7);
 
         if (in_array($this->status, ['inactive', 'pending', 'expired'], true)) {
             return $this->status;

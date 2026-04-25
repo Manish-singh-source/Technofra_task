@@ -16,7 +16,11 @@ class VendorRenewalController extends Controller
         $vendorServices = VendorService::with(['vendor:id,name,email,phone'])
             ->select('id', 'vendor_id', 'service_name', 'start_date', 'end_date', 'billing_date', 'status')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(function (VendorService $service) {
+                $service->status = $service->effective_status;
+                return $service;
+            });
 
         if (!$vendorServices) {
             return ApiResponse::error('No vendor renewals found');
@@ -34,6 +38,8 @@ class VendorRenewalController extends Controller
         if (! $vendorServices) {
             return ApiResponse::error('Vendor Renewals not found.');
         }
+
+        $vendorServices->status = $vendorServices->effective_status;
 
         return ApiResponse::success($vendorServices, 'Vendor renewal found.');
     }
