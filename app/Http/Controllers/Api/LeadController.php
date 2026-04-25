@@ -120,15 +120,15 @@ class LeadController extends Controller
             $path = public_path('uploads/client/' . $fileName);
 
             $avatar = app('avatar');
-            $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
+            $avatar->create($lead->name)->save($path);
             $profileImagePath = 'uploads/client/' . 'uploads/client/' . $fileName;
 
             $client = User::create([
                 'profile_image' => $profileImagePath,
-                'first_name' => $lead->name,
+                'first_name' => $lead->name ?? '',
                 'last_name' => '',
-                'email' => $lead->email,
-                'phone' => $lead->phone,
+                'email' => $lead->email ?? '',
+                'phone' => $lead->phone ?? '',
                 'role' => 'client',
                 'password' => Hash::make('123456789'),
                 'status' => 'active',
@@ -137,20 +137,20 @@ class LeadController extends Controller
             if ($client) {
                 $address = UserAddress::create([
                     'user_id' => $client->id,
-                    'address_line_1' => $lead->address,
+                    'address_line_1' => $lead->address ?? '',
                     'address_line_2' => '',
-                    'city' => $lead->city,
-                    'state' => $lead->state,
-                    'country' => $lead->country,
-                    'pincode' => $lead->zipCode,
+                    'city' => $lead->city ?? '',
+                    'state' => $lead->state ?? '',
+                    'country' => $lead->country ?? '',
+                    'pincode' => $lead->zipCode ?? '',
                 ]);
 
                 $businessDetail = ClientBusinessDetail::create([
                     'user_id' => $client->id,
                     'client_type' => '',
-                    'company_name' => $lead->company,
+                    'company_name' => $lead->company ?? '',
                     'industry' => '',
-                    'website' => $lead->website,
+                    'website' => $lead->website ?? '',
                 ]);
             }
         }

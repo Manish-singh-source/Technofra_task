@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\LeadsExport;
+use App\Models\ClientBusinessDetail;
 use App\Models\Lead;
 use App\Models\User;
-use App\Exports\LeadsExport;
+use App\Models\UserAddress;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -94,6 +98,48 @@ class LeadController extends Controller
 
         $lead->update($this->buildLeadPayload($request));
 
+        if ($validator->has('status') && $request->status == 'converted') {
+
+            $fileName = Str::uuid() . '.png';
+            $path = public_path('uploads/client/' . $fileName);
+
+            $avatar = app('avatar');
+            $avatar->create($lead->name)->save($path);
+            $profileImagePath = 'uploads/client/' . 'uploads/client/' . $fileName;
+
+            $client = User::create([
+                'profile_image' => $profileImagePath,
+                'first_name' => $lead->name ?? '',
+                'last_name' => '',
+                'email' => $lead->email ?? '',
+                'phone' => $lead->phone ?? '',
+                'role' => 'client',
+                'password' => Hash::make('123456789'),
+                'status' => 'active',
+            ]);
+
+            if ($client) {
+                $address = UserAddress::create([
+                    'user_id' => $client->id,
+                    'address_line_1' => $lead->address ?? '',
+                    'address_line_2' => '',
+                    'city' => $lead->city ?? '',
+                    'state' => $lead->state ?? '',
+                    'country' => $lead->country ?? '',
+                    'pincode' => $lead->zipCode ?? '',
+                ]);
+
+                $businessDetail = ClientBusinessDetail::create([
+                    'user_id' => $client->id,
+                    'client_type' => '',
+                    'company_name' => $lead->company ?? '',
+                    'industry' => '',
+                    'website' => $lead->website ?? '',
+                ]);
+            }
+        }
+
+
         return redirect()->route('leads')->with('success', 'Lead updated successfully!');
     }
 
@@ -172,7 +218,7 @@ class LeadController extends Controller
             'source' => 'nullable|string|max:100',
             'assigned' => 'nullable|array',
             'assigned.*' => [
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+                Rule::exists('users', 'id')->where(fn($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
             ],
             'tags' => 'nullable|array',
             'tags.*' => 'string',
@@ -211,7 +257,7 @@ class LeadController extends Controller
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->map(fn (User $member) => [
+            ->map(fn(User $member) => [
                 'id' => $member->id,
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
