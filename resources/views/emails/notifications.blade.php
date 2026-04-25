@@ -74,8 +74,8 @@
                                 $normalizedTheme = strtolower(trim((string) ($defaultTheme ?? 'white')));
                                 $isBlackTheme = in_array($normalizedTheme, ['black', 'dark', 'dark-theme', 'semidark', 'semi-dark'], true);
                                 $logoPath = $isBlackTheme
-                                    ? 'https://mycrm.technofra.com/assets/images/logo-black.png'
-                                    : 'https://mycrm.technofra.com/assets/images/logo-white.png';
+                                    ? 'https://mycrm.technofra.com/assets/images/logo-white.png'
+                                    : 'https://mycrm.technofra.com/assets/images/logo-black.png';
                             @endphp
                             <img src="{{ asset($logoPath) }}" alt="Technofra"
                                 style="display:block; width:56px; height:auto; border:0;">
