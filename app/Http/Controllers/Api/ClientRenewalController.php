@@ -73,7 +73,7 @@ class ClientRenewalController extends Controller
                 'end_date' => $service->end_date?->toDateString(),
                 'duration' => $duration,
                 'billing_date' => $service->billing_date?->toDateString(),
-                'status' => $service->status,
+                'status' => $service->getEffectiveStatusAttribute(),
                 'created_at' => $service->created_at?->toDateTimeString(),
                 'last_updated' => $service->updated_at?->toDateTimeString(),
             ],

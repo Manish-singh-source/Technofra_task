@@ -58,6 +58,10 @@
 						<b>Contact No:</b>
 						<p class="mb-0">{{ $vendor->phone }}</p>
 					</li>
+					<li class="list-group-item d-flex justify-content-between">
+						<b>Status:</b>
+						<p class="mb-0">{{ $vendor->status == 1 ? 'Active' : 'Inactive' }}</p>
+					</li>
 					@if($vendor->address)
 						<li class="list-group-item d-flex justify-content-between">
 							<b>Address:</b>
