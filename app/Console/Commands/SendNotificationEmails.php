@@ -83,7 +83,8 @@ class SendNotificationEmails extends Command
 
         try {
             $this->applyMailSettings($settings);
-            Mail::to($adminEmail)->send(new NotificationMail($upcomingServices, $upcomingVendorServices));
+            $defaultTheme = strtolower(trim((string) ($settings['default_theme'] ?? $settings['theme'] ?? 'white')));
+            Mail::to($adminEmail)->send(new NotificationMail($upcomingServices, $upcomingVendorServices, $defaultTheme));
 
             $this->info("Renewal email sent to {$adminEmail}.");
             $this->info("Client services: {$upcomingServices->count()}, Vendor services: {$upcomingVendorServices->count()}.");

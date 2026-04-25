@@ -14,17 +14,20 @@ class NotificationMail extends Mailable
 
     public $criticalServices;
     public $criticalVendorServices;
+    public $defaultTheme;
 
     /**
      * Create a new message instance.
      *
      * @param mixed $criticalServices
      * @param mixed $criticalVendorServices
+     * @param string $defaultTheme
      */
-    public function __construct($criticalServices, $criticalVendorServices)
+    public function __construct($criticalServices, $criticalVendorServices, string $defaultTheme = 'white')
     {
         $this->criticalServices = $criticalServices;
         $this->criticalVendorServices = $criticalVendorServices;
+        $this->defaultTheme = $defaultTheme;
     }
 
     /**
@@ -51,6 +54,7 @@ class NotificationMail extends Mailable
             with: [
                 'criticalServices' => $this->criticalServices,
                 'criticalVendorServices' => $this->criticalVendorServices,
+                'defaultTheme' => $this->defaultTheme,
             ],
         );
     }

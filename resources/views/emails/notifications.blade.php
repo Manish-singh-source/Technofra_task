@@ -70,7 +70,14 @@
 
                     <tr>
                         <td style="padding:18px 48px 0 48px;">
-                            <img src="{{ asset('https://technofra.com/logo.png') }}" alt="Technofra"
+                            @php
+                                $normalizedTheme = strtolower(trim((string) ($defaultTheme ?? 'white')));
+                                $isBlackTheme = in_array($normalizedTheme, ['black', 'dark', 'dark-theme', 'semidark', 'semi-dark'], true);
+                                $logoPath = $isBlackTheme
+                                    ? 'assets/images/technofra logo (Black 14).png'
+                                    : 'assets/images/technofra logo (White 14).png';
+                            @endphp
+                            <img src="{{ asset($logoPath) }}" alt="Technofra"
                                 style="display:block; width:56px; height:auto; border:0;">
                         </td>
                     </tr>
@@ -91,7 +98,7 @@
 
                     <tr>
                         <td style="padding:28px 48px 0 48px;">
-                            <a href="{{ url('/client') }}"
+                            <a href="{{ url('/services') }}"
                                 style="display:inline-block; background-color:#0b3c74; color:#ffffff; text-decoration:none; padding:15px 34px; font-size:15px; font-weight:700;">Open
                                 Renewals</a>
                         </td>
