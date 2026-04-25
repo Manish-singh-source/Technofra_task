@@ -98,7 +98,7 @@ class LeadController extends Controller
 
         $lead->update($this->buildLeadPayload($request));
 
-        if ($validator->has('status') && $request->status == 'converted') {
+        if ($request->status == 'converted') {
 
             $fileName = Str::uuid() . '.png';
             $path = public_path('uploads/client/' . $fileName);
