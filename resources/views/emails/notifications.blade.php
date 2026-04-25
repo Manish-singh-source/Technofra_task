@@ -78,7 +78,7 @@
                                     : 'https://mycrm.technofra.com/assets/images/logo-black.png';
                             @endphp
                             <img src="{{ asset($logoPath) }}" alt="Technofra"
-                                style="display:block; width:56px; height:auto; border:0;">
+                                style="display:block; width:200px; height:auto; border:0;">
                         </td>
                     </tr>
 
