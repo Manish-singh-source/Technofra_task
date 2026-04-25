@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
+use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RolesController as ApiRoleController;
@@ -16,7 +17,6 @@ use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\LeadController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -174,6 +174,16 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{todo}/status', [TodoController::class, 'apiToggleTodoStatus']);
         });
 
+        // Lead API routes
+        Route::prefix('leads')->group(function () {
+            Route::get('/form-options', [LeadController::class, 'apiFormOptions']);
+            Route::get('/', [LeadController::class, 'apiIndex']);
+            Route::get('/{id}', [LeadController::class, 'apiShow']);
+            Route::post('/', [LeadController::class, 'apiStore']);
+            Route::match(['put', 'patch'], '/{id}', [LeadController::class, 'apiUpdate']);
+            Route::delete('/{id}', [LeadController::class, 'apiDestroy']);
+        });
+
 
         // Service API routes
         Route::prefix('services')->group(function () {
@@ -239,15 +249,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/{taskId}/attachments/{attachmentId}', [ApiTaskController::class, 'apiDeleteAttachment']);
         });
 
-        // Lead API routes
-        Route::prefix('leads')->group(function () {
-            Route::get('/form-options', [LeadController::class, 'apiFormOptions']);
-            Route::get('/', [LeadController::class, 'apiIndex']);
-            Route::get('/{id}', [LeadController::class, 'apiShow']);
-            Route::post('/', [LeadController::class, 'apiStore']);
-            Route::match(['put', 'patch'], '/{id}', [LeadController::class, 'apiUpdate']);
-            Route::delete('/{id}', [LeadController::class, 'apiDestroy']);
-        });
 
         // Client issue API routes
         Route::prefix('client-issues')->group(function () {

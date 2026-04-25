@@ -1,156 +1,179 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
+use App\Http\Controllers\Controller;
+use App\Models\ClientBusinessDetail;
 use App\Models\Lead;
 use App\Models\User;
-use App\Exports\LeadsExport;
+use App\Models\UserAddress;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
-use Maatwebsite\Excel\Facades\Excel;
 
 class LeadController extends Controller
 {
+    //
     private const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'];
     private const SOURCES = ['website', 'referral', 'social_media', 'cold_call', 'email_campaign', 'other'];
     private const TAGS = ['hot', 'warm', 'cold', 'urgent', 'follow-up', 'nurture'];
 
+
     /**
-     * Display a listing of all leads.
+     * API: Get lead form options.
      */
-    public function index()
+    public function apiFormOptions()
     {
-        $leads = Lead::all();
-        $staff = User::staffMembers()
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get()
-            ->keyBy('id');
-
-        $allLeads = $leads->count();
-        $newLeads = $leads->where('status', 'new')->count();
-        $contactedLeads = $leads->where('status', 'contacted')->count();
-        $qualifiedLeads = $leads->where('status', 'qualified')->count();
-        $convertedLeads = $leads->where('status', 'converted')->count();
-        $lostLeads = $leads->where('status', 'lost')->count();
-
-        return view('leads', compact('leads', 'staff', 'allLeads', 'newLeads', 'contactedLeads', 'qualifiedLeads', 'convertedLeads', 'lostLeads'));
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'statuses' => self::STATUSES,
+                // 'sources' => self::SOURCES,
+                'tags' => self::TAGS,
+                'staff' => User::staffMembers()
+                    ->orderBy('first_name')
+                    ->orderBy('last_name')
+                    ->get()
+                    ->map(fn(User $member) => [
+                        'id' => $member->id,
+                        'first_name' => $member->first_name,
+                        'last_name' => $member->last_name,
+                        'full_name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
+                        'email' => $member->email,
+                    ])
+                    ->values(),
+            ],
+        ]);
     }
 
     /**
-     * Show the form for creating a new lead.
+     * API: Get all leads.
      */
-    public function create()
+    public function apiIndex()
     {
-        $staff = User::staffMembers()
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get();
-        return view('add-lead', compact('staff'));
+        $leads = Lead::query()->latest('id')->paginate();
+
+        return response()->json([
+            'success' => true,
+            'data' => $leads->map(fn(Lead $lead) => $this->formatLeadResource($lead)),
+        ]);
     }
 
     /**
-     * Store a newly created lead in storage.
+     * API: Show a single lead.
      */
-    public function store(Request $request)
+    public function apiShow($id)
+    {
+        $lead = Lead::findOrFail($id);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->formatLeadResource($lead),
+        ]);
+    }
+
+    /**
+     * API: Store a newly created lead.
+     */
+    public function apiStore(Request $request)
     {
         $validator = $this->validateLeadData($request);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
-        Lead::create($this->buildLeadPayload($request));
+        $lead = Lead::create($this->buildLeadPayload($request));
 
-        return redirect()->route('leads')->with('success', 'Lead created successfully!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead created successfully.',
+            'data' => $this->formatLeadResource($lead),
+        ], 201);
     }
 
     /**
-     * Show the form for editing the specified lead.
+     * API: Update a lead.
      */
-    public function edit($id)
+    public function apiUpdate(Request $request, $id)
     {
         $lead = Lead::findOrFail($id);
-        $staff = User::staffMembers()
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get();
-        return view('edit-lead', compact('lead', 'staff'));
-    }
-
-    /**
-     * Update the specified lead in storage.
-     */
-    public function update(Request $request, $id)
-    {
-        $lead = Lead::findOrFail($id);
-
         $validator = $this->validateLeadData($request);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
         $lead->update($this->buildLeadPayload($request));
 
-        return redirect()->route('leads')->with('success', 'Lead updated successfully!');
+        if ($validator->has('status') && $request->status == 'converted') {
+
+            $fileName = Str::uuid() . '.png';
+            $path = public_path('uploads/client/' . $fileName);
+
+            $avatar = app('avatar');
+            $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
+            $profileImagePath = 'uploads/client/' . 'uploads/client/' . $fileName;
+
+            $client = User::create([
+                'profile_image' => $profileImagePath,
+                'first_name' => $lead->name,
+                'last_name' => '',
+                'email' => $lead->email,
+                'phone' => $lead->phone,
+                'role' => 'client',
+                'password' => Hash::make('123456789'),
+                'status' => 'active',
+            ]);
+
+            if ($client) {
+                $address = UserAddress::create([
+                    'user_id' => $client->id,
+                    'address_line_1' => $lead->address,
+                    'address_line_2' => '',
+                    'city' => $lead->city,
+                    'state' => $lead->state,
+                    'country' => $lead->country,
+                    'pincode' => $lead->zipCode,
+                ]);
+
+                $businessDetail = ClientBusinessDetail::create([
+                    'user_id' => $client->id,
+                    'client_type' => '',
+                    'company_name' => $lead->company,
+                    'industry' => '',
+                    'website' => $lead->website,
+                ]);
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead updated successfully.',
+            'data' => $this->formatLeadResource($lead->fresh()),
+        ]);
     }
 
     /**
-     * Display the specified lead.
+     * API: Delete a lead.
      */
-    public function show($id)
-    {
-        $lead = Lead::findOrFail($id);
-        $staff = User::staffMembers()
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get()
-            ->keyBy('id');
-        return view('view-lead', compact('lead', 'staff'));
-    }
-
-    /**
-     * Remove the specified lead from storage.
-     */
-    public function destroy($id)
+    public function apiDestroy($id)
     {
         $lead = Lead::findOrFail($id);
         $lead->delete();
 
-        return redirect()->route('leads')->with('success', 'Lead deleted successfully!');
-    }
-
-    /**
-     * Toggle lead status.
-     */
-    public function toggleStatus(Request $request)
-    {
-        $lead = Lead::findOrFail($request->id);
-        $lead->status = $request->status;
-        $lead->save();
-
-        return response()->json(['success' => true]);
-    }
-
-    /**
-     * Delete selected leads.
-     */
-    public function deleteSelected(Request $request)
-    {
-        $leadIds = $request->ids;
-        Lead::whereIn('id', $leadIds)->delete();
-
-        return response()->json(['success' => true, 'message' => 'Selected leads deleted successfully!']);
-    }
-
-    /**
-     * Export leads to Excel.
-     */
-    public function export()
-    {
-        return Excel::download(new LeadsExport, 'leads_' . date('Y-m-d') . '.xlsx');
+        return response()->json([
+            'success' => true,
+            'message' => 'Lead deleted successfully.',
+        ]);
     }
 
 
@@ -172,7 +195,7 @@ class LeadController extends Controller
             'source' => 'nullable|string|max:100',
             'assigned' => 'nullable|array',
             'assigned.*' => [
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
+                Rule::exists('users', 'id')->where(fn($query) => $query->where('role', '!=', 'client')->whereNotNull('role')),
             ],
             'tags' => 'nullable|array',
             'tags.*' => 'string',
@@ -211,7 +234,7 @@ class LeadController extends Controller
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->map(fn (User $member) => [
+            ->map(fn(User $member) => [
                 'id' => $member->id,
                 'first_name' => $member->first_name,
                 'last_name' => $member->last_name,
