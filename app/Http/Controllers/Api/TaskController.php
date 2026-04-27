@@ -390,7 +390,7 @@ class TaskController extends Controller
     {
         $user = auth()->user();
 
-        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin']));
+        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']));
     }
 
     private function authenticatedStaffId(): ?int
@@ -465,12 +465,13 @@ class TaskController extends Controller
             return [];
         }
 
-        return Staff::query()
+        return User::query()
+            ->where('role', 'staff')
             ->whereIn('id', $ids)
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->map(fn (Staff $member) => [
+            ->map(fn (User $member) => [
                 'id' => $member->id,
                 'name' => trim(($member->first_name ?? '').' '.($member->last_name ?? '')),
                 'email' => $member->email,
