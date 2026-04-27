@@ -16,7 +16,6 @@ use App\Http\Controllers\Api\TodoController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
 use App\Http\Controllers\CalendarEventController;
-use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;

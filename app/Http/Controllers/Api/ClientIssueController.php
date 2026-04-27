@@ -230,8 +230,8 @@ class ClientIssueController extends Controller
             return ApiResponse::error('No matching client issues found.', null, 404);
         }
 
-        if (Auth::user()->isStaff()) {
-            $staff = Auth::user()->staff;
+        if (Auth::user()->isStaff() && ! $this->isPrivilegedIssueUser(Auth::user())) {
+            $staff = Auth::user();
             $unauthorized = $issues->reject(fn(ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->pluck('id')->values();
             if ($unauthorized->isNotEmpty()) {
                 return ApiResponse::error('You are not authorized to delete one or more selected issues.', ['unauthorized_ids' => $unauthorized], 403);
@@ -418,10 +418,17 @@ class ClientIssueController extends Controller
             }
             return null;
         }
+
+        $user = Auth::user();
+        if ($this->isPrivilegedIssueUser($user)) {
+            return null;
+        }
+
         if (($response = $this->authorizePermission($permission)) !== null) {
             return $response;
         }
-        if (Auth::user()?->isStaff() && ! $this->staffCanAccessIssue($issue, optional(Auth::user()->staff)->id, trim((string) optional(Auth::user()->staff)->team))) {
+
+        if ($user?->isStaff() && ! $this->staffCanAccessIssue($issue, optional($user)->id, trim((string) optional($user)->team))) {
             return ApiResponse::error('You are not authorized to access this issue.', null, 403);
         }
         return null;
@@ -452,7 +459,12 @@ class ClientIssueController extends Controller
 
     private function userHasPermission(?User $user, string $permission): bool
     {
-        return (bool) ($user && ($user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']) || $user->can($permission)));
+        return (bool) ($user && ($this->isPrivilegedIssueUser($user) || $user->can($permission)));
+    }
+
+    private function isPrivilegedIssueUser(?User $user): bool
+    {
+        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']));
     }
 
     private function userHasAnyPermission(?User $user, array $permissions): bool
