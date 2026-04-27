@@ -55,8 +55,8 @@ class ClientIssueController extends Controller
         if ($customer) {
             return ApiResponse::success([
                 'issues' => [],
-                'projects' => Project::query()->where('customer_id', $customer->id)->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
-                'customers' => [$this->customerResource($customer)],
+                // 'projects' => Project::query()->where('customer_id', $customer->id)->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
+                // 'customers' => [$this->customerResource($customer)],
             ], 'Client issues retrieved successfully.');
         }
         if (! $this->userHasPermission($user, 'view_raise_issue')) {
@@ -64,13 +64,13 @@ class ClientIssueController extends Controller
         }
         $issues = ClientIssue::query()->with(['project.customer', 'customer', 'teamAssignments.assignedStaff', 'teamAssignments.assignedBy'])->latest('created_at')->get();
         if ($user && $user->isStaff()) {
-            $staff = $user->staff;
+            $staff = $user;
             $issues = $issues->filter(fn (ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->values();
         }
         return ApiResponse::success([
             'issues' => $issues->map(fn (ClientIssue $issue) => $this->issueResource($issue))->values(),
-            'projects' => Project::query()->with('customer')->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
-            'customers' => User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get()->map(fn (User $item) => $this->customerResource($item))->values(),
+            // 'projects' => Project::query()->with('customer')->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
+            // 'customers' => User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get()->map(fn (User $item) => $this->customerResource($item))->values(),
         ], 'Client issues retrieved successfully.');
     }
 
