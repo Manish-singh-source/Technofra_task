@@ -37,8 +37,8 @@ class ClientIssueController extends Controller
             ? collect([$customer])
             : User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get();
         return ApiResponse::success([
-            'projects' => $projects->map(fn (Project $project) => $this->projectResource($project))->values(),
-            'customers' => $customers->map(fn (User $item) => $this->customerResource($item))->values(),
+            'projects' => $projects->map(fn(Project $project) => $this->projectResource($project))->values(),
+            'customers' => $customers->map(fn(User $item) => $this->customerResource($item))->values(),
             'teams' => Team::getTeamCards(),
             'team_options' => Team::getTeamOptions(),
             'issue_priorities' => self::ISSUE_PRIORITIES,
@@ -59,16 +59,20 @@ class ClientIssueController extends Controller
                 // 'customers' => [$this->customerResource($customer)],
             ], 'Client issues retrieved successfully.');
         }
+
         if (! $this->userHasPermission($user, 'view_raise_issue')) {
             return ApiResponse::error('You are not authorized to perform this action.', null, 403);
         }
+
         $issues = ClientIssue::query()->with(['project.customer', 'customer', 'teamAssignments.assignedStaff', 'teamAssignments.assignedBy'])->latest('created_at')->get();
+
         if ($user && $user->isStaff()) {
             $staff = $user;
-            $issues = $issues->filter(fn (ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->values();
+            $issues = $issues->filter(fn(ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->values();
         }
+
         return ApiResponse::success([
-            'issues' => $issues->map(fn (ClientIssue $issue) => $this->issueResource($issue))->values(),
+            'issues' => $issues->map(fn(ClientIssue $issue) => $this->issueResource($issue))->values(),
             // 'projects' => Project::query()->with('customer')->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
             // 'customers' => User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get()->map(fn (User $item) => $this->customerResource($item))->values(),
         ], 'Client issues retrieved successfully.');
@@ -81,7 +85,7 @@ class ClientIssueController extends Controller
         }
         $validator = Validator::make($request->all(), [
             'project_id' => 'required|exists:projects,id',
-            'customer_id' => ['required', Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client'))],
+            'customer_id' => ['required', Rule::exists('users', 'id')->where(fn($query) => $query->where('role', 'client'))],
             'issue_description' => 'required|string',
             'priority' => ['nullable', Rule::in(self::ISSUE_PRIORITIES)],
             'status' => ['nullable', Rule::in(self::ISSUE_STATUSES)],
@@ -228,7 +232,7 @@ class ClientIssueController extends Controller
 
         if (Auth::user()->isStaff()) {
             $staff = Auth::user()->staff;
-            $unauthorized = $issues->reject(fn (ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->pluck('id')->values();
+            $unauthorized = $issues->reject(fn(ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->pluck('id')->values();
             if ($unauthorized->isNotEmpty()) {
                 return ApiResponse::error('You are not authorized to delete one or more selected issues.', ['unauthorized_ids' => $unauthorized], 403);
             }
@@ -484,7 +488,7 @@ class ClientIssueController extends Controller
         if (! is_array($ids)) {
             return [];
         }
-        return collect($ids)->map(fn ($id) => (int) $id)->filter(fn (int $id) => $id > 0)->unique()->values()->all();
+        return collect($ids)->map(fn($id) => (int) $id)->filter(fn(int $id) => $id > 0)->unique()->values()->all();
     }
 
     private function taskRules(): array
@@ -563,8 +567,8 @@ class ClientIssueController extends Controller
     {
         $issue->loadMissing(['project.customer', 'customer', 'tasks', 'teamAssignments.assignedStaff', 'teamAssignments.assignedBy']);
         $data = $this->issueResource($issue);
-        $data['tasks'] = $issue->tasks->map(fn (ClientIssueTask $task) => $this->taskResource($task))->values();
-        $data['team_assignments'] = $issue->teamAssignments->sortByDesc('id')->values()->map(fn (ClientIssueTeamAssignment $assignment) => $this->assignmentResource($assignment))->values();
+        $data['tasks'] = $issue->tasks->map(fn(ClientIssueTask $task) => $this->taskResource($task))->values();
+        $data['team_assignments'] = $issue->teamAssignments->sortByDesc('id')->values()->map(fn(ClientIssueTeamAssignment $assignment) => $this->assignmentResource($assignment))->values();
         return $data;
     }
 

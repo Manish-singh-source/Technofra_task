@@ -42,6 +42,6 @@ class ClientIssueTeamAssignment extends Model
      */
     public function assignedStaff()
     {
-        return $this->belongsTo(Staff::class, 'assigned_to');
+        return $this->belongsTo(User::class, 'assigned_to');
     }
 }
