@@ -68,7 +68,7 @@ class ClientIssueController extends Controller
 
         if ($user && $user->isStaff()) {
             $staff = $user;
-            $issues = $issues->filter(fn(ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->values();
+            // $issues = $issues->filter(fn(ClientIssue $issue) => $this->staffCanAccessIssue($issue, optional($staff)->id, trim((string) optional($staff)->team)))->values();
         }
 
         return ApiResponse::success([
