@@ -33,6 +33,7 @@ class ProjectController extends Controller
             'success' => true,
             'data' => [
                 'clients' => User::query()
+                    ->where('role', 'client')
                     ->orderBy('first_name')
                     ->get()
                     ->map(fn(User $user) => [

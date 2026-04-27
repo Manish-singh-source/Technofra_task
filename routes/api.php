@@ -197,6 +197,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Project API routes
         Route::prefix('projects')->group(function () {
+            // Projects Only
             Route::controller(ApiProjectController::class)->group(function () {
                 Route::get('/form-options', 'apiFormOptions');
                 Route::get('/', 'apiIndex');
@@ -206,19 +207,36 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/{id}', 'apiShow');
             });
 
-            Route::get('/{projectId}/milestones', [ApiProjectController::class, 'apiMilestoneIndex']);
-            Route::post('/{projectId}/milestones', [ApiProjectController::class, 'apiStoreMilestone']);
-            Route::match(['put', 'patch'], '/{projectId}/milestones/{milestoneId}', [ApiProjectController::class, 'apiUpdateMilestone']);
-            Route::delete('/{projectId}/milestones/{milestoneId}', [ApiProjectController::class, 'apiDestroyMilestone']);
-            Route::get('/{projectId}/issues', [ApiProjectController::class, 'apiIssueIndex']);
-            Route::post('/{projectId}/issues', [ApiProjectController::class, 'apiStoreIssue']);
-            Route::match(['put', 'patch'], '/{projectId}/issues/{issueId}', [ApiProjectController::class, 'apiUpdateIssue']);
-            Route::delete('/{projectId}/issues/{issueId}', [ApiProjectController::class, 'apiDestroyIssue']);
-            Route::get('/{projectId}/comments', [ApiProjectController::class, 'apiCommentIndex']);
-            Route::post('/{projectId}/comments', [ApiProjectController::class, 'apiStoreComment']);
-            Route::get('/{projectId}/files', [ApiProjectController::class, 'apiFileIndex']);
-            Route::post('/{projectId}/files', [ApiProjectController::class, 'apiUploadFile']);
-            Route::delete('/{projectId}/files/{fileId}', [ApiProjectController::class, 'apiDeleteFile']);
+            // Projects Milestone
+            Route::controller(ApiProjectController::class)->group(function () {
+                Route::get('/{projectId}/milestones', 'apiMilestoneIndex');
+                Route::post('/{projectId}/milestones', 'apiStoreMilestone');
+                Route::match(['put', 'patch'], '/{projectId}/milestones/{milestoneId}', 'apiUpdateMilestone');
+                Route::delete('/{projectId}/milestones/{milestoneId}', 'apiDestroyMilestone');
+            });
+
+            // Projects Issues
+            Route::controller(ApiProjectController::class)->group(function () {
+                Route::get('/{projectId}/issues', 'apiIssueIndex');
+                Route::post('/{projectId}/issues', 'apiStoreIssue');
+                Route::match(['put', 'patch'], '/{projectId}/issues/{issueId}', 'apiUpdateIssue');
+                Route::delete('/{projectId}/issues/{issueId}', 'apiDestroyIssue');
+            });
+
+            // Projects Comments
+            Route::controller(ApiProjectController::class)->group(function () {
+                Route::get('/{projectId}/comments', 'apiCommentIndex');
+                Route::post('/{projectId}/comments', 'apiStoreComment');
+            });
+
+            // Projects Files
+            Route::controller(ApiProjectController::class)->group(function () {
+                Route::get('/{projectId}/files', 'apiFileIndex');
+                Route::post('/{projectId}/files', 'apiUploadFile');
+                Route::delete('/{projectId}/files/{fileId}', 'apiDeleteFile');
+            });
+
+            // Projects Usage
             Route::get('/{projectId}/usage', [ApiProjectController::class, 'apiUsage']);
         });
 
