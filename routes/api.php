@@ -244,35 +244,48 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('tasks')->group(function () {
             Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions']);
 
-            Route::get('/', [ApiTaskController::class, 'apiIndex']);
-            Route::get('/{id}', [ApiTaskController::class, 'apiShow']);
-            Route::post('/', [ApiTaskController::class, 'apiStore']);
-            Route::match(['put', 'patch'], '/{id}', [ApiTaskController::class, 'apiUpdate']);
-            Route::delete('/{id}', [ApiTaskController::class, 'apiDestroy']);
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::get('/', 'apiIndex');
+                Route::get('/{id}', 'apiShow');
+                Route::post('/', 'apiStore');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
+                Route::delete('/{id}', 'apiDestroy');
+            });
 
-            Route::get('/{taskId}/comments', [ApiTaskController::class, 'apiCommentIndex']);
-            Route::post('/{taskId}/comments', [ApiTaskController::class, 'apiStoreComment']);
-            Route::get('/{taskId}/attachments', [ApiTaskController::class, 'apiAttachmentIndex']);
-            Route::post('/{taskId}/attachments', [ApiTaskController::class, 'apiUploadAttachment']);
-            Route::delete('/{taskId}/attachments/{attachmentId}', [ApiTaskController::class, 'apiDeleteAttachment']);
+
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::get('/{taskId}/comments', 'apiCommentIndex');
+                Route::post('/{taskId}/comments', 'apiStoreComment');
+            });
+
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::get('/{taskId}/attachments', 'apiAttachmentIndex');
+                Route::post('/{taskId}/attachments', 'apiUploadAttachment');
+                Route::delete('/{taskId}/attachments/{attachmentId}', 'apiDeleteAttachment');
+            });
         });
 
 
         // Client issue API routes
         Route::prefix('client-issues')->group(function () {
             Route::get('/form-options', [ApiClientIssueController::class, 'formOptions']);
-            Route::get('/', [ApiClientIssueController::class, 'index']);
-            Route::post('/', [ApiClientIssueController::class, 'store']);
-            Route::get('/{id}', [ApiClientIssueController::class, 'show']);
-            Route::post('/{clientIssue}/assign', [ApiClientIssueController::class, 'assignTeam']);
-            Route::patch('/{id}/status', [ApiClientIssueController::class, 'updateStatus']);
-            Route::delete('/{id}', [ApiClientIssueController::class, 'destroy']);
-            Route::post('/delete-selected', [ApiClientIssueController::class, 'deleteSelected']);
-            Route::post('/{clientIssue}/tasks', [ApiClientIssueController::class, 'taskStore']);
-            Route::get('/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskShow']);
-            Route::match(['put', 'patch'], '/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskUpdate']);
-            Route::patch('/{clientIssue}/tasks/{task}/status', [ApiClientIssueController::class, 'taskUpdateStatus']);
-            Route::delete('/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskDestroy']);
+
+            Route::controller(ApiClientIssueController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::post('/', 'store');
+                Route::get('/{id}', 'show');
+                Route::patch('/{id}/status', 'updateStatus');
+                Route::delete('/{id}', 'destroy');
+            });
+
+            Route::controller(ApiClientIssueController::class)->group(function () {
+                Route::post('/{clientIssue}/assign', 'assignTeam');
+                Route::post('/{clientIssue}/tasks', 'taskStore');
+                Route::get('/{clientIssue}/tasks/{task}', 'taskShow');
+                Route::match(['put', 'patch'], '/{clientIssue}/tasks/{task}', 'taskUpdate');
+                Route::patch('/{clientIssue}/tasks/{task}/status', 'taskUpdateStatus');
+                Route::delete('/{clientIssue}/tasks/{task}', 'taskDestroy');
+            });
         });
 
 

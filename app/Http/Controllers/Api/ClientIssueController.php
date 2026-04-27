@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\ClientIssue;
 use App\Models\ClientIssueTask;
 use App\Models\ClientIssueTeamAssignment;
-use App\Models\Customer;
 use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
@@ -34,10 +33,12 @@ class ClientIssueController extends Controller
             return ApiResponse::error('You are not authorized to perform this action.', null, 403);
         }
         $projects = $customer ? Project::query()->where('customer_id', $customer->id)->orderBy('project_name')->get() : Project::query()->with('customer')->orderBy('project_name')->get();
-        $customers = $customer ? collect([$customer]) : Customer::query()->orderBy('client_name')->get();
+        $customers = $customer
+            ? collect([$customer])
+            : User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get();
         return ApiResponse::success([
             'projects' => $projects->map(fn (Project $project) => $this->projectResource($project))->values(),
-            'customers' => $customers->map(fn (Customer $item) => $this->customerResource($item))->values(),
+            'customers' => $customers->map(fn (User $item) => $this->customerResource($item))->values(),
             'teams' => Team::getTeamCards(),
             'team_options' => Team::getTeamOptions(),
             'issue_priorities' => self::ISSUE_PRIORITIES,
@@ -69,7 +70,7 @@ class ClientIssueController extends Controller
         return ApiResponse::success([
             'issues' => $issues->map(fn (ClientIssue $issue) => $this->issueResource($issue))->values(),
             'projects' => Project::query()->with('customer')->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
-            'customers' => Customer::query()->orderBy('client_name')->get()->map(fn (Customer $item) => $this->customerResource($item))->values(),
+            'customers' => User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get()->map(fn (User $item) => $this->customerResource($item))->values(),
         ], 'Client issues retrieved successfully.');
     }
 
@@ -80,7 +81,7 @@ class ClientIssueController extends Controller
         }
         $validator = Validator::make($request->all(), [
             'project_id' => 'required|exists:projects,id',
-            'customer_id' => 'required|exists:customers,id',
+            'customer_id' => ['required', Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client'))],
             'issue_description' => 'required|string',
             'priority' => ['nullable', Rule::in(self::ISSUE_PRIORITIES)],
             'status' => ['nullable', Rule::in(self::ISSUE_STATUSES)],
@@ -438,15 +439,16 @@ class ClientIssueController extends Controller
         }
         return ApiResponse::error('You are not authorized to perform this action.', null, 403);
     }
-    private function getLoggedInCustomer(): ?Customer
+    private function getLoggedInCustomer(): ?User
     {
         $user = Auth::user();
-        return ($user && $user->hasRole('customer')) ? (Customer::query()->where('email', $user->email)->first()) : null;
+
+        return ($user && $user->role === 'client') ? $user : null;
     }
 
     private function userHasPermission(?User $user, string $permission): bool
     {
-        return (bool) ($user && ($user->hasAnyRole(['super-admin', 'super_admin', 'admin']) || $user->can($permission)));
+        return (bool) ($user && ($user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']) || $user->can($permission)));
     }
 
     private function userHasAnyPermission(?User $user, array $permissions): bool
@@ -601,11 +603,11 @@ class ClientIssueController extends Controller
     private function projectResource(Project $project): array
     {
         $project->loadMissing('customer');
-        return ['id' => $project->id, 'project_name' => $project->project_name, 'customer_id' => $project->customer_id, 'customer_name' => $project->customer?->client_name, 'status' => $project->status];
+        return ['id' => $project->id, 'project_name' => $project->project_name, 'customer_id' => $project->customer_id, 'customer_name' => $project->customer?->first_name . ' ' . $project->customer?->last_name, 'status' => $project->status];
     }
 
-    private function customerResource(Customer $customer): array
+    private function customerResource(User $customer): array
     {
-        return ['id' => $customer->id, 'client_name' => $customer->client_name, 'contact_person' => $customer->contact_person, 'email' => $customer->email, 'phone' => $customer->phone, 'status' => $customer->status];
+        return ['id' => $customer->id, 'client_name' => $customer->first_name . ' ' . $customer->last_name, 'email' => $customer->email, 'phone' => $customer->phone, 'status' => $customer->status];
     }
 }
