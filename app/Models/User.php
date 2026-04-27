@@ -75,7 +75,7 @@ class User extends Authenticatable
      */
     public function staff()
     {
-        return $this->hasOne(Staff::class);
+        return $this->hasOne(User::class);
     }
 
     public function todos()
@@ -88,7 +88,7 @@ class User extends Authenticatable
      */
     public function customer()
     {
-        return $this->hasOne(Customer::class);
+        return $this->hasOne(User::class);
     }
 
     /**

@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Mail\ProjectCreatedMail;
-use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ProjectComment;
 use App\Models\ProjectFile;
@@ -16,10 +15,10 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Log;
 
 class ProjectController extends Controller
 {
@@ -31,7 +30,7 @@ class ProjectController extends Controller
     private function getLoggedInClient()
     {
         $user = Auth::user();
-        if ($user && $user->hasRole('client')) {
+        if ($user && $user->role == 'client') {
             return $user;
         }
 
@@ -71,11 +70,7 @@ class ProjectController extends Controller
             return null;
         }
 
-        if ($user->relationLoaded('staff') && $user->staff) {
-            return $user->staff;
-        }
-
-        return User::staffMembers()
+        return User::where('role', 'staff')
             ->where('id', $user->id)
             ->orWhere('email', $user->email)
             ->first();
@@ -96,13 +91,13 @@ class ProjectController extends Controller
      */
     private function visibleProjectsQuery()
     {
+        if ($this->isPrivilegedProjectUser()) {
+            return Project::query();
+        }
+
         $clientUser = $this->getLoggedInClient();
         if ($clientUser) {
             return Project::query()->where('customer_id', $clientUser->id);
-        }
-
-        if ($this->isPrivilegedProjectUser()) {
-            return Project::query();
         }
 
         $staff = $this->getLoggedInStaff();
