@@ -37,7 +37,7 @@ class Project extends Model
 
     public function customer()
     {
-        return $this->hasOne(Customer::class, 'user_id', 'customer_id');
+        return $this->hasOne(User::class, 'id', 'customer_id');
     }
 
     public function customerUser()

@@ -65,10 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Role API routes
         Route::prefix('roles')->group(function () {
-            Route::get('/', [ApiRoleController::class, 'index']);
-            Route::post('/', [ApiRoleController::class, 'store']);
-            Route::match(['put', 'patch'], '/{id}', [ApiRoleController::class, 'update']);
-            Route::delete('/{id}', [ApiRoleController::class, 'destroy']);
+            Route::controller(ApiRoleController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::post('/', 'store');
+                Route::match(['put', 'patch'], '/{id}', 'update');
+                Route::delete('/{id}', 'destroy');
+            });
         });
 
         // Staff API routes
@@ -107,25 +109,34 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
+            Route::controller(ClientController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::get('/{id}', 'show');
+                Route::post('/', 'store');
+                Route::match(['put', 'patch'], '/{id}', 'update');
+                Route::delete('/{id}', 'destroy');
+            });
             // Route::get('/', [CustomerController::class, 'apiIndex']);
             // Route::get('/{id}', [CustomerController::class, 'apiShow']);
             // Route::post('/', [CustomerController::class, 'apiStore']);
             // Route::match(['put', 'patch'], '/{id}', [CustomerController::class, 'apiUpdate']);
             // Route::delete('/{id}', [CustomerController::class, 'apiDestroy']);
-            Route::post('/{id}/restore', [CustomerController::class, 'apiRestore']);
-            Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete']);
-            // Client Tasks
-            Route::get('/{id}/tasks', [CustomerController::class, 'apiClientTasks']);
-            Route::get('/{id}/tasks/{taskId}', [CustomerController::class, 'apiClientTaskDetail']);
-            // Client Projects
-            Route::get('/{id}/projects', [CustomerController::class, 'apiClientProjects']);
-            Route::get('/{id}/projects/{projectId}', [CustomerController::class, 'apiClientProjectDetail']);
-            // Client issues
-            Route::get('/{id}/issues', [CustomerController::class, 'apiClientIssues']);
-            Route::get('/{id}/issues/{issueId}', [CustomerController::class, 'apiClientIssueDetail']);
+            // Route::post('/{id}/restore', [CustomerController::class, 'apiRestore']);
+            // Route::delete('/{id}/force', [CustomerController::class, 'apiForceDelete']);
+            // // Client Tasks
+            // Route::get('/{id}/tasks', [CustomerController::class, 'apiClientTasks']);
+            // Route::get('/{id}/tasks/{taskId}', [CustomerController::class, 'apiClientTaskDetail']);
+            // // Client Projects
+            // Route::get('/{id}/projects', [CustomerController::class, 'apiClientProjects']);
+            // Route::get('/{id}/projects/{projectId}', [CustomerController::class, 'apiClientProjectDetail']);
+            // // Client issues
+            // Route::get('/{id}/issues', [CustomerController::class, 'apiClientIssues']);
+            // Route::get('/{id}/issues/{issueId}', [CustomerController::class, 'apiClientIssueDetail']);
+        });
 
-
-            Route::controller(ClientController::class)->group(function () {
+        // Vendor API routes
+        Route::prefix('vendors')->group(function () {
+            Route::controller(ApiVendorController::class)->group(function () {
                 Route::get('/', 'index');
                 Route::get('/{id}', 'show');
                 Route::post('/', 'store');
@@ -134,88 +145,67 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-        // Vendor API routes
-        Route::prefix('vendors')->group(function () {
-            Route::get('/', [ApiVendorController::class, 'index']);
-            Route::get('/{id}', [ApiVendorController::class, 'show']);
-            Route::post('/', [ApiVendorController::class, 'store']);
-            Route::match(['put', 'patch'], '/{id}', [ApiVendorController::class, 'update']);
-            Route::delete('/{id}', [ApiVendorController::class, 'destroy']);
-        });
-
         // Vendor Renewal API routes
         Route::prefix('vendor-renewals')->group(function () {
-            Route::get('/', [VendorRenewalController::class, 'index']);
-            Route::get('/{id}', [VendorRenewalController::class, 'show']);
-            Route::post('/', [VendorRenewalController::class, 'store']);
-            Route::put('/{id}', [VendorRenewalController::class, 'update']);
-            Route::delete('/{id}', [VendorRenewalController::class, 'destroy']);
+            Route::controller(VendorRenewalController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::get('/{id}', 'show');
+                Route::post('/', 'store');
+                Route::put('/{id}', 'update');
+                Route::delete('/{id}', 'destroy');
+            });
         });
 
 
         // Client Renewal API routes
         Route::prefix('client-renewals')->group(function () {
-            Route::get('/', [ClientRenewalController::class, 'index']);
-            Route::get('/{id}', [ClientRenewalController::class, 'show']);
-            Route::post('/', [ClientRenewalController::class, 'store']);
-            Route::put('/{id}', [ClientRenewalController::class, 'update']);
-            Route::delete('/{id}', [ClientRenewalController::class, 'destroy']);
+            Route::controller(ClientRenewalController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::get('/{id}', 'show');
+                Route::post('/', 'store');
+                Route::put('/{id}', 'update');
+                Route::delete('/{id}', 'destroy');
+            });
         });
 
 
         Route::prefix('todos')->group(function () {
-            Route::get('/', [TodoController::class, 'index']);
-            Route::get('/{todo}', [TodoController::class, 'show']);
-            Route::post('/', [TodoController::class, 'store']);
-            Route::match(['put', 'patch'], '/{todo}', [TodoController::class, 'update']);
-            Route::delete('/{todo}', [TodoController::class, 'delete']);
+            Route::controller(TodoController::class)->group(function () {
+                Route::get('/', 'index');
+                Route::get('/{todo}', 'show');
+                Route::post('/', 'store');
+                Route::match(['put', 'patch'], '/{todo}', 'update');
+                Route::delete('/{todo}', 'delete');
 
-            Route::get('/options', [TodoController::class, 'apiTodoOptions']);
-            Route::patch('/{todo}/status', [TodoController::class, 'apiToggleTodoStatus']);
+                Route::get('/options', 'apiTodoOptions');
+                Route::patch('/{todo}/status', 'apiToggleTodoStatus');
+            });
         });
 
         // Lead API routes
         Route::prefix('leads')->group(function () {
-            Route::get('/form-options', [LeadController::class, 'apiFormOptions']);
-            Route::get('/', [LeadController::class, 'apiIndex']);
-            Route::get('/{id}', [LeadController::class, 'apiShow']);
-            Route::post('/', [LeadController::class, 'apiStore']);
-            Route::match(['put', 'patch'], '/{id}', [LeadController::class, 'apiUpdate']);
-            Route::delete('/{id}', [LeadController::class, 'apiDestroy']);
-        });
-
-
-        // Service API routes
-        Route::prefix('services')->group(function () {
-            Route::get('/form-options', [ApiServiceController::class, 'formOptions']);
-            Route::get('/', [ApiServiceController::class, 'index']);
-            Route::get('/{id}', [ApiServiceController::class, 'show']);
-            Route::post('/', [ApiServiceController::class, 'store']);
-            Route::match(['put', 'patch'], '/{id}', [ApiServiceController::class, 'update']);
-            Route::delete('/{id}', [ApiServiceController::class, 'destroy']);
-            Route::post('/delete-selected', [ApiServiceController::class, 'deleteSelected']);
-        });
-
-        // Calendar appointment API routes
-        Route::prefix('calendar')->group(function () {
-            Route::get('/events', [CalendarEventController::class, 'apiIndex']);
-            Route::get('/events/{id}', [CalendarEventController::class, 'apiShow']);
-            Route::post('/events', [CalendarEventController::class, 'apiStore']);
-            Route::match(['put', 'patch'], '/events/{id}', [CalendarEventController::class, 'apiUpdate']);
-            Route::delete('/events/{id}', [CalendarEventController::class, 'apiDestroy']);
+            Route::controller(LeadController::class)->group(function () {
+                Route::get('/form-options', 'apiFormOptions');
+                Route::get('/', 'apiIndex');
+                Route::get('/{id}', 'apiShow');
+                Route::post('/', 'apiStore');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
+                Route::delete('/{id}', 'apiDestroy');
+            });
         });
 
 
         // Project API routes
         Route::prefix('projects')->group(function () {
-            Route::get('/form-options', [ApiProjectController::class, 'apiFormOptions']);
-            Route::get('/', [ApiProjectController::class, 'apiIndex']);
-            Route::delete('/delete-all', [ApiProjectController::class, 'apiDeleteAll']);
-            Route::delete('/force-delete-all', [ApiProjectController::class, 'apiForceDeleteAll']);
-            Route::get('/{id}', [ApiProjectController::class, 'apiShow']);
-            Route::post('/', [ApiProjectController::class, 'apiStore']);
-            Route::match(['put', 'patch'], '/{id}', [ApiProjectController::class, 'apiUpdate']);
-            Route::delete('/{id}', [ApiProjectController::class, 'apiDestroy']);
+            Route::controller(ApiProjectController::class)->group(function () {
+                Route::get('/form-options', 'apiFormOptions');
+                Route::get('/', 'apiIndex');
+                Route::post('/', 'apiStore');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
+                Route::delete('/{id}', 'apiDestroy');
+                Route::get('/{id}', 'apiShow');
+            });
+
             Route::get('/{projectId}/milestones', [ApiProjectController::class, 'apiMilestoneIndex']);
             Route::post('/{projectId}/milestones', [ApiProjectController::class, 'apiStoreMilestone']);
             Route::match(['put', 'patch'], '/{projectId}/milestones/{milestoneId}', [ApiProjectController::class, 'apiUpdateMilestone']);
@@ -235,13 +225,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // Task API routes
         Route::prefix('tasks')->group(function () {
             Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions']);
+
             Route::get('/', [ApiTaskController::class, 'apiIndex']);
-            Route::delete('/delete-all', [ApiTaskController::class, 'apiDeleteAll']);
-            Route::delete('/force-delete-all', [ApiTaskController::class, 'apiForceDeleteAll']);
             Route::get('/{id}', [ApiTaskController::class, 'apiShow']);
             Route::post('/', [ApiTaskController::class, 'apiStore']);
             Route::match(['put', 'patch'], '/{id}', [ApiTaskController::class, 'apiUpdate']);
             Route::delete('/{id}', [ApiTaskController::class, 'apiDestroy']);
+
             Route::get('/{taskId}/comments', [ApiTaskController::class, 'apiCommentIndex']);
             Route::post('/{taskId}/comments', [ApiTaskController::class, 'apiStoreComment']);
             Route::get('/{taskId}/attachments', [ApiTaskController::class, 'apiAttachmentIndex']);
@@ -266,6 +256,28 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{clientIssue}/tasks/{task}/status', [ApiClientIssueController::class, 'taskUpdateStatus']);
             Route::delete('/{clientIssue}/tasks/{task}', [ApiClientIssueController::class, 'taskDestroy']);
         });
+
+
+        // Service API routes
+        Route::prefix('services')->group(function () {
+            Route::get('/form-options', [ApiServiceController::class, 'formOptions']);
+            Route::get('/', [ApiServiceController::class, 'index']);
+            Route::get('/{id}', [ApiServiceController::class, 'show']);
+            Route::post('/', [ApiServiceController::class, 'store']);
+            Route::match(['put', 'patch'], '/{id}', [ApiServiceController::class, 'update']);
+            Route::delete('/{id}', [ApiServiceController::class, 'destroy']);
+            Route::post('/delete-selected', [ApiServiceController::class, 'deleteSelected']);
+        });
+
+        // Calendar appointment API routes
+        Route::prefix('calendar')->group(function () {
+            Route::get('/events', [CalendarEventController::class, 'apiIndex']);
+            Route::get('/events/{id}', [CalendarEventController::class, 'apiShow']);
+            Route::post('/events', [CalendarEventController::class, 'apiStore']);
+            Route::match(['put', 'patch'], '/events/{id}', [CalendarEventController::class, 'apiUpdate']);
+            Route::delete('/events/{id}', [CalendarEventController::class, 'apiDestroy']);
+        });
+
 
 
         // Settings API routes

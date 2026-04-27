@@ -319,54 +319,6 @@ class TaskController extends Controller
         }
     }
 
-    public function apiDeleteAll(): JsonResponse
-    {
-        try {
-            $count = Task::count();
-            Task::query()->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'All tasks deleted successfully.',
-                'data' => ['deleted_count' => $count],
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete all tasks: '.$e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function apiForceDeleteAll(): JsonResponse
-    {
-        try {
-            $trashedTasks = Task::onlyTrashed()->get();
-            $count = $trashedTasks->count();
-
-            foreach ($trashedTasks as $task) {
-                foreach ($task->attachments as $attachment) {
-                    $this->deleteTaskAttachmentFile($attachment);
-                    $attachment->forceDelete();
-                }
-                $task->comments()->forceDelete();
-            }
-
-            Task::onlyTrashed()->forceDelete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'All tasks permanently deleted successfully.',
-                'data' => ['deleted_count' => $count],
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to permanently delete all tasks: '.$e->getMessage(),
-            ], 500);
-        }
-    }
-
     private function taskValidationRules(): array
     {
         return [

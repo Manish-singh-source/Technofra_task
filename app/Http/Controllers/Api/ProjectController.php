@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Mail\ProjectCreatedMail;
-use App\Models\Customer;
 use App\Models\Project;
 use App\Models\ProjectComment;
 use App\Models\ProjectFile;
@@ -12,8 +12,8 @@ use App\Models\ProjectIssue;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
-use App\Models\Staff;
 use App\Models\Task;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -32,21 +32,22 @@ class ProjectController extends Controller
         return response()->json([
             'success' => true,
             'data' => [
-                'customers' => Customer::query()
-                    ->orderBy('client_name')
-                    ->get()
-                    ->map(fn (Customer $customer) => [
-                        'id' => $customer->id,
-                        'name' => $this->formatCustomerName($customer),
-                        'email' => $customer->email,
-                    ])
-                    ->values(),
-                'staff' => Staff::query()
+                'clients' => User::query()
                     ->orderBy('first_name')
                     ->get()
-                    ->map(fn (Staff $member) => [
+                    ->map(fn(User $user) => [
+                        'id' => $user->id,
+                        'name' => $this->formatUserName($user),
+                        'email' => $user->email,
+                    ])
+                    ->values(),
+                'staff' => User::query()
+                    ->where('role', 'staff')
+                    ->orderBy('first_name')
+                    ->get()
+                    ->map(fn(User $member) => [
                         'id' => $member->id,
-                        'name' => trim(($member->first_name ?? '').' '.($member->last_name ?? '')),
+                        'name' => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')),
                         'email' => $member->email,
                         'role' => $member->role,
                     ])
@@ -61,18 +62,42 @@ class ProjectController extends Controller
         ]);
     }
 
+    public function index()
+    {
+        $projectsCount = Project::count();
+        $inProgressCount = Project::where('status', 'in_progress')->count();
+
+        $projects = Project::with('customer:id,first_name,last_name,email,profile_image')->latest()->paginate(10);
+
+        $projects->getCollection()->transform(function (Project $project) {
+            $project->setAttribute('staffMembers', $project->staffMembers());
+            $project->setAttribute('progress', $this->calculateProgress($project));
+
+            return $project;
+        });
+
+        $data = [
+            'projects_count' => $projectsCount,
+            'in_progress_count' => $inProgressCount,
+            'projects' => $projects,
+        ];
+
+        return ApiResponse::success($data, 'Projects retrieved successfully.');
+    }
+
+
     public function apiIndex(Request $request): JsonResponse
     {
         $projects = $this->visibleProjectsQuery()
             ->with(['customer', 'statusLogs'])
-            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->input('status')))
-            ->when($request->filled('customer_id'), fn ($query) => $query->where('customer_id', $request->input('customer_id')))
-            ->when($request->filled('priority'), fn ($query) => $query->where('priority', $request->input('priority')))
+            ->when($request->filled('status'), fn($query) => $query->where('status', $request->input('status')))
+            ->when($request->filled('customer_id'), fn($query) => $query->where('customer_id', $request->input('customer_id')))
+            ->when($request->filled('priority'), fn($query) => $query->where('priority', $request->input('priority')))
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
                 $query->where(function ($nested) use ($search) {
-                    $nested->where('project_name', 'like', '%'.$search.'%')
-                        ->orWhere('description', 'like', '%'.$search.'%');
+                    $nested->where('project_name', 'like', '%' . $search . '%')
+                        ->orWhere('description', 'like', '%' . $search . '%');
                 });
             })
             ->latest()
@@ -80,7 +105,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $projects->map(fn (Project $project) => $this->formatProjectListResource($project))->values(),
+            'data' => $projects->map(fn(Project $project) => $this->formatProjectListResource($project))->values(),
             'meta' => [
                 'counts' => [
                     'all' => $projects->count(),
@@ -98,7 +123,7 @@ class ProjectController extends Controller
     {
         $project = Project::with([
             'customer',
-            'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+            'statusLogs' => fn($query) => $query->orderBy('started_at'),
         ])->findOrFail($id);
 
         $this->authorizeProjectAccess($project);
@@ -146,7 +171,7 @@ class ProjectController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create project: '.$e->getMessage(),
+                'message' => 'Failed to create project: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -194,7 +219,7 @@ class ProjectController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update project: '.$e->getMessage(),
+                'message' => 'Failed to update project: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -214,45 +239,7 @@ class ProjectController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete project: '.$e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function apiDeleteAll(): JsonResponse
-    {
-        try {
-            $count = Project::count();
-            Project::query()->delete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'All projects deleted successfully.',
-                'data' => ['deleted_count' => $count],
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete all projects: '.$e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function apiForceDeleteAll(): JsonResponse
-    {
-        try {
-            $count = Project::onlyTrashed()->count();
-            Project::onlyTrashed()->forceDelete();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'All projects permanently deleted successfully.',
-                'data' => ['deleted_count' => $count],
-            ]);
-        } catch (\Throwable $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to permanently delete all projects: '.$e->getMessage(),
+                'message' => 'Failed to delete project: ' . $e->getMessage(),
             ], 500);
         }
     }
@@ -271,7 +258,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $milestones->map(fn (ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
+            'data' => $milestones->map(fn(ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
         ]);
     }
 
@@ -372,7 +359,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $issues->map(fn (ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
+            'data' => $issues->map(fn(ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
         ]);
     }
 
@@ -460,7 +447,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $comments->map(fn (ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
+            'data' => $comments->map(fn(ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
         ]);
     }
 
@@ -499,7 +486,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $files->map(fn (ProjectFile $file) => $this->formatFileResource($file))->values(),
+            'data' => $files->map(fn(ProjectFile $file) => $this->formatFileResource($file))->values(),
         ]);
     }
 
@@ -595,36 +582,30 @@ class ProjectController extends Controller
         ]);
     }
 
-    private function getLoggedInCustomer(): ?Customer
+    private function getLoggedInCustomer(): ?User
     {
         $user = Auth::user();
         if (! $user) {
             return null;
         }
 
-        if ($user->relationLoaded('customer') && $user->customer) {
-            return $user->customer;
-        }
-
-        return Customer::query()
-            ->where('user_id', $user->id)
+        return User::query()
+            ->where('id', $user->id)
+            ->where('role', 'client')
             ->orWhere('email', $user->email)
             ->first();
     }
 
-    private function getLoggedInStaff(): ?Staff
+    private function getLoggedInStaff(): ?User
     {
         $user = Auth::user();
         if (! $user) {
             return null;
         }
 
-        if ($user->relationLoaded('staff') && $user->staff) {
-            return $user->staff;
-        }
 
-        return Staff::query()
-            ->where('user_id', $user->id)
+        return User::query()
+            ->where('id', $user->id)
             ->orWhere('email', $user->email)
             ->first();
     }
@@ -638,13 +619,13 @@ class ProjectController extends Controller
 
     private function visibleProjectsQuery()
     {
+        if ($this->isPrivilegedProjectUser()) {
+            return Project::query();
+        }
+
         $customer = $this->getLoggedInCustomer();
         if ($customer) {
             return Project::query()->where('customer_id', $customer->id);
-        }
-
-        if ($this->isPrivilegedProjectUser()) {
-            return Project::query();
         }
 
         $staff = $this->getLoggedInStaff();
@@ -677,8 +658,8 @@ class ProjectController extends Controller
         }
 
         $memberIds = collect($project->members ?? [])
-            ->filter(fn ($memberId) => $memberId !== null && $memberId !== '')
-            ->map(fn ($memberId) => (int) $memberId);
+            ->filter(fn($memberId) => $memberId !== null && $memberId !== '')
+            ->map(fn($memberId) => (int) $memberId);
 
         abort_if(! $memberIds->contains((int) $staff->id), 403, $message);
     }
@@ -687,7 +668,7 @@ class ProjectController extends Controller
     {
         $rules = [
             'project_name' => 'required|string|max:255',
-            'customer' => 'nullable|exists:customers,id',
+            'customer' => 'nullable|exists:users,id',
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
@@ -831,7 +812,7 @@ class ProjectController extends Controller
         }
 
         $startDateAtDayStart = Carbon::parse(
-            $project->start_date->format('Y-m-d').' 00:00:00',
+            $project->start_date->format('Y-m-d') . ' 00:00:00',
             $this->businessTimezone()
         );
 
@@ -860,7 +841,7 @@ class ProjectController extends Controller
     {
         $project->loadMissing([
             'customer',
-            'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+            'statusLogs' => fn($query) => $query->orderBy('started_at'),
         ]);
 
         $elapsedBoundary = $this->getElapsedBoundary();
@@ -908,7 +889,7 @@ class ProjectController extends Controller
         } elseif ($project->status === 'cancelled') {
             $overallProgress = 0;
         } else {
-            $availableSignals = array_values(array_filter($progressSignals, fn ($value) => $value !== null));
+            $availableSignals = array_values(array_filter($progressSignals, fn($value) => $value !== null));
             $overallProgress = ! empty($availableSignals)
                 ? (int) round(array_sum($availableSignals) / count($availableSignals))
                 : match ($project->status) {
@@ -939,7 +920,7 @@ class ProjectController extends Controller
                     'resolved_issues' => $resolvedIssues,
                 ],
             ],
-            'tasks' => $tasks->map(fn (Task $task) => [
+            'tasks' => $tasks->map(fn(Task $task) => [
                 'id' => $task->id,
                 'title' => $task->title,
                 'description' => $task->description,
@@ -953,11 +934,11 @@ class ProjectController extends Controller
                 'created_at' => optional($task->created_at)?->toISOString(),
                 'updated_at' => optional($task->updated_at)?->toISOString(),
             ])->values(),
-            'files' => $projectFiles->map(fn (ProjectFile $file) => $this->formatFileResource($file))->values(),
-            'milestones' => $milestones->map(fn (ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
-            'issues' => $issues->map(fn (ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
-            'comments' => $comments->map(fn (ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
-            'status_logs' => $project->statusLogs->map(fn (ProjectStatusLog $log) => [
+            'files' => $projectFiles->map(fn(ProjectFile $file) => $this->formatFileResource($file))->values(),
+            'milestones' => $milestones->map(fn(ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
+            'issues' => $issues->map(fn(ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
+            'comments' => $comments->map(fn(ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
+            'status_logs' => $project->statusLogs->map(fn(ProjectStatusLog $log) => [
                 'id' => $log->id,
                 'status' => $log->status,
                 'started_at' => optional($log->started_at)?->toISOString(),
@@ -1000,7 +981,7 @@ class ProjectController extends Controller
         } elseif ($project->status === 'cancelled') {
             $overallProgress = 0;
         } else {
-            $availableSignals = array_values(array_filter($progressSignals, fn ($value) => $value !== null));
+            $availableSignals = array_values(array_filter($progressSignals, fn($value) => $value !== null));
             $overallProgress = ! empty($availableSignals)
                 ? (int) round(array_sum($availableSignals) / count($availableSignals))
                 : match ($project->status) {
@@ -1019,7 +1000,7 @@ class ProjectController extends Controller
             'priority' => $project->priority,
             'customer' => $project->customer ? [
                 'id' => $project->customer->id,
-                'name' => $this->formatCustomerName($project->customer),
+                'name' => $this->formatUserName($project->customer),
                 'email' => $project->customer->email,
             ] : null,
             'start_date' => optional($project->start_date)?->toDateString(),
@@ -1038,13 +1019,13 @@ class ProjectController extends Controller
                     'details' => route('project-details', $project->id),
                 ],
                 'api' => [
-                    'show' => url('/api/v1/projects/'.$project->id),
-                    'update' => url('/api/v1/projects/'.$project->id),
-                    'delete' => url('/api/v1/projects/'.$project->id),
-                    'milestones' => url('/api/v1/projects/'.$project->id.'/milestones'),
-                    'issues' => url('/api/v1/projects/'.$project->id.'/issues'),
-                    'comments' => url('/api/v1/projects/'.$project->id.'/comments'),
-                    'files' => url('/api/v1/projects/'.$project->id.'/files'),
+                    'show' => url('/api/v1/projects/' . $project->id),
+                    'update' => url('/api/v1/projects/' . $project->id),
+                    'delete' => url('/api/v1/projects/' . $project->id),
+                    'milestones' => url('/api/v1/projects/' . $project->id . '/milestones'),
+                    'issues' => url('/api/v1/projects/' . $project->id . '/issues'),
+                    'comments' => url('/api/v1/projects/' . $project->id . '/comments'),
+                    'files' => url('/api/v1/projects/' . $project->id . '/files'),
                 ],
             ],
         ];
@@ -1058,7 +1039,7 @@ class ProjectController extends Controller
             'customer_id' => $project->customer_id,
             'customer' => $project->customer ? [
                 'id' => $project->customer->id,
-                'name' => $this->formatCustomerName($project->customer),
+                'name' => $this->formatUserName($project->customer),
                 'email' => $project->customer->email,
             ] : null,
             'status' => $project->status,
@@ -1102,7 +1083,7 @@ class ProjectController extends Controller
             'customer_id' => $issue->customer_id,
             'customer' => $issue->customer ? [
                 'id' => $issue->customer->id,
-                'name' => $this->formatCustomerName($issue->customer),
+                'name' => $this->formatUserName($issue->customer),
                 'email' => $issue->customer->email,
             ] : null,
             'issue_description' => $issue->issue_description,
@@ -1130,21 +1111,21 @@ class ProjectController extends Controller
         ];
     }
 
-    private function formatCustomerName(Customer $customer): string
+    private function formatUserName(User $user): string
     {
-        $name = trim((string) ($customer->client_name ?? ''));
+        $name = trim((string) ($user->client_name ?? ''));
 
         if ($name !== '') {
             return $name;
         }
 
-        $contactPerson = trim((string) ($customer->contact_person ?? ''));
+        $contactPerson = trim((string) ($user->contact_person ?? ''));
 
         if ($contactPerson !== '') {
             return $contactPerson;
         }
 
-        return 'Customer #'.$customer->id;
+        return 'Client #' . $user->id;
     }
 
     private function formatFileResource(ProjectFile $file): array
@@ -1169,7 +1150,7 @@ class ProjectController extends Controller
             'updated_at' => optional($file->updated_at)?->toISOString(),
             'links' => [
                 'download' => route('project.file.download', $file->id),
-                'delete' => url('/api/v1/projects/'.$file->project_id.'/files/'.$file->id),
+                'delete' => url('/api/v1/projects/' . $file->project_id . '/files/' . $file->id),
             ],
         ];
     }
@@ -1178,11 +1159,11 @@ class ProjectController extends Controller
     {
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
-        $fileName = uniqid().'_'.time().'.'.$extension;
+        $fileName = uniqid() . '_' . time() . '.' . $extension;
         $fileSize = $file->getSize();
         $fileType = $file->getMimeType();
 
-        $directory = public_path('uploads/project_files/'.$projectId);
+        $directory = public_path('uploads/project_files/' . $projectId);
         if (! file_exists($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -1195,7 +1176,7 @@ class ProjectController extends Controller
             'original_name' => $originalName,
             'file_type' => $fileType,
             'file_size' => $fileSize,
-            'file_path' => 'uploads/project_files/'.$projectId.'/'.$fileName,
+            'file_path' => 'uploads/project_files/' . $projectId . '/' . $fileName,
             'uploaded_by' => Auth::id(),
         ]);
     }
@@ -1209,18 +1190,18 @@ class ProjectController extends Controller
             try {
                 Mail::to($adminEmail)->send(new ProjectCreatedMail($project, 'admin'));
             } catch (\Throwable $e) {
-                Log::error('Failed to send project creation email to admin: '.$e->getMessage(), [
+                Log::error('Failed to send project creation email to admin: ' . $e->getMessage(), [
                     'project_id' => $project->id,
                     'admin_email' => $adminEmail,
                 ]);
             }
         }
 
-        $memberEmails = Staff::query()
-            ->whereIn('id', collect($project->members ?? [])->filter()->map(fn ($id) => (int) $id)->all())
+        $memberEmails = User::query()
+            ->whereIn('id', collect($project->members ?? [])->filter()->map(fn($id) => (int) $id)->all())
             ->whereNotNull('email')
             ->pluck('email')
-            ->map(fn ($email) => trim((string) $email))
+            ->map(fn($email) => trim((string) $email))
             ->filter()
             ->unique()
             ->values();
@@ -1229,11 +1210,64 @@ class ProjectController extends Controller
             try {
                 Mail::to($memberEmail)->send(new ProjectCreatedMail($project, 'member'));
             } catch (\Throwable $e) {
-                Log::error('Failed to send project creation email to member: '.$e->getMessage(), [
+                Log::error('Failed to send project creation email to member: ' . $e->getMessage(), [
                     'project_id' => $project->id,
                     'member_email' => $memberEmail,
                 ]);
             }
         }
+    }
+
+    private function calculateProgress(Project $project)
+    {
+
+        $tasks = Task::where('project_id', $project->id)->latest()->get();
+        $issues = ProjectIssue::where('project_id', $project->id)->with('customer')->latest()->get();
+        $milestones = ProjectMilestone::where('project_id', $project->id)->orderBy('sort_order')->orderBy('due_date')->orderBy('id')->get();
+
+        $issueStats = [
+            'total' => $issues->count(),
+            'open' => $issues->where('status', 'open')->count(),
+            'in_progress' => $issues->where('status', 'in_progress')->count(),
+            'resolved' => $issues->where('status', 'resolved')->count(),
+            'closed' => $issues->where('status', 'closed')->count(),
+        ];
+        $resolvedIssues = $issueStats['resolved'] + $issueStats['closed'];
+        $completedTasks = $tasks->where('status', 'completed')->count();
+
+        $milestoneStats = [
+            'total' => $milestones->count(),
+            'completed' => $milestones->where('status', 'completed')->count(),
+            'in_progress' => $milestones->where('status', 'in_progress')->count(),
+            'pending' => $milestones->where('status', 'pending')->count(),
+        ];
+
+        $progressSignals = [
+            $tasks->count() > 0 ? ($completedTasks / $tasks->count()) * 100 : null,
+            $milestoneStats['total'] > 0 ? (($milestoneStats['completed'] / $milestoneStats['total']) * 100) : null,
+            $issueStats['total'] > 0 ? (($resolvedIssues / $issueStats['total']) * 100) : null,
+        ];
+
+        if ($project->status === 'completed') {
+            $overallProgress = 100;
+        } elseif ($project->status === 'cancelled') {
+            $overallProgress = 0;
+        } else {
+            $availableSignals = array_values(array_filter($progressSignals, fn($value) => $value !== null));
+            $overallProgress = ! empty($availableSignals)
+                ? (int) round(array_sum($availableSignals) / count($availableSignals))
+                : match ($project->status) {
+                    'in_progress' => 45,
+                    'on_hold' => 20,
+                    default => 0,
+                };
+        }
+
+        $overallProgress = max(0, min(100, $overallProgress));
+
+        return [
+            'overall' => $overallProgress,
+            'resolved_issues' => $resolvedIssues,
+        ];
     }
 }
