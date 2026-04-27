@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Service;
 use App\Models\Staff;
 use App\Models\Task;
+use App\Models\User;
 use App\Models\VendorService;
 use App\Services\NotificationService;
 use Carbon\Carbon;
@@ -136,7 +137,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $staffMembers = Staff::orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
+        $staffMembers = User::where('role', 'staff')->orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
         $weekStart = $today->copy()->startOfWeek();
         $monthStart = $today->copy()->startOfMonth();
         $yearStart = $today->copy()->startOfYear();
