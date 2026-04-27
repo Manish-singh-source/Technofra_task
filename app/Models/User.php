@@ -75,7 +75,8 @@ class User extends Authenticatable
      */
     public function staff()
     {
-        return $this->hasOne(User::class);
+        return $this->hasOne(self::class, 'id', 'id')
+            ->where('role', 'staff');
     }
 
     public function todos()
@@ -88,7 +89,8 @@ class User extends Authenticatable
      */
     public function customer()
     {
-        return $this->hasOne(User::class);
+        return $this->hasOne(self::class, 'id', 'id')
+            ->where('role', 'client');
     }
 
     /**
@@ -96,7 +98,7 @@ class User extends Authenticatable
      */
     public function isStaff()
     {
-        return !$this->isCustomer() && !empty($this->role);
+        return $this->role === 'staff';
     }
 
     /**
@@ -104,7 +106,7 @@ class User extends Authenticatable
      */
     public function isCustomer()
     {
-        return $this->customer()->exists();
+        return $this->role === 'client';
     }
 
     /**
@@ -241,7 +243,7 @@ class User extends Authenticatable
 
     public function scopeStaffMembers($query)
     {
-        return $query->where('role', '!=', 'client')->whereNotNull('role');
+        return $query->where('role', 'staff');
     }
 
     public function assignedLeads()
