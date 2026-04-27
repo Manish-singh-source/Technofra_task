@@ -143,11 +143,13 @@ class ProjectController extends Controller
     public function index()
     {
         $projects = $this->visibleProjectsQuery()
-            ->with(['customer', 'customerUser'])
+            ->with(['customer'])
             ->get()
             ->each(function ($project) {
                 $project->setAttribute('staff_members', $project->staffMembers());
             });
+
+        // dd($projects);
         // $staff = User::whereIn('id', $projects->members)
         //     ->orderBy('first_name')
         //     ->orderBy('last_name')
