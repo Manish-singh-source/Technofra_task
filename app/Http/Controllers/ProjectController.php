@@ -145,9 +145,10 @@ class ProjectController extends Controller
         $projects = $this->visibleProjectsQuery()
             ->with(['customer'])
             ->get()
-            ->each(function ($project) {
-                $project->setAttribute('staff_members', $project->staffMembers());
-            });
+            // ->each(function ($project) {
+            //     $project->setAttribute('staff_members', $project->staffMembers());
+            // })
+            ;
 
         // dd($projects);
         // $staff = User::whereIn('id', $projects->members)
