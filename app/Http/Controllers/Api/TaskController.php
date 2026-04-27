@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Project;
-use App\Models\Staff;
 use App\Models\Task;
 use App\Models\TaskAttachment;
 use App\Models\TaskComment;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -31,11 +31,12 @@ class TaskController extends Controller
                         'name' => $project->project_name,
                     ])
                     ->values(),
-                'staff' => Staff::query()
+                'staff' => User::query()
+                    ->where('role', 'staff')
                     ->orderBy('first_name')
                     ->orderBy('last_name')
                     ->get()
-                    ->map(fn (Staff $member) => [
+                    ->map(fn (User $member) => [
                         'id' => $member->id,
                         'name' => trim(($member->first_name ?? '').' '.($member->last_name ?? '')),
                         'email' => $member->email,
