@@ -144,13 +144,15 @@ class ProjectController extends Controller
     {
         $projects = $this->visibleProjectsQuery()
             ->with(['customer', 'customerUser'])
-            ->get();
-
-        $staff = User::staffMembers()
-            ->orderBy('first_name')
-            ->orderBy('last_name')
             ->get()
-            ->keyBy('id');
+            ->each(function ($project) {
+                $project->setAttribute('staff_members', $project->staffMembers());
+            });
+        // $staff = User::whereIn('id', $projects->members)
+        //     ->orderBy('first_name')
+        //     ->orderBy('last_name')
+        //     ->get()
+        //     ->keyBy('id');
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
         $inProgressProjects = $projects->where('status', 'in_progress')->count();
@@ -158,7 +160,7 @@ class ProjectController extends Controller
         $completedProjects = $projects->where('status', 'completed')->count();
         $cancelledProjects = $projects->where('status', 'cancelled')->count();
 
-        return view('project', compact('projects', 'staff', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects'));
+        return view('project', compact('projects', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects'));
     }
 
     public function create()
