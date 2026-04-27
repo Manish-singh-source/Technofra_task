@@ -149,7 +149,7 @@ class ProjectController extends Controller
             })
             ;
 
-        dd($projects);
+        // dd($projects);
         // $staff = User::whereIn('id', $projects->members)
         //     ->orderBy('first_name')
         //     ->orderBy('last_name')
