@@ -82,8 +82,7 @@ class ProjectController extends Controller
     private function isPrivilegedProjectUser(): bool
     {
         $user = Auth::user();
-
-        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin']));
+        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']));
     }
 
     /**
@@ -145,12 +144,12 @@ class ProjectController extends Controller
         $projects = $this->visibleProjectsQuery()
             ->with(['customer'])
             ->get()
-            // ->each(function ($project) {
-            //     $project->setAttribute('staff_members', $project->staffMembers());
-            // })
+            ->each(function ($project) {
+                $project->setAttribute('staff_members', $project->staffMembers());
+            })
             ;
 
-        // dd($projects);
+        dd($projects);
         // $staff = User::whereIn('id', $projects->members)
         //     ->orderBy('first_name')
         //     ->orderBy('last_name')
