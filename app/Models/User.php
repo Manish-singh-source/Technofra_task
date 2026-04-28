@@ -223,6 +223,11 @@ class User extends Authenticatable
             ->wherePivotNull('deleted_at');
     }
 
+    public function getProfileImageAttribute($value)
+    {
+        return $value ? 'uploads/staff/' . $value : null;
+    }
+
     public function teams()
     {
         return $this->belongsToMany(Team::class, 'staff_team')

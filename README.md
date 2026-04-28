@@ -1672,8 +1672,3 @@ jobs:
 *For internal use only — Technofra / MyCRM Project Team*
 *Created By - Saurabh Damale*
 
-
-
-
-Series TV Light Load Springs - Round Wire
-Series VL Extra Light Load Springs
