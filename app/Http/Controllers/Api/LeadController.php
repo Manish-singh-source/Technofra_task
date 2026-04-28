@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\FileUpload;
 use App\Http\Controllers\Controller;
 use App\Models\ClientBusinessDetail;
 use App\Models\Lead;
@@ -10,7 +11,6 @@ use App\Models\UserAddress;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class LeadController extends Controller
@@ -120,12 +120,10 @@ class LeadController extends Controller
             $client = User::where('email', $lead->email)->first();
 
             if (!$client) {
-                $fileName = Str::uuid() . '.png';
-                $path = public_path('uploads/client/' . $fileName);
-
-                $avatar = app('avatar');
-                $avatar->create($lead->name)->save($path);
-                $profileImagePath = 'uploads/client/' . 'uploads/client/' . $fileName;
+                $profileImagePath = basename(FileUpload::generateAvatar(
+                    (string) ($lead->name ?? 'Client'),
+                    'uploads/client/'
+                ));
 
                 // Create a new client
                 $client = User::create([

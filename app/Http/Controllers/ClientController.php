@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\FileUpload;
 use App\Imports\ClientsImport;
 use App\Models\ClientBusinessDetail;
 use App\Models\User;
@@ -11,7 +12,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\Permission\Models\Role;
@@ -329,20 +329,16 @@ class ClientController extends Controller
     {
         $profileImagePath = $client?->profile_image;
         if ($request->hasFile('profileImage')) {
-            $profileImagePath = $this->uploadProfileImage(
+            $profileImagePath = basename(FileUpload::updateFileUpload(
                 $request->file('profileImage'),
-                $client?->profile_image,
-                $client?->id
-            );
-        } else {
-            if (!isset($profileImagePath)) {
-                $fileName = Str::uuid() . '.png';
-                $path = public_path('uploads/clients/' . $fileName);
-
-                $avatar = app('avatar');
-                $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
-                $profileImagePath = $fileName;
-            }
+                $client?->profile_image ? 'uploads/clients/'.$client->profile_image : '',
+                'uploads/clients/'
+            ));
+        } elseif (! isset($profileImagePath)) {
+            $profileImagePath = basename(FileUpload::generateAvatar(
+                trim($request->first_name . ' ' . $request->last_name),
+                'uploads/clients/'
+            ));
         }
 
         return [
@@ -428,22 +424,4 @@ class ClientController extends Controller
         return 'inactive';
     }
 
-    private function uploadProfileImage($image, ?string $oldImage = null, ?int $clientId = null): string
-    {
-        $extension = $image->getClientOriginalExtension();
-        $imageName = $clientId
-            ? time() . '_' . $clientId . '.' . $extension
-            : time() . '.' . $extension;
-
-        $image->move(public_path('uploads/clients'), $imageName);
-
-        if ($oldImage) {
-            $oldImagePath = public_path('uploads/clients/' . $oldImage);
-            if (file_exists($oldImagePath)) {
-                @unlink($oldImagePath);
-            }
-        }
-
-        return $imageName;
-    }
 }

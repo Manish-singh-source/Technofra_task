@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\FileUpload;
 use App\Models\Setting;
 use App\Models\User;
 use Carbon\Carbon;
@@ -209,11 +210,11 @@ class AuthController extends Controller
             }
 
             if ($request->hasFile('profileImage') && ! $staff) {
-                $user->profile_image = $this->uploadProfileImage(
+                $user->profile_image = basename(FileUpload::updateFileUpload(
                     $request->file('profileImage'),
-                    $user->profile_image,
-                    'profile'
-                );
+                    $user->profile_image ? 'uploads/profile/'.$user->profile_image : '',
+                    'uploads/profile/'
+                ));
             }
 
             $user->save();
@@ -231,12 +232,11 @@ class AuthController extends Controller
                 }
 
                 if ($request->hasFile('profileImage')) {
-                    $staff->profile_image = $this->uploadProfileImage(
+                    $staff->profile_image = basename(FileUpload::updateFileUpload(
                         $request->file('profileImage'),
-                        $staff->profile_image,
-                        'staff',
-                        $staff->id
-                    );
+                        $staff->profile_image ? 'uploads/staff/'.$staff->profile_image : '',
+                        'uploads/staff/'
+                    ));
                 }
 
                 $staff->save();
@@ -265,32 +265,6 @@ class AuthController extends Controller
                 ->with('error', 'Failed to update profile. Please try again.')
                 ->withInput();
         }
-    }
-
-    /**
-     * Upload a profile image and remove the previous file when present.
-     */
-    private function uploadProfileImage($image, ?string $oldImage = null, string $folder = 'profile', ?int $recordId = null): string
-    {
-        $extension = $image->getClientOriginalExtension();
-        $imageName = time().($recordId ? '_'.$recordId : '').'.'.$extension;
-        $uploadPath = public_path('uploads/'.$folder);
-
-        if (! is_dir($uploadPath)) {
-            mkdir($uploadPath, 0755, true);
-        }
-
-        $image->move($uploadPath, $imageName);
-
-        if ($oldImage) {
-            $oldImagePath = $uploadPath.DIRECTORY_SEPARATOR.$oldImage;
-
-            if (file_exists($oldImagePath)) {
-                @unlink($oldImagePath);
-            }
-        }
-
-        return $imageName;
     }
 
     /**

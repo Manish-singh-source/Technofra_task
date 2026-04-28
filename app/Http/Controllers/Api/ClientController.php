@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
+use App\Helpers\FileUpload;
 use App\Http\Controllers\Controller;
 use App\Models\ClientBusinessDetail;
 use App\Models\User;
@@ -11,7 +12,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class ClientController extends Controller
@@ -78,17 +78,11 @@ class ClientController extends Controller
         DB::beginTransaction();
         try {
 
-            $profileImagePath = null;
-            if ($request->hasFile('profile_image')) {
-                $profileImagePath = $this->uploadProfileImage($request->file('profile_image'));
-            } else {
-                $fileName = Str::uuid() . '.png';
-                $path = public_path('uploads/client/' . $fileName);
-
-                $avatar = app('avatar');
-                $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
-                $profileImagePath = 'uploads/client/' . 'uploads/client/' . $fileName;
-            }
+            $profileImagePath = basename(FileUpload::uploadOrGenerateAvatar(
+                $request->file('profile_image'),
+                trim($request->first_name . ' ' . $request->last_name),
+                'uploads/client/'
+            ));
 
             $client = User::create([
                 'profile_image' => $profileImagePath,
@@ -187,24 +181,19 @@ class ClientController extends Controller
 
             $client = User::where('role', 'client')->find($id);
 
-            if ($client->profile_image && $client->profile_image !== 'default.png') {
-                // delete existing image if it's not the default
-                $imagePath = public_path($client->profile_image);
-                if (file_exists($imagePath)) {
-                    unlink($imagePath);
-                }
-            }
-
-            $profileImagePath = $client->profile_image; // keep existing if no new upload
+            $profileImagePath = $client->profile_image;
             if ($request->hasFile('profile_image')) {
-                $profileImagePath = $this->uploadProfileImage($request->file('profile_image'));
-            } elseif (!$client->profile_image || $client->profile_image === 'default.png') {
-                // generate avatar if no existing image or it's default
-                $fileName = Str::uuid() . '.png';
-                $path = public_path($fileName);
-                $avatar = app('avatar');
-                $avatar->create($request->first_name . ' ' . $request->last_name)->save($path);
-                $profileImagePath = $fileName;
+                $profileImagePath = basename(FileUpload::updateFileUpload(
+                    $request->file('profile_image'),
+                    $client->profile_image ? 'uploads/client/'.$client->profile_image : '',
+                    'uploads/client/'
+                ));
+            } elseif (! $client->profile_image || $client->profile_image === 'default.png') {
+                $profileImagePath = basename(FileUpload::generateAvatar(
+                    trim($request->first_name . ' ' . $request->last_name),
+                    'uploads/client/',
+                    $client->profile_image ? 'uploads/client/'.$client->profile_image : ''
+                ));
             }
 
             $client->update([
@@ -311,11 +300,4 @@ class ClientController extends Controller
         }
     }
 
-    // Helper function for uploading profile image
-    private function uploadProfileImage($file)
-    {
-        $fileName = time() . '_' . $file->getClientOriginalName();
-        $file->move(public_path('uploads/client'), $fileName);
-        return 'uploads/client/' . $fileName;
-    }
 }

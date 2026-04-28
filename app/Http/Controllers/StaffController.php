@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\FileUpload;
 use App\Mail\StaffInviteMail;
 use App\Models\Department;
 use App\Models\Project;
@@ -16,7 +17,6 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Laravolt\Avatar\Avatar;
 use Spatie\Permission\Models\Role;
@@ -94,17 +94,11 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
-            $profileImagePath = null;
-            if ($request->hasFile('profileImage')) {
-                $profileImagePath = $this->uploadProfileImage($request->file('profileImage'));
-            } else {
-                $fileName = Str::uuid() . '.png';
-                $path = public_path('uploads/staff/' . $fileName);
-
-                $avatar = app('avatar');
-                $avatar->create($request->firstName . ' ' . $request->lastName)->save($path);
-                $profileImagePath = $fileName;
-            }
+            $profileImagePath = basename(FileUpload::uploadOrGenerateAvatar(
+                $request->file('profileImage'),
+                trim($request->firstName . ' ' . $request->lastName),
+                'uploads/staff/'
+            ));
 
             $status = $request->status ?? 'active';
             $team = $request->filled('team') ? $request->team : null;
@@ -753,10 +747,11 @@ class StaffController extends Controller
 
         DB::beginTransaction();
         try {
-            $profileImagePath = null;
-            if ($request->hasFile('profileImage')) {
-                $profileImagePath = $this->uploadProfileImage($request->file('profileImage'));
-            }
+            $profileImagePath = basename(FileUpload::uploadOrGenerateAvatar(
+                $request->file('profileImage'),
+                trim($payload['first_name'] . ' ' . $payload['last_name']),
+                'uploads/staff/'
+            ));
 
             $status = $payload['status'] ?? 'active';
             $team = ! empty($payload['team']) ? $payload['team'] : null;
@@ -987,7 +982,11 @@ class StaffController extends Controller
         ];
 
         if ($request->hasFile('profileImage')) {
-            $updateData['profile_image'] = $this->uploadProfileImage($request->file('profileImage'), $staff->profile_image, $staff->id);
+            $updateData['profile_image'] = basename(FileUpload::updateFileUpload(
+                $request->file('profileImage'),
+                $staff->profile_image ? 'uploads/staff/'.$staff->profile_image : '',
+                'uploads/staff/'
+            ));
         }
 
         return $updateData;
@@ -1064,25 +1063,6 @@ class StaffController extends Controller
         ]);
     }
 
-    private function uploadProfileImage($image, ?string $oldImage = null, ?int $staffId = null): string
-    {
-        $extension = $image->getClientOriginalExtension();
-        $imageName = $staffId
-            ? time() . '_' . $staffId . '.' . $extension
-            : time() . '.' . $extension;
-
-        $image->move(public_path('uploads/staff'), $imageName);
-
-        if ($oldImage) {
-            $oldImagePath = public_path('uploads/staff/' . $oldImage);
-            if (file_exists($oldImagePath)) {
-                @unlink($oldImagePath);
-            }
-        }
-
-        return $imageName;
-    }
-
     private function performStaffDelete(User $staff, bool $forceDelete = false): void
     {
         if ($forceDelete) {
@@ -1090,10 +1070,7 @@ class StaffController extends Controller
             DB::table('staff_team')->where('user_id', $staff->id)->delete();
 
             if ($staff->profile_image) {
-                $imagePath = public_path('uploads/staff/' . $staff->profile_image);
-                if (file_exists($imagePath)) {
-                    @unlink($imagePath);
-                }
+                FileUpload::deleteFile('uploads/staff/'.$staff->profile_image);
             }
 
             $staff->forceDelete();

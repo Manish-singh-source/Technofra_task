@@ -225,7 +225,26 @@ class User extends Authenticatable
 
     public function getProfileImageAttribute($value)
     {
-        return $value ? 'uploads/staff/' . $value : null;
+        return $value;
+    }
+
+    public function getProfileImageUrlAttribute(): ?string
+    {
+        if (! $this->profile_image) {
+            return null;
+        }
+
+        $normalized = ltrim(str_replace('\\', '/', (string) $this->profile_image), '/');
+
+        if (str_starts_with($normalized, 'uploads/')) {
+            return asset($normalized);
+        }
+
+        if ($this->role === 'client') {
+            return asset('uploads/clients/'.$normalized);
+        }
+
+        return asset('uploads/staff/'.$normalized);
     }
 
     public function teams()
