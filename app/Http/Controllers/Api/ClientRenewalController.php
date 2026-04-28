@@ -6,12 +6,20 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Service;
+use App\Models\User;
 use App\Models\Vendor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ClientRenewalController extends Controller
 {
+
+    public function apiFormOptions() {
+        return ApiResponse::success([
+            'clients' => User::where('role', 'client')->select('id', 'first_name', 'last_name')->orderBy('first_name')->get(),
+            'vendors' => Vendor::select('id', 'name')->orderBy('first_name')->get(),
+        ]);
+    }
 
     public function index()
     {
@@ -84,7 +92,7 @@ class ClientRenewalController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => 'required|exists:users,id',
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
@@ -136,7 +144,7 @@ class ClientRenewalController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => 'required|exists:users,id',
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
