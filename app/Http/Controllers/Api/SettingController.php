@@ -28,7 +28,7 @@ class SettingController extends Controller
             ],
         ];
 
-        if ($user && $user->can('view_general_settings')) {
+        if ($this->canAccessSettingsSection($user, 'view_general_settings')) {
             $data['general'] = $this->formatGeneralSettings();
             $data['teams'] = $this->formatTeams();
             $data['departments'] = $this->formatDepartments();
@@ -37,12 +37,12 @@ class SettingController extends Controller
             $data['links']['departments'] = url('/api/v1/settings/departments');
         }
 
-        if ($user && $user->can('view_company_information')) {
+        if ($this->canAccessSettingsSection($user, 'view_company_information')) {
             $data['company'] = $this->formatCompanySettings();
             $data['links']['company'] = url('/api/v1/settings/company');
         }
 
-        if ($user && $user->can('view_email_settings')) {
+        if ($this->canAccessSettingsSection($user, 'view_email_settings')) {
             $data['email'] = $this->formatEmailSettings();
             $data['renewal'] = $this->formatRenewalSettings();
             $data['links']['email'] = url('/api/v1/settings/email');
@@ -537,7 +537,7 @@ class SettingController extends Controller
     public function getAppLogo(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (! $user || ! $user->can('view_general_settings')) {
+        if (! $this->canAccessSettingsSection($user, 'view_general_settings')) {
             return ApiResponse::error('Unauthorized.', [], 403);
         }
 
@@ -562,7 +562,7 @@ class SettingController extends Controller
     public function updateAppLogo(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (! $user || ! $user->can('view_general_settings')) {
+        if (! $this->canAccessSettingsSection($user, 'view_general_settings')) {
             return ApiResponse::error('Unauthorized.', [], 403);
         }
 
@@ -614,7 +614,7 @@ class SettingController extends Controller
     public function getLoginLogo(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (! $user || ! $user->can('view_general_settings')) {
+        if (! $this->canAccessSettingsSection($user, 'view_general_settings')) {
             return ApiResponse::error('Unauthorized.', [], 403);
         }
 
@@ -639,7 +639,7 @@ class SettingController extends Controller
     public function updateLoginLogo(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (! $user || ! $user->can('view_general_settings')) {
+        if (! $this->canAccessSettingsSection($user, 'view_general_settings')) {
             return ApiResponse::error('Unauthorized.', [], 403);
         }
 
@@ -1146,5 +1146,18 @@ class SettingController extends Controller
         }
 
         return $value;
+    }
+
+    private function canAccessSettingsSection($user, string $permission): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasRole(['super-admin', 'super_admin', 'admin', 'super_admin2'])) {
+            return true;
+        }
+
+        return $user->can($permission);
     }
 }
