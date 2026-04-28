@@ -17,7 +17,7 @@ class ClientRenewalController extends Controller
     public function apiFormOptions() {
         return ApiResponse::success([
             'clients' => User::where('role', 'client')->select('id', 'first_name', 'last_name')->orderBy('first_name')->get(),
-            'vendors' => Vendor::select('id', 'name')->orderBy('first_name')->get(),
+            'vendors' => Vendor::select('id', 'name')->orderBy('name')->get(),
         ]);
     }
 

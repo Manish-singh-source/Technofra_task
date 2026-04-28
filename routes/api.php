@@ -162,7 +162,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('client-renewals')->group(function () {
             Route::controller(ClientRenewalController::class)->group(function () {
                 Route::get('/form-options', 'apiFormOptions');
-                
+
                 Route::get('/', 'index');
                 Route::get('/{id}', 'show');
                 Route::post('/', 'store');
