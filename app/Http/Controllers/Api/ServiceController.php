@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
-use App\Models\Client;
 use App\Models\Service;
+use App\Models\User;
 use App\Models\Vendor;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -13,6 +13,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
@@ -23,13 +24,16 @@ class ServiceController extends Controller
     public function formOptions(): JsonResponse
     {
         return ApiResponse::success([
-            'clients' => Client::query()
-                ->orderBy('cname')
+            'clients' => User::query()
+                ->where('role', 'client')
+                ->with('businessDetail:id,user_id,company_name')
+                ->orderBy('first_name')
+                ->orderBy('last_name')
                 ->get()
-                ->map(fn (Client $client) => [
+                ->map(fn (User $client) => [
                     'id' => $client->id,
-                    'name' => $client->cname,
-                    'company_name' => $client->coname,
+                    'name' => $client->name,
+                    'company_name' => optional($client->businessDetail)->company_name,
                     'email' => $client->email,
                 ])
                 ->values(),
@@ -55,7 +59,7 @@ class ServiceController extends Controller
         $activeTab = $this->resolveActiveTab($request->input('tab'));
 
         $services = Service::query()
-            ->with(['client', 'vendor'])
+            ->with(['client.businessDetail', 'vendor'])
             ->whereNotNull('client_id')
             ->when($request->filled('from_date'), fn ($query) => $query->whereDate('billing_date', '>=', $request->input('from_date')))
             ->when($request->filled('to_date'), fn ($query) => $query->whereDate('billing_date', '<=', $request->input('to_date')))
@@ -107,7 +111,7 @@ class ServiceController extends Controller
     public function show(int $id): JsonResponse
     {
         $service = Service::query()
-            ->with(['client', 'vendor'])
+            ->with(['client.businessDetail', 'vendor'])
             ->whereNotNull('client_id')
             ->find($id);
 
@@ -156,7 +160,7 @@ class ServiceController extends Controller
                 ->values();
 
             $freshServices = Service::query()
-                ->with(['client', 'vendor'])
+                ->with(['client.businessDetail', 'vendor'])
                 ->whereIn('id', $createdServiceIds)
                 ->orderByRaw('FIELD(id, ' . $createdServiceIds->implode(',') . ')')
                 ->get();
@@ -197,7 +201,7 @@ class ServiceController extends Controller
             $service->update($validator->validated());
 
             return ApiResponse::success(
-                $this->formatServiceResource($service->fresh(['client', 'vendor'])),
+                $this->formatServiceResource($service->fresh(['client.businessDetail', 'vendor'])),
                 'Service updated successfully.'
             );
         } catch (\Throwable $exception) {
@@ -269,7 +273,10 @@ class ServiceController extends Controller
     private function storeRules(): array
     {
         return [
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => [
+                'required',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client')),
+            ],
             'services' => 'required|array|min:1',
             'services.*.vendor_id' => 'required|exists:vendors,id',
             'services.*.service_name' => 'required|string|max:255',
@@ -286,7 +293,10 @@ class ServiceController extends Controller
     private function updateRules(): array
     {
         return [
-            'client_id' => 'required|exists:clients,id',
+            'client_id' => [
+                'required',
+                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client')),
+            ],
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
@@ -367,15 +377,15 @@ class ServiceController extends Controller
 
     private function formatServiceResource(Service $service): array
     {
-        $service->loadMissing(['client', 'vendor']);
+        $service->loadMissing(['client.businessDetail', 'vendor']);
 
         return [
             'id' => $service->id,
             'client_id' => $service->client_id,
             'client' => $service->client ? [
                 'id' => $service->client->id,
-                'name' => $service->client->cname,
-                'company_name' => $service->client->coname,
+                'name' => $service->client->name,
+                'company_name' => optional($service->client->businessDetail)->company_name,
                 'email' => $service->client->email,
             ] : null,
             'vendor_id' => $service->vendor_id,

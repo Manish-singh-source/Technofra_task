@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BookACallController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\FcmTestController;
+use App\Http\Controllers\Api\GoogleAdsController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
@@ -288,7 +290,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-        // Service API routes
+        // Service API routes  -- not used anywhere
         Route::prefix('services')->group(function () {
             Route::get('/form-options', [ApiServiceController::class, 'formOptions']);
             Route::get('/', [ApiServiceController::class, 'index']);
@@ -301,11 +303,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Calendar appointment API routes
         Route::prefix('calendar')->group(function () {
-            Route::get('/events', [CalendarEventController::class, 'apiIndex']);
-            Route::get('/events/{id}', [CalendarEventController::class, 'apiShow']);
-            Route::post('/events', [CalendarEventController::class, 'apiStore']);
-            Route::match(['put', 'patch'], '/events/{id}', [CalendarEventController::class, 'apiUpdate']);
-            Route::delete('/events/{id}', [CalendarEventController::class, 'apiDestroy']);
+            Route::controller(CalendarEventController::class)->group(function () {
+                Route::get('/events', 'apiIndex');
+                Route::get('/events/{id}', 'apiShow');
+                Route::post('/events', 'apiStore');
+                Route::match(['put', 'patch'], '/events/{id}', 'apiUpdate');
+                Route::delete('/events/{id}', 'apiDestroy');
+            });
         });
 
 
@@ -313,6 +317,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Settings API routes
         Route::prefix('settings')->group(function () {
             Route::get('/', [ApiSettingController::class, 'index']);
+            
             Route::get('/general', [ApiSettingController::class, 'general']);
             Route::match(['post', 'put', 'patch'], '/general', [ApiSettingController::class, 'updateGeneral']);
             Route::get('/company', [ApiSettingController::class, 'company']);
@@ -336,6 +341,19 @@ Route::middleware('auth:sanctum')->group(function () {
         // Route::get('/clients', [ClientRenewalController::class, 'clientList']);
         // Route::get('/vendors', [ClientRenewalController::class, 'vendorList']);
 
+        // Book a Call 
+        Route::controller(BookACallController::class)->group(function () {
+            Route::get('/book-a-call', 'index');
+            Route::delete('/book-a-call/{id}', 'destroy');
+        });
+
+        Route::controller(GoogleAdsController::class)->group(function () {
+            Route::get('/digital-marketing', 'indexDigitalMarketing');
+            Route::delete('/digital-marketing/{id}', 'destroyDigitalMarketing');
+            
+            Route::get('/web-apps-leads', 'indexWebAppsLeads');
+            Route::delete('/web-apps-leads/{id}', 'destroyWebAppsLeads');
+        });
     });
 });
 

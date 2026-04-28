@@ -5,7 +5,6 @@ use App\Http\Controllers\BookCallController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientIssueController;
-use App\Http\Controllers\CustomerController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DigitalMarketingLeadController;
 use App\Http\Controllers\LeadController;
