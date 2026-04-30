@@ -179,8 +179,8 @@
                                 <tr>
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                     <th>Client Name</th>
-                                    <th>Vendor Name</th>
-                                    <th>Service Name</th>
+                                    {{-- <th>Vendor Name</th> --}}
+                                    <th>Service Renewal</th>
                                     <th>Remark</th>
                                     <th>Start Date</th>
                                     <th>End Date</th>
@@ -198,7 +198,7 @@
                                             <input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                                 value="{{ $service->id }}">
                                         </td>
-                                        <td>{{ $service->client?->name ?: 'N/A' }}</td>
+                                        {{-- <td>{{ $service->client?->name ?: 'N/A' }}</td> --}}
                                         <td>{{ $service->vendor->name ?? 'N/A' }}</td>
                                         <td>{{ $service->service_name }}</td>
                                         <td>

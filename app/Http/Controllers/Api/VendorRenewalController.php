@@ -23,8 +23,11 @@ class VendorRenewalController extends Controller
                         ->orWhereHas('vendor', function ($vendorQuery) use ($search) {
                             $vendorQuery->where('name', 'like', '%' . $search . '%')
                                 ->orWhere('email', 'like', '%' . $search . '%');
-                        });
+                    });
                 });
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', (string) $request->input('status'));
             })
             ->orderBy('created_at', 'desc')
             ->get()

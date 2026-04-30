@@ -34,8 +34,11 @@ class ClientRenewalController extends Controller
                             $clientQuery->where('first_name', 'like', '%' . $search . '%')
                                 ->orWhere('last_name', 'like', '%' . $search . '%')
                                 ->orWhere('email', 'like', '%' . $search . '%');
-                        });
+                    });
                 });
+            })
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', (string) $request->input('status'));
             })
             ->orderByDesc('created_at')
             ->paginate(10)

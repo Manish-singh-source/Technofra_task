@@ -101,8 +101,9 @@
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <div class="logo">Technofra Renewal Master</div>
-            <p>Calendar Event Reminder</p>
+            <div class="logo">Calendar Event Reminder</div>
+            {{-- <div class="logo">Technofra Renewal Master</div> --}}
+            {{-- <p>Calendar Event Reminder</p> --}}
         </div>
 
         <!-- Alert Box -->

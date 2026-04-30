@@ -161,7 +161,7 @@
                             <tr>
                                 <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                 <th>Vendor Name</th>
-                                <th>Service Name</th>
+                                <th>Service Renewal</th>
                                 <th>Plan Type</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
