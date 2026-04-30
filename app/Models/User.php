@@ -237,14 +237,14 @@ class User extends Authenticatable
         $normalized = ltrim(str_replace('\\', '/', (string) $this->profile_image), '/');
 
         if (str_starts_with($normalized, 'uploads/')) {
-            return asset($normalized);
+            return $normalized;
         }
 
         if ($this->role === 'client') {
-            return asset('uploads/clients/'.$normalized);
+            return 'uploads/clients/'.$normalized;
         }
 
-        return asset('uploads/staff/'.$normalized);
+        return 'uploads/staff/'.$normalized;
     }
 
     public function teams()
