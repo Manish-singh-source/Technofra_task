@@ -64,7 +64,7 @@
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <a href="#" class="avatar online avatar-rounded">
-                                                    <img src="{{ asset('uploads/staff/' . $member->profile_image) }}"
+                                                    <img src="{{ asset($member->profile_image) }}"
                                                         style="width: 30px; height: 30px; border-radius: 50%;"
                                                         alt="img">
                                                 </a>
