@@ -223,29 +223,55 @@ class User extends Authenticatable
             ->wherePivotNull('deleted_at');
     }
 
+    public function getFirstNameAttribute($value)
+    {
+        return ucfirst($value);
+    }
+
+    public function getLastNameAttribute($value)
+    {
+        return ucfirst($value);
+    }
+
+    public function getRoleAttribute($value)
+    {
+        return ucfirst($value);
+    }
+
     public function getProfileImageAttribute($value)
     {
-        return $value;
+        if ($this->role == 'Staff') {
+            return 'uploads/staff/' . $value;
+        } else if ($this->role == 'Client') {
+            return 'uploads/clients/' . $value;
+        } else {
+            return $value;
+        }
     }
 
-    public function getProfileImageUrlAttribute(): ?string
-    {
-        if (! $this->profile_image) {
-            return null;
-        }
+    // public function getProfileImageAttribute($value)
+    // {
+    //     return $value;
+    // }
 
-        $normalized = ltrim(str_replace('\\', '/', (string) $this->profile_image), '/');
+    // public function getProfileImageUrlAttribute(): ?string
+    // {
+    //     if (! $this->profile_image) {
+    //         return null;
+    //     }
 
-        if (str_starts_with($normalized, 'uploads/')) {
-            return $normalized;
-        }
+    //     $normalized = ltrim(str_replace('\\', '/', (string) $this->profile_image), '/');
 
-        if ($this->role === 'client') {
-            return 'uploads/clients/'.$normalized;
-        }
+    //     if (str_starts_with($normalized, 'uploads/')) {
+    //         return $normalized;
+    //     }
 
-        return 'uploads/staff/'.$normalized;
-    }
+    //     if ($this->role === 'client') {
+    //         return 'uploads/clients/' . $normalized;
+    //     }
+
+    //     return 'uploads/staff/' . $normalized;
+    // }
 
     public function teams()
     {

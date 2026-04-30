@@ -52,7 +52,7 @@ class AuthController extends Controller
     {
         $user = $request->user();
 
-        $user->setAttribute('profile_image', $user->getProfileImageUrlAttribute());
+        // $user->setAttribute('profile_image', $user->getProfileImageUrlAttribute());
 
         return ApiResponse::success([
             'user' => $request->user(),
