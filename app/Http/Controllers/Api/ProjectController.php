@@ -609,9 +609,11 @@ class ProjectController extends Controller
         }
 
         return User::query()
-            ->where('id', $user->id)
             ->where('role', 'client')
-            ->orWhere('email', $user->email)
+            ->where(function ($query) use ($user) {
+                $query->where('id', $user->id)
+                    ->orWhere('email', $user->email);
+            })
             ->first();
     }
 
@@ -624,8 +626,8 @@ class ProjectController extends Controller
 
 
         return User::query()
+            ->where('role', 'staff')
             ->where('id', $user->id)
-            ->orWhere('email', $user->email)
             ->first();
     }
 
@@ -648,14 +650,14 @@ class ProjectController extends Controller
         }
 
         $staff = $this->getLoggedInStaff();
-        if (! $staff) {
-            return Project::query();
+        if ($staff) {
+            return Project::query()->where(function ($query) use ($staff) {
+                // Handle both integer and string values stored in the JSON members array.
+                $query->whereJsonContains('members', (int) $staff->id)
+                    ->orWhereJsonContains('members', (string) $staff->id);
+            });
         }
-
-        return Project::query()->where(function ($query) use ($staff) {
-            $query->whereJsonContains('members', $staff->id)
-                ->orWhereJsonContains('members', (string) $staff->id);
-        });
+        return Project::query();
     }
 
     private function authorizeProjectAccess(Project $project, string $message = 'You are not authorized to view this project.'): void

@@ -41,15 +41,15 @@ class LeadController extends Controller
         $allLeads = Lead::count();
 
         // Book A Call
-        $bookCalls = BookCall::select('id', 'name', 'email', 'phone', 'created_at')
-            ->whereDate('created_at', today())
-            ->orderByDesc('created_at')
-            ->get()
-            ->each(function ($bookCall) {
-                $bookCall->setAttribute('lead_type', 'book_call');
-            });
+        // $bookCalls = BookCall::select('id', 'name', 'email', 'phone', 'created_at')
+        //     ->whereDate('created_at', today())
+        //     ->orderByDesc('created_at')
+        //     ->get()
+        //     ->each(function ($bookCall) {
+        //         $bookCall->setAttribute('lead_type', 'book_call');
+        //     });
 
-        $allBookCalls = BookCall::count();
+        // $allBookCalls = BookCall::count();
 
         // Digital Marketing Leads
         $digitalMarketingLeads = DigitalMarketingLead::select('id', 'name', 'email', 'phone', 'created_at')
@@ -76,12 +76,12 @@ class LeadController extends Controller
 
 
         $leadsCount = ['todaysLeadsCount' => $leads->count(), 'allLeadsCount' => $allLeads];
-        $bookCallsCount = ['todaysBookCallsCount' => $bookCalls->count(), 'allBookCallsCount' => $allBookCalls];
+        // $bookCallsCount = ['todaysBookCallsCount' => $bookCalls->count(), 'allBookCallsCount' => $allBookCalls];
         $digitalMarketingLeadsCount = ['todaysDigitalMarketingLeadsCount' => $digitalMarketingLeads->count(), 'allDigitalMarketingLeadsCount' => $allDigitalMarketingLeads];
         $webAppLeadsCount = ['todaysWebAppLeadsCount' => $webAppLeads->count(), 'allWebAppLeadsCount' => $allWebAppLeads];
 
         $combinedLeads = $leads
-            ->concat($bookCalls)
+            // ->concat($bookCalls)
             ->concat($digitalMarketingLeads)
             ->concat($webAppLeads)
             ->sortByDesc('created_at')
@@ -91,7 +91,7 @@ class LeadController extends Controller
             'success' => true,
             'data' => $combinedLeads,
             'leadsCount' => $leadsCount,
-            'bookCallsCount' => $bookCallsCount,
+            // 'bookCallsCount' => $bookCallsCount,
             'digitalMarketingLeadsCount' => $digitalMarketingLeadsCount,
             'webAppLeadsCount' => $webAppLeadsCount,
         ]);
