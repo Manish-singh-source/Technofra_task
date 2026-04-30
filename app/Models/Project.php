@@ -80,12 +80,12 @@ class Project extends Model
             ->whereIn('id', $memberIds)
             ->orderBy('first_name')
             ->orderBy('last_name')
-            ->get();
-            // ->map(function ($staff) {
-            //     $staff->profile_image = $staff->profile_image_url;
+            ->get()
+            ->map(function ($staff) {
+                $staff->profile_image = asset($staff->profile_image);
 
-            //     return $staff;
-            // })
-            // ->values();
+                return $staff;
+            })
+            ->values();
     }
 }
