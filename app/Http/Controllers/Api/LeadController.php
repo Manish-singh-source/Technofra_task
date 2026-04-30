@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\FileUpload;
 use App\Http\Controllers\Controller;
+use App\Models\BookCall;
 use App\Models\ClientBusinessDetail;
+use App\Models\DigitalMarketingLead;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Models\WebappLead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
@@ -19,6 +22,81 @@ class LeadController extends Controller
     private const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'];
     private const SOURCES = ['website', 'referral', 'social_media', 'cold_call', 'email_campaign', 'other'];
     private const TAGS = ['hot', 'warm', 'cold', 'urgent', 'follow-up', 'nurture'];
+
+    /**
+     * 
+     * API: Get leads of todays only
+     */
+    public function dashboard()
+    {
+        // Leads
+        $leads = Lead::select('id', 'name', 'email', 'phone', 'created_at')
+            ->whereDate('created_at', today())
+            ->orderByDesc('created_at')
+            ->get()
+            ->each(function ($lead) {
+                $lead->setAttribute('lead_type', 'leads');
+            });
+
+        $allLeads = Lead::count();
+
+        // Book A Call
+        $bookCalls = BookCall::select('id', 'name', 'email', 'phone', 'created_at')
+            ->whereDate('created_at', today())
+            ->orderByDesc('created_at')
+            ->get()
+            ->each(function ($bookCall) {
+                $bookCall->setAttribute('lead_type', 'book_call');
+            });
+
+        $allBookCalls = BookCall::count();
+
+        // Digital Marketing Leads
+        $digitalMarketingLeads = DigitalMarketingLead::select('id', 'name', 'email', 'phone', 'created_at')
+            ->whereDate('created_at', today())
+            ->orderByDesc('created_at')
+            ->get()
+            ->each(function ($digitalMarketingLead) {
+                $digitalMarketingLead->setAttribute('lead_type', 'digital_marketing_lead');
+            });
+
+        $allDigitalMarketingLeads = DigitalMarketingLead::count();
+
+        // Web App Leads
+
+        $webAppLeads = WebappLead::select('id', 'name', 'email', 'phone', 'created_at')
+            ->whereDate('created_at', today())
+            ->orderByDesc('created_at')
+            ->get()
+            ->each(function ($webAppLead) {
+                $webAppLead->setAttribute('lead_type', 'web_app_lead');
+            });
+
+        $allWebAppLeads = WebappLead::count();
+
+
+        $leadsCount = ['todaysLeadsCount' => $leads->count(), 'allLeadsCount' => $allLeads];
+        $bookCallsCount = ['todaysBookCallsCount' => $bookCalls->count(), 'allBookCallsCount' => $allBookCalls];
+        $digitalMarketingLeadsCount = ['todaysDigitalMarketingLeadsCount' => $digitalMarketingLeads->count(), 'allDigitalMarketingLeadsCount' => $allDigitalMarketingLeads];
+        $webAppLeadsCount = ['todaysWebAppLeadsCount' => $webAppLeads->count(), 'allWebAppLeadsCount' => $allWebAppLeads];
+
+        $combinedLeads = $leads
+            ->concat($bookCalls)
+            ->concat($digitalMarketingLeads)
+            ->concat($webAppLeads)
+            ->sortByDesc('created_at')
+            ->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => $combinedLeads,
+            'leadsCount' => $leadsCount,
+            'bookCallsCount' => $bookCallsCount,
+            'digitalMarketingLeadsCount' => $digitalMarketingLeadsCount,
+            'webAppLeadsCount' => $webAppLeadsCount,
+        ]);
+    }
+
 
 
     /**
@@ -147,7 +225,7 @@ class LeadController extends Controller
                     'password' => Hash::make('123456789'),
                     'status' => 'active',
                 ]);
-                
+
                 if ($client) {
                     $address = UserAddress::create([
                         'user_id' => $client->id,
@@ -158,7 +236,7 @@ class LeadController extends Controller
                         'country' => $lead->country ?? '',
                         'pincode' => $lead->zipCode ?? '',
                     ]);
-    
+
                     $businessDetail = ClientBusinessDetail::create([
                         'user_id' => $client->id,
                         'client_type' => '',
@@ -168,7 +246,6 @@ class LeadController extends Controller
                     ]);
                 }
             }
-
         }
 
         return response()->json([

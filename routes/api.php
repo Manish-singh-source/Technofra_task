@@ -189,6 +189,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('leads')->group(function () {
             Route::controller(LeadController::class)->group(function () {
                 Route::get('/form-options', 'apiFormOptions');
+                Route::get('/dashboard', 'dashboard');
+
                 Route::get('/', 'apiIndex');
                 Route::get('/{id}', 'apiShow');
                 Route::post('/', 'apiStore');
@@ -319,7 +321,7 @@ Route::middleware('auth:sanctum')->group(function () {
         // Settings API routes
         Route::prefix('settings')->group(function () {
             Route::get('/', [ApiSettingController::class, 'index']);
-            
+
             Route::get('/general', [ApiSettingController::class, 'general']);
             Route::match(['post', 'put', 'patch'], '/general', [ApiSettingController::class, 'updateGeneral']);
             Route::get('/company', [ApiSettingController::class, 'company']);
@@ -352,7 +354,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::controller(GoogleAdsController::class)->group(function () {
             Route::get('/digital-marketing', 'indexDigitalMarketing');
             Route::delete('/digital-marketing/{id}', 'destroyDigitalMarketing');
-            
+
             Route::get('/web-apps-leads', 'indexWebAppsLeads');
             Route::delete('/web-apps-leads/{id}', 'destroyWebAppsLeads');
         });

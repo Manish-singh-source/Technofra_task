@@ -44,7 +44,7 @@ class Lead extends Model
         if (!$this->assigned || !is_array($this->assigned)) {
             return collect([]);
         }
-        
+
         return User::staffMembers()
             ->whereIn('id', $this->assigned)
             ->orderBy('first_name')
@@ -64,4 +64,5 @@ class Lead extends Model
             ->orderBy('last_name')
             ->get();
     }
+
 }
