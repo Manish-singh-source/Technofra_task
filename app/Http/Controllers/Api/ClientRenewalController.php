@@ -21,10 +21,22 @@ class ClientRenewalController extends Controller
         ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $services = Service::with(['client', 'vendor'])
             ->whereNotNull('client_id')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('service_name', 'like', '%' . $search . '%')
+                        ->orWhereHas('client', function ($clientQuery) use ($search) {
+                            $clientQuery->where('first_name', 'like', '%' . $search . '%')
+                                ->orWhere('last_name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
             ->orderByDesc('created_at')
             ->paginate(10)
             ->through(function ($service) {

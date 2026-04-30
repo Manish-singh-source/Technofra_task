@@ -11,9 +11,15 @@ class RolesController extends Controller
 {
     //
 
-    public function index()
+    public function index(Request $request)
     {
-        $roles = Role::withCount('permissions')->paginate(10);
+        $roles = Role::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+                $query->where('name', 'like', '%' . $search . '%');
+            })
+            ->withCount('permissions')
+            ->paginate(10);
 
         if (!$roles) {
             return ApiResponse::error('No roles found');

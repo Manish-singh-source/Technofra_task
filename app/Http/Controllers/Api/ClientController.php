@@ -17,10 +17,21 @@ use Illuminate\Validation\Rule;
 class ClientController extends Controller
 {
     //
-    public function index()
+    public function index(Request $request)
     {
-        $clients = User::with('businessDetail:id,user_id,company_name')->where('role', 'client')->paginate(10);
-        $clientsCount = User::where('role', 'client')->count();
+        $clients = User::with('businessDetail:id,user_id,company_name')
+            ->where('role', 'client')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('first_name', 'like', '%' . $search . '%')
+                        ->orWhere('last_name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            })
+            ->paginate(10);
+        $clientsCount = $clients->total();
         if (!$clients) {
             return ApiResponse::error('No client found');
         }

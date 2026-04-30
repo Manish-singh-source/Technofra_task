@@ -48,7 +48,7 @@ class ClientIssueController extends Controller
         ], 'Client issue form options retrieved successfully.');
     }
 
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
         $customer = $this->getLoggedInCustomer();
@@ -64,7 +64,25 @@ class ClientIssueController extends Controller
             return ApiResponse::error('You are not authorized to perform this action.', null, 403);
         }
 
-        $issues = ClientIssue::query()->with(['project.customer', 'customer', 'teamAssignments.assignedStaff', 'teamAssignments.assignedBy'])->latest('created_at')->get();
+        $issues = ClientIssue::query()
+            ->with(['project.customer', 'customer', 'teamAssignments.assignedStaff', 'teamAssignments.assignedBy'])
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('issue_description', 'like', '%' . $search . '%')
+                        ->orWhereHas('project', function ($projectQuery) use ($search) {
+                            $projectQuery->where('project_name', 'like', '%' . $search . '%');
+                        })
+                        ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                            $customerQuery->where('first_name', 'like', '%' . $search . '%')
+                                ->orWhere('last_name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
+            ->latest('created_at')
+            ->get();
 
         if ($user && $user->isStaff()) {
             $staff = $user;

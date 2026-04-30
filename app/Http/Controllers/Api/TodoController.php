@@ -16,6 +16,14 @@ class TodoController extends Controller
     public function index(Request $request): JsonResponse
     {
         $todos = Todo::ownedBy(Auth::id())
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('title', 'like', '%' . $search . '%')
+                        ->orWhere('description', 'like', '%' . $search . '%');
+                });
+            })
             ->when($request->filled('is_completed'), function ($query) use ($request) {
                 $query->where('is_completed', $request->boolean('is_completed'));
             })

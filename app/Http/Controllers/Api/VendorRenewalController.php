@@ -11,10 +11,21 @@ use Illuminate\Support\Facades\Validator;
 class VendorRenewalController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
         $vendorServices = VendorService::with(['vendor:id,name,email,phone'])
             ->select('id', 'vendor_id', 'service_name', 'start_date', 'end_date', 'billing_date', 'status')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('service_name', 'like', '%' . $search . '%')
+                        ->orWhereHas('vendor', function ($vendorQuery) use ($search) {
+                            $vendorQuery->where('name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            })
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function (VendorService $service) {

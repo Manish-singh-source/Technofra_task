@@ -7,13 +7,26 @@ use App\Http\Controllers\Controller;
 use App\Models\DigitalMarketingLead;
 use App\Models\WebappLead;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class GoogleAdsController extends Controller
 {
     //
-    public function indexDigitalMarketing(): JsonResponse
+    public function indexDigitalMarketing(Request $request): JsonResponse
     {
-        $digitalMarketing = DigitalMarketingLead::paginate(10);
+        $digitalMarketing = DigitalMarketingLead::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhere('phone', 'like', '%' . $search . '%')
+                        ->orWhere('company', 'like', '%' . $search . '%')
+                        ->orWhere('website', 'like', '%' . $search . '%');
+                });
+            })
+            ->paginate(10);
 
         if (!$digitalMarketing) {
             return ApiResponse::error('Digital Marketing not found.', null, 404);
@@ -41,9 +54,22 @@ class GoogleAdsController extends Controller
     }
     //
 
-    public function indexWebAppsLeads(): JsonResponse
+    public function indexWebAppsLeads(Request $request): JsonResponse
     {
-        $webAppLeads = WebappLead::paginate(10);
+        $webAppLeads = WebappLead::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhere('phone', 'like', '%' . $search . '%')
+                        ->orWhere('company', 'like', '%' . $search . '%')
+                        ->orWhere('website', 'like', '%' . $search . '%')
+                        ->orWhere('message', 'like', '%' . $search . '%');
+                });
+            })
+            ->paginate(10);
 
         if (!$webAppLeads) {
             return ApiResponse::error('Web App Leads not found.', null, 404);

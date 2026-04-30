@@ -10,9 +10,19 @@ use Illuminate\Support\Facades\Validator;
 
 class VendorController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $vendors = Vendor::orderBy('created_at', 'desc')->paginate(10);
+        $vendors = Vendor::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            })
+            ->orderBy('created_at', 'desc')
+            ->paginate(10);
 
         return ApiResponse::success($vendors, 'Vendors retrieved successfully');
     }

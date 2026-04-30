@@ -43,10 +43,20 @@ class StaffController extends Controller
         return ApiResponse::success($teams, 'Teams found');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $staffs = User::where('role', 'staff')->paginate(10);
-        $staffsCount = User::where('role', 'staff')->count();
+        $staffs = User::where('role', 'staff')
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('first_name', 'like', '%' . $search . '%')
+                        ->orWhere('last_name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            })
+            ->paginate(10);
+        $staffsCount = $staffs->total();
         if (! $staffs) {
             return ApiResponse::error('No staff found');
         }

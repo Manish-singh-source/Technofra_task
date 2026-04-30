@@ -51,9 +51,20 @@ class LeadController extends Controller
     /**
      * API: Get all leads.
      */
-    public function apiIndex()
+    public function apiIndex(Request $request)
     {
-        $leads = Lead::query()->latest('id')->get();
+        $leads = Lead::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhere('company', 'like', '%' . $search . '%');
+                });
+            })
+            ->latest('id')
+            ->get();
 
         return response()->json([
             'success' => true,

@@ -63,12 +63,30 @@ class ProjectController extends Controller
         ]);
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $projectsCount = Project::count();
-        $inProgressCount = Project::where('status', 'in_progress')->count();
+        $projectsQuery = Project::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
 
-        $projects = Project::with('customer:id,first_name,last_name,email,profile_image')->latest()->paginate(10);
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('project_name', 'like', '%' . $search . '%')
+                        ->orWhere('description', 'like', '%' . $search . '%')
+                        ->orWhereHas('customer', function ($customerQuery) use ($search) {
+                            $customerQuery->where('first_name', 'like', '%' . $search . '%')
+                                ->orWhere('last_name', 'like', '%' . $search . '%')
+                                ->orWhere('email', 'like', '%' . $search . '%');
+                        });
+                });
+            });
+
+        $projectsCount = (clone $projectsQuery)->count();
+        $inProgressCount = (clone $projectsQuery)->where('status', 'in_progress')->count();
+
+        $projects = (clone $projectsQuery)
+            ->with('customer:id,first_name,last_name,email,profile_image')
+            ->latest()
+            ->paginate(10);
 
         $projects->getCollection()->transform(function (Project $project) {
             $project->setAttribute('staffMembers', $project->staffMembers());

@@ -6,13 +6,25 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\BookCall;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class BookACallController extends Controller
 {
     //
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        $calls = BookCall::paginate(10);
+        $calls = BookCall::query()
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%')
+                        ->orWhere('phone', 'like', '%' . $search . '%')
+                        ->orWhere('meeting_agenda', 'like', '%' . $search . '%');
+                });
+            })
+            ->paginate(10);
 
         if (!$calls) {
             return ApiResponse::error('Book A Calls not found.', null, 404);
