@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
+use App\Helpers\RenewalStatusHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Client;
 use App\Models\Service;
@@ -23,6 +24,8 @@ class ClientRenewalController extends Controller
 
     public function index(Request $request)
     {
+        RenewalStatusHelper::markExpiredClientRenewals();
+
         $services = Service::with(['client', 'vendor'])
             ->whereNotNull('client_id')
             ->when($request->filled('search'), function ($query) use ($request) {

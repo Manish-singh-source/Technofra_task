@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RenewalStatusHelper;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
@@ -27,6 +28,8 @@ class ServiceController extends Controller
 
     public function index(Request $request)
     {
+        RenewalStatusHelper::markExpiredClientRenewals();
+
         $today = Carbon::today()->toDateString();
         $fiveDaysFromNow = Carbon::today()->addDays(5)->toDateString();
         $activeTab = $request->get('tab', 'all');
