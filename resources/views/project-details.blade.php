@@ -79,7 +79,7 @@
 										@if($project->members)
 											@foreach(array_slice($project->members, 0, 3) as $memberId)
 												@if(isset($staff[$memberId]))
-													<img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/32x32' }}" class="rounded-circle me-1" alt="Member" width="32" height="32" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+													<img src="{{ $staff[$memberId]->profile_image ? asset($staff[$memberId]->profile_image) : 'https://placehold.co/32x32' }}" class="rounded-circle me-1" alt="Member" width="32" height="32" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
 												@endif
 											@endforeach
 											@if(count($project->members) > 3)
@@ -315,7 +315,7 @@
 												<tr>
 													<td>
 														<div class="d-flex align-items-center">
-															<img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/40x40' }}" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
+															<img src="{{ $staff[$memberId]->profile_image ? asset($staff[$memberId]->profile_image) : 'https://placehold.co/40x40' }}" alt="Avatar" class="rounded-circle me-2" width="40" height="40">
 															<span>{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}</span>
 														</div>
 													</td>

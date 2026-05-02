@@ -250,12 +250,14 @@ class TaskController extends Controller
         $staffId = $this->authenticatedUserId();
 
         if ($staffId === null) {
-            return $query;
+            return $query->whereRaw('1 = 0');
         }
 
         return $query->where(function (Builder $builder) use ($staffId) {
             $builder->whereJsonContains('assignees', $staffId)
-                ->orWhereJsonContains('assignees', (string) $staffId);
+                ->orWhereJsonContains('assignees', (string) $staffId)
+                ->orWhereJsonContains('followers', $staffId)
+                ->orWhereJsonContains('followers', (string) $staffId);
         });
     }
 
@@ -271,17 +273,33 @@ class TaskController extends Controller
     {
         $user = auth()->user();
 
-        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']));
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2'])) {
+            return true;
+        }
+
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+
+        return in_array($rawRole, ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
     }
 
     private function authenticatedUserId(): ?int
     {
         $user = auth()->user();
-        if (!$user || !$user->isStaff()) {
+
+        if (! $user) {
             return null;
         }
 
-        return $user->id;
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+        if ($rawRole !== 'staff') {
+            return null;
+        }
+
+        return (int) $user->id;
     }
 
     private function shouldRestrictToAssignedTasks(): bool

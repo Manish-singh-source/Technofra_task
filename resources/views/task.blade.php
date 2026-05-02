@@ -193,7 +193,7 @@
                                                         @foreach($task->assignees as $assigneeId)
                                                             @if(isset($staff[$assigneeId]))
                                                                 <div class="d-flex align-items-center mb-1">
-                                                                    <img src="{{ $staff[$assigneeId]->profile_image ? asset('uploads/staff/' . $staff[$assigneeId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-2" alt="Assignee" width="30" height="30">
+                                                                    <img src="{{ $staff[$assigneeId]->profile_image ? (filter_var($staff[$assigneeId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$assigneeId]->profile_image : asset($staff[$assigneeId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-2" alt="Assignee" width="30" height="30">
                                                                     {{ $staff[$assigneeId]->first_name }} {{ $staff[$assigneeId]->last_name }}
                                                                 </div>
                                                             @endif

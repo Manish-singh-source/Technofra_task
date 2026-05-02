@@ -82,7 +82,7 @@
                                             </div>
                                         </td> --}}
                                         <td>
-                                            <img src="{{ $client->profile_image ? asset('uploads/clients/' . $client->profile_image) : asset('assets/images/avatars/technofra.png') }}"
+                                            <img src="{{ $client->profile_image ? asset($client->profile_image) : asset('assets/images/avatars/technofra.png') }}"
                                                 alt="{{ trim($client->first_name . ' ' . $client->last_name) ?: 'Client' }}"
                                                 class="rounded-circle"
                                                 width="42"

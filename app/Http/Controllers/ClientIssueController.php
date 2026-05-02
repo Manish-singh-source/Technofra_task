@@ -23,7 +23,9 @@ class ClientIssueController extends Controller
     private function getLoggedInClient()
     {
         $user = Auth::user();
-        if ($user && $user->role == 'client') {
+        $rawRole = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+
+        if ($user && $rawRole === 'client') {
             return $user;
         }
 
@@ -35,14 +37,27 @@ class ClientIssueController extends Controller
      */
     private function isClient()
     {
-        return Auth::user() && Auth::user()->role == 'client';
+        $user = Auth::user();
+        $rawRole = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+
+        return (bool) ($user && $rawRole === 'client');
     }
 
     private function isPrivilegedIssueUser(): bool
     {
         $user = Auth::user();
 
-        return (bool) ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2']));
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2'])) {
+            return true;
+        }
+
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+
+        return in_array($rawRole, ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
     }
 
     private function clientCanAccessIssue(ClientIssue $clientIssue, User $clientUser): bool
@@ -65,7 +80,8 @@ class ClientIssueController extends Controller
         }
 
         $user = Auth::user();
-        if ($user && $user->isStaff()) {
+        $rawRole = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+        if ($user && $rawRole === 'staff') {
             $staff = $user;
             $staffId = optional($staff)->id;
             $staffTeam = trim((string) optional($staff)->team);
@@ -95,7 +111,7 @@ class ClientIssueController extends Controller
             if ($user && $user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2'])) {
                 // Super-admin/Admin can see all issues
                 $clientIssues = ClientIssue::with(['project', 'customer', 'teamAssignments.assignedStaff'])->get();
-            } elseif ($user && $user->isStaff()) {
+            } elseif ($user && strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? '')) === 'staff') {
                 // Staff can see assigned issues only
                 $staff = $user;
                 $staffId = optional($staff)->id;

@@ -217,7 +217,7 @@
                                                     @if($project->members)
                                                         @foreach(array_slice($project->members, 0, 2) as $memberId)
                                                             @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                                <img src="{{ $staff[$memberId]->profile_image ? (filter_var($staff[$memberId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$memberId]->profile_image : asset($staff[$memberId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                             @endif
                                                         @endforeach
                                                         @if(count($project->members) > 2)
@@ -316,16 +316,23 @@
                                             <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
                                             <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
+                                                @php
+                                                    $members = is_array($project->members) ? $project->members : [];
+                                                @endphp
                                                 <div class="d-flex align-items-center">
-                                                    @if($project->members)
-                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
-                                                            @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
-                                                            @endif
-                                                        @endforeach
-                                                        @if(count($project->members) > 2)
-                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                    @foreach(array_slice($members, 0, 2) as $memberId)
+                                                        @if(isset($staff[$memberId]))
+                                                            @php
+                                                                $profileImage = $staff[$memberId]->profile_image;
+                                                                $profileImageSrc = $profileImage
+                                                                    ? (filter_var($profileImage, FILTER_VALIDATE_URL) ? $profileImage : asset($profileImage))
+                                                                    : 'https://placehold.co/30x30';
+                                                            @endphp
+                                                            <img src="{{ $profileImageSrc }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                         @endif
+                                                    @endforeach
+                                                    @if(count($members) > 2)
+                                                        <span>+{{ count($members) - 2 }}</span>
                                                     @endif
                                                 </div>
                                             </td>
@@ -401,7 +408,7 @@
                                                     @if($project->members)
                                                         @foreach(array_slice($project->members, 0, 2) as $memberId)
                                                             @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                                <img src="{{ $staff[$memberId]->profile_image ? (filter_var($staff[$memberId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$memberId]->profile_image : asset($staff[$memberId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                             @endif
                                                         @endforeach
                                                         @if(count($project->members) > 2)
@@ -482,7 +489,7 @@
                                                     @if($project->members)
                                                         @foreach(array_slice($project->members, 0, 2) as $memberId)
                                                             @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                                <img src="{{ $staff[$memberId]->profile_image ? (filter_var($staff[$memberId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$memberId]->profile_image : asset($staff[$memberId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                             @endif
                                                         @endforeach
                                                         @if(count($project->members) > 2)
@@ -585,7 +592,7 @@
                                                     @if($project->members)
                                                         @foreach(array_slice($project->members, 0, 3) as $memberId)
                                                             @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                                <img src="{{ $staff[$memberId]->profile_image ? (filter_var($staff[$memberId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$memberId]->profile_image : asset($staff[$memberId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                             @endif
                                                         @endforeach
                                                         @if(count($project->members) > 3)
@@ -666,7 +673,7 @@
                                                     @if($project->members)
                                                         @foreach(array_slice($project->members, 0, 2) as $memberId)
                                                             @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? asset('uploads/staff/' . $staff[$memberId]->profile_image) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
+                                                                <img src="{{ $staff[$memberId]->profile_image ? (filter_var($staff[$memberId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$memberId]->profile_image : asset($staff[$memberId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                             @endif
                                                         @endforeach
                                                         @if(count($project->members) > 2)

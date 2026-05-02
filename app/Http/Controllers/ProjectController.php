@@ -30,7 +30,9 @@ class ProjectController extends Controller
     private function getLoggedInClient()
     {
         $user = Auth::user();
-        if ($user && $user->role == 'client') {
+        $rawRole = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+
+        if ($user && $rawRole === 'client') {
             return $user;
         }
 
@@ -70,10 +72,12 @@ class ProjectController extends Controller
             return null;
         }
 
-        return User::where('role', 'staff')
-            ->where('id', $user->id)
-            ->orWhere('email', $user->email)
-            ->first();
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+        if ($rawRole !== 'staff') {
+            return null;
+        }
+
+        return User::where('id', $user->id)->first();
     }
 
     /**
@@ -149,12 +153,22 @@ class ProjectController extends Controller
             })
             ;
 
-        // dd($projects);
-        // $staff = User::whereIn('id', $projects->members)
-        //     ->orderBy('first_name')
-        //     ->orderBy('last_name')
-        //     ->get()
-        //     ->keyBy('id');
+        $staffIds = $projects
+            ->pluck('members')
+            ->flatten()
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $staff = User::staffMembers()
+            ->whereIn('id', $staffIds)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
+
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
         $inProgressProjects = $projects->where('status', 'in_progress')->count();
@@ -162,7 +176,7 @@ class ProjectController extends Controller
         $completedProjects = $projects->where('status', 'completed')->count();
         $cancelledProjects = $projects->where('status', 'cancelled')->count();
 
-        return view('project', compact('projects', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects'));
+        return view('project', compact('projects', 'staff', 'allProjects', 'planningProjects', 'inProgressProjects', 'onHoldProjects', 'completedProjects', 'cancelledProjects'));
     }
 
     public function create()

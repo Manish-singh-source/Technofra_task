@@ -27,14 +27,18 @@ class DashboardController extends Controller
         $today = Carbon::today();
         $weekFromNow = $today->copy()->addWeek();
         $fiveDaysFromNow = $today->copy()->addDays(5);
+        $taskBaseQuery = $this->dashboardTaskQuery();
+        $projectBaseQuery = $this->dashboardProjectQuery();
+        $leadBaseQuery = $this->dashboardLeadQuery();
+        $clientIssueBaseQuery = $this->dashboardClientIssueQuery();
 
-        $totalProjects = Project::count();
-        $totalTasks = Task::count();
+        $totalProjects = (clone $projectBaseQuery)->count();
+        $totalTasks = (clone $taskBaseQuery)->count();
 
         $startMonth = $today->copy()->startOfMonth()->subMonths(11);
         $endMonth = $today->copy()->endOfMonth();
 
-        $projectCountsByMonth = Project::select(
+        $projectCountsByMonth = (clone $projectBaseQuery)->select(
                 DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month_key"),
                 DB::raw('COUNT(*) as total')
             )
@@ -42,7 +46,7 @@ class DashboardController extends Controller
             ->groupBy('month_key')
             ->pluck('total', 'month_key');
 
-        $taskCountsByMonth = Task::select(
+        $taskCountsByMonth = (clone $taskBaseQuery)->select(
                 DB::raw("DATE_FORMAT(created_at, '%Y-%m') as month_key"),
                 DB::raw('COUNT(*) as total')
             )
@@ -79,7 +83,7 @@ class DashboardController extends Controller
             'cancelled' => 'bg-danger',
         ];
 
-        $taskCountsByStatus = Task::select('status', DB::raw('COUNT(*) as total'))
+        $taskCountsByStatus = (clone $taskBaseQuery)->select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
 
@@ -116,7 +120,7 @@ class DashboardController extends Controller
             'lost' => 'bg-danger',
         ];
 
-        $leadCountsByStatus = Lead::select('status', DB::raw('COUNT(*) as total'))
+        $leadCountsByStatus = (clone $leadBaseQuery)->select('status', DB::raw('COUNT(*) as total'))
             ->groupBy('status')
             ->pluck('total', 'status');
 
@@ -137,7 +141,17 @@ class DashboardController extends Controller
             ];
         }
 
-        $staffMembers = User::where('role', 'staff')->orderBy('first_name')->orderBy('last_name')->get(['id', 'first_name', 'last_name']);
+        if ($this->isPrivilegedTaskUser()) {
+            $staffMembers = User::where('role', 'staff')
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name']);
+        } else {
+            $staffMembers = User::where('id', $this->authenticatedStaffId())
+                ->orderBy('first_name')
+                ->orderBy('last_name')
+                ->get(['id', 'first_name', 'last_name']);
+        }
         $weekStart = $today->copy()->startOfWeek();
         $monthStart = $today->copy()->startOfMonth();
         $yearStart = $today->copy()->startOfYear();
@@ -153,7 +167,7 @@ class DashboardController extends Controller
             ];
         }
 
-        $completedTasks = Task::where('status', 'completed')
+        $completedTasks = (clone $taskBaseQuery)->where('status', 'completed')
             ->where('updated_at', '>=', $yearStart)
             ->get(['assignees', 'updated_at']);
 
@@ -227,14 +241,15 @@ class DashboardController extends Controller
             $today
         )->get();
 
-        $supportTickets = ClientIssue::with(['project', 'customer'])
+        $supportTickets = (clone $clientIssueBaseQuery)->with(['project', 'customer'])
             ->orderBy('created_at', 'DESC')
             ->limit(10)
             ->get();
 
-        $renewalNotifications = NotificationService::getUrgentNotifications(10);
-        $notificationCounts = NotificationService::getNotificationCounts();
-        $hasCriticalNotifications = NotificationService::hasCriticalNotifications();
+        $userId = auth()->id();
+        $renewalNotifications = NotificationService::getUrgentNotifications(10, $userId);
+        $notificationCounts = NotificationService::getNotificationCounts($userId);
+        $hasCriticalNotifications = NotificationService::hasCriticalNotifications($userId);
 
         return view('index', compact(
             'totalProjects',
@@ -282,6 +297,121 @@ class DashboardController extends Controller
             'CASE WHEN end_date < ? THEN 0 ELSE 1 END, end_date ASC',
             [$today->toDateString()]
         );
+    }
+
+    private function dashboardTaskQuery(): Builder
+    {
+        $query = Task::query();
+
+        if ($this->isPrivilegedTaskUser()) {
+            return $query;
+        }
+
+        $staffId = $this->authenticatedStaffId();
+
+        if ($staffId === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $builder) use ($staffId) {
+            $builder->whereJsonContains('assignees', $staffId)
+                ->orWhereJsonContains('assignees', (string) $staffId)
+                ->orWhereJsonContains('followers', $staffId)
+                ->orWhereJsonContains('followers', (string) $staffId);
+        });
+    }
+
+    private function isPrivilegedTaskUser(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2'])) {
+            return true;
+        }
+
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+
+        return in_array($rawRole, ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
+    }
+
+    private function authenticatedStaffId(): ?int
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return null;
+        }
+
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+
+        if ($rawRole !== 'staff') {
+            return null;
+        }
+
+        return (int) $user->id;
+    }
+
+    private function dashboardProjectQuery(): Builder
+    {
+        $query = Project::query();
+
+        if ($this->isPrivilegedTaskUser()) {
+            return $query;
+        }
+
+        $staffId = $this->authenticatedStaffId();
+
+        if ($staffId === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $builder) use ($staffId) {
+            $builder->whereJsonContains('members', $staffId)
+                ->orWhereJsonContains('members', (string) $staffId);
+        });
+    }
+
+    private function dashboardLeadQuery(): Builder
+    {
+        $query = Lead::query();
+
+        if ($this->isPrivilegedTaskUser()) {
+            return $query;
+        }
+
+        $staffId = $this->authenticatedStaffId();
+
+        if ($staffId === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $builder) use ($staffId) {
+            $builder->whereJsonContains('assigned', $staffId)
+                ->orWhereJsonContains('assigned', (string) $staffId);
+        });
+    }
+
+    private function dashboardClientIssueQuery(): Builder
+    {
+        $query = ClientIssue::query();
+
+        if ($this->isPrivilegedTaskUser()) {
+            return $query;
+        }
+
+        $staffId = $this->authenticatedStaffId();
+
+        if ($staffId === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereHas('teamAssignments', function (Builder $builder) use ($staffId) {
+            $builder->where('assigned_to', $staffId);
+        });
     }
 }
 
