@@ -50,10 +50,6 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
-        $user = $request->user();
-
-        // $user->setAttribute('profile_image', $user->getProfileImageUrlAttribute());
-
         return ApiResponse::success([
             'user' => $request->user(),
         ], 'User information retrieved successfully');
