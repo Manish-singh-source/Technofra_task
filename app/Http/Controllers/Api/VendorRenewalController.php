@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
+use App\Helpers\RenewalStatusHelper;
 use App\Http\Controllers\Controller;
 use App\Models\VendorService;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ class VendorRenewalController extends Controller
 
     public function index(Request $request)
     {
+        RenewalStatusHelper::markExpiredVendorRenewals();
+
         $vendorServices = VendorService::with(['vendor:id,name,email,phone'])
             ->select('id', 'vendor_id', 'service_name', 'start_date', 'end_date', 'billing_date', 'status')
             ->when($request->filled('search'), function ($query) use ($request) {
