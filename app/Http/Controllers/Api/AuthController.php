@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
+use App\Helpers\FcmNotificationHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\User;
@@ -24,6 +25,9 @@ class AuthController extends Controller
             $validated = Validator::make($request->all(), [
                 'email' => ['required', 'email'],
                 'password' => ['required'],
+                'fcm_token' => ['nullable', 'string'],
+                'device_id' => ['nullable', 'string', 'max:255'],
+                'platform' => ['nullable', 'string', 'max:50'],
             ]);
 
             if ($validated->fails()) {
@@ -37,6 +41,19 @@ class AuthController extends Controller
             }
 
             $token = $user->createToken('flutter-app')->plainTextToken;
+
+            FcmNotificationHelper::storeTokenForUser(
+                $user,
+                $request->input('fcm_token'),
+                $request->input('device_id'),
+                $request->input('platform')
+            );
+
+            FcmNotificationHelper::sendToLoggedInUser(
+                'New Update',
+                'You have a new notification. Thank you for login.',
+                ['type' => 'general']
+            );
 
             return ApiResponse::success([
                 'user' => $user,
