@@ -42,19 +42,6 @@ class AuthController extends Controller
 
             $token = $user->createToken('flutter-app')->plainTextToken;
 
-            FcmNotificationHelper::storeTokenForUser(
-                $user,
-                $request->input('fcm_token'),
-                $request->input('device_id'),
-                $request->input('platform')
-            );
-
-            FcmNotificationHelper::sendToLoggedInUser(
-                'New Update',
-                'You have a new notification. Thank you for login.',
-                ['type' => 'general']
-            );
-
             return ApiResponse::success([
                 'user' => $user,
                 'permissions' => $user->getPermissionsViaRoles(),
@@ -67,8 +54,22 @@ class AuthController extends Controller
 
     public function me(Request $request)
     {
+        $user = $request->user();
+        FcmNotificationHelper::storeTokenForUser(
+            $user,
+            $request->input('fcm_token'),
+            $request->input('device_id'),
+            $request->input('platform')
+        );
+
+        FcmNotificationHelper::sendToLoggedInUser(
+            'New Update',
+            'You have a new notification. Thank you for login.',
+            ['type' => 'general']
+        );
+
         return ApiResponse::success([
-            'user' => $request->user(),
+            'user' => $user,
         ], 'User information retrieved successfully');
     }
 
@@ -131,13 +132,13 @@ class AuthController extends Controller
                     'companyName' => $companyName,
                 ], function ($message) use ($user, $companyName) {
                     $message->to($user->email, $user->name)
-                        ->subject('Reset Your Password - '.$companyName);
+                        ->subject('Reset Your Password - ' . $companyName);
                 });
 
                 return ApiResponse::success(null, 'We have sent a password reset link to your email address.');
             } catch (\Exception $e) {
                 // Log the error for debugging
-                Log::error('Password reset email failed: '.$e->getMessage());
+                Log::error('Password reset email failed: ' . $e->getMessage());
 
                 return ApiResponse::error('Failed to send password reset email. Please try again.', null, 500);
             }
