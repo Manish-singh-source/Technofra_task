@@ -19,7 +19,9 @@ class DashboardController extends Controller
 
         // Renewal Data
         $clientRenewals = Service::with('client')
-            ->latest()
+            // ->latest()
+            ->where('end_date', '>', Carbon::now()->today())
+            ->orderBy('end_date')
             ->limit(3)
             ->get()
             ->map(fn($service) => [
@@ -34,17 +36,23 @@ class DashboardController extends Controller
                 'type' => 'client_renewal'
             ]);
 
-        $vendorRenewals = VendorService::with('vendor')->latest()->limit(3)->get()->map(fn($service) => [
-            'id' => $service->id,
-            'service_name' => $service->service_name,
-            'vendor_id' => $service->vendor_id,
-            'status' => $service->status,
-            'start_date' => $service->start_date,
-            'end_date' => $service->end_date,
-            'billing_date' => $service->billing_date,
-            'name' => optional($service->vendor)->name,
-            'type' => 'vendor_renewal'
-        ]);
+        $vendorRenewals = VendorService::with('vendor')
+            // ->latest()
+            ->where('end_date', '>', Carbon::now()->today())
+            ->orderBy('end_date')
+            ->limit(3)
+            ->get()
+            ->map(fn($service) => [
+                'id' => $service->id,
+                'service_name' => $service->service_name,
+                'vendor_id' => $service->vendor_id,
+                'status' => $service->status,
+                'start_date' => $service->start_date,
+                'end_date' => $service->end_date,
+                'billing_date' => $service->billing_date,
+                'name' => optional($service->vendor)->name,
+                'type' => 'vendor_renewal'
+            ]);
 
         $renewals = $clientRenewals
             ->concat($vendorRenewals)
@@ -110,7 +118,7 @@ class DashboardController extends Controller
             'created_at' => $issue->created_at,
             'updated_at' => $issue->updated_at,
         ]);
-        
+
         return response()->json([
             'data' => 'Dashboard Data Retrieved Successfully.',
             'renewals' => $renewals,
