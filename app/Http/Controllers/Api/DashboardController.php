@@ -20,7 +20,7 @@ class DashboardController extends Controller
         // Renewal Data
         $clientRenewals = Service::with('client')
             // ->latest()
-            ->where('end_date', '>', Carbon::now()->today())
+            ->whereDate('end_date', '>=', Carbon::today())
             ->orderBy('end_date')
             ->limit(3)
             ->get()
@@ -38,7 +38,7 @@ class DashboardController extends Controller
 
         $vendorRenewals = VendorService::with('vendor')
             // ->latest()
-            ->where('end_date', '>', Carbon::now()->today())
+            ->whereDate('end_date', '>=', Carbon::today())
             ->orderBy('end_date')
             ->limit(3)
             ->get()
@@ -56,7 +56,7 @@ class DashboardController extends Controller
 
         $renewals = $clientRenewals
             ->concat($vendorRenewals)
-            ->sortByDesc('created_at') // or 'billing_date'
+            ->sortBy('end_date')
             ->take(3)
             ->values();
 
@@ -92,7 +92,7 @@ class DashboardController extends Controller
         })->values();
 
         // Tasks Summary 
-        $notStartedTasks = Task::where('status', 'pending')->count();
+        $notStartedTasks = Task::where('status', 'not_started')->count();
         $completedTasks = Task::where('status', 'completed')->count();
         $inProgressTasks = Task::where('status', 'in_progress')->count();
         $onHoldTasks = Task::where('status', 'on_hold')->count();
