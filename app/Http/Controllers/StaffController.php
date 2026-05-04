@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\FileUpload;
+use App\Helpers\FcmNotificationHelper;
 use App\Mail\StaffInviteMail;
 use App\Models\Department;
 use App\Models\Project;
@@ -796,6 +797,26 @@ class StaffController extends Controller
             }
 
             DB::commit();
+
+            try {
+                $creatorName = trim((string) auth()->user()?->name);
+                $staffName = trim($payload['first_name'] . ' ' . $payload['last_name']);
+
+                FcmNotificationHelper::sendToLoggedInUser(
+                    'Staff Created',
+                    $staffName . ' has been added successfully.',
+                    [
+                        'type' => 'staff_created',
+                        'staff_id' => (string) $user->id,
+                        'staff_name' => $staffName,
+                        'created_by' => $creatorName,
+                    ]
+                );
+            } catch (\Throwable $notificationException) {
+                Log::warning('Staff created but push notification failed: ' . $notificationException->getMessage(), [
+                    'staff_id' => $user->id,
+                ]);
+            }
 
             return response()->json([
                 'success' => true,

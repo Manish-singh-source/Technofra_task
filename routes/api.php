@@ -2,10 +2,10 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookACallController;
-use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\GoogleAdsController;
 use App\Http\Controllers\Api\LeadController;
