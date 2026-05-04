@@ -55,18 +55,18 @@ class AuthController extends Controller
     public function me(Request $request)
     {
         $user = $request->user();
-        FcmNotificationHelper::storeTokenForUser(
-            $user,
-            $request->input('fcm_token'),
-            $request->input('device_id'),
-            $request->input('platform')
-        );
+        // FcmNotificationHelper::storeTokenForUser(
+        //     $user,
+        //     $request->input('fcm_token'),
+        //     $request->input('device_id'),
+        //     $request->input('platform')
+        // );
 
-        FcmNotificationHelper::sendToLoggedInUser(
-            'New Update',
-            'You have a new notification. Thank you for login.',
-            ['type' => 'general']
-        );
+        // FcmNotificationHelper::sendToLoggedInUser(
+        //     'New Update',
+        //     'You have a new notification. Thank you for login.',
+        //     ['type' => 'general']
+        // );
 
         return ApiResponse::success([
             'user' => $user,

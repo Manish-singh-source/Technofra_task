@@ -12,6 +12,7 @@ use App\Models\StaffDepartment;
 use App\Models\StaffTeam;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\UnifiedNotificationService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -148,6 +149,28 @@ class StaffController extends Controller
             }
 
             DB::commit();
+
+            try {
+                $creatorName = trim((string) auth()->user()?->name);
+                $staffName = trim($request->first_name . ' ' . $request->last_name);
+
+                app(UnifiedNotificationService::class)->sendToLoggedInUser(
+                    'Staff Created',
+                    $staffName . ' has been added successfully.',
+                    'staff',
+                    [
+                        'type' => 'staff_created',
+                        'staff_id' => (string) $user->id,
+                        'staff_name' => $staffName,
+                        'created_by' => $creatorName,
+                        'source' => 'api_staff_v2',
+                    ]
+                );
+            } catch (\Throwable $notificationException) {
+                Log::warning('Staff created via API but notification failed: ' . $notificationException->getMessage(), [
+                    'staff_id' => $user->id,
+                ]);
+            }
 
             return response()->json([
                 'success' => true,

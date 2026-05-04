@@ -9,7 +9,6 @@ use App\Models\Project;
 use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
-use App\Services\UnifiedNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -797,27 +796,6 @@ class StaffController extends Controller
             }
 
             DB::commit();
-
-            try {
-                $creatorName = trim((string) auth()->user()?->name);
-                $staffName = trim($payload['first_name'] . ' ' . $payload['last_name']);
-
-                app(UnifiedNotificationService::class)->sendToLoggedInUser(
-                    'Staff Created',
-                    $staffName . ' has been added successfully.',
-                    'staff',
-                    [
-                        'type' => 'staff_created',
-                        'staff_id' => (string) $user->id,
-                        'staff_name' => $staffName,
-                        'created_by' => $creatorName,
-                    ]
-                );
-            } catch (\Throwable $notificationException) {
-                Log::warning('Staff created but push notification failed: ' . $notificationException->getMessage(), [
-                    'staff_id' => $user->id,
-                ]);
-            }
 
             return response()->json([
                 'success' => true,
