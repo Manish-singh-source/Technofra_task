@@ -156,7 +156,7 @@
                     <tr>
                         <td class="logo-box" style="padding:22px 48px 0 48px; background-color:#ffffff !important;">
                             <div style="display:inline-block; background-color:#ffffff !important; padding:10px 12px;">
-                                <img src="https://mycrm.technofra.com/assets/images/logo-black.png" alt="Technofra"
+                                <img src="https://mycrm.technofra.com/assets/images/logo-black.jpeg" alt="Technofra"
                                     width="200"
                                     style="display:block; width:200px; max-width:200px; height:auto; border:0;">
                             </div>

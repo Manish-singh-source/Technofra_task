@@ -56,8 +56,9 @@
 
                     <tr>
                         <td style="padding:18px 48px 0 48px;">
-                            <img src="{{ asset('https://technofra.com/logo.png') }}" alt="Technofra"
-                                style="display:block; width:56px; height:auto; border:0;">
+                            <img src="https://mycrm.technofra.com/assets/images/logo-black.jpeg" alt="Technofra"
+                                width="200"
+                                style="display:block; width:200px; max-width:200px; height:auto; border:0;">
                         </td>
                     </tr>
 
