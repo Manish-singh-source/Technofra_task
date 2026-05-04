@@ -8,7 +8,7 @@
         $profileImage = asset('assets/images/avatars/technofra.png');
 
         if ($staff && $staff->profile_image) {
-            $profileImage = asset('uploads/staff/' . $staff->profile_image);
+            $profileImage = asset($staff->profile_image);
         } elseif ($user->profile_image) {
             $profileImage = asset('uploads/profile/' . $user->profile_image);
         }
@@ -133,7 +133,8 @@
 
                                         <div class="row mb-3">
                                             <div class="col-sm-3">
-                                                <label for="current_password" class="form-label mb-0">Current Password</label>
+                                                <label for="current_password" class="form-label mb-0">Current
+                                                    Password</label>
                                             </div>
                                             <div class="col-sm-9 text-secondary">
                                                 <input type="password" id="current_password" name="current_password"
@@ -161,7 +162,8 @@
 
                                         <div class="row mb-3">
                                             <div class="col-sm-3">
-                                                <label for="password_confirmation" class="form-label mb-0">Confirm Password</label>
+                                                <label for="password_confirmation" class="form-label mb-0">Confirm
+                                                    Password</label>
                                             </div>
                                             <div class="col-sm-9 text-secondary">
                                                 <input type="password" id="password_confirmation"

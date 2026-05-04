@@ -60,62 +60,62 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Permission API routes
         Route::prefix('permissions')->group(function () {
-            Route::get('/', [PermissionController::class, 'index']);
-            Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions']);
+            Route::get('/', [PermissionController::class, 'index'])->middleware('permission:view_permissions');
+            Route::get('/grouped', [PermissionController::class, 'apiGroupedPermissions'])->middleware('permission:view_permissions');
         });
 
         // Role API routes
         Route::prefix('roles')->group(function () {
             Route::controller(ApiRoleController::class)->group(function () {
-                Route::get('/', 'index');
-                Route::post('/', 'store');
-                Route::match(['put', 'patch'], '/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
+                Route::get('/', 'index')->middleware('permission:view_roles');
+                Route::post('/', 'store')->middleware('permission:create_roles');
+                Route::match(['put', 'patch'], '/{id}', 'update')->middleware('permission:edit_roles');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_roles');
             });
         });
 
         // Staff API routes
         Route::controller(StaffController::class)->group(function () {
             Route::prefix('staff')->group(function () {
-                Route::get('/form-options', 'apiFormOptions');
-                Route::get('/', 'apiIndex');
-                Route::get('/{id}', 'apiShow');
-                Route::post('/', 'apiStore');
-                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
-                Route::delete('/{id}', 'apiDestroy');
-                Route::post('/{id}/restore', 'apiRestore');
-                Route::delete('/{id}/force', 'apiForceDelete');
+                Route::get('/form-options', 'apiFormOptions')->middleware('permission:create_staff');
+                Route::get('/', 'apiIndex')->middleware('permission:view_staff');
+                Route::get('/{id}', 'apiShow')->middleware('permission:view_staff');
+                Route::post('/', 'apiStore')->middleware('permission:create_staff');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_staff');
+                Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_staff');
+                Route::post('/{id}/restore', 'apiRestore')->middleware('permission:edit_staff');
+                Route::delete('/{id}/force', 'apiForceDelete')->middleware('permission:delete_staff');
             });
         });
 
         Route::controller(App\Http\Controllers\Api\StaffController::class)->group(function () {
             Route::prefix('staff-v2')->group(function () {
-                Route::get('/departments', 'departments');
-                Route::get('/teams', 'teams');
+                Route::get('/departments', 'departments')->middleware('permission:view_staff');
+                Route::get('/teams', 'teams')->middleware('permission:view_staff');
 
-                Route::get('/', 'index');
-                Route::get('/{id}', 'show');
-                Route::post('/', 'store');
-                Route::put('/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
-                Route::post('/{id}/restore', 'restore');
-                Route::delete('/{id}/force', 'forceDelete');
+                Route::get('/', 'index')->middleware('permission:view_staff');
+                Route::get('/{id}', 'show')->middleware('permission:view_staff');
+                Route::post('/', 'store')->middleware('permission:create_staff');
+                Route::put('/{id}', 'update')->middleware('permission:edit_staff');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_staff');
+                Route::post('/{id}/restore', 'restore')->middleware('permission:edit_staff');
+                Route::delete('/{id}/force', 'forceDelete')->middleware('permission:delete_staff');
             });
 
             Route::prefix('staff')->group(function () {
-                Route::get('/{id}/tasks', 'staffTasks');
-                Route::get('/{id}/projects', 'staffProjects');
+                Route::get('/{id}/tasks', 'staffTasks')->middleware('permission:view_tasks');
+                Route::get('/{id}/projects', 'staffProjects')->middleware('permission:view_projects');
             });
         });
 
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
             Route::controller(ClientController::class)->group(function () {
-                Route::get('/', 'index');
-                Route::get('/{id}', 'show');
-                Route::post('/', 'store');
-                Route::match(['put', 'patch'], '/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
+                Route::get('/', 'index')->middleware('permission:view_clients');
+                Route::get('/{id}', 'show')->middleware('permission:view_clients');
+                Route::post('/', 'store')->middleware('permission:create_clients');
+                Route::match(['put', 'patch'], '/{id}', 'update')->middleware('permission:edit_clients');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_clients');
             });
             // Route::get('/', [CustomerController::class, 'apiIndex']);
             // Route::get('/{id}', [CustomerController::class, 'apiShow']);
@@ -138,22 +138,22 @@ Route::middleware('auth:sanctum')->group(function () {
         // Vendor API routes
         Route::prefix('vendors')->group(function () {
             Route::controller(ApiVendorController::class)->group(function () {
-                Route::get('/', 'index');
-                Route::get('/{id}', 'show');
-                Route::post('/', 'store');
-                Route::match(['put', 'patch'], '/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
+                Route::get('/', 'index')->middleware('permission:view_vendors');
+                Route::get('/{id}', 'show')->middleware('permission:view_vendors');
+                Route::post('/', 'store')->middleware('permission:create_vendors');
+                Route::match(['put', 'patch'], '/{id}', 'update')->middleware('permission:edit_vendors');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_vendors');
             });
         });
 
         // Vendor Renewal API routes
         Route::prefix('vendor-renewals')->group(function () {
             Route::controller(VendorRenewalController::class)->group(function () {
-                Route::get('/', 'index');
-                Route::get('/{id}', 'show');
-                Route::post('/', 'store');
-                Route::put('/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
+                Route::get('/', 'index')->middleware('permission:view_renewals');
+                Route::get('/{id}', 'show')->middleware('permission:view_renewals');
+                Route::post('/', 'store')->middleware('permission:create_renewals');
+                Route::put('/{id}', 'update')->middleware('permission:edit_renewals');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_renewals');
             });
         });
 
@@ -161,13 +161,13 @@ Route::middleware('auth:sanctum')->group(function () {
         // Client Renewal API routes
         Route::prefix('client-renewals')->group(function () {
             Route::controller(ClientRenewalController::class)->group(function () {
-                Route::get('/form-options', 'apiFormOptions');
+                Route::get('/form-options', 'apiFormOptions')->middleware('permission:view_renewals');
 
-                Route::get('/', 'index');
-                Route::get('/{id}', 'show');
-                Route::post('/', 'store');
-                Route::put('/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
+                Route::get('/', 'index')->middleware('permission:view_renewals');
+                Route::get('/{id}', 'show')->middleware('permission:view_renewals');
+                Route::post('/', 'store')->middleware('permission:create_renewals');
+                Route::put('/{id}', 'update')->middleware('permission:edit_renewals');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_renewals');
             });
         });
 
@@ -188,14 +188,14 @@ Route::middleware('auth:sanctum')->group(function () {
         // Lead API routes
         Route::prefix('leads')->group(function () {
             Route::controller(LeadController::class)->group(function () {
-                Route::get('/form-options', 'apiFormOptions');
-                Route::get('/dashboard', 'dashboard');
+                Route::get('/form-options', 'apiFormOptions')->middleware('permission:view_leads');
+                Route::get('/dashboard', 'dashboard')->middleware('permission:view_leads');
 
-                Route::get('/', 'apiIndex');
-                Route::get('/{id}', 'apiShow');
-                Route::post('/', 'apiStore');
-                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
-                Route::delete('/{id}', 'apiDestroy');
+                Route::get('/', 'apiIndex')->middleware('permission:view_leads');
+                Route::get('/{id}', 'apiShow')->middleware('permission:view_leads');
+                Route::post('/', 'apiStore')->middleware('permission:create_leads');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_leads');
+                Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_leads');
             });
         });
 
@@ -204,12 +204,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('projects')->group(function () {
             // Projects Only
             Route::controller(ApiProjectController::class)->group(function () {
-                Route::get('/form-options', 'apiFormOptions');
-                Route::get('/', 'apiIndex');
-                Route::post('/', 'apiStore');
-                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
-                Route::delete('/{id}', 'apiDestroy');
-                Route::get('/{id}', 'apiShow');
+                Route::get('/form-options', 'apiFormOptions')->middleware('permission:view_projects');
+                Route::get('/', 'apiIndex')->middleware('permission:view_projects');
+                Route::post('/', 'apiStore')->middleware('permission:create_projects');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_projects');
+                Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_projects');
+                Route::get('/{id}', 'apiShow')->middleware('permission:view_projects');
             });
 
             // Projects Milestone
@@ -247,14 +247,14 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Task API routes
         Route::prefix('tasks')->group(function () {
-            Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions']);
+            Route::get('/form-options', [ApiTaskController::class, 'apiFormOptions'])->middleware('permission:view_tasks');
 
             Route::controller(ApiTaskController::class)->group(function () {
-                Route::get('/', 'apiIndex');
-                Route::get('/{id}', 'apiShow');
-                Route::post('/', 'apiStore');
-                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
-                Route::delete('/{id}', 'apiDestroy');
+                Route::get('/', 'apiIndex')->middleware('permission:view_tasks');
+                Route::get('/{id}', 'apiShow')->middleware('permission:view_tasks');
+                Route::post('/', 'apiStore')->middleware('permission:create_tasks');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_tasks');
+                Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_tasks');
             });
 
 
@@ -273,46 +273,46 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Client issue API routes
         Route::prefix('client-issues')->group(function () {
-            Route::get('/form-options', [ApiClientIssueController::class, 'formOptions']);
+            Route::get('/form-options', [ApiClientIssueController::class, 'formOptions'])->middleware('permission:view_raise_issue');
 
             Route::controller(ApiClientIssueController::class)->group(function () {
-                Route::get('/', 'index');
-                Route::post('/', 'store');
-                Route::get('/{id}', 'show');
-                Route::patch('/{id}/status', 'updateStatus');
-                Route::delete('/{id}', 'destroy');
+                Route::get('/', 'index')->middleware('permission:view_raise_issue');
+                Route::post('/', 'store')->middleware('permission:create_raise_issue');
+                Route::get('/{id}', 'show')->middleware('permission:view_raise_issue');
+                Route::patch('/{id}/status', 'updateStatus')->middleware('permission:edit_raise_issue');
+                Route::delete('/{id}', 'destroy')->middleware('permission:delete_raise_issue');
             });
 
             Route::controller(ApiClientIssueController::class)->group(function () {
-                Route::post('/{clientIssue}/assign', 'assignTeam');
-                Route::post('/{clientIssue}/tasks', 'taskStore');
-                Route::get('/{clientIssue}/tasks/{task}', 'taskShow');
-                Route::match(['put', 'patch'], '/{clientIssue}/tasks/{task}', 'taskUpdate');
-                Route::patch('/{clientIssue}/tasks/{task}/status', 'taskUpdateStatus');
-                Route::delete('/{clientIssue}/tasks/{task}', 'taskDestroy');
+                Route::post('/{clientIssue}/assign', 'assignTeam')->middleware('permission:assign_tasks');
+                Route::post('/{clientIssue}/tasks', 'taskStore')->middleware('permission:create_tasks');
+                Route::get('/{clientIssue}/tasks/{task}', 'taskShow')->middleware('permission:view_tasks');
+                Route::match(['put', 'patch'], '/{clientIssue}/tasks/{task}', 'taskUpdate')->middleware('permission:edit_tasks');
+                Route::patch('/{clientIssue}/tasks/{task}/status', 'taskUpdateStatus')->middleware('permission:edit_tasks');
+                Route::delete('/{clientIssue}/tasks/{task}', 'taskDestroy')->middleware('permission:delete_tasks');
             });
         });
 
 
         // Service API routes  -- not used anywhere
         Route::prefix('services')->group(function () {
-            Route::get('/form-options', [ApiServiceController::class, 'formOptions']);
-            Route::get('/', [ApiServiceController::class, 'index']);
-            Route::get('/{id}', [ApiServiceController::class, 'show']);
-            Route::post('/', [ApiServiceController::class, 'store']);
-            Route::match(['put', 'patch'], '/{id}', [ApiServiceController::class, 'update']);
-            Route::delete('/{id}', [ApiServiceController::class, 'destroy']);
-            Route::post('/delete-selected', [ApiServiceController::class, 'deleteSelected']);
+            Route::get('/form-options', [ApiServiceController::class, 'formOptions'])->middleware('permission:view_services');
+            Route::get('/', [ApiServiceController::class, 'index'])->middleware('permission:view_services');
+            Route::get('/{id}', [ApiServiceController::class, 'show'])->middleware('permission:view_services');
+            Route::post('/', [ApiServiceController::class, 'store'])->middleware('permission:create_services');
+            Route::match(['put', 'patch'], '/{id}', [ApiServiceController::class, 'update'])->middleware('permission:edit_services');
+            Route::delete('/{id}', [ApiServiceController::class, 'destroy'])->middleware('permission:delete_services');
+            Route::post('/delete-selected', [ApiServiceController::class, 'deleteSelected'])->middleware('permission:delete_services');
         });
 
         // Calendar appointment API routes
         Route::prefix('calendar')->group(function () {
             Route::controller(CalendarEventController::class)->group(function () {
-                Route::get('/events', 'apiIndex');
-                Route::get('/events/{id}', 'apiShow');
-                Route::post('/events', 'apiStore');
-                Route::match(['put', 'patch'], '/events/{id}', 'apiUpdate');
-                Route::delete('/events/{id}', 'apiDestroy');
+                Route::get('/events', 'apiIndex')->middleware('permission:view_calendar');
+                Route::get('/events/{id}', 'apiShow')->middleware('permission:view_calendar');
+                Route::post('/events', 'apiStore')->middleware('permission:manage_calendar');
+                Route::match(['put', 'patch'], '/events/{id}', 'apiUpdate')->middleware('permission:manage_calendar');
+                Route::delete('/events/{id}', 'apiDestroy')->middleware('permission:manage_calendar');
             });
         });
 
@@ -320,26 +320,26 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Settings API routes
         Route::prefix('settings')->group(function () {
-            Route::get('/', [ApiSettingController::class, 'index']);
+            Route::get('/', [ApiSettingController::class, 'index'])->middleware('permission:manage_settings');
 
-            Route::get('/general', [ApiSettingController::class, 'general']);
-            Route::match(['post', 'put', 'patch'], '/general', [ApiSettingController::class, 'updateGeneral']);
-            Route::get('/company', [ApiSettingController::class, 'company']);
-            Route::match(['post', 'put', 'patch'], '/company', [ApiSettingController::class, 'updateCompany']);
-            Route::get('/email', [ApiSettingController::class, 'email']);
-            Route::match(['post', 'put', 'patch'], '/email', [ApiSettingController::class, 'updateEmail']);
-            Route::get('/renewal', [ApiSettingController::class, 'renewal']);
-            Route::match(['post', 'put', 'patch'], '/renewal', [ApiSettingController::class, 'updateRenewal']);
-            Route::get('/teams', [ApiSettingController::class, 'teams']);
-            Route::match(['post', 'put', 'patch'], '/teams', [ApiSettingController::class, 'updateTeams']);
-            Route::get('/departments', [ApiSettingController::class, 'departments']);
-            Route::match(['post', 'put', 'patch'], '/departments', [ApiSettingController::class, 'updateDepartments']);
-            Route::post('/test-email', [ApiSettingController::class, 'sendTestEmail']);
-            Route::get('/search-tags', [ApiSettingController::class, 'searchTags']);
-            Route::get('/app-logo', [ApiSettingController::class, 'getAppLogo']);
-            Route::match(['post', 'put', 'patch'], '/app-logo', [ApiSettingController::class, 'updateAppLogo']);
-            Route::get('/login-logo', [ApiSettingController::class, 'getLoginLogo']);
-            Route::match(['post', 'put', 'patch'], '/login-logo', [ApiSettingController::class, 'updateLoginLogo']);
+            Route::get('/general', [ApiSettingController::class, 'general'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/general', [ApiSettingController::class, 'updateGeneral'])->middleware('permission:manage_settings');
+            Route::get('/company', [ApiSettingController::class, 'company'])->middleware('permission:view_company_information');
+            Route::match(['post', 'put', 'patch'], '/company', [ApiSettingController::class, 'updateCompany'])->middleware('permission:manage_settings');
+            Route::get('/email', [ApiSettingController::class, 'email'])->middleware('permission:view_email_settings');
+            Route::match(['post', 'put', 'patch'], '/email', [ApiSettingController::class, 'updateEmail'])->middleware('permission:manage_settings');
+            Route::get('/renewal', [ApiSettingController::class, 'renewal'])->middleware('permission:view_renewals');
+            Route::match(['post', 'put', 'patch'], '/renewal', [ApiSettingController::class, 'updateRenewal'])->middleware('permission:manage_settings');
+            Route::get('/teams', [ApiSettingController::class, 'teams'])->middleware('permission:view_staff');
+            Route::match(['post', 'put', 'patch'], '/teams', [ApiSettingController::class, 'updateTeams'])->middleware('permission:manage_settings');
+            Route::get('/departments', [ApiSettingController::class, 'departments'])->middleware('permission:view_staff');
+            Route::match(['post', 'put', 'patch'], '/departments', [ApiSettingController::class, 'updateDepartments'])->middleware('permission:manage_settings');
+            Route::post('/test-email', [ApiSettingController::class, 'sendTestEmail'])->middleware('permission:manage_settings');
+            Route::get('/search-tags', [ApiSettingController::class, 'searchTags'])->middleware('permission:view_general_settings');
+            Route::get('/app-logo', [ApiSettingController::class, 'getAppLogo'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/app-logo', [ApiSettingController::class, 'updateAppLogo'])->middleware('permission:manage_settings');
+            Route::get('/login-logo', [ApiSettingController::class, 'getLoginLogo'])->middleware('permission:view_general_settings');
+            Route::match(['post', 'put', 'patch'], '/login-logo', [ApiSettingController::class, 'updateLoginLogo'])->middleware('permission:manage_settings');
         });
 
         // Route::get('/clients', [ClientRenewalController::class, 'clientList']);
@@ -347,13 +347,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Book a Call 
         Route::controller(BookACallController::class)->group(function () {
-            Route::get('/book-a-call', 'index');
-            Route::delete('/book-a-call/{id}', 'destroy');
+            Route::get('/book-a-call', 'index')->middleware('permission:view_book_calls');
+            Route::delete('/book-a-call/{id}', 'destroy')->middleware('permission:delete_book_calls');
         });
 
         Route::controller(GoogleAdsController::class)->group(function () {
-            Route::get('/digital-marketing', 'indexDigitalMarketing');
-            Route::delete('/digital-marketing/{id}', 'destroyDigitalMarketing');
+            Route::get('/digital-marketing', 'indexDigitalMarketing')->middleware('permission:view_digital_marketing_leads');
+            Route::delete('/digital-marketing/{id}', 'destroyDigitalMarketing')->middleware('permission:delete_digital_marketing_leads');
 
             Route::get('/web-apps-leads', 'indexWebAppsLeads');
             Route::delete('/web-apps-leads/{id}', 'destroyWebAppsLeads');
