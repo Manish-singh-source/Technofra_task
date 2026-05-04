@@ -60,6 +60,7 @@ Route::middleware('auth:sanctum')->group(function () {
             
         Route::controller(DashboardController::class)->group(function () {
             Route::get('/dashboard', 'index');
+            Route::get('/quick-stats', 'quickStats');
         });
         
         // Permission API routes

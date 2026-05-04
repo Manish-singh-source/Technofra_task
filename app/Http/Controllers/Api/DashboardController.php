@@ -2,12 +2,16 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use App\Models\ClientIssue;
+use App\Models\DigitalMarketingLead;
+use App\Models\Lead;
 use App\Models\Project;
 use App\Models\Service;
 use App\Models\Task;
 use App\Models\VendorService;
+use App\Models\WebappLead;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -128,5 +132,23 @@ class DashboardController extends Controller
             'tasks_summary' => $tasksSummary,
             'client_issues' => $clientIssues,
         ]);
+    }
+
+    public function quickStats() {
+        $leadsCount = Lead::count();
+        $digitalMarketingLeadsCount = DigitalMarketingLead::count();
+        $webAppLeads = WebappLead::count();
+
+        $total_leads = $leadsCount + $digitalMarketingLeadsCount + $webAppLeads;
+
+
+        $data = [
+            'total_projects' => Project::count() ?? 0,
+            'total_leads' => $total_leads ?? 0,
+            'total_tasks' => Task::count() ?? 0,
+            'total_issues' => ClientIssue::count() ?? 0,
+        ];
+
+        return ApiResponse::success($data, 'Quick Stats Retrieved Successfully.');
     }
 }
