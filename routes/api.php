@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\GoogleAdsController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RolesController as ApiRoleController;
@@ -54,8 +55,15 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::controller(AuthController::class)->group(function () {
             Route::get('/me', 'me');
+            Route::post('/fcm-token', 'storeFcmToken');
             Route::post('/logout', 'logout');
             Route::post('/logout-all', 'logoutAll');
+        });
+
+        Route::prefix('notifications')->controller(NotificationController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::patch('/{id}/read', 'markAsRead');
+            Route::patch('/read-all', 'markAllAsRead');
         });
             
         Route::controller(DashboardController::class)->group(function () {

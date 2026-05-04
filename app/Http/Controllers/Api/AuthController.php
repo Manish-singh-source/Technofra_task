@@ -73,6 +73,47 @@ class AuthController extends Controller
         ], 'User information retrieved successfully');
     }
 
+    public function storeFcmToken(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'fcm_token' => ['required', 'string'],
+            'device_id' => ['nullable', 'string', 'max:255'],
+            'platform' => ['nullable', 'string', 'max:50'],
+        ]);
+
+        if ($validator->fails()) {
+            return ApiResponse::error('Validation Error', $validator->errors(), 422);
+        }
+
+        $user = $request->user();
+        if (! $user) {
+            return ApiResponse::error('Unauthenticated.', null, 401);
+        }
+
+        $tokenRecord = FcmNotificationHelper::storeTokenForUser(
+            $user,
+            $request->input('fcm_token'),
+            $request->input('device_id'),
+            $request->input('platform')
+        );
+
+        if (! $tokenRecord) {
+            return ApiResponse::error('Failed to store FCM token.', null, 500);
+        }
+
+        return ApiResponse::success([
+            'id' => $tokenRecord->id,
+            'user_id' => $tokenRecord->user_id,
+            'token' => $tokenRecord->token,
+            'device_id' => $tokenRecord->device_id,
+            'platform' => $tokenRecord->platform,
+            'is_active' => (bool) $tokenRecord->is_active,
+            'last_used_at' => optional($tokenRecord->last_used_at)?->toISOString(),
+            'created_at' => optional($tokenRecord->created_at)?->toISOString(),
+            'updated_at' => optional($tokenRecord->updated_at)?->toISOString(),
+        ], 'FCM token stored successfully.');
+    }
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();

@@ -3,13 +3,13 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\FileUpload;
-use App\Helpers\FcmNotificationHelper;
 use App\Mail\StaffInviteMail;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\UnifiedNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -802,9 +802,10 @@ class StaffController extends Controller
                 $creatorName = trim((string) auth()->user()?->name);
                 $staffName = trim($payload['first_name'] . ' ' . $payload['last_name']);
 
-                FcmNotificationHelper::sendToLoggedInUser(
+                app(UnifiedNotificationService::class)->sendToLoggedInUser(
                     'Staff Created',
                     $staffName . ' has been added successfully.',
+                    'staff',
                     [
                         'type' => 'staff_created',
                         'staff_id' => (string) $user->id,
