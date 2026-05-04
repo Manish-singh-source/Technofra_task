@@ -52,8 +52,7 @@ class TaskController extends Controller
 
     public function apiIndex(Request $request): JsonResponse
     {
-        $tasks = $this->accessibleTasksQuery()
-            ->with(['project', 'attachments'])
+        $filteredQuery = $this->accessibleTasksQuery()
             ->when($request->filled('status'), fn (Builder $query) => $query->where('status', $request->input('status')))
             ->when($request->filled('priority'), fn (Builder $query) => $query->where('priority', strtolower((string) $request->input('priority'))))
             ->when($request->filled('project_id'), fn (Builder $query) => $query->where('project_id', $request->input('project_id')))
@@ -72,29 +71,44 @@ class TaskController extends Controller
                     $nested->where('title', 'like', '%'.$search.'%')
                         ->orWhere('description', 'like', '%'.$search.'%');
                 });
-            })
+            });
+
+        $perPage = (int) $request->input('per_page', 10);
+        $perPage = max(1, min(100, $perPage));
+
+        $tasks = (clone $filteredQuery)
+            ->with(['project', 'attachments'])
             ->orderByDesc('created_at')
-            ->get();
+            ->paginate($perPage)
+            ->appends($request->query());
 
         $today = now()->startOfDay();
-        $lateCount = $tasks->filter(function (Task $task) use ($today) {
-            return $task->deadline
-                && $task->deadline->lt($today)
-                && ! in_array($task->status, ['completed', 'cancelled', 'on_hold'], true);
-        })->count();
+        $lateCount = (clone $filteredQuery)
+            ->whereDate('deadline', '<', $today)
+            ->whereNotIn('status', ['completed', 'cancelled', 'on_hold'])
+            ->count();
 
         return response()->json([
             'success' => true,
-            'data' => $tasks->map(fn (Task $task) => $this->formatTaskListResource($task))->values(),
+            'data' => collect($tasks->items())->map(fn (Task $task) => $this->formatTaskListResource($task))->values(),
             'meta' => [
                 'counts' => [
-                    'all' => $tasks->count(),
-                    'not_started' => $tasks->where('status', 'not_started')->count(),
-                    'in_progress' => $tasks->where('status', 'in_progress')->count(),
-                    'on_hold' => $tasks->where('status', 'on_hold')->count(),
-                    'completed' => $tasks->where('status', 'completed')->count(),
-                    'cancelled' => $tasks->where('status', 'cancelled')->count(),
+                    'all' => (clone $filteredQuery)->count(),
+                    'not_started' => (clone $filteredQuery)->where('status', 'not_started')->count(),
+                    'in_progress' => (clone $filteredQuery)->where('status', 'in_progress')->count(),
+                    'on_hold' => (clone $filteredQuery)->where('status', 'on_hold')->count(),
+                    'completed' => (clone $filteredQuery)->where('status', 'completed')->count(),
+                    'cancelled' => (clone $filteredQuery)->where('status', 'cancelled')->count(),
                     'late' => $lateCount,
+                ],
+                'pagination' => [
+                    'current_page' => $tasks->currentPage(),
+                    'last_page' => $tasks->lastPage(),
+                    'per_page' => $tasks->perPage(),
+                    'total' => $tasks->total(),
+                    'from' => $tasks->firstItem(),
+                    'to' => $tasks->lastItem(),
+                    'has_more_pages' => $tasks->hasMorePages(),
                 ],
                 'restricted_to_assigned_tasks' => $this->shouldRestrictToAssignedTasks(),
             ],
