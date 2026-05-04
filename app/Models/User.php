@@ -240,6 +240,10 @@ class User extends Authenticatable
 
     public function getProfileImageAttribute($value)
     {
+        if (! $value) {
+            return null;
+        }
+
         if ($this->role == 'Staff') {
             return 'uploads/staff/' . $value;
         } else if ($this->role == 'Client') {

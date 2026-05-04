@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BookACallController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\ClientIssueController as ApiClientIssueController;
 use App\Http\Controllers\Api\ClientRenewalController;
@@ -56,8 +57,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/logout', 'logout');
             Route::post('/logout-all', 'logoutAll');
         });
-
-
+            
+        Route::controller(DashboardController::class)->group(function () {
+            Route::get('/dashboard', 'index');
+        });
+        
         // Permission API routes
         Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'index'])->middleware('permission:view_permissions');
