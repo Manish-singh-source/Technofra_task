@@ -20,9 +20,8 @@ class DashboardController extends Controller
         // Renewal Data
         $clientRenewals = Service::with('client')
             // ->latest()
-            ->whereDate('end_date', '>=', Carbon::today())
+            ->whereDate('end_date', '>', Carbon::today())
             ->orderBy('end_date')
-            ->limit(3)
             ->get()
             ->map(fn($service) => [
                 'id' => $service->id,
@@ -38,9 +37,8 @@ class DashboardController extends Controller
 
         $vendorRenewals = VendorService::with('vendor')
             // ->latest()
-            ->whereDate('end_date', '>=', Carbon::today())
+            ->whereDate('end_date', '>', Carbon::today())
             ->orderBy('end_date')
-            ->limit(3)
             ->get()
             ->map(fn($service) => [
                 'id' => $service->id,
