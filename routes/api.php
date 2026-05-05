@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\GoogleAdsController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\MetaLeadController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
@@ -209,6 +210,16 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/', 'apiStore')->middleware('permission:create_leads');
                 Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_leads');
                 Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_leads');
+            });
+        });
+
+        // Meta Lead API routes
+        Route::prefix('meta-leads')->group(function () {
+            Route::controller(MetaLeadController::class)->group(function () {
+                Route::get('/', 'index')->middleware('permission:view_leads');
+                Route::get('/{lead}', 'show')->middleware('permission:view_leads');
+                Route::post('/sync', 'sync')->middleware('permission:create_leads');
+                Route::delete('/{lead}', 'destroy')->middleware('permission:delete_leads');
             });
         });
 

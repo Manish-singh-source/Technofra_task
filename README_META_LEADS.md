@@ -155,3 +155,27 @@ If verification fails:
 - Ensure your callback URL is public and HTTPS.
 - Ensure token matches exactly (no extra spaces).
 - Ensure your `GET /api/facebook/webhook` route is active and returns the challenge on successful token match.
+
+
+
+## 15. How to Find `FACEBOOK_FORM_ID`
+You can get `FACEBOOK_FORM_ID` (Lead Form ID) using any of these methods:
+
+1. From Meta Ads Manager (UI):
+   - Open **Ads Manager** and select the correct ad account.
+   - Go to the campaign/ad that uses Lead Ads.
+   - Open the ad and check the attached **Instant Form**.
+   - Open the form details; copy the numeric **Form ID**.
+
+2. From Meta Business Suite:
+   - Go to your Facebook Page in **Business Suite**.
+   - Open **All tools** > **Instant Forms** (or Leads setup area).
+   - Select the form and copy the form ID from details.
+
+3. From Graph API:
+   - Call:
+   - `GET https://graph.facebook.com/v20.0/{PAGE_ID}/leadgen_forms?access_token={PAGE_ACCESS_TOKEN}`
+   - In response, each form object has an `id`. Use that as `FACEBOOK_FORM_ID`.
+
+Set it in environment:
+- `FACEBOOK_FORM_ID=123456789012345`
