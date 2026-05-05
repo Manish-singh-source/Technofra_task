@@ -65,12 +65,12 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{id}/read', 'markAsRead');
             Route::patch('/read-all', 'markAllAsRead');
         });
-            
+
         Route::controller(DashboardController::class)->group(function () {
             Route::get('/dashboard', 'index');
             Route::get('/quick-stats', 'quickStats');
         });
-        
+
         // Permission API routes
         Route::prefix('permissions')->group(function () {
             Route::get('/', [PermissionController::class, 'index'])->middleware('permission:view_permissions');
@@ -372,14 +372,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::delete('/web-apps-leads/{id}', 'destroyWebAppsLeads');
         });
     });
+
+    // Meta Lead Ads Webhook
+    Route::get('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'verify']);
+    Route::post('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'handle']);
 });
 
 // Fallback route for authenticated user
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
-
-// Meta Lead Ads Webhook
-Route::get('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'verify']);
-Route::post('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'handle']);
-    
