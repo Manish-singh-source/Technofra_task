@@ -378,3 +378,8 @@ Route::middleware('auth:sanctum')->group(function () {
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Meta Lead Ads Webhook
+Route::get('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'verify']);
+Route::post('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'handle']);
+    

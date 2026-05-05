@@ -31,6 +31,7 @@ class Kernel extends ConsoleKernel
         }
 
         $schedule->command('notifications:send-daily')->dailyAt($dailyNotificationTime);
+        $schedule->command('meta:sync-leads')->hourly()->withoutOverlapping();
 
         // $schedule->command('inspire')->hourly();
     }

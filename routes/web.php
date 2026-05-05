@@ -367,4 +367,22 @@ Route::middleware('auth')->group(function () {
             Route::post('/toggle-status', 'toggleStatus')->name('toggleStatus');
         });
     });
+
+
+    // Meta Leads:
+    Route::prefix('leads/meta')->name('leads.')->group(function () {
+        Route::get('/', [App\Http\Controllers\MetaLeadUiController::class, 'index'])
+            ->name('index')
+            ->middleware('permission:view_leads');
+        Route::get('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'show'])
+            ->name('show')
+            ->middleware('permission:view_leads');
+        Route::post('/sync', [App\Http\Controllers\MetaLeadUiController::class, 'sync'])
+            ->name('sync')
+            ->middleware('permission:create_leads');
+        Route::delete('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'destroy'])
+            ->name('destroy')
+            ->middleware('permission:delete_leads');
+    });
+
 });
