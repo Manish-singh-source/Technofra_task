@@ -8,6 +8,7 @@ use App\Models\BookCall;
 use App\Models\ClientBusinessDetail;
 use App\Models\DigitalMarketingLead;
 use App\Models\Lead;
+use App\Models\MetaLead;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\WebappLead;
@@ -74,16 +75,28 @@ class LeadController extends Controller
 
         $allWebAppLeads = WebappLead::count();
 
+        // Meta Leads 
+        $metaLeads = MetaLead::select('id', 'full_name as name', 'email', 'phone', 'created_at')
+            ->whereDate('created_at', today())
+            ->orderByDesc('created_at')
+            ->get()
+            ->each(function ($metaLead) {
+                $metaLead->setAttribute('lead_type', 'meta_lead');
+            });
+
+        $allMetaLeads = MetaLead::count();
 
         $leadsCount = ['todaysLeadsCount' => $leads->count(), 'allLeadsCount' => $allLeads];
         // $bookCallsCount = ['todaysBookCallsCount' => $bookCalls->count(), 'allBookCallsCount' => $allBookCalls];
         $digitalMarketingLeadsCount = ['todaysDigitalMarketingLeadsCount' => $digitalMarketingLeads->count(), 'allDigitalMarketingLeadsCount' => $allDigitalMarketingLeads];
         $webAppLeadsCount = ['todaysWebAppLeadsCount' => $webAppLeads->count(), 'allWebAppLeadsCount' => $allWebAppLeads];
+        $metaLeadsCount = ['todaysMetaLeadsCount' => $metaLeads->count(), 'allMetaLeadsCount' => $allMetaLeads];
 
         $combinedLeads = $leads
             // ->concat($bookCalls)
             ->concat($digitalMarketingLeads)
             ->concat($webAppLeads)
+            ->concat($metaLeads)
             ->sortByDesc('created_at')
             ->values();
 
@@ -94,6 +107,7 @@ class LeadController extends Controller
             // 'bookCallsCount' => $bookCallsCount,
             'digitalMarketingLeadsCount' => $digitalMarketingLeadsCount,
             'webAppLeadsCount' => $webAppLeadsCount,
+            'metaLeadsCount' => $metaLeadsCount,
         ]);
     }
 
