@@ -11,6 +11,7 @@ use App\Models\Team;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -958,6 +959,7 @@ class StaffController extends Controller
 
         return Validator::make($request->all(), [
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($id)],
@@ -981,15 +983,38 @@ class StaffController extends Controller
             'status' => $request->status,
         ];
 
-        if ($request->hasFile('profileImage')) {
-            $updateData['profile_image'] = basename(FileUpload::updateFileUpload(
-                $request->file('profileImage'),
-                $staff->profile_image ? 'uploads/staff/'.$staff->profile_image : '',
+        // Only update profile image when an actual uploaded file is present.
+        // Otherwise keep existing image as-is.
+        $profileImageFile = $this->resolveProfileImageFile($request);
+        if ($profileImageFile !== null) {
+            $existingProfileImage = $staff->getRawOriginal('profile_image');
+            $uploadedPath = FileUpload::updateFileUpload(
+                $profileImageFile,
+                $existingProfileImage ? 'uploads/staff/'.$existingProfileImage : '',
                 'uploads/staff/'
-            ));
+            );
+
+            if (! empty($uploadedPath)) {
+                $updateData['profile_image'] = basename($uploadedPath);
+            }
         }
 
         return $updateData;
+    }
+
+    private function resolveProfileImageFile(Request $request): ?UploadedFile
+    {
+        $file = $request->file('profileImage');
+        if ($file instanceof UploadedFile && $file->isValid()) {
+            return $file;
+        }
+
+        $file = $request->file('profile_image');
+        if ($file instanceof UploadedFile && $file->isValid()) {
+            return $file;
+        }
+
+        return null;
     }
 
     private function syncUserForStaffUpdate(User $staff, Request $request): void
@@ -999,7 +1024,6 @@ class StaffController extends Controller
             'last_name' => $request->last_name,
             'email' => $request->email,
             'phone' => $request->phone,
-            'profile_image' => $staff->profile_image,
             'status' => $request->status,
         ]);
 

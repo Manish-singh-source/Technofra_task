@@ -128,7 +128,7 @@
                             <div class="card">
                                 <div class="card-body">
                                     <div class="d-flex flex-column align-items-center text-center">
-                                        <img src="{{ $staff->profile_image ? asset('uploads/staff/' . $staff->profile_image) : 'https://placehold.co/100x100' }}"
+                                        <img src="{{ $staff->profile_image ? asset($staff->profile_image) : 'https://placehold.co/100x100' }}"
                                             alt="Admin" class="rounded-circle p-1 bg-primary" width="100"
                                             height="100">
                                         <div class="mt-3">
@@ -215,7 +215,7 @@
                                                     @enderror
                                                     @if ($staff->profile_image)
                                                         <div class="mt-2">
-                                                            <img src="{{ asset('uploads/staff/' . $staff->profile_image) }}"
+                                                            <img src="{{ asset($staff->profile_image) }}"
                                                                 alt="Current Profile Image" class="img-thumbnail"
                                                                 style="max-height: 90px;">
                                                         </div>

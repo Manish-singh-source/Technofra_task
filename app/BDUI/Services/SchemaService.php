@@ -43,8 +43,8 @@ class SchemaService
                     'items' => [
                         ['label' => 'Revenue', 'value' => '₹1,24,500', 'icon' => 'trending_up', 'color' => '#16A34A'],
                         ['label' => 'Orders', 'value' => '328', 'icon' => 'shopping_bag', 'color' => '#2563EB'],
-                        ['label' => 'Visitors', 'value' => '12.4k', 'icon' => 'groups', 'color' => '#7C3AED'],
-                        ['label' => 'Tickets', 'value' => '18', 'icon' => 'support_agent', 'color' => '#EA580C'],
+                        // ['label' => 'Visitors', 'value' => '12.4k', 'icon' => 'groups', 'color' => '#7C3AED'],
+                        // ['label' => 'Tickets', 'value' => '18', 'icon' => 'support_agent', 'color' => '#EA580C'],
                     ],
                 ],
                 [
