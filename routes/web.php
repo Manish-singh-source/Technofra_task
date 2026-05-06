@@ -9,6 +9,7 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DigitalMarketingLeadController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
+use App\Http\Controllers\GoogleLeadViewController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;
@@ -386,3 +387,5 @@ Route::middleware('auth')->group(function () {
     });
 
 });
+
+Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show'])->middleware('auth');

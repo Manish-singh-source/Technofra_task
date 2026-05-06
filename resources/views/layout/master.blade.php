@@ -298,17 +298,24 @@
                 @can('view_digital_marketing_leads')
                     <li>
                         <a href="{{ route('digital-marketing-leads.index') }}">
-                            <div class="parent-icon"><i class="bx bx-line-chart"></i>
+                            <div class="parent-icon"><i class="bx bx-globe"></i>
                             </div>
-                            <div class="menu-title">Google Ads</div>
+                            <div class="menu-title">Web Leads</div>
                         </a>
                     </li>
                 @endcan
                 <li>
                     <a href="{{ route('leads.index') }}">
-                        <div class="parent-icon"><i class="bx bx-globe"></i>
+                        <div class="parent-icon"><i class="bx bxl-facebook"></i>
                         </div>
                         <div class="menu-title">Meta Leads</div>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ route('google-leads.index') }}">
+                        <div class="parent-icon"><i class="bx bx-line-chart"></i>
+                        </div>
+                        <div class="menu-title">Google Ads Leads</div>
                     </a>
                 </li>
                 @can('view_staff')

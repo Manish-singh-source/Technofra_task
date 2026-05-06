@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\ClientRenewalController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\GoogleAdsController;
+use App\Http\Controllers\Api\GoogleLeadApiController;
 use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\MetaLeadController;
 use App\Http\Controllers\Api\NotificationController;
@@ -21,6 +22,7 @@ use App\Http\Controllers\Api\TodoController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
 use App\Http\Controllers\CalendarEventController;
+use App\Http\Controllers\GoogleAdsLeadController;
 use App\Http\Controllers\StaffController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -382,6 +384,17 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/web-apps-leads', 'indexWebAppsLeads');
             Route::delete('/web-apps-leads/{id}', 'destroyWebAppsLeads');
         });
+
+
+        Route::get('/google-ads-leads', [GoogleLeadApiController::class, 'index']);
+        Route::get('/google-ads-leads/stats', [\App\Http\Controllers\Api\GoogleLeadApiController::class, 'stats']);
+        Route::get('/google-ads-leads/{googleLead}', [\App\Http\Controllers\Api\GoogleLeadApiController::class, 'show'])
+            ->missing(function () {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Lead not found',
+                ], 404);
+            });
     });
 });
 
@@ -393,3 +406,4 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 // Meta Lead Ads Webhook
 Route::get('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'verify']);
 Route::post('/facebook/webhook', [App\Http\Controllers\FacebookWebhookController::class, 'handle']);
+Route::post('/google-ads/lead', [GoogleAdsLeadController::class, 'receive']);

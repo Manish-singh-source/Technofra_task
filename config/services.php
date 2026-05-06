@@ -48,4 +48,8 @@ return [
         'admin_phone' => env('K3_WHATSAPP_ADMIN_PHONE'),
     ],
 
+    'google_ads' => [
+        'webhook_key' => env('GOOGLE_ADS_WEBHOOK_KEY'),
+    ],
+
 ];
