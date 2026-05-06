@@ -332,16 +332,3436 @@
                     }
                 ]
             }
+        },
+        "/api/v1/test-fcm": {
+            "post": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Test FCM",
+                "operationId": "5bdee9e3151faeee09d8beb85a6cef20",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/notifications": {
+            "get": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "List notifications",
+                "operationId": "8d09be9fc6c17e8eaed7ab447097f604",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/notifications/{id}/read": {
+            "patch": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Mark notification read",
+                "operationId": "467647f796cb1ef4c3568b81965035a4",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/notifications/read-all": {
+            "patch": {
+                "tags": [
+                    "Notifications"
+                ],
+                "summary": "Mark all notifications read",
+                "operationId": "aca7db27d22dc9867cff5f4dd2307a78",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/permissions": {
+            "get": {
+                "tags": [
+                    "Permissions"
+                ],
+                "summary": "Permissions list",
+                "operationId": "26eeb819661bedea5b0466ed1c256527",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/permissions/grouped": {
+            "get": {
+                "tags": [
+                    "Permissions"
+                ],
+                "summary": "Grouped permissions",
+                "operationId": "9aa97a20eb03ccdcd797dbae6361ae46",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/roles": {
+            "get": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Roles list",
+                "operationId": "fb2384833f5def6327b7469c50924f08",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Create role",
+                "operationId": "bfcf8a6c47678612e6cb7bdc3eac67f3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/roles/{id}": {
+            "put": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Update role",
+                "operationId": "59b8ec0253d014883553871482118ca1",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Delete role",
+                "operationId": "5d0cc7675724c866d8e1f40786fe8edf",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "Partially update role",
+                "operationId": "1fde5afcf5b21b633ea34a598c6fd969",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/form-options": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff form options",
+                "operationId": "25843e7576e3001248fc249798e6f8d1",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff list",
+                "operationId": "c60a0433b7ebc8988c52bce054477eb4",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Create staff",
+                "operationId": "e4c52028ff9b7a865e9adf3f4c9a5b63",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/{id}": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff detail",
+                "operationId": "53bc3ffbd6db098964f2459e5d634dd9",
+                "parameters": [
+                    {
+                        "name": "id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Update staff",
+                "operationId": "4b077eef83e2610219aec8fd5b108cfb",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Delete staff",
+                "operationId": "003fef880d5a9fac73b1e7642c2fdf46",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Partial update staff",
+                "operationId": "22055adba19f75f109c19e3042af0af4",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/{id}/restore": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Restore staff",
+                "operationId": "43fa4a6082e66cdaa55dc1390486740d",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/{id}/force": {
+            "delete": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Force delete staff",
+                "operationId": "a2c8cd09612387f8a13fe421d77ec755",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/{id}/tasks": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff tasks",
+                "operationId": "8409887ddb1ca36750c5a522699395bb",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff/{id}/projects": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff projects",
+                "operationId": "35e6cbd698c1773ed5b81def4bc350ff",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff-v2/departments": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff v2 departments",
+                "operationId": "4f918ea9fd5b0a4515ac13f7ff2ca27f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff-v2/teams": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff v2 teams",
+                "operationId": "2e03b54e305b758ef81309e018f392e2",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff-v2": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff v2 list",
+                "operationId": "e57b76ee47d4b2980b3f8aefd28317ca",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Create staff v2",
+                "operationId": "76b85397b9ac240189c7d835f0f08995",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff-v2/{id}": {
+            "get": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Staff v2 detail",
+                "operationId": "06e4b5e72bcdaea67b7b81484f9138bc",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Update staff v2",
+                "operationId": "b6a7cd35ba55566e2ef079c92b55ea64",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Delete staff v2",
+                "operationId": "ac73d0fb57731c29adbd3a48312946d5",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff-v2/{id}/restore": {
+            "post": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Restore staff v2",
+                "operationId": "d445bf3f90e6ce8cc83db9056bc73c77",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/staff-v2/{id}/force": {
+            "delete": {
+                "tags": [
+                    "Staff"
+                ],
+                "summary": "Force delete staff v2",
+                "operationId": "83e127e9906b8c815b2e3fec1b8d9312",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/clients": {
+            "get": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Clients list",
+                "operationId": "48bc26793829f5220cf5770aab9999d7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Create client",
+                "operationId": "27988d6d383766bca701a3407e02bde6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/clients/{id}": {
+            "get": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Client detail",
+                "operationId": "f41f0af112ef43f902ae74d520c64efa",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Update client",
+                "operationId": "7d23417ed0c19390f354a85f1ce87d1c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Delete client",
+                "operationId": "87fdfb42a302b4832a7c415b54bded81",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Clients"
+                ],
+                "summary": "Partial update client",
+                "operationId": "6905b7d5984fb773933c10022e9af012",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/vendors": {
+            "get": {
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Vendors list",
+                "operationId": "e3172142b705aab6cd590b13e26088e4",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Create vendor",
+                "operationId": "eb145e2774e2d3c2896dd6e868596637",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/vendors/{id}": {
+            "get": {
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Vendor detail",
+                "operationId": "a7bdda08de79c7ca6c076bd7be4602f3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Update vendor",
+                "operationId": "3ce585c8a4576f7b1efe28b7ca1927a0",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Delete vendor",
+                "operationId": "ce3a988359c3423c1522afd56771fc89",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Vendors"
+                ],
+                "summary": "Partial update vendor",
+                "operationId": "fe1f55472eb9e2fdef980186cce2c87f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/vendor-renewals": {
+            "get": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Vendor renewals list",
+                "operationId": "7fa3f2888bf9e779e8cbb45637b6ab47",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Create vendor renewal",
+                "operationId": "f44c5983004ea080b22baa952e84d1a7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/vendor-renewals/{id}": {
+            "get": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Vendor renewal detail",
+                "operationId": "fda6d0fbc7e663db7f5e7196f54480d6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Update vendor renewal",
+                "operationId": "7c91b5542c049a077f0fabb1b7c55ab0",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Delete vendor renewal",
+                "operationId": "87111024005f375e93ce6a80390cc784",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-renewals/form-options": {
+            "get": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Client renewals form options",
+                "operationId": "076f541df16a19975dea299c9cf036b3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-renewals": {
+            "get": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Client renewals list",
+                "operationId": "a3340e90f1469c5b6ef4cd2b5c518804",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Create client renewal",
+                "operationId": "2150399c44320aa07d9bacdd2e44acd6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-renewals/{id}": {
+            "get": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Client renewal detail",
+                "operationId": "677d1748028f6d46cb0a79dea00d2236",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Update client renewal",
+                "operationId": "85efbec98e5e2ee70677eb07c3f8980a",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Renewals"
+                ],
+                "summary": "Delete client renewal",
+                "operationId": "32d3091015995471ae8748a5d89db9ea",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/todos": {
+            "get": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Todos list",
+                "operationId": "136c36e3f4859623fc5feaaaec7619ed",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Create todo",
+                "operationId": "94a4f09c9f30edc2631676e9f3d96235",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/todos/{todo}": {
+            "get": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Todo detail",
+                "operationId": "1d1482fb80efe46396b99ba8ba27acd1",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Update todo",
+                "operationId": "bdcea9d28c817893a5349bed1d0eda8f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Delete todo",
+                "operationId": "401a16264197a12152eb8205dba7c8de",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Partial update todo",
+                "operationId": "0c6a163285ce48c4fccb1830a0a4a167",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/todos/options": {
+            "get": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Todo options",
+                "operationId": "c6fb0c142f2d713f4015e4c16f838e1d",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/todos/{todo}/status": {
+            "patch": {
+                "tags": [
+                    "Todos"
+                ],
+                "summary": "Toggle todo status",
+                "operationId": "4743d98a7935bdf5380f45c7d8343b4e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/leads/form-options": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Lead form options",
+                "operationId": "95c8218131d68a3d5f260317c2008943",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/leads/dashboard": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Lead dashboard",
+                "operationId": "8851be4143b12df8f77f12b852bba90c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/leads": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Leads list",
+                "operationId": "bb193efef803603703ad4d17ab309f2c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Create lead",
+                "operationId": "bc638651129577c8e5d43ffdcf8c90f3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/leads/{id}": {
+            "get": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Lead detail",
+                "operationId": "b888cd9968dca9f28089101fc6e27043",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Update lead",
+                "operationId": "b463ff632bacc6aaca4b861b82a386ce",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Delete lead",
+                "operationId": "95059a6c0f2142e36fbd405bbd36c125",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Leads"
+                ],
+                "summary": "Partial update lead",
+                "operationId": "5ad74b1813c38ad14ee350ad553b738b",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/meta-leads": {
+            "get": {
+                "tags": [
+                    "Meta Leads"
+                ],
+                "summary": "Meta leads list",
+                "operationId": "887f2f9a801318d3c7f5cb51e0e6b607",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/meta-leads/sync": {
+            "post": {
+                "tags": [
+                    "Meta Leads"
+                ],
+                "summary": "Sync meta leads",
+                "operationId": "3ade51ff66e35aff8ec9258fa5c1a03d",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/meta-leads/{lead}": {
+            "get": {
+                "tags": [
+                    "Meta Leads"
+                ],
+                "summary": "Meta lead detail",
+                "operationId": "96f651a10db297f966a325af3db2be18",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Meta Leads"
+                ],
+                "summary": "Delete meta lead",
+                "operationId": "0ac9bf78817ac2271dda949962b580ae",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/form-options": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project form options",
+                "operationId": "2e8758ffbc19e22b23f42f22a0bda1ed",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Projects list",
+                "operationId": "914d35b9a66e7ec7e6aab391d1bccd96",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create project",
+                "operationId": "a93aafad000429c07c410f98c2f2c0bd",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{id}": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project detail",
+                "operationId": "b6096a1c23754cece8642cb8f3ba7f81",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update project",
+                "operationId": "54bf19840d370fd210cc9bc2d75bc311",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete project",
+                "operationId": "bbd511b862b5569969238e1983473fd8",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Partial update project",
+                "operationId": "4886d224e07f375786c8d0a2cd7eb0e0",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/milestones": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project milestones",
+                "operationId": "d219fff14207c0d2455b4aa8fdd9c3c0",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create milestone",
+                "operationId": "cad390473279b298b5e3ef2d022ab2e1",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/milestones/{milestoneId}": {
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update milestone",
+                "operationId": "7e318588aefb1e8ee2247db44cc3dffa",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete milestone",
+                "operationId": "94d1c2792c1eaf5ef51b1d563579c0f7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Partial update milestone",
+                "operationId": "cd577ef6584eb6bcf8f9a2a8b2bb16f8",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/issues": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project issues",
+                "operationId": "a122c1e6344bf6ce6cdb679e0912564a",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create issue",
+                "operationId": "8966dfbe5fdfdca43f59fcb17c0c06ed",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/issues/{issueId}": {
+            "put": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Update issue",
+                "operationId": "b3c2f962c5c13817339dbf5ae65f1ce4",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete issue",
+                "operationId": "13a0dc6dc3c39b6c68eba40b4e3b55a6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Partial update issue",
+                "operationId": "6213fe0e88cb4f756d998612370c67a5",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/comments": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project comments",
+                "operationId": "cac63d5eceb8d58d09a54511bc70a641",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Create project comment",
+                "operationId": "890716636282c229953ed823c8e94a3d",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/files": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project files",
+                "operationId": "d637454ae76ac245029b9ab9164deb8f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Upload project file",
+                "operationId": "1be077d0dbb77cfd4cf57fc727e1ecc2",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/files/{fileId}": {
+            "delete": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Delete project file",
+                "operationId": "f61b00e5180310342874bf100aff5ba9",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/projects/{projectId}/usage": {
+            "get": {
+                "tags": [
+                    "Projects"
+                ],
+                "summary": "Project usage",
+                "operationId": "e1dbc9672c853ecf78e3bdbba1638499",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tasks/form-options": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Task form options",
+                "operationId": "2de91f6d0691a411b7982b13c7dc767e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tasks": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Tasks list",
+                "operationId": "68ca59973096583eb68c01c7867ad67e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create task",
+                "operationId": "0eac4df5186e0e555de98131d325df91",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tasks/{id}": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Task detail",
+                "operationId": "d0e04dc780bd53e86c696ff65e7fc5b8",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Update task",
+                "operationId": "b0adaaa64977e2245918d5666923fbb7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Delete task",
+                "operationId": "4dcfff2a40b6e9152a6a62d1b9b74946",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Partial update task",
+                "operationId": "97a6b77f0a1d490ebaf2a00b6824f661",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tasks/{taskId}/comments": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Task comments",
+                "operationId": "18089052ca6f68239d9b5531b88d08bb",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Create task comment",
+                "operationId": "f46dde43d36729deae44919b2632d6f8",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tasks/{taskId}/attachments": {
+            "get": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Task attachments",
+                "operationId": "d461781c2aa7e49a44f94eaf7a411d5f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Upload task attachment",
+                "operationId": "2c24eedf86543c15ce87f9f51292b06e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/tasks/{taskId}/attachments/{attachmentId}": {
+            "delete": {
+                "tags": [
+                    "Tasks"
+                ],
+                "summary": "Delete task attachment",
+                "operationId": "125702d1c3aad235146194ac2acb8f12",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/form-options": {
+            "get": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Client issue form options",
+                "operationId": "80022ca866916cfc854edce6fbd2190c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues": {
+            "get": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Client issues list",
+                "operationId": "db79622698973ecdc78b2ddca66679fa",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Create client issue",
+                "operationId": "d6ad741179c4fcdfcb63f7dd63fbd8a1",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/{id}": {
+            "get": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Client issue detail",
+                "operationId": "2dca0d2c02d76c6272c7adfd2f8d2b19",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Delete client issue",
+                "operationId": "ec73e6df2562a200620656d9874ccbb6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/{id}/status": {
+            "patch": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Update client issue status",
+                "operationId": "0efae7e8ed8fcc2286772ba4966c76cd",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/{clientIssue}/assign": {
+            "post": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Assign team",
+                "operationId": "2e137e88d7dc5ae5464827dc3c958d05",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/{clientIssue}/tasks": {
+            "post": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Create linked task",
+                "operationId": "a875d4fd1e60d8542e7bbf2953231c59",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/{clientIssue}/tasks/{task}": {
+            "get": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Linked task detail",
+                "operationId": "83416d6dc7aa6400ca203c6d6b4cc12c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Update linked task",
+                "operationId": "4582496af0a572d7ca1a2def789cbb56",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Delete linked task",
+                "operationId": "47d1ab33d6237d9c05ea6438b93bf10e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Partial update linked task",
+                "operationId": "f03ba8427da548202bfc751633880bc6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/client-issues/{clientIssue}/tasks/{task}/status": {
+            "patch": {
+                "tags": [
+                    "Client Issues"
+                ],
+                "summary": "Update linked task status",
+                "operationId": "59d45c0cd440c494d972f117c081d773",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/services/form-options": {
+            "get": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Service form options",
+                "operationId": "0027ede85f60523ed8c9ed2aacb6e22f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/services": {
+            "get": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Services list",
+                "operationId": "571de0460b34e22b15027e16d0bc7ea9",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Create service",
+                "operationId": "209dacda50e21d5fd259b506473535b1",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/services/{id}": {
+            "get": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Service detail",
+                "operationId": "dc44f854f52061c722865c1f601e276d",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Update service",
+                "operationId": "504d4537724cc0429168adeb9e7e2817",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Delete service",
+                "operationId": "85e63f7f1b637c40dd058d890a8e2a78",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Partial update service",
+                "operationId": "34bd540da3ebb4fa3080039dc26764fe",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/services/delete-selected": {
+            "post": {
+                "tags": [
+                    "Services"
+                ],
+                "summary": "Delete selected services",
+                "operationId": "b1f54aa4cfe14a12ac395726a82bc228",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/calendar/events": {
+            "get": {
+                "tags": [
+                    "Calendar"
+                ],
+                "summary": "Calendar events list",
+                "operationId": "dd8159074e276c45b1e82c529ce5b055",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Calendar"
+                ],
+                "summary": "Create calendar event",
+                "operationId": "685e3cb6b51a2d11766847035a3bb5ab",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/calendar/events/{id}": {
+            "get": {
+                "tags": [
+                    "Calendar"
+                ],
+                "summary": "Calendar event detail",
+                "operationId": "c0cf80cac613680724a8aba19f9e373b",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Calendar"
+                ],
+                "summary": "Update calendar event",
+                "operationId": "cd3862bf7a4167feb630e4eff1cf1182",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "delete": {
+                "tags": [
+                    "Calendar"
+                ],
+                "summary": "Delete calendar event",
+                "operationId": "7cf81503d30add803b06dd7576f52895",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Calendar"
+                ],
+                "summary": "Partial update calendar event",
+                "operationId": "01508232690a9b32a904c73809944941",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Settings index",
+                "operationId": "86d46de9bd1e6d3f4676188472e8e8b7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/general": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get general settings",
+                "operationId": "25d1d94904c57ce22492b5f7f2b2e2f7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update general settings",
+                "operationId": "2f52c5a5e7214d86071402f64a33684f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update general settings",
+                "operationId": "f2456de35e527daa03bd4ac2affe2ce0",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update general settings",
+                "operationId": "831714e7e8a9db821c1c5a11752ffa9f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/company": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get company settings",
+                "operationId": "34aa781b16bd0d9e6a1c315872cc26b3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update company settings",
+                "operationId": "82647b18632dee8d054311a44248c64c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update company settings",
+                "operationId": "789a5a2bf1b526eed7dd95cce7df2dcd",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update company settings",
+                "operationId": "5a405f3295a79d1977938c58deb6863e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/email": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get email settings",
+                "operationId": "7c35d033ae123db20816470c72cdb65f",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update email settings",
+                "operationId": "744cd809310566a26535c87747831d6b",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update email settings",
+                "operationId": "a86939b21c5543ce6fd0421959e0b2f2",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update email settings",
+                "operationId": "b8fb72c0fc6d414e33a95d15bf597105",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/renewal": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get renewal settings",
+                "operationId": "047d39176613f3645b8a53e86da1de08",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update renewal settings",
+                "operationId": "e4ca40b25427e5a70c62aef5ec0b3178",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update renewal settings",
+                "operationId": "1d94a72693ee9a58b817aac297555291",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update renewal settings",
+                "operationId": "3c6dfc840d1147f4cac5e950950340bc",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/teams": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get teams",
+                "operationId": "3e8f33b066bb6151c58567da68d32bb6",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update teams",
+                "operationId": "ebb8f03c18c160fef4bbc31794dedffe",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update teams",
+                "operationId": "9a96cd2cb6db63f88a50d51124698169",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update teams",
+                "operationId": "51e83d92e33ab36fc389b792d4560007",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/departments": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get departments",
+                "operationId": "fd9c4cc1fe559a690f18355cacb20da3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update departments",
+                "operationId": "a28b439f7fa7d6de318dfd774bd1bbd2",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update departments",
+                "operationId": "07c79cc987dba58476165673f14cb9a5",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update departments",
+                "operationId": "fa746d3ef7b19ec16beeabb3b37592d7",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/test-email": {
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Send test email",
+                "operationId": "739e7fb5d420980c66f6205042a97e64",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/search-tags": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Search tags",
+                "operationId": "ec5986a2ca4f7fd72b94d588c2ecfc93",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/app-logo": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get app logo",
+                "operationId": "a678a0515e80bf863231d83d01aee7ff",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update app logo",
+                "operationId": "c7f3020528974102464ad3e4dccbf16c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update app logo",
+                "operationId": "d0900d2891625b1578dfe16f1520220c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update app logo",
+                "operationId": "92b0f01d9d21de7799f443d7af732ed9",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/settings/login-logo": {
+            "get": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Get login logo",
+                "operationId": "a5d4c20ea6b9a156b05fd577ad6aada9",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "put": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update login logo",
+                "operationId": "4411e4280cac4ee9118af8e9537a72cc",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "post": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Update login logo",
+                "operationId": "09e271abaa7a4265cb4dc52de6f2d257",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            },
+            "patch": {
+                "tags": [
+                    "Settings"
+                ],
+                "summary": "Partial update login logo",
+                "operationId": "e8249036b037ea67df20fb6dba7ac548",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/book-a-call": {
+            "get": {
+                "tags": [
+                    "Book a Call"
+                ],
+                "summary": "Book-a-call list",
+                "operationId": "924dc82b3ff65eca8ec477b2b71f01d3",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/book-a-call/{id}": {
+            "delete": {
+                "tags": [
+                    "Book a Call"
+                ],
+                "summary": "Delete book-a-call",
+                "operationId": "cefc078152246f448d41b7f0e9393476",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/digital-marketing": {
+            "get": {
+                "tags": [
+                    "Google Ads"
+                ],
+                "summary": "Digital marketing leads",
+                "operationId": "01f5eb6eec4772fb1281c821128073e1",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/digital-marketing/{id}": {
+            "delete": {
+                "tags": [
+                    "Google Ads"
+                ],
+                "summary": "Delete digital marketing lead",
+                "operationId": "5602b2641ac4923fa5e47c1af297edb9",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/web-apps-leads": {
+            "get": {
+                "tags": [
+                    "Google Ads"
+                ],
+                "summary": "Web app leads",
+                "operationId": "a04825a53fc365d237e8635718e0398e",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/web-apps-leads/{id}": {
+            "delete": {
+                "tags": [
+                    "Google Ads"
+                ],
+                "summary": "Delete web app lead",
+                "operationId": "4cf20e14bd7cd7f1a2ab5080ee9df164",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/google-ads-leads": {
+            "get": {
+                "tags": [
+                    "Google Ads Leads"
+                ],
+                "summary": "Google ads leads list",
+                "operationId": "4a4fb0f5314fcd1d6e10c4b729490a78",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/google-ads-leads/stats": {
+            "get": {
+                "tags": [
+                    "Google Ads Leads"
+                ],
+                "summary": "Google ads leads stats",
+                "operationId": "eab98fcb0ec88ad97fc8364bf8a41a7c",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/google-ads-leads/{googleLead}": {
+            "get": {
+                "tags": [
+                    "Google Ads Leads"
+                ],
+                "summary": "Google ads lead detail",
+                "operationId": "1b0b878813f9af778188050428b55aba",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/user": {
+            "get": {
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Authenticated user fallback",
+                "operationId": "f490dd3ee1b445074b11acb2ec819ab8",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                },
+                "security": [
+                    {
+                        "sanctum": []
+                    }
+                ]
+            }
+        },
+        "/api/facebook/webhook": {
+            "get": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Verify Facebook webhook",
+                "operationId": "dd1b7cd60bfac6b28d18b4df53fbf426",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            },
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Handle Facebook webhook",
+                "operationId": "802daa70f097ebe8a6cf406e78659697",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
+        "/api/google-ads/lead": {
+            "post": {
+                "tags": [
+                    "Webhooks"
+                ],
+                "summary": "Receive Google Ads lead webhook",
+                "operationId": "4355f688150dcf975698a125a8a45406",
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        }
+    },
+    "components": {
+        "securitySchemes": {
+            "sanctum": {
+                "type": "http",
+                "bearerFormat": "Token",
+                "scheme": "bearer"
+            }
         }
     },
     "tags": [
         {
-            "name": "Auth",
-            "description": "Auth"
+            "name": "Auth"
         },
         {
-            "name": "Dashboard",
-            "description": "Dashboard"
+            "name": "Notifications"
+        },
+        {
+            "name": "Dashboard"
+        },
+        {
+            "name": "Permissions"
+        },
+        {
+            "name": "Roles"
+        },
+        {
+            "name": "Staff"
+        },
+        {
+            "name": "Clients"
+        },
+        {
+            "name": "Vendors"
+        },
+        {
+            "name": "Renewals"
+        },
+        {
+            "name": "Todos"
+        },
+        {
+            "name": "Leads"
+        },
+        {
+            "name": "Meta Leads"
+        },
+        {
+            "name": "Projects"
+        },
+        {
+            "name": "Tasks"
+        },
+        {
+            "name": "Client Issues"
+        },
+        {
+            "name": "Services"
+        },
+        {
+            "name": "Calendar"
+        },
+        {
+            "name": "Settings"
+        },
+        {
+            "name": "Book a Call"
+        },
+        {
+            "name": "Google Ads"
+        },
+        {
+            "name": "Google Ads Leads"
+        },
+        {
+            "name": "Webhooks"
         }
     ]
 }
