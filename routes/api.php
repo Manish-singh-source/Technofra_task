@@ -388,7 +388,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('/google-ads-leads', [GoogleLeadApiController::class, 'index']);
         Route::get('/google-ads-leads/stats', [\App\Http\Controllers\Api\GoogleLeadApiController::class, 'stats']);
-        Route::get('/google-ads-leads/{googleLead}', [\App\Http\Controllers\Api\GoogleLeadApiController::class, 'show'])
+        Route::get('/leads/{googleLead}', [\App\Http\Controllers\Api\GoogleLeadApiController::class, 'show'])
             ->missing(function () {
                 return response()->json([
                     'success' => false,
