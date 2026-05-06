@@ -17,7 +17,23 @@ use Illuminate\Http\Request;
 
 class DashboardController extends Controller
 {
-    //
+    /**
+     * @OA\Get(
+     *     path="/api/v1/dashboard",
+     *     tags={"Dashboard"},
+     *     summary="Get dashboard data",
+     *     description="Returns renewal highlights, project/task monthly summary, task status summary, and recent client issues.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Dashboard data retrieved successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     public function index()
     {
 
@@ -134,7 +150,25 @@ class DashboardController extends Controller
         ]);
     }
 
-    public function quickStats() {
+    /**
+     * @OA\Get(
+     *     path="/api/v1/quick-stats",
+     *     tags={"Dashboard"},
+     *     summary="Get quick statistics",
+     *     description="Returns total projects, leads, tasks, and issues for dashboard widgets/cards.",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Quick stats retrieved successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
+    public function quickStats()
+    {
         $leadsCount = Lead::count();
         $digitalMarketingLeadsCount = DigitalMarketingLead::count();
         $webAppLeads = WebappLead::count();

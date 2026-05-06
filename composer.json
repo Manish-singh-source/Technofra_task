@@ -6,6 +6,7 @@
     "license": "MIT",
     "require": {
         "php": "^8.0.2",
+        "darkaonline/l5-swagger": "^8.6",
         "doctrine/dbal": "^3.10",
         "facebook/php-business-sdk": "^25.0",
         "google/auth": "^1.50",

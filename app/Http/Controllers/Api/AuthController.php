@@ -18,6 +18,37 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    /**
+     * @OA\Post(
+     *     path="/api/v1/login",
+     *     tags={"Auth"},
+     *     summary="Login user",
+     *     description="Authenticate user and return Sanctum token.",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email","password"},
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="secret123"),
+     *             @OA\Property(property="fcm_token", type="string", nullable=true, example="fcm_token_value"),
+     *             @OA\Property(property="device_id", type="string", nullable=true, example="device-001"),
+     *             @OA\Property(property="platform", type="string", nullable=true, example="android")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Login successful"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Invalid credentials or validation error"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
+     */
     public function login(Request $request)
     {
         try {
@@ -52,6 +83,22 @@ class AuthController extends Controller
         }
     }
 
+    /**
+     * @OA\Get(
+     *     path="/api/v1/me",
+     *     tags={"Auth"},
+     *     summary="Get authenticated user",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="User information retrieved successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     public function me(Request $request)
     {
         $user = $request->user();
@@ -73,6 +120,35 @@ class AuthController extends Controller
         ], 'User information retrieved successfully');
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/fcm-token",
+     *     tags={"Auth"},
+     *     summary="Store FCM token for authenticated user",
+     *     security={{"sanctum":{}}},
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"fcm_token"},
+     *             @OA\Property(property="fcm_token", type="string", example="fcm_token_value"),
+     *             @OA\Property(property="device_id", type="string", nullable=true, example="device-001"),
+     *             @OA\Property(property="platform", type="string", nullable=true, example="android")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="FCM token stored successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     )
+     * )
+     */
     public function storeFcmToken(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -114,6 +190,22 @@ class AuthController extends Controller
         ], 'FCM token stored successfully.');
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/logout",
+     *     tags={"Auth"},
+     *     summary="Logout current device",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Logged out successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -121,6 +213,22 @@ class AuthController extends Controller
         return ApiResponse::success(null, 'Logged out successfully');
     }
 
+    /**
+     * @OA\Post(
+     *     path="/api/v1/logout-all",
+     *     tags={"Auth"},
+     *     summary="Logout all devices",
+     *     security={{"sanctum":{}}},
+     *     @OA\Response(
+     *         response=200,
+     *         description="Logged out from all devices successfully"
+     *     ),
+     *     @OA\Response(
+     *         response=401,
+     *         description="Unauthenticated"
+     *     )
+     * )
+     */
     public function logoutAll(Request $request)
     {
         $request->user()->tokens()->delete();
@@ -130,6 +238,31 @@ class AuthController extends Controller
 
     /**
      * Handle forgot password request
+     *
+     * @OA\Post(
+     *     path="/api/v1/forgot-password",
+     *     tags={"Auth"},
+     *     summary="Send password reset link",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"email"},
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset link sent"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Validation error"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
      */
     public function forgotPassword(Request $request)
     {
@@ -190,6 +323,34 @@ class AuthController extends Controller
 
     /**
      * Handle password reset
+     *
+     * @OA\Post(
+     *     path="/api/v1/reset-password",
+     *     tags={"Auth"},
+     *     summary="Reset password",
+     *     @OA\RequestBody(
+     *         required=true,
+     *         @OA\JsonContent(
+     *             required={"token","email","password","password_confirmation"},
+     *             @OA\Property(property="token", type="string", example="generated_reset_token"),
+     *             @OA\Property(property="email", type="string", format="email", example="john@example.com"),
+     *             @OA\Property(property="password", type="string", format="password", example="new-password"),
+     *             @OA\Property(property="password_confirmation", type="string", format="password", example="new-password")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Password reset successful"
+     *     ),
+     *     @OA\Response(
+     *         response=422,
+     *         description="Invalid token or validation error"
+     *     ),
+     *     @OA\Response(
+     *         response=500,
+     *         description="Server error"
+     *     )
+     * )
      */
     public function resetPassword(Request $request)
     {
