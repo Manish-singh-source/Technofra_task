@@ -9,11 +9,13 @@ use App\Models\Client;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class ClientRenewalController extends Controller
 {
+    private const AVAILABLE_TABS = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
 
     public function apiFormOptions() {
         return ApiResponse::success([
@@ -25,6 +27,10 @@ class ClientRenewalController extends Controller
     public function index(Request $request)
     {
         RenewalStatusHelper::markExpiredClientRenewals();
+
+        $activeTab = $this->resolveActiveTab($request->input('tab'));
+        $today = Carbon::today()->toDateString();
+        $upcomingUntil = Carbon::today()->addDays(7)->toDateString();
 
         $services = Service::with(['client', 'vendor'])
             ->whereNotNull('client_id')
@@ -42,6 +48,9 @@ class ClientRenewalController extends Controller
             })
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', (string) $request->input('status'));
+            })
+            ->when($activeTab !== 'all', function ($query) use ($activeTab, $today, $upcomingUntil) {
+                $this->applyTabFilter($query, $activeTab, $today, $upcomingUntil);
             })
             ->orderByDesc('created_at')
             ->paginate(10)
@@ -64,6 +73,30 @@ class ClientRenewalController extends Controller
         }
 
         return ApiResponse::success($services, 'Client renewals found');
+    }
+
+    private function resolveActiveTab(?string $activeTab): string
+    {
+        return in_array($activeTab, self::AVAILABLE_TABS, true) ? $activeTab : 'all';
+    }
+
+    private function applyTabFilter($query, string $activeTab, string $today, string $upcomingUntil): void
+    {
+        match ($activeTab) {
+            'upcoming' => $query
+                ->where('status', 'active')
+                ->whereDate('end_date', '>=', $today)
+                ->whereDate('end_date', '<=', $upcomingUntil),
+            'active' => $query
+                ->where('status', 'active')
+                ->where(function ($nested) use ($upcomingUntil) {
+                    $nested->whereNull('end_date')
+                        ->orWhereDate('end_date', '>', $upcomingUntil);
+                }),
+            'expired' => $query->where('status', 'expired'),
+            'inactive' => $query->where('status', 'inactive'),
+            'pending' => $query->where('status', 'pending'),
+        };
     }
 
     public function show($id)
