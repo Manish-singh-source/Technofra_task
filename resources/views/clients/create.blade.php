@@ -53,7 +53,7 @@
                                             </div>
 
                                             <div class="col-md-6 mb-3">
-                                                <label for="last_name" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                                <label for="last_name" class="form-label">Last Name</label>
                                                 <input type="text" class="form-control @error('last_name') is-invalid @enderror" id="last_name" name="last_name" placeholder="Enter last name" value="{{ old('last_name') }}">
                                                 @error('last_name')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -61,7 +61,7 @@
                                             </div>
 
                                             <div class="col-md-6 mb-3">
-                                                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                                                <label for="email" class="form-label">Email</label>
                                                 <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="Enter email" value="{{ old('email') }}">
                                                 @error('email')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -69,7 +69,7 @@
                                             </div>
 
                                             <div class="col-md-6 mb-3">
-                                                <label for="phone" class="form-label">Phone <span class="text-danger">*</span></label>
+                                                <label for="phone" class="form-label">Phone</label>
                                                 <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" placeholder="Enter phone number" value="{{ old('phone') }}">
                                                 @error('phone')
                                                     <div class="invalid-feedback">{{ $message }}</div>
@@ -93,6 +93,18 @@
                                                 @error('password')
                                                     <div class="invalid-feedback">{{ $message }}</div>
                                                 @enderror
+                                            </div>
+
+                                            <div class="col-md-6 mb-3 d-flex align-items-center">
+                                                <div class="form-check mt-3">
+                                                    <input class="form-check-input @error('send_invite_mail') is-invalid @enderror" type="checkbox" value="1" id="send_invite_mail" name="send_invite_mail" {{ old('send_invite_mail') ? 'checked' : '' }}>
+                                                    <label class="form-check-label" for="send_invite_mail">
+                                                        Send client invitation email
+                                                    </label>
+                                                    @error('send_invite_mail')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -154,41 +166,68 @@
                             <div class="row mt-3">
                                 <div class="col-lg-12">
                                     <div class="border border-3 p-4 rounded">
-                                        <h6>Business Information</h6>
-                                        <div class="row">
-                                            <div class="col-md-6 mb-3">
-                                                <label for="client_type" class="form-label">Client Type </label>
-                                                <select class="form-select @error('client_type') is-invalid @enderror" id="client_type" name="client_type">
-                                                    <option value="">Select Type</option>
-                                                    @foreach (['Individual', 'Company', 'Organization'] as $type)
-                                                        <option value="{{ $type }}" {{ old('client_type') === $type ? 'selected' : '' }}>{{ $type }}</option>
-                                                    @endforeach
-                                                </select>
-                                                @error('client_type')
-                                                    <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="company_name" class="form-label">Company Name</label>
-                                                <input type="text" class="form-control @error('company_name') is-invalid @enderror" id="company_name" name="company_name" placeholder="Enter Company Name" value="{{ old('company_name') }}">
-                                                @error('company_name')
-                                                    <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="industry" class="form-label">Industry</label>
-                                                <input type="text" class="form-control @error('industry') is-invalid @enderror" id="industry" name="industry" placeholder="Enter industry" value="{{ old('industry') }}">
-                                                @error('industry')
-                                                    <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
-                                            <div class="col-md-6 mb-3">
-                                                <label for="website" class="form-label">Website</label>
-                                                <input type="url" class="form-control @error('website') is-invalid @enderror" id="website" name="website" placeholder="https://example.com" value="{{ old('website') }}">
-                                                @error('website')
-                                                    <div class="invalid-feedback">{{ $message }}</div>
-                                                @enderror
-                                            </div>
+                                        <div class="d-flex justify-content-between align-items-center mb-3">
+                                            <h6 class="mb-0">Business Information</h6>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="addCompanyBtn">
+                                                <i class="bx bx-plus"></i> Add More Company
+                                            </button>
+                                        </div>
+
+                                        @php
+                                            $companies = old('companies', [[
+                                                'client_type' => old('client_type'),
+                                                'company_name' => old('company_name'),
+                                                'industry' => old('industry'),
+                                                'website' => old('website'),
+                                            ]]);
+                                        @endphp
+
+                                        <div id="companyRows">
+                                            @foreach ($companies as $index => $company)
+                                                <div class="company-row border rounded p-3 mb-3" data-company-row>
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <strong>Company <span class="company-number">{{ $loop->iteration }}</span></strong>
+                                                        <button type="button" class="btn btn-outline-danger btn-sm remove-company {{ $loop->first && count($companies) === 1 ? 'd-none' : '' }}">
+                                                            <i class="bx bx-trash"></i> Remove
+                                                        </button>
+                                                    </div>
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label" for="companies_{{ $index }}_client_type">Client Type</label>
+                                                            <select class="form-select @error('companies.' . $index . '.client_type') is-invalid @enderror" id="companies_{{ $index }}_client_type" name="companies[{{ $index }}][client_type]">
+                                                                <option value="">Select Type</option>
+                                                                @foreach (['Individual', 'Company', 'Organization'] as $type)
+                                                                    <option value="{{ $type }}" {{ ($company['client_type'] ?? '') === $type ? 'selected' : '' }}>{{ $type }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                            @error('companies.' . $index . '.client_type')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label" for="companies_{{ $index }}_company_name">Company Name</label>
+                                                            <input type="text" class="form-control @error('companies.' . $index . '.company_name') is-invalid @enderror" id="companies_{{ $index }}_company_name" name="companies[{{ $index }}][company_name]" placeholder="Enter Company Name" value="{{ $company['company_name'] ?? '' }}">
+                                                            @error('companies.' . $index . '.company_name')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label" for="companies_{{ $index }}_industry">Industry</label>
+                                                            <input type="text" class="form-control @error('companies.' . $index . '.industry') is-invalid @enderror" id="companies_{{ $index }}_industry" name="companies[{{ $index }}][industry]" placeholder="Enter industry" value="{{ $company['industry'] ?? '' }}">
+                                                            @error('companies.' . $index . '.industry')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label class="form-label" for="companies_{{ $index }}_website">Website</label>
+                                                            <input type="url" class="form-control @error('companies.' . $index . '.website') is-invalid @enderror" id="companies_{{ $index }}_website" name="companies[{{ $index }}][website]" placeholder="https://example.com" value="{{ $company['website'] ?? '' }}">
+                                                            @error('companies.' . $index . '.website')
+                                                                <div class="invalid-feedback">{{ $message }}</div>
+                                                            @enderror
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
                                         </div>
                                     </div>
                                 </div>
@@ -208,3 +247,61 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const companyRows = document.getElementById('companyRows');
+            const addCompanyBtn = document.getElementById('addCompanyBtn');
+
+            function refreshCompanyRows() {
+                companyRows.querySelectorAll('[data-company-row]').forEach((row, index) => {
+                    row.querySelector('.company-number').textContent = index + 1;
+                    row.querySelectorAll('[name]').forEach((field) => {
+                        field.name = field.name.replace(/companies\[\d+]/, `companies[${index}]`);
+                    });
+                    row.querySelectorAll('[id]').forEach((field) => {
+                        field.id = field.id.replace(/companies_\d+_/, `companies_${index}_`);
+                    });
+                    row.querySelectorAll('label[for]').forEach((label) => {
+                        label.htmlFor = label.htmlFor.replace(/companies_\d+_/, `companies_${index}_`);
+                    });
+                });
+
+                companyRows.querySelectorAll('.remove-company').forEach((button) => {
+                    button.classList.toggle('d-none', companyRows.querySelectorAll('[data-company-row]').length === 1);
+                });
+            }
+
+            addCompanyBtn.addEventListener('click', function () {
+                const firstRow = companyRows.querySelector('[data-company-row]');
+                const newRow = firstRow.cloneNode(true);
+
+                newRow.querySelectorAll('input').forEach((input) => {
+                    input.value = '';
+                    input.classList.remove('is-invalid');
+                });
+                newRow.querySelectorAll('select').forEach((select) => {
+                    select.value = '';
+                    select.classList.remove('is-invalid');
+                });
+                newRow.querySelectorAll('.invalid-feedback').forEach((feedback) => feedback.remove());
+
+                companyRows.appendChild(newRow);
+                refreshCompanyRows();
+            });
+
+            companyRows.addEventListener('click', function (event) {
+                const removeButton = event.target.closest('.remove-company');
+                if (! removeButton) {
+                    return;
+                }
+
+                removeButton.closest('[data-company-row]').remove();
+                refreshCompanyRows();
+            });
+
+            refreshCompanyRows();
+        });
+    </script>
+@endpush

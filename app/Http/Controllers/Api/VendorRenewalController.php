@@ -6,18 +6,24 @@ use App\Helpers\ApiResponse;
 use App\Helpers\RenewalStatusHelper;
 use App\Http\Controllers\Controller;
 use App\Models\VendorService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 
 class VendorRenewalController extends Controller
 {
+    private const AVAILABLE_TABS = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
 
     public function index(Request $request)
     {
         RenewalStatusHelper::markExpiredVendorRenewals();
 
+        $activeTab = $this->resolveActiveTab($request->input('tab'));
+        $today = Carbon::today()->toDateString();
+        $upcomingUntil = Carbon::today()->addDays(7)->toDateString();
+
         $vendorServices = VendorService::with(['vendor:id,name,email,phone'])
-            ->select('id', 'vendor_id', 'service_name', 'start_date', 'end_date', 'billing_date', 'status')
+            ->select('id', 'vendor_id', 'service_name', 'service_details', 'plan_type', 'start_date', 'end_date', 'billing_date', 'status', 'created_at')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
 
@@ -32,11 +38,26 @@ class VendorRenewalController extends Controller
             ->when($request->filled('status'), function ($query) use ($request) {
                 $query->where('status', (string) $request->input('status'));
             })
-            ->orderBy('created_at', 'desc')
-            ->get()
-            ->map(function (VendorService $service) {
-                $service->status = $service->effective_status;
-                return $service;
+            ->when($activeTab !== 'all', function ($query) use ($activeTab, $today, $upcomingUntil) {
+                $this->applyTabFilter($query, $activeTab, $today, $upcomingUntil);
+            })
+            ->orderByDesc('created_at')
+            ->paginate(10)
+            ->through(function (VendorService $service) {
+                return [
+                    'id' => $service->id,
+                    'vendor_id' => $service->vendor_id,
+                    'vendor_name' => $service->vendor?->name,
+                    'vendor_email' => $service->vendor?->email,
+                    'vendor_phone' => $service->vendor?->phone,
+                    'service_name' => $service->service_name,
+                    'service_details' => $service->service_details,
+                    'plan_type' => $service->plan_type,
+                    'start_date' => optional($service->start_date)->toDateString(),
+                    'end_date' => optional($service->end_date)->toDateString(),
+                    'billing_date' => optional($service->billing_date)->toDateString(),
+                    'status' => $service->effective_status,
+                ];
             });
 
         if (!$vendorServices) {
@@ -44,6 +65,30 @@ class VendorRenewalController extends Controller
         }
 
         return ApiResponse::success($vendorServices, 'Vendor renewals found');
+    }
+
+    private function resolveActiveTab(?string $activeTab): string
+    {
+        return in_array($activeTab, self::AVAILABLE_TABS, true) ? $activeTab : 'all';
+    }
+
+    private function applyTabFilter($query, string $activeTab, string $today, string $upcomingUntil): void
+    {
+        match ($activeTab) {
+            'upcoming' => $query
+                ->where('status', 'active')
+                ->whereDate('end_date', '>=', $today)
+                ->whereDate('end_date', '<=', $upcomingUntil),
+            'active' => $query
+                ->where('status', 'active')
+                ->where(function ($nested) use ($upcomingUntil) {
+                    $nested->whereNull('end_date')
+                        ->orWhereDate('end_date', '>', $upcomingUntil);
+                }),
+            'expired' => $query->where('status', 'expired'),
+            'inactive' => $query->where('status', 'inactive'),
+            'pending' => $query->where('status', 'pending'),
+        };
     }
 
     public function show($id)

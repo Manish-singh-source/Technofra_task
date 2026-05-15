@@ -348,6 +348,11 @@ class User extends Authenticatable
         return $this->hasOne(ClientBusinessDetail::class, 'user_id', 'id');
     }
 
+    public function companies()
+    {
+        return $this->hasMany(ClientBusinessDetail::class, 'user_id', 'id');
+    }
+
     public function fcmTokens()
     {
         return $this->hasMany(FcmToken::class);

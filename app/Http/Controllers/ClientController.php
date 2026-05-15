@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\FileUpload;
 use App\Imports\ClientsImport;
+use App\Mail\ClientInviteMail;
 use App\Models\ClientBusinessDetail;
 use App\Models\User;
 use App\Models\UserAddress;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
@@ -21,7 +23,7 @@ class ClientController extends Controller
     public function index()
     {
         $clients = User::query()
-            ->with(['address', 'businessDetail'])
+            ->with(['address', 'businessDetail', 'companies'])
             ->where('role', 'client')
             ->orderBy('first_name')
             ->get();
@@ -67,7 +69,19 @@ class ClientController extends Controller
 
             DB::commit();
 
-            return redirect()->route('client')->with('success', 'Client added successfully.');
+            $message = 'Client added successfully.';
+
+            if ($payload['send_invite_mail'] && $client->email) {
+                try {
+                    Mail::to($client->email)->send(new ClientInviteMail($client->name, $client->email, $payload['password']));
+                    $message = 'Client added successfully. Invitation email sent.';
+                } catch (\Exception $mailException) {
+                    Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
+                    return redirect()->route('client')->with('warning', 'Client added successfully, but invitation email could not be sent.');
+                }
+            }
+
+            return redirect()->route('client')->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error saving client: ' . $e->getMessage());
@@ -101,6 +115,20 @@ class ClientController extends Controller
             $this->clientValidationAttributes()
         );
 
+        $validator->after(function ($validator) use ($request) {
+            if (! $request->boolean('send_invite_mail')) {
+                return;
+            }
+
+            if (! $request->filled('email')) {
+                $validator->errors()->add('email', 'Email is required to send the invitation.');
+            }
+
+            if (! $request->filled('password')) {
+                $validator->errors()->add('password', 'Password is required to send the invitation.');
+            }
+        });
+
         if ($validator->fails()) {
             return back()->withErrors($validator)->withInput();
         }
@@ -126,7 +154,19 @@ class ClientController extends Controller
 
             DB::commit();
 
-            return redirect()->route('client.view', $client->id)->with('success', 'Client updated successfully.');
+            $message = 'Client updated successfully.';
+
+            if ($payload['send_invite_mail'] && $client->email && $payload['password']) {
+                try {
+                    Mail::to($client->email)->send(new ClientInviteMail($client->name, $client->email, $payload['password']));
+                    $message = 'Client updated successfully. Invitation email sent.';
+                } catch (\Exception $mailException) {
+                    Log::error('Failed to send client invitation email: ' . $mailException->getMessage());
+                    return redirect()->route('client.view', $client->id)->with('warning', 'Client updated successfully, but invitation email could not be sent.');
+                }
+            }
+
+            return redirect()->route('client.view', $client->id)->with('success', $message);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error updating client: ' . $e->getMessage());
@@ -143,6 +183,7 @@ class ClientController extends Controller
         try {
             $client->address()?->delete();
             $client->businessDetail()?->delete();
+            $client->companies()?->delete();
             $client->delete();
 
             DB::commit();
@@ -177,6 +218,7 @@ class ClientController extends Controller
             foreach ($clients as $client) {
                 $client->address()?->delete();
                 $client->businessDetail()?->delete();
+                $client->companies()?->delete();
                 $client->delete();
             }
 
@@ -299,19 +341,22 @@ class ClientController extends Controller
         return [
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'first_name' => 'required|string|min:3|max:255',
-            'last_name' => 'required|string|min:3|max:255',
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($clientId)],
-            'phone' => 'required|string|min:10|max:20',
+            'last_name' => 'nullable|string|min:3|max:255',
+            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($clientId)],
+            'phone' => 'nullable|string|min:10|max:20',
             'address_line1' => 'nullable|string|max:255',
             'address_line2' => 'nullable|string|max:255',
             'city' => 'nullable|string|max:255',
             'state' => 'nullable|string|max:255',
             'country' => 'nullable|string|max:255',
             'pincode' => 'nullable|string|max:20',
-            'client_type' => 'nullable|in:Individual,Company,Organization',
-            'industry' => 'nullable|string|max:255',
-            'website' => 'nullable|url|max:255',
+            'companies' => 'nullable|array',
+            'companies.*.client_type' => 'nullable|in:Individual,Company,Organization',
+            'companies.*.company_name' => 'nullable|string|max:255',
+            'companies.*.industry' => 'nullable|string|max:255',
+            'companies.*.website' => 'nullable|url|max:255',
             'status' => 'nullable|in:active,inactive',
+            'send_invite_mail' => 'nullable|boolean',
             'password' => $passwordRule,
         ];
     }
@@ -321,7 +366,10 @@ class ClientController extends Controller
         return [
             'address_line1' => 'address line 1',
             'address_line2' => 'address line 2',
-            'client_type' => 'client type',
+            'companies.*.client_type' => 'client type',
+            'companies.*.company_name' => 'company name',
+            'companies.*.industry' => 'industry',
+            'companies.*.website' => 'website',
         ];
     }
 
@@ -344,20 +392,18 @@ class ClientController extends Controller
         return [
             'profile_image' => $profileImagePath,
             'first_name' => trim((string) $request->first_name),
-            'last_name' => trim((string) $request->last_name),
-            'email' => trim((string) $request->email),
-            'phone' => trim((string) $request->phone),
+            'last_name' => $request->filled('last_name') ? trim((string) $request->last_name) : null,
+            'email' => $request->filled('email') ? trim((string) $request->email) : null,
+            'phone' => $request->filled('phone') ? trim((string) $request->phone) : null,
             'address_line_1' => trim((string) $request->address_line1),
             'address_line_2' => $request->filled('address_line2') ? trim((string) $request->address_line2) : null,
             'city' => trim((string) $request->city),
             'state' => trim((string) $request->state),
             'country' => trim((string) $request->country),
             'pincode' => trim((string) $request->pincode),
-            'client_type' => trim((string) $request->client_type),
-            'company_name' => trim((string) $request->company_name),
-            'industry' => $request->filled('industry') ? trim((string) $request->industry) : null,
-            'website' => $request->filled('website') ? trim((string) $request->website) : null,
+            'companies' => $this->prepareCompaniesPayload($request),
             'status' => $this->normalizeClientStatus($request->input('status')),
+            'send_invite_mail' => $request->boolean('send_invite_mail'),
             'password' => $request->input('password'),
         ];
     }
@@ -377,16 +423,31 @@ class ClientController extends Controller
             ]
         );
 
-        ClientBusinessDetail::withTrashed()->updateOrCreate(
-            ['user_id' => $client->id],
-            [
-                'deleted_at' => null,
-                'client_type' => $payload['client_type'],
-                'company_name' => $payload['company_name'],
-                'industry' => $payload['industry'],
-                'website' => $payload['website'],
-            ]
-        );
+        $companies = collect($payload['companies'])
+            ->filter(fn($company) => collect($company)->filter()->isNotEmpty())
+            ->values();
+
+        ClientBusinessDetail::where('user_id', $client->id)->delete();
+
+        foreach ($companies as $company) {
+            ClientBusinessDetail::create([
+                'user_id' => $client->id,
+                'client_type' => $company['client_type'] ?: '',
+                'company_name' => $company['company_name'],
+                'industry' => $company['industry'],
+                'website' => $company['website'],
+            ]);
+        }
+
+        if ($companies->isEmpty()) {
+            ClientBusinessDetail::create([
+                'user_id' => $client->id,
+                'client_type' => '',
+                'company_name' => null,
+                'industry' => null,
+                'website' => null,
+            ]);
+        }
     }
 
     private function assignClientRole(User $client): void
@@ -400,7 +461,7 @@ class ClientController extends Controller
     private function findClient(int|string $id, bool $withTrashed = false, bool $withServices = false): User
     {
         $query = User::query()
-            ->with(['address', 'businessDetail']);
+            ->with(['address', 'businessDetail', 'companies']);
 
         if ($withServices) {
             $query->with(['services.vendor']);
@@ -413,6 +474,34 @@ class ClientController extends Controller
         return $query
             ->where('role', 'client')
             ->findOrFail($id);
+    }
+
+    private function prepareCompaniesPayload(Request $request): array
+    {
+        $companies = collect($request->input('companies', []));
+
+        if ($companies->isEmpty() && (
+            $request->filled('client_type')
+            || $request->filled('company_name')
+            || $request->filled('industry')
+            || $request->filled('website')
+        )) {
+            $companies = collect([[
+                'client_type' => $request->input('client_type'),
+                'company_name' => $request->input('company_name'),
+                'industry' => $request->input('industry'),
+                'website' => $request->input('website'),
+            ]]);
+        }
+
+        return $companies
+            ->map(fn($company) => [
+                'client_type' => isset($company['client_type']) ? trim((string) $company['client_type']) : null,
+                'company_name' => isset($company['company_name']) ? trim((string) $company['company_name']) : null,
+                'industry' => isset($company['industry']) ? trim((string) $company['industry']) : null,
+                'website' => isset($company['website']) ? trim((string) $company['website']) : null,
+            ])
+            ->all();
     }
 
     private function normalizeClientStatus(mixed $status): string

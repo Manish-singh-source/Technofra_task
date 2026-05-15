@@ -7,6 +7,9 @@
             @php
                 $address = $client->address;
                 $businessDetail = $client->businessDetail;
+                $companies = $client->companies->isNotEmpty()
+                    ? $client->companies
+                    : collect($businessDetail ? [$businessDetail] : []);
             @endphp
 
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
@@ -32,9 +35,6 @@
                         <li class="list-group-item d-flex justify-content-between"><b>Client Name :</b>
                             <p>{{ $client->first_name . ' ' . $client->last_name }}</p>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between"><b>Company Name :</b>
-                            <p>{{ $businessDetail->company_name ?? 'N/A' }}</p>
-                        </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Status :</b>
                             <p>{{ ucfirst($client->status ?? 'inactive') }}</p>
                         </li>
@@ -49,16 +49,48 @@
                                 {{ $address ? collect([$address->address_line_1, $address->address_line_2, $address->city, $address->state, $address->country, $address->pincode])->filter()->implode(', ') : 'N/A' }}
                             </p>
                         </li>
-                        <li class="list-group-item d-flex justify-content-between"><b>Client Type :</b>
-                            <p>{{ $businessDetail->client_type ? $businessDetail->client_type : 'N/A' }}</p>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between"><b>Industry :</b>
-                            <p>{{ $businessDetail->industry ?? 'N/A' }}</p>
-                        </li>
-                        <li class="list-group-item d-flex justify-content-between"><b>Website :</b>
-                            <p>{{ $businessDetail->website ?? 'N/A' }}</p>
-                        </li>
                     </ul>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Company Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Client Type</th>
+                                    <th>Company Name</th>
+                                    <th>Industry</th>
+                                    <th>Website</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($companies as $company)
+                                    <tr>
+                                        <td>{{ $loop->iteration }}</td>
+                                        <td>{{ $company->client_type ?: 'N/A' }}</td>
+                                        <td>{{ $company->company_name ?: 'N/A' }}</td>
+                                        <td>{{ $company->industry ?: 'N/A' }}</td>
+                                        <td>
+                                            @if ($company->website)
+                                                <a href="{{ $company->website }}" target="_blank" rel="noopener">{{ $company->website }}</a>
+                                            @else
+                                                N/A
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center text-muted">No company details added.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
             {{-- 

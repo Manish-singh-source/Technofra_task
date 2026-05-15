@@ -65,7 +65,7 @@ class VendorService extends Model
     public function getEffectiveStatusAttribute(): string
     {
         $today = Carbon::today();
-        $fiveDaysFromNow = $today->copy()->addDays(5);
+        $upcomingUntil = $today->copy()->addDays(7);
 
         if (in_array($this->status, ['inactive', 'pending', 'expired'], true)) {
             return $this->status;
@@ -75,7 +75,7 @@ class VendorService extends Model
             return 'expired';
         }
 
-        if ($this->end_date && $this->end_date->between($today, $fiveDaysFromNow)) {
+        if ($this->end_date && $this->end_date->between($today, $upcomingUntil)) {
             return 'upcoming';
         }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\RenewalStatusHelper;
+use App\Models\ClientBusinessDetail;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
@@ -39,7 +40,7 @@ class ServiceController extends Controller
             $activeTab = 'all';
         }
 
-        $query = Service::with(['client', 'vendor'])->whereNotNull('client_id');
+        $query = Service::with(['company', 'client.businessDetail', 'vendor'])->whereNotNull('client_id');
 
         if ($request->filled('from_date')) {
             $query->where('billing_date', '>=', $request->from_date);
@@ -77,15 +78,21 @@ class ServiceController extends Controller
      */
     public function create(Request $request)
     {
-        $clients = User::query()
-            ->where('role', 'client')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
+        $clientCompanies = ClientBusinessDetail::query()
+            ->with('user:id,first_name,last_name,email,role')
+            ->whereHas('user', fn ($query) => $query->where('role', 'client'))
+            ->orderBy('company_name')
             ->get();
         $vendors = Vendor::orderBy('name')->get();
-        $selectedClientId = $request->get('client_id');
+        $selectedCompanyId = $request->get('client_business_detail_id');
+        if (! $selectedCompanyId && $request->filled('client_id')) {
+            $selectedCompanyId = ClientBusinessDetail::query()
+                ->where('user_id', $request->get('client_id'))
+                ->orderBy('id')
+                ->value('id');
+        }
         $selectedVendorId = $request->get('vendor_id');
-        return view('services.create', compact('clients', 'vendors', 'selectedClientId', 'selectedVendorId'));
+        return view('services.create', compact('clientCompanies', 'vendors', 'selectedCompanyId', 'selectedVendorId'));
     }
 
     /**
@@ -97,9 +104,9 @@ class ServiceController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'client_id' => [
+            'client_business_detail_id' => [
                 'required',
-                Rule::exists('users', 'id')->where('role', 'client'),
+                Rule::exists('client_business_details', 'id'),
             ],
             'services' => 'required|array|min:1',
             'services.*.vendor_id' => 'required|exists:vendors,id',
@@ -112,8 +119,8 @@ class ServiceController extends Controller
             'services.*.billing_date' => 'required|date',
             'services.*.status' => 'required|in:active,inactive,expired,pending',
         ], [
-            'client_id.required' => 'Please select a client.',
-            'client_id.exists' => 'Selected client does not exist.',
+            'client_business_detail_id.required' => 'Please select a company.',
+            'client_business_detail_id.exists' => 'Selected company does not exist.',
             'services.required' => 'At least one service is required.',
             'services.*.vendor_id.required' => 'Please select a vendor for each service.',
             'services.*.vendor_id.exists' => 'Selected vendor does not exist.',
@@ -133,9 +140,12 @@ class ServiceController extends Controller
                 ->withInput();
         }
 
+        $clientCompany = ClientBusinessDetail::findOrFail($request->client_business_detail_id);
+
         foreach ($request->services as $serviceData) {
             Service::create([
-                'client_id' => $request->client_id,
+                'client_id' => $clientCompany->user_id,
+                'client_business_detail_id' => $clientCompany->id,
                 'vendor_id' => $serviceData['vendor_id'],
                 'service_name' => $serviceData['service_name'],
                 'service_details' => $serviceData['service_details'] ?? null,
@@ -160,7 +170,7 @@ class ServiceController extends Controller
      */
     public function show($id)
     {
-        $service = Service::with(['client', 'vendor'])->whereNotNull('client_id')->findOrFail($id);
+        $service = Service::with(['company', 'client', 'vendor'])->whereNotNull('client_id')->findOrFail($id);
         return view('services.show', compact('service'));
     }
 
@@ -173,13 +183,13 @@ class ServiceController extends Controller
     public function edit($id)
     {
         $service = Service::whereNotNull('client_id')->findOrFail($id);
-        $clients = User::query()
-            ->where('role', 'client')
-            ->orderBy('first_name')
-            ->orderBy('last_name')
+        $clientCompanies = ClientBusinessDetail::query()
+            ->with('user:id,first_name,last_name,email,role')
+            ->whereHas('user', fn ($query) => $query->where('role', 'client'))
+            ->orderBy('company_name')
             ->get();
         $vendors = Vendor::orderBy('name')->get();
-        return view('services.edit', compact('service', 'clients', 'vendors'));
+        return view('services.edit', compact('service', 'clientCompanies', 'vendors'));
     }
 
     /**
@@ -194,9 +204,9 @@ class ServiceController extends Controller
         $service = Service::whereNotNull('client_id')->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
-            'client_id' => [
+            'client_business_detail_id' => [
                 'required',
-                Rule::exists('users', 'id')->where('role', 'client'),
+                Rule::exists('client_business_details', 'id'),
             ],
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
@@ -208,7 +218,8 @@ class ServiceController extends Controller
             'billing_date' => 'required|date',
             'status' => 'required|in:active,inactive,expired,pending',
         ], [
-            'client_id.required' => 'Please select a client.',
+            'client_business_detail_id.required' => 'Please select a company.',
+            'client_business_detail_id.exists' => 'Selected company does not exist.',
             'vendor_id.required' => 'Please select a vendor.',
             'service_name.required' => 'Service name is required.',
             'remark_color.required_with' => 'Please select a remark color when remark text is provided.',
@@ -226,8 +237,11 @@ class ServiceController extends Controller
                 ->withInput();
         }
 
+        $clientCompany = ClientBusinessDetail::findOrFail($request->client_business_detail_id);
+
         $service->update([
-            'client_id' => $request->client_id,
+            'client_id' => $clientCompany->user_id,
+            'client_business_detail_id' => $clientCompany->id,
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,

@@ -31,16 +31,16 @@
                         @csrf
 
                         <div class="col-md-12">
-                            <label for="client_id" class="form-label">Select Client <span class="text-danger">*</span></label>
-                            <select class="form-select @error('client_id') is-invalid @enderror" id="client_id" name="client_id" required>
-                                <option value="">Choose a client...</option>
-                                @foreach($clients as $client)
-                                    <option value="{{ $client->id }}" {{ (old('client_id', $selectedClientId) == $client->id) ? 'selected' : '' }}>
-                                        {{ $client->name ?: $client->email }}
+                            <label for="client_business_detail_id" class="form-label">Select Company <span class="text-danger">*</span></label>
+                            <select class="form-select @error('client_business_detail_id') is-invalid @enderror" id="client_business_detail_id" name="client_business_detail_id" required>
+                                <option value="">Choose a company...</option>
+                                @foreach($clientCompanies as $company)
+                                    <option value="{{ $company->id }}" {{ (old('client_business_detail_id', $selectedCompanyId) == $company->id) ? 'selected' : '' }}>
+                                        {{ $company->company_name ?: ($company->user?->email ?: $company->user?->name) }}
                                     </option>
                                 @endforeach
                             </select>
-                            @error('client_id')
+                            @error('client_business_detail_id')
                                 <div class="invalid-feedback">{{ $message }}</div>
                             @enderror
                         </div>

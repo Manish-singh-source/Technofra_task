@@ -38,8 +38,8 @@
                                         <p class="mb-0">{{ $service->id }}</p>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
-                                        <b>Client Name:</b>
-                                        <p class="mb-0">{{ $service->client?->name ?: 'N/A' }}</p>
+                                        <b>Company Name:</b>
+                                        <p class="mb-0">{{ $service->company?->company_name ?: ($service->client?->businessDetail?->company_name ?: 'N/A') }}</p>
                                     </li>
                                     <li class="list-group-item d-flex justify-content-between">
                                         <b>Client Email:</b>

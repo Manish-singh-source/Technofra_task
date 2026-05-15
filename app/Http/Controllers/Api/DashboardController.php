@@ -40,14 +40,16 @@ class DashboardController extends Controller
         // Renewal Data
         $clientRenewals = Service::with('client')
             // ->latest()
+            ->whereNotNull('client_id')
             ->whereDate('end_date', '>', Carbon::today())
             ->orderBy('end_date')
+            ->limit(3)
             ->get()
             ->map(fn($service) => [
                 'id' => $service->id,
                 'service_name' => $service->service_name,
                 'client_id' => $service->client_id,
-                'status' => $service->status,
+                'status' => $service->effective_status,
                 'start_date' => $service->start_date,
                 'end_date' => $service->end_date,
                 'billing_date' => $service->billing_date,
@@ -59,12 +61,13 @@ class DashboardController extends Controller
             // ->latest()
             ->whereDate('end_date', '>', Carbon::today())
             ->orderBy('end_date')
+            ->limit(3)
             ->get()
             ->map(fn($service) => [
                 'id' => $service->id,
                 'service_name' => $service->service_name,
                 'vendor_id' => $service->vendor_id,
-                'status' => $service->status,
+                'status' => $service->effective_status,
                 'start_date' => $service->start_date,
                 'end_date' => $service->end_date,
                 'billing_date' => $service->billing_date,
@@ -75,7 +78,6 @@ class DashboardController extends Controller
         $renewals = $clientRenewals
             ->concat($vendorRenewals)
             ->sortBy('end_date')
-            ->take(3)
             ->values();
 
         // Projects and Tasks Count
@@ -140,6 +142,8 @@ class DashboardController extends Controller
         return response()->json([
             'data' => 'Dashboard Data Retrieved Successfully.',
             'renewals' => $renewals,
+            'client_renewals' => $clientRenewals,
+            'vendor_renewals' => $vendorRenewals,
             'project_summary' => [
                 'total_projects' => $projectsCount,
                 'total_tasks' => $tasksCount,
