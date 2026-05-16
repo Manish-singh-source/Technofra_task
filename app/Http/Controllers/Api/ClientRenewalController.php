@@ -42,7 +42,7 @@ class ClientRenewalController extends Controller
         $today = Carbon::today()->toDateString();
         $upcomingUntil = Carbon::today()->addDays(7)->toDateString();
 
-        $services = Service::with(['client', 'vendor'])
+        $services = Service::with(['client.businessDetail', 'vendor'])
             ->whereNotNull('client_id')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
@@ -68,6 +68,7 @@ class ClientRenewalController extends Controller
                 return [
                     'id' => $service->id,
                     'client_name' => $service->client?->cname,
+                    'company_name' => optional($service->client?->businessDetail)->company_name,
                     'vendor_name' => $service->vendor?->name,
                     'service_name' => $service->service_name,
                     'remark' => $service->remark_text,
