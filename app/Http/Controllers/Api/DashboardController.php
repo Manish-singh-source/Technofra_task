@@ -38,7 +38,7 @@ class DashboardController extends Controller
     {
 
         // Renewal Data
-        $clientRenewals = Service::with('client')
+        $clientRenewals = Service::with('client.businessDetail')
             // ->latest()
             ->whereNotNull('client_id')
             ->whereDate('end_date', '>', Carbon::today())
@@ -54,6 +54,7 @@ class DashboardController extends Controller
                 'end_date' => $service->end_date,
                 'billing_date' => $service->billing_date,
                 'name' => optional($service->client)->first_name,
+                'company_name' => optional($service->client?->businessDetail)->company_name,
                 'type' => 'client_renewal'
             ]);
 
