@@ -379,7 +379,7 @@ class ClientController extends Controller
         if ($request->hasFile('profileImage')) {
             $profileImagePath = basename(FileUpload::updateFileUpload(
                 $request->file('profileImage'),
-                $client?->profile_image ? 'uploads/clients/'.$client->profile_image : '',
+                $client?->profile_image ? 'uploads/clients/' . $client->profile_image : '',
                 'uploads/clients/'
             ));
         } elseif (! isset($profileImagePath)) {
@@ -512,5 +512,4 @@ class ClientController extends Controller
 
         return 'inactive';
     }
-
 }
