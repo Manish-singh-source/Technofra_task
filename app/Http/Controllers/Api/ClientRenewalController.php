@@ -17,9 +17,10 @@ class ClientRenewalController extends Controller
 {
     private const AVAILABLE_TABS = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
 
-    public function apiFormOptions() {
+    public function apiFormOptions()
+    {
         return ApiResponse::success([
-            'clients' => User::with('businessDetail:id,user_id,company_name')
+            'clients' => User::with('companies:id,user_id,client_type,company_name,industry,website')
                 ->where('role', 'client')
                 ->select('id', 'first_name', 'last_name')
                 ->orderBy('first_name')
@@ -28,7 +29,19 @@ class ClientRenewalController extends Controller
                     'id' => $client->id,
                     'first_name' => $client->first_name,
                     'last_name' => $client->last_name,
-                    'company_name' => $client->businessDetail?->company_name,
+                    'company_names' => $client->companies
+                        ->pluck('company_name')
+                        ->filter()
+                        ->values(),
+                    'companies' => $client->companies
+                        ->map(fn ($company) => [
+                            'id' => $company->id,
+                            'client_type' => $company->client_type,
+                            'company_name' => $company->company_name,
+                            'industry' => $company->industry,
+                            'website' => $company->website,
+                        ])
+                        ->values(),
                 ]),
             'vendors' => Vendor::select('id', 'name')->orderBy('name')->get(),
         ]);
