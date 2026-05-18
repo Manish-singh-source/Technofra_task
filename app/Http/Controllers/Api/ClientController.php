@@ -123,6 +123,7 @@ class ClientController extends Controller
 
             $this->assignClientRole($client);
 
+            $address = null;
             if ($request->input('address_line_1')) {
                 $address = UserAddress::withTrashed()->updateOrCreate(
                     ['user_id' => $client->id],
@@ -185,7 +186,7 @@ class ClientController extends Controller
                 'mail_status' => $mailStatus,
                 'data' => [
                     'client' => $client->fresh(['address', 'businessDetail', 'companies']),
-                    'address' => $address,
+                    'address' => $address ?? null,
                     'companies' => ClientBusinessDetail::where('user_id', $client->id)->get(),
                 ]
             ], 201);
