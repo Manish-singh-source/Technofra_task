@@ -168,6 +168,7 @@ class ClientRenewalController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|exists:users,id',
+            'client_business_detail_id' => 'required|exists:client_business_details,id',
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
@@ -188,6 +189,7 @@ class ClientRenewalController extends Controller
 
         $service = Service::create([
             'client_id' => $request->client_id,
+            'client_business_detail_id' => $request->client_business_detail_id,
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
@@ -220,6 +222,7 @@ class ClientRenewalController extends Controller
 
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|exists:users,id',
+            'client_business_detail_id' => 'required|exists:client_business_details,id',
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
@@ -240,6 +243,7 @@ class ClientRenewalController extends Controller
 
         $service->update([
             'client_id' => $request->client_id,
+            'client_business_detail_id' => $request->client_business_detail_id,
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
