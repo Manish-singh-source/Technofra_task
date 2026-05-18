@@ -24,9 +24,9 @@ class ClientController extends Controller
     public function index(Request $request)
     {
         $clients = User::with([
-                'businessDetail:id,user_id,company_name',
-                'companies:id,user_id,client_type,company_name,industry,website',
-            ])
+            'businessDetail:id,user_id,company_name',
+            'companies:id,user_id,client_type,company_name,industry,website',
+        ])
             ->where('role', 'client')
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
@@ -123,18 +123,20 @@ class ClientController extends Controller
 
             $this->assignClientRole($client);
 
-            $address = UserAddress::withTrashed()->updateOrCreate(
-                ['user_id' => $client->id],
-                [
-                    'deleted_at' => null,
-                    'address_line_1' => $this->inputFirst($request, ['address_line_1', 'address_line1']),
-                    'address_line_2' => $this->inputFirst($request, ['address_line_2', 'address_line2']),
-                    'city' => $request->input('city'),
-                    'state' => $request->input('state'),
-                    'country' => $request->input('country'),
-                    'pincode' => $request->input('pincode'),
-                ]
-            );
+            if ($request->input('address_line_1')) {
+                $address = UserAddress::withTrashed()->updateOrCreate(
+                    ['user_id' => $client->id],
+                    [
+                        'deleted_at' => null,
+                        'address_line_1' => $this->inputFirst($request, ['address_line_1', 'address_line1']),
+                        'address_line_2' => $this->inputFirst($request, ['address_line_2', 'address_line2']),
+                        'city' => $request->input('city'),
+                        'state' => $request->input('state'),
+                        'country' => $request->input('country'),
+                        'pincode' => $request->input('pincode'),
+                    ]
+                );
+            }
 
             $companies = $this->prepareCompaniesPayload($request);
 
@@ -464,5 +466,4 @@ class ClientController extends Controller
             return ApiResponse::error('Failed to delete client: ' . $e->getMessage(), null, 500);
         }
     }
-
 }
