@@ -24,6 +24,12 @@ class VendorRenewalController extends Controller
 
         $vendorServices = VendorService::with(['vendor:id,name,email,phone'])
             ->select('id', 'vendor_id', 'service_name', 'service_details', 'plan_type', 'start_date', 'end_date', 'billing_date', 'status', 'created_at')
+            ->when($request->filled('from_date'), function ($query) use ($request) {
+                $query->whereDate('billing_date', '>=', $request->input('from_date'));
+            })
+            ->when($request->filled('to_date'), function ($query) use ($request) {
+                $query->whereDate('billing_date', '<=', $request->input('to_date'));
+            })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
 

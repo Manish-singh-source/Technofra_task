@@ -156,11 +156,12 @@ class LeadController extends Controller
                 });
             })
             ->latest('id')
-            ->get();
+            ->paginate(10)
+            ->through(fn(Lead $lead) => $this->formatLeadResource($lead));
 
         return response()->json([
             'success' => true,
-            'data' => $leads->map(fn(Lead $lead) => $this->formatLeadResource($lead)),
+            'data' => $leads,
         ]);
     }
 

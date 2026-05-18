@@ -174,19 +174,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
 
-        // Client Renewal API routes
-        Route::prefix('client-renewals')->group(function () {
-            Route::controller(ClientRenewalController::class)->group(function () {
-                Route::get('/form-options', 'apiFormOptions')->middleware('permission:view_renewals');
-
-                Route::get('/', 'index')->middleware('permission:view_renewals');
-                Route::get('/{id}', 'show')->middleware('permission:view_renewals');
-                Route::post('/', 'store')->middleware('permission:create_renewals');
-                Route::put('/{id}', 'update')->middleware('permission:edit_renewals');
-                Route::delete('/{id}', 'destroy')->middleware('permission:delete_renewals');
-            });
-        });
-
+      
 
         Route::prefix('todos')->group(function () {
             Route::controller(TodoController::class)->group(function () {

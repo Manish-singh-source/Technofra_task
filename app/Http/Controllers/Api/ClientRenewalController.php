@@ -57,6 +57,12 @@ class ClientRenewalController extends Controller
 
         $services = Service::with(['client.businessDetail', 'vendor'])
             ->whereNotNull('client_id')
+            ->when($request->filled('from_date'), function ($query) use ($request) {
+                $query->whereDate('billing_date', '>=', $request->input('from_date'));
+            })
+            ->when($request->filled('to_date'), function ($query) use ($request) {
+                $query->whereDate('billing_date', '<=', $request->input('to_date'));
+            })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
 
@@ -125,7 +131,7 @@ class ClientRenewalController extends Controller
 
     public function show($id)
     {
-        $service = Service::with(['client', 'vendor'])->whereNotNull('client_id')->find($id);
+        $service = Service::with(['client.businessDetail', 'vendor'])->whereNotNull('client_id')->find($id);
 
         if (! $service) {
             return response()->json([
@@ -146,6 +152,7 @@ class ClientRenewalController extends Controller
             'data' => [
                 'service_id' => $service->id,
                 'client_name' => $service->client->cname ?? null,
+                'company_name' => optional($service->client?->businessDetail)->company_name,
                 'client_email' => $service->client->email ?? null,
                 'vendor_name' => $service->vendor->name ?? null,
                 'vendor_email' => $service->vendor->email ?? null,
