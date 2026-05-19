@@ -60,8 +60,24 @@
                 <div class="col-lg-6">
                     <div class="card h-100">
                         <div class="card-body">
+                            @php
+                                $resumePath = ltrim((string) ($careerEnquiry->resume_file ?? ''), '/');
+                                $resumeUrl = $resumePath !== '' ? 'https://technofra.com/' . $resumePath : '';
+                            @endphp
                             <h6 class="mb-3">Files & Links</h6>
                             <p class="mb-2"><strong>Resume File:</strong> {{ $careerEnquiry->resume_file }}</p>
+                            <p class="mb-2"><strong>Resume URL:</strong>
+                                @if($resumeUrl !== '')
+                                    <a href="{{ $resumeUrl }}" target="_blank" rel="noopener noreferrer">{{ $resumeUrl }}</a>
+                                @else
+                                    N/A
+                                @endif
+                            </p>
+                            @if($resumeUrl !== '')
+                                <a href="{{ $resumeUrl }}" class="btn btn-primary btn-sm mb-2" target="_blank" rel="noopener noreferrer" download>
+                                    <i class='bx bx-download'></i> Download Resume
+                                </a>
+                            @endif
                             <p class="mb-0"><strong>Portfolio Link:</strong>
                                 @if(!empty($careerEnquiry->portfolio_link))
                                     <a href="{{ $careerEnquiry->portfolio_link }}" target="_blank" rel="noopener noreferrer">{{ $careerEnquiry->portfolio_link }}</a>
