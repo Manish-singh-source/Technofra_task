@@ -1,0 +1,78 @@
+@extends('/layout/master')
+
+@section('content')
+    <div class="page-wrapper">
+        <div class="page-content">
+            <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
+                <div class="ps-3">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb mb-0 p-0">
+                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i class="bx bx-home-alt"></i></a></li>
+                            <li class="breadcrumb-item">Web Enquiry</li>
+                            <li class="breadcrumb-item active" aria-current="page">Career</li>
+                        </ol>
+                    </nav>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
+                        <div>
+                            <h5 class="mb-1">Career Enquiries</h5>
+                            <p class="text-muted mb-0">Records from the <code>jobapplication</code> table.</p>
+                        </div>
+                        <span class="badge bg-primary">Total: {{ $careerEnquiries->count() }}</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table id="example" class="table table-striped table-bordered align-middle" style="width:100%">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Contact</th>
+                                    <th>Role</th>
+                                    <th>Experience</th>
+                                    <th>CTC</th>
+                                    <th>ECTC</th>
+                                    <th>Location</th>
+                                    <th>Reference</th>
+                                    <th>Resume File</th>
+                                    <th>Portfolio</th>
+                                    <th>Source Page</th>
+                                    <th>Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($careerEnquiries as $enquiry)
+                                    <tr>
+                                        <td>{{ $enquiry->id }}</td>
+                                        <td>{{ $enquiry->fname }}</td>
+                                        <td>{{ $enquiry->email }}</td>
+                                        <td>{{ $enquiry->contact }}</td>
+                                        <td>{{ $enquiry->role }}</td>
+                                        <td>{{ $enquiry->experience }}</td>
+                                        <td>{{ $enquiry->ctc }}</td>
+                                        <td>{{ $enquiry->ectc }}</td>
+                                        <td>{{ $enquiry->location }}</td>
+                                        <td>{{ $enquiry->refrence }}</td>
+                                        <td>{{ $enquiry->resume_file }}</td>
+                                        <td>{{ $enquiry->portfolio_link }}</td>
+                                        <td>{{ $enquiry->source_page }}</td>
+                                        <td>{{ $enquiry->created_at }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="14" class="text-center">No career enquiries found.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

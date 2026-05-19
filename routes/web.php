@@ -22,6 +22,7 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\VendorController;
 use App\Http\Controllers\VendorServiceController;
+use App\Http\Controllers\WebEnquiryController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -310,6 +311,15 @@ Route::middleware('auth')->group(function () {
             ->middleware('permission:view_digital_marketing_leads');
         Route::delete('/digital-marketing-leads/{digitalMarketingLead}', 'destroy')
             ->name('digital-marketing-leads.destroy')
+            ->middleware('permission:view_digital_marketing_leads');
+    });
+
+    Route::controller(WebEnquiryController::class)->group(function () {
+        Route::get('/web-enquiry/contact', 'contact')
+            ->name('web-enquiry.contact')
+            ->middleware('permission:view_digital_marketing_leads');
+        Route::get('/web-enquiry/career', 'career')
+            ->name('web-enquiry.career')
             ->middleware('permission:view_digital_marketing_leads');
     });
 
