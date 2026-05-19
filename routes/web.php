@@ -321,6 +321,12 @@ Route::middleware('auth')->group(function () {
         Route::get('/web-enquiry/career', 'career')
             ->name('web-enquiry.career')
             ->middleware('permission:view_digital_marketing_leads');
+        Route::get('/web-enquiry/career/{id}', 'careerShow')
+            ->name('web-enquiry.career.show')
+            ->middleware('permission:view_digital_marketing_leads');
+        Route::delete('/web-enquiry/career/{id}', 'careerDestroy')
+            ->name('web-enquiry.career.destroy')
+            ->middleware('permission:view_digital_marketing_leads');
     });
 
 

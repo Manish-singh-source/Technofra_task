@@ -2,8 +2,21 @@
 
 @section('content')
     <div class="page-wrapper">
-        <div class="page-content">
-            <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
+            <div class="page-content">
+                @if (session('success'))
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        {{ session('success') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        {{ session('error') }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                @endif
+
+                <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
                         <ol class="breadcrumb mb-0 p-0">
@@ -43,6 +56,7 @@
                                     <th>Portfolio</th>
                                     <th>Source Page</th>
                                     <th>Created At</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -62,10 +76,25 @@
                                         <td>{{ $enquiry->portfolio_link }}</td>
                                         <td>{{ $enquiry->source_page }}</td>
                                         <td>{{ $enquiry->created_at }}</td>
+                                        <td>
+                                            <div class="d-flex order-actions">
+                                                <a href="{{ route('web-enquiry.career.show', $enquiry->id) }}" title="View">
+                                                    <i class='bx bxs-show'></i>
+                                                </a>
+                                                <form method="POST" action="{{ route('web-enquiry.career.destroy', $enquiry->id) }}" class="ms-2"
+                                                    onsubmit="return confirm('Are you sure you want to delete this career enquiry?')">
+                                                    @csrf
+                                                    @method('DELETE')
+                                                    <button type="submit" class="btn btn-link p-0 border-0 text-danger" title="Delete">
+                                                        <i class='bx bxs-trash'></i>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="14" class="text-center">No career enquiries found.</td>
+                                        <td colspan="15" class="text-center">No career enquiries found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
