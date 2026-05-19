@@ -1,8 +1,36 @@
 @extends('/layout/master')
 
+@push('styles')
+    <style>
+        div.dataTables_wrapper div.dataTables_filter {
+            text-align: right !important;
+        }
+
+        div.dataTables_wrapper div.dataTables_filter label {
+            width: auto !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="page-wrapper">
         <div class="page-content">
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
@@ -20,7 +48,7 @@
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                         <div>
                             <h5 class="mb-1">Contact Enquiries</h5>
-                            <p class="text-muted mb-0">Records from the <code>contactform</code> table.</p>
+                            <p class="text-muted mb-0">Records from the <code>contactform</code> on the website</p>
                         </div>
                         <span class="badge bg-primary">Total: {{ $contactEnquiries->count() }}</span>
                     </div>
@@ -37,6 +65,7 @@
                                     <th>Message</th>
                                     <th>Source Page</th>
                                     <th>Created At</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -50,10 +79,20 @@
                                         <td>{{ $enquiry->massage }}</td>
                                         <td>{{ $enquiry->source_page }}</td>
                                         <td>{{ $enquiry->created_at }}</td>
+                                        <td>
+                                            <form method="POST" action="{{ route('web-enquiry.contact.destroy', $enquiry->id) }}"
+                                                onsubmit="return confirm('Are you sure you want to delete this contact enquiry?')">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-link p-0 border-0 text-danger" title="Delete">
+                                                    <i class='bx bxs-trash'></i>
+                                                </button>
+                                            </form>
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="text-center">No contact enquiries found.</td>
+                                        <td colspan="9" class="text-center">No contact enquiries found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>

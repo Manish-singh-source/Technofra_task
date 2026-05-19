@@ -48,4 +48,19 @@ class WebEnquiryController extends Controller
             ->route('web-enquiry.career')
             ->with('success', 'Career enquiry deleted successfully.');
     }
+
+    public function contactDestroy(int $id): RedirectResponse
+    {
+        $deleted = DB::table('contactform')->where('id', $id)->delete();
+
+        if (! $deleted) {
+            return redirect()
+                ->route('web-enquiry.contact')
+                ->with('error', 'Contact enquiry not found or already deleted.');
+        }
+
+        return redirect()
+            ->route('web-enquiry.contact')
+            ->with('success', 'Contact enquiry deleted successfully.');
+    }
 }

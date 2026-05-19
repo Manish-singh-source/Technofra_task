@@ -291,7 +291,9 @@ class ClientRenewalController extends Controller
 
     public function clientList()
     {
-        $clients = Client::where('status', 1)
+        $clients = User::
+        where('role', 'client')
+        ->where('status', 1)
             ->select('id', 'cname', 'coname', 'email', 'phone')
             ->orderBy('cname')
             ->get();

@@ -318,6 +318,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/web-enquiry/contact', 'contact')
             ->name('web-enquiry.contact')
             ->middleware('permission:view_digital_marketing_leads');
+        Route::delete('/web-enquiry/contact/{id}', 'contactDestroy')
+            ->name('web-enquiry.contact.destroy')
+            ->middleware('permission:view_digital_marketing_leads');
         Route::get('/web-enquiry/career', 'career')
             ->name('web-enquiry.career')
             ->middleware('permission:view_digital_marketing_leads');

@@ -107,23 +107,6 @@
                     </div>
                 </div>
 
-                <div class="col-lg-6">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="mb-3">Skills (JSON)</h6>
-                            <pre class="bg-light rounded p-3 mb-0" style="white-space: pre-wrap;">{{ $careerEnquiry->skills_json ?: 'N/A' }}</pre>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col-lg-6">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h6 class="mb-3">AI Tools (JSON)</h6>
-                            <pre class="bg-light rounded p-3 mb-0" style="white-space: pre-wrap;">{{ $careerEnquiry->ai_tools_json ?: 'N/A' }}</pre>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     </div>

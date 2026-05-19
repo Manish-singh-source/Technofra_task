@@ -1,5 +1,20 @@
 @extends('/layout/master')
 
+@push('styles')
+    <style>
+        div.dataTables_wrapper div.dataTables_filter {
+            text-align: right !important;
+        }
+
+        div.dataTables_wrapper div.dataTables_filter label {
+            width: auto !important;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+    </style>
+@endpush
+
 @section('content')
     <div class="page-wrapper">
             <div class="page-content">
@@ -33,7 +48,7 @@
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                         <div>
                             <h5 class="mb-1">Career Enquiries</h5>
-                            <p class="text-muted mb-0">Records from the <code>jobapplication</code> table.</p>
+                            <p class="text-muted mb-0">Records from the <code>jobapplication</code> on the website</p>
                         </div>
                         <span class="badge bg-primary">Total: {{ $careerEnquiries->count() }}</span>
                     </div>
@@ -52,15 +67,16 @@
                                     <th>ECTC</th>
                                     <th>Location</th>
                                     <th>Reference</th>
-                                    <th>Resume File</th>
-                                    <th>Portfolio</th>
-                                    <th>Source Page</th>
-                                    <th>Created At</th>
+                                    <th>Resume</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse ($careerEnquiries as $enquiry)
+                                    @php
+                                        $resumePath = ltrim((string) ($enquiry->resume_file ?? ''), '/');
+                                        $resumeUrl = $resumePath !== '' ? 'https://technofra.com/' . $resumePath : '';
+                                    @endphp
                                     <tr>
                                         <td>{{ $enquiry->id }}</td>
                                         <td>{{ $enquiry->fname }}</td>
@@ -72,10 +88,15 @@
                                         <td>{{ $enquiry->ectc }}</td>
                                         <td>{{ $enquiry->location }}</td>
                                         <td>{{ $enquiry->refrence }}</td>
-                                        <td>{{ $enquiry->resume_file }}</td>
-                                        <td>{{ $enquiry->portfolio_link }}</td>
-                                        <td>{{ $enquiry->source_page }}</td>
-                                        <td>{{ $enquiry->created_at }}</td>
+                                        <td>
+                                            @if($resumeUrl !== '')
+                                                <a href="{{ $resumeUrl }}" class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener noreferrer" download>
+                                                    <i class='bx bx-download'></i> Download
+                                                </a>
+                                            @else
+                                                N/A
+                                            @endif
+                                        </td>
                                         <td>
                                             <div class="d-flex order-actions">
                                                 <a href="{{ route('web-enquiry.career.show', $enquiry->id) }}" title="View">
@@ -94,7 +115,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="15" class="text-center">No career enquiries found.</td>
+                                        <td colspan="12" class="text-center">No career enquiries found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
