@@ -19,8 +19,10 @@ use App\Http\Controllers\Api\ServiceController as ApiServiceController;
 use App\Http\Controllers\Api\SettingController as ApiSettingController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\Api\TodoController;
+use App\Http\Controllers\Api\WebEnquiryContactController;
 use App\Http\Controllers\Api\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\VendorRenewalController;
+use App\Http\Controllers\Api\WebEnquiryCareerController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GoogleAdsLeadController;
 use App\Http\Controllers\StaffController;
@@ -383,6 +385,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
             Route::get('/web-apps-leads', 'indexWebAppsLeads');
             Route::delete('/web-apps-leads/{id}', 'destroyWebAppsLeads');
+        });
+
+        Route::prefix('web-enquiry/careers')->controller(WebEnquiryCareerController::class)->group(function () {
+            Route::get('/', 'index')->middleware('permission:view_digital_marketing_leads');
+            Route::get('/{id}', 'show')->middleware('permission:view_digital_marketing_leads');
+            Route::delete('/{id}', 'destroy')->middleware('permission:delete_digital_marketing_leads');
+            Route::get('/{id}/resume-url', 'resumeUrl')->middleware('permission:view_digital_marketing_leads');
+        });
+
+        Route::prefix('web-enquiry/contacts')->controller(WebEnquiryContactController::class)->group(function () {
+            Route::get('/', 'index')->middleware('permission:view_digital_marketing_leads');
+            Route::delete('/{id}', 'destroy')->middleware('permission:delete_digital_marketing_leads');
         });
 
 

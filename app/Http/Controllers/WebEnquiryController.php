@@ -10,6 +10,7 @@ class WebEnquiryController extends Controller
     public function contact()
     {
         $contactEnquiries = DB::table('contactform')
+            ->whereNull('deleted_at')
             ->orderByDesc('created_at')
             ->get();
 
@@ -19,6 +20,7 @@ class WebEnquiryController extends Controller
     public function career()
     {
         $careerEnquiries = DB::table('jobapplication')
+            ->whereNull('deleted_at')
             ->orderByDesc('created_at')
             ->get();
 
@@ -27,7 +29,10 @@ class WebEnquiryController extends Controller
 
     public function careerShow(int $id)
     {
-        $careerEnquiry = DB::table('jobapplication')->where('id', $id)->first();
+        $careerEnquiry = DB::table('jobapplication')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->first();
 
         abort_if(! $careerEnquiry, 404);
 
@@ -36,7 +41,10 @@ class WebEnquiryController extends Controller
 
     public function careerDestroy(int $id): RedirectResponse
     {
-        $deleted = DB::table('jobapplication')->where('id', $id)->delete();
+        $deleted = DB::table('jobapplication')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->update(['deleted_at' => now()]);
 
         if (! $deleted) {
             return redirect()
@@ -51,7 +59,10 @@ class WebEnquiryController extends Controller
 
     public function contactDestroy(int $id): RedirectResponse
     {
-        $deleted = DB::table('contactform')->where('id', $id)->delete();
+        $deleted = DB::table('contactform')
+            ->where('id', $id)
+            ->whereNull('deleted_at')
+            ->update(['deleted_at' => now()]);
 
         if (! $deleted) {
             return redirect()
