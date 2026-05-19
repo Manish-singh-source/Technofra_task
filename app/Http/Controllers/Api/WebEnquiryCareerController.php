@@ -173,6 +173,7 @@ class WebEnquiryCareerController extends Controller
             'email' => $career->email,
             'contact' => $career->contact,
             'role' => $career->role,
+            'applicant_type' => $career->applicant_type,
             'experience' => $career->experience,
             'ctc' => $career->ctc,
             'ectc' => $career->ectc,

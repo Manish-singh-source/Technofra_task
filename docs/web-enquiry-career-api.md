@@ -18,6 +18,8 @@ Supports:
 - Applicant type filter: `applicant_type` (`all|fresher|experience`, default `all`)
 - Sorting: `sort_by`, `sort_order` (`asc|desc`)
 
+Response data includes `applicant_type`.
+
 Allowed `sort_by` values:
 - `id`, `fname`, `email`, `contact`, `role`, `experience`, `ctc`, `ectc`, `location`, `refrence`, `created_at`
 
@@ -35,7 +37,7 @@ curl -X GET "http://127.0.0.1:8000/api/v1/web-enquiry/careers?per_page=10&search
 
 `GET /web-enquiry/careers/{id}`
 
-Returns all career fields including `resume_url`.
+Returns all career fields including `applicant_type` and `resume_url`.
 
 ### Curl
 
