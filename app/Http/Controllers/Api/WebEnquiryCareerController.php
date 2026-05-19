@@ -38,8 +38,16 @@ class WebEnquiryCareerController extends Controller
         $perPage = (int) $request->input('per_page', 10);
         $perPage = max(1, min(100, $perPage));
 
+        $applicantType = strtolower(trim((string) $request->input('applicant_type', 'all')));
+        if (! in_array($applicantType, ['all', 'fresher', 'experience'], true)) {
+            $applicantType = 'all';
+        }
+
         $query = DB::table('jobapplication')
             ->whereNull('deleted_at')
+            ->when($applicantType !== 'all', function ($builder) use ($applicantType) {
+                $builder->whereRaw('LOWER(applicant_type) = ?', [$applicantType]);
+            })
             ->when($request->filled('search'), function ($builder) use ($request) {
                 $search = trim((string) $request->input('search'));
 
@@ -81,6 +89,7 @@ class WebEnquiryCareerController extends Controller
                 ],
                 'filters' => [
                     'search' => $request->input('search'),
+                    'applicant_type' => $applicantType,
                 ],
             ],
         ]);
@@ -183,4 +192,3 @@ class WebEnquiryCareerController extends Controller
         ];
     }
 }
-

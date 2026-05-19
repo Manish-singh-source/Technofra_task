@@ -15,6 +15,7 @@ All endpoints require:
 Supports:
 - Pagination: `per_page` (1-100, default 10)
 - Search: `search`
+- Applicant type filter: `applicant_type` (`all|fresher|experience`, default `all`)
 - Sorting: `sort_by`, `sort_order` (`asc|desc`)
 
 Allowed `sort_by` values:
@@ -23,7 +24,7 @@ Allowed `sort_by` values:
 ### Curl
 
 ```bash
-curl -X GET "http://127.0.0.1:8000/api/v1/web-enquiry/careers?per_page=10&search=developer&sort_by=created_at&sort_order=desc" \
+curl -X GET "http://127.0.0.1:8000/api/v1/web-enquiry/careers?per_page=10&search=developer&applicant_type=fresher&sort_by=created_at&sort_order=desc" \
   -H "Accept: application/json" \
   -H "Authorization: Bearer YOUR_SANCTUM_TOKEN"
 ```
