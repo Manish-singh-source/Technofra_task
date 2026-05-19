@@ -52,8 +52,10 @@ class TaskController extends Controller
 
     public function apiIndex(Request $request): JsonResponse
     {
+        $statusFilter = $this->normalizeStatusFilter($request->input('status'));
+
         $filteredQuery = $this->accessibleTasksQuery()
-            ->when($request->filled('status'), fn (Builder $query) => $query->where('status', $request->input('status')))
+            ->when($statusFilter !== null, fn (Builder $query) => $query->where('status', $statusFilter))
             ->when($request->filled('priority'), fn (Builder $query) => $query->where('priority', strtolower((string) $request->input('priority'))))
             ->when($request->filled('project_id'), fn (Builder $query) => $query->where('project_id', $request->input('project_id')))
             ->when($request->filled('assignee_id'), function (Builder $query) use ($request) {
@@ -438,6 +440,27 @@ class TaskController extends Controller
     private function shouldRestrictToAssignedTasks(): bool
     {
         return ! $this->isPrivilegedTaskUser() && $this->authenticatedStaffId() !== null;
+    }
+
+    private function normalizeStatusFilter(mixed $status): ?string
+    {
+        if (! is_string($status)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($status));
+
+        if ($normalized === '' || $normalized === 'all') {
+            return null;
+        }
+
+        $aliases = [
+            'running' => 'in_progress',
+            'hold' => 'on_hold',
+            'delayed' => 'on_hold',
+        ];
+
+        return $aliases[$normalized] ?? $normalized;
     }
 
     private function buildTaskDetailPayload(Task $task): array
