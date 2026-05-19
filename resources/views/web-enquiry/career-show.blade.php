@@ -37,6 +37,7 @@
                             <p class="mb-2"><strong>Email:</strong> {{ $careerEnquiry->email }}</p>
                             <p class="mb-2"><strong>Contact:</strong> {{ $careerEnquiry->contact }}</p>
                             <p class="mb-2"><strong>Role:</strong> {{ $careerEnquiry->role }}</p>
+                            <p class="mb-2"><strong>Applicant Type:</strong> {{ $careerEnquiry->applicant_type ?: 'N/A' }}</p>
                             <p class="mb-2"><strong>Experience:</strong> {{ $careerEnquiry->experience }}</p>
                             <p class="mb-0"><strong>Location:</strong> {{ $careerEnquiry->location }}</p>
                         </div>

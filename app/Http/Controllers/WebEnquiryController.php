@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class WebEnquiryController extends Controller
@@ -17,14 +18,22 @@ class WebEnquiryController extends Controller
         return view('web-enquiry.contact', compact('contactEnquiries'));
     }
 
-    public function career()
+    public function career(Request $request)
     {
+        $applicantType = strtolower(trim((string) $request->query('applicant_type', 'all')));
+        if (! in_array($applicantType, ['all', 'fresher', 'experience'], true)) {
+            $applicantType = 'all';
+        }
+
         $careerEnquiries = DB::table('jobapplication')
             ->whereNull('deleted_at')
+            ->when($applicantType !== 'all', function ($query) use ($applicantType) {
+                $query->whereRaw('LOWER(applicant_type) = ?', [$applicantType]);
+            })
             ->orderByDesc('created_at')
             ->get();
 
-        return view('web-enquiry.career', compact('careerEnquiries'));
+        return view('web-enquiry.career', compact('careerEnquiries', 'applicantType'));
     }
 
     public function careerShow(int $id)

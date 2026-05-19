@@ -53,6 +53,27 @@
                         <span class="badge bg-primary">Total: {{ $careerEnquiries->count() }}</span>
                     </div>
 
+                    <ul class="nav nav-tabs mb-3" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {{ ($applicantType ?? 'all') === 'all' ? 'active' : '' }}"
+                                href="{{ route('web-enquiry.career', ['applicant_type' => 'all']) }}">
+                                All
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {{ ($applicantType ?? '') === 'fresher' ? 'active' : '' }}"
+                                href="{{ route('web-enquiry.career', ['applicant_type' => 'fresher']) }}">
+                                Fresher
+                            </a>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link {{ ($applicantType ?? '') === 'experience' ? 'active' : '' }}"
+                                href="{{ route('web-enquiry.career', ['applicant_type' => 'experience']) }}">
+                                Experience
+                            </a>
+                        </li>
+                    </ul>
+
                     <div class="table-responsive">
                         <table id="example" class="table table-striped table-bordered align-middle" style="width:100%">
                             <thead class="table-light">
@@ -62,6 +83,7 @@
                                     <th>Email</th>
                                     <th>Contact</th>
                                     <th>Role</th>
+                                    <th>Applicant Type</th>
                                     <th>Experience</th>
                                     <th>CTC</th>
                                     <th>ECTC</th>
@@ -83,6 +105,7 @@
                                         <td>{{ $enquiry->email }}</td>
                                         <td>{{ $enquiry->contact }}</td>
                                         <td>{{ $enquiry->role }}</td>
+                                        <td>{{ $enquiry->applicant_type ?: 'N/A' }}</td>
                                         <td>{{ $enquiry->experience }}</td>
                                         <td>{{ $enquiry->ctc }}</td>
                                         <td>{{ $enquiry->ectc }}</td>
@@ -115,7 +138,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="12" class="text-center">No career enquiries found.</td>
+                                        <td colspan="13" class="text-center">No career enquiries found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
