@@ -91,6 +91,10 @@
             font-size: 16px;
             font-weight: bold;
         }
+        a.button {
+            color: white !important;
+            text-decoration: none !important;
+        }
         .footer {
             background-color: #f8f9fa;
             padding: 25px 30px;
