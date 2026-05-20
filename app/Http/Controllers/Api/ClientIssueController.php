@@ -335,7 +335,7 @@ class ClientIssueController extends Controller
                 'due_time' => $request->input('due_time'),
                 'reminder_date' => $request->input('reminder_date'),
                 'reminder_time' => $request->input('reminder_time'),
-                'checklist_data' => $this->normalizeJsonArray($request->input('checklist_data')),
+                'checklist_data' => $this->normalizeChecklistData($request->input('checklist_data')),
                 'labels_data' => $this->normalizeJsonArray($request->input('labels_data')),
                 'attachment' => $attachments[0]['path'] ?? null,
                 'attachments' => $attachments,
@@ -381,7 +381,7 @@ class ClientIssueController extends Controller
             'due_time' => $request->input('due_time'),
             'reminder_date' => $request->input('reminder_date'),
             'reminder_time' => $request->input('reminder_time'),
-            'checklist_data' => $this->normalizeJsonArray($request->input('checklist_data')),
+            'checklist_data' => $this->normalizeChecklistData($request->input('checklist_data')),
             'labels_data' => $this->normalizeJsonArray($request->input('labels_data')),
             'attachment' => $attachments[0]['path'] ?? $taskModel->attachment,
             'attachments' => $attachments,
@@ -569,6 +569,42 @@ class ClientIssueController extends Controller
         }
         $decoded = json_decode((string) $value, true);
         return is_array($decoded) ? $decoded : null;
+    }
+
+    private function normalizeChecklistData($value): ?array
+    {
+        $items = $this->normalizeJsonArray($value);
+
+        if ($items === null) {
+            return null;
+        }
+
+        return collect($items)
+            ->map(function ($item) {
+                if (is_string($item)) {
+                    $text = trim($item);
+
+                    return $text === '' ? null : ['text' => $text, 'completed' => false];
+                }
+
+                if (is_array($item)) {
+                    $text = trim((string) ($item['text'] ?? ''));
+
+                    if ($text === '') {
+                        return null;
+                    }
+
+                    return [
+                        'text' => $text,
+                        'completed' => (bool) ($item['completed'] ?? false),
+                    ];
+                }
+
+                return null;
+            })
+            ->filter(fn($item) => is_array($item))
+            ->values()
+            ->all();
     }
 
     private function storeUploadedAttachments(Request $request): array
