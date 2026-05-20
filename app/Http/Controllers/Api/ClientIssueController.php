@@ -12,6 +12,7 @@ use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -610,7 +611,15 @@ class ClientIssueController extends Controller
     private function storeUploadedAttachments(Request $request): array
     {
         $attachments = [];
-        foreach ((array) $request->file('attachments', []) as $file) {
+
+        $files = $request->file('attachments');
+        if ($files instanceof UploadedFile) {
+            $files = [$files];
+        } elseif (! is_array($files)) {
+            $files = [];
+        }
+
+        foreach ($files as $file) {
             if ($file && $file->isValid()) {
                 $attachments[] = ['path' => $file->store('task-attachments', 'public'), 'name' => $file->getClientOriginalName()];
             }

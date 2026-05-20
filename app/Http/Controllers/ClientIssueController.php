@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\Team;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -329,18 +330,7 @@ class ClientIssueController extends Controller
 
         $this->authorizeIssueAccess($clientIssue, 'You are not authorized to create tasks for this issue.');
 
-        // Handle multiple file uploads
-        $attachmentsPaths = [];
-        if ($request->hasFile('attachments')) {
-            foreach ($request->file('attachments') as $file) {
-                if ($file && $file->isValid()) {
-                    $attachmentsPaths[] = [
-                        'path' => $file->store('task-attachments', 'public'),
-                        'name' => $file->getClientOriginalName(),
-                    ];
-                }
-            }
-        }
+        $attachmentsPaths = $this->storeUploadedAttachments($request);
 
         ClientIssueTask::create([
             'client_issue_id' => $clientIssueId,
@@ -395,31 +385,10 @@ class ClientIssueController extends Controller
         $this->authorizeIssueAccess($clientIssue, 'You are not authorized to update tasks for this issue.');
 
         // Handle multiple file uploads (replace existing if new files provided)
-        $attachmentsPaths = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
-        if (count($attachmentsPaths) === 0 && $task->attachment) {
-            $attachmentsPaths = [$task->attachment];
-        }
+        $attachmentsPaths = $this->normalizeAttachmentEntries($task->attachments, $task->attachment);
         if ($request->hasFile('attachments')) {
-            // Delete old files
-            foreach ($attachmentsPaths as $oldItem) {
-                $oldPath = is_array($oldItem) ? ($oldItem['path'] ?? null) : $oldItem;
-                if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                    Storage::disk('public')->delete($oldPath);
-                }
-            }
-            if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
-                Storage::disk('public')->delete($task->attachment);
-            }
-
-            $attachmentsPaths = [];
-            foreach ($request->file('attachments') as $file) {
-                if ($file && $file->isValid()) {
-                    $attachmentsPaths[] = [
-                        'path' => $file->store('task-attachments', 'public'),
-                        'name' => $file->getClientOriginalName(),
-                    ];
-                }
-            }
+            $this->deleteAttachmentEntries($attachmentsPaths);
+            $attachmentsPaths = $this->storeUploadedAttachments($request);
         }
 
         $task->update([
@@ -478,16 +447,8 @@ class ClientIssueController extends Controller
         $this->authorizeIssueAccess($clientIssue, 'You are not authorized to delete tasks for this issue.');
 
         // Delete attachments if exists
-        $attachmentsPaths = is_array($task->attachments) ? $task->attachments : (json_decode($task->attachments, true) ?? []);
-        foreach ($attachmentsPaths as $oldItem) {
-            $oldPath = is_array($oldItem) ? ($oldItem['path'] ?? null) : $oldItem;
-            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
-        }
-        if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
-            Storage::disk('public')->delete($task->attachment);
-        }
+        $attachmentsPaths = $this->normalizeAttachmentEntries($task->attachments, $task->attachment);
+        $this->deleteAttachmentEntries($attachmentsPaths);
 
         $task->delete();
 
@@ -586,6 +547,70 @@ class ClientIssueController extends Controller
             }
 
             return redirect()->back()->with('error', 'Error updating issue status: '.$e->getMessage());
+        }
+    }
+
+    private function storeUploadedAttachments(Request $request): array
+    {
+        $attachments = [];
+
+        $files = $request->file('attachments');
+        if ($files instanceof UploadedFile) {
+            $files = [$files];
+        } elseif (! is_array($files)) {
+            $files = [];
+        }
+
+        foreach ($files as $file) {
+            if ($file && $file->isValid()) {
+                $attachments[] = [
+                    'path' => $file->store('task-attachments', 'public'),
+                    'name' => $file->getClientOriginalName(),
+                ];
+            }
+        }
+
+        return $attachments;
+    }
+
+    private function normalizeAttachmentEntries(mixed $attachments, mixed $fallbackAttachment = null): array
+    {
+        $items = is_array($attachments) ? $attachments : (json_decode((string) $attachments, true) ?? []);
+
+        if (! is_array($items)) {
+            $items = [];
+        }
+
+        if (count($items) === 0 && $fallbackAttachment) {
+            $items = [is_array($fallbackAttachment) ? ($fallbackAttachment['path'] ?? null) : $fallbackAttachment];
+        }
+
+        return collect($items)
+            ->map(function ($item) {
+                if (is_array($item)) {
+                    $path = $item['path'] ?? null;
+
+                    return $path ? ['path' => $path, 'name' => $item['name'] ?? basename((string) $path)] : null;
+                }
+
+                if (is_string($item) && trim($item) !== '') {
+                    return ['path' => $item, 'name' => basename($item)];
+                }
+
+                return null;
+            })
+            ->filter(fn($item) => is_array($item) && ! empty($item['path']))
+            ->values()
+            ->all();
+    }
+
+    private function deleteAttachmentEntries(array $attachments): void
+    {
+        foreach ($attachments as $item) {
+            $path = is_array($item) ? ($item['path'] ?? null) : null;
+            if ($path && Storage::disk('public')->exists($path)) {
+                Storage::disk('public')->delete($path);
+            }
         }
     }
 }
