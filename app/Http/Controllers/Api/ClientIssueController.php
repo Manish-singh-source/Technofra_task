@@ -66,6 +66,9 @@ class ClientIssueController extends Controller
 
         $issues = ClientIssue::query()
             ->with(['project.customer', 'customer', 'teamAssignments.assignedStaff', 'teamAssignments.assignedBy'])
+            ->when($request->filled('status'), function ($query) use ($request) {
+                $query->where('status', $request->input('status'));
+            })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
 
@@ -81,8 +84,12 @@ class ClientIssueController extends Controller
                         });
                 });
             })
-            ->latest('created_at')
-            ->get();
+            ->latest('created_at');
+
+        $perPage = (int) $request->input('per_page', 10);
+        $perPage = max(1, min(100, $perPage));
+
+        $issues = $issues->paginate($perPage)->appends($request->query());
 
         if ($user && $user->isStaff()) {
             $staff = $user;
@@ -90,7 +97,18 @@ class ClientIssueController extends Controller
         }
 
         return ApiResponse::success([
-            'issues' => $issues->map(fn(ClientIssue $issue) => $this->issueResource($issue))->values(),
+            'issues' => collect($issues->items())->map(fn(ClientIssue $issue) => $this->issueResource($issue))->values(),
+            'meta' => [
+                'pagination' => [
+                    'current_page' => $issues->currentPage(),
+                    'last_page' => $issues->lastPage(),
+                    'per_page' => $issues->perPage(),
+                    'total' => $issues->total(),
+                    'from' => $issues->firstItem(),
+                    'to' => $issues->lastItem(),
+                    'has_more_pages' => $issues->hasMorePages(),
+                ],
+            ],
             // 'projects' => Project::query()->with('customer')->orderBy('project_name')->get()->map(fn (Project $project) => $this->projectResource($project))->values(),
             // 'customers' => User::query()->where('role', 'client')->orderBy('first_name')->orderBy('last_name')->get()->map(fn (User $item) => $this->customerResource($item))->values(),
         ], 'Client issues retrieved successfully.');
