@@ -15,7 +15,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -366,10 +365,11 @@ class ClientIssueController extends Controller
             return ApiResponse::error('Validation failed.', $validator->errors(), 422);
         }
 
-        $attachments = is_array($taskModel->attachments) ? $taskModel->attachments : [];
-        if ($request->hasFile('attachments')) {
+        $attachments = $this->normalizeAttachmentEntries($taskModel->attachments, $taskModel->attachment);
+        $uploadedAttachments = $this->storeUploadedAttachments($request);
+        if (! empty($uploadedAttachments)) {
             $this->deleteTaskAttachments($taskModel);
-            $attachments = $this->storeUploadedAttachments($request);
+            $attachments = $uploadedAttachments;
         }
         $taskModel->update([
             'title' => $request->input('title'),
@@ -621,7 +621,20 @@ class ClientIssueController extends Controller
 
         foreach ($files as $file) {
             if ($file && $file->isValid()) {
-                $attachments[] = ['path' => $file->store('task-attachments', 'public'), 'name' => $file->getClientOriginalName()];
+                $originalName = $file->getClientOriginalName();
+                $extension = strtolower((string) $file->getClientOriginalExtension());
+                $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+                $safeBaseName = preg_replace('/[^A-Za-z0-9\-_ ]/', '', $baseName) ?: 'attachment';
+                $fileName = time().'_'.$safeBaseName.($extension !== '' ? '.'.$extension : '');
+                $relativeDir = 'uploads/task-attachments';
+                $absoluteDir = public_path($relativeDir);
+
+                if (! file_exists($absoluteDir)) {
+                    mkdir($absoluteDir, 0755, true);
+                }
+
+                $file->move($absoluteDir, $fileName);
+                $attachments[] = ['path' => $relativeDir.'/'.$fileName, 'name' => $originalName];
             }
         }
         return $attachments;
@@ -629,15 +642,50 @@ class ClientIssueController extends Controller
 
     private function deleteTaskAttachments(ClientIssueTask $task): void
     {
-        foreach ((array) ($task->attachments ?? []) as $item) {
-            $path = is_array($item) ? ($item['path'] ?? null) : $item;
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+        $entries = $this->normalizeAttachmentEntries($task->attachments, $task->attachment);
+
+        foreach ($entries as $entry) {
+            $path = $entry['path'] ?? null;
+            if (! $path) {
+                continue;
+            }
+
+            $absolutePath = public_path(ltrim((string) $path, '/'));
+            if (file_exists($absolutePath)) {
+                unlink($absolutePath);
             }
         }
-        if ($task->attachment && Storage::disk('public')->exists($task->attachment)) {
-            Storage::disk('public')->delete($task->attachment);
+    }
+
+    private function normalizeAttachmentEntries(mixed $attachments, mixed $fallbackAttachment = null): array
+    {
+        $items = is_array($attachments) ? $attachments : (json_decode((string) $attachments, true) ?? []);
+
+        if (! is_array($items)) {
+            $items = [];
         }
+
+        if (count($items) === 0 && $fallbackAttachment) {
+            $items = [is_array($fallbackAttachment) ? ($fallbackAttachment['path'] ?? null) : $fallbackAttachment];
+        }
+
+        return collect($items)
+            ->map(function ($item) {
+                if (is_array($item)) {
+                    $path = $item['path'] ?? null;
+
+                    return $path ? ['path' => $path, 'name' => $item['name'] ?? basename((string) $path)] : null;
+                }
+
+                if (is_string($item) && trim($item) !== '') {
+                    return ['path' => $item, 'name' => basename($item)];
+                }
+
+                return null;
+            })
+            ->filter(fn($item) => is_array($item) && ! empty($item['path']))
+            ->values()
+            ->all();
     }
 
     private function issueResource(ClientIssue $issue): array
@@ -667,6 +715,22 @@ class ClientIssueController extends Controller
 
     private function taskResource(ClientIssueTask $task): array
     {
+        $attachments = collect($this->normalizeAttachmentEntries($task->attachments, $task->attachment))
+            ->map(function (array $item) {
+                $path = ltrim(str_replace('\\', '/', (string) ($item['path'] ?? '')), '/');
+
+                return [
+                    'path' => $path,
+                    'name' => $item['name'] ?? basename($path),
+                    'url' => $path === ''
+                        ? null
+                        : (str_starts_with($path, 'uploads/')
+                            ? asset($path)
+                            : url('/storage/'.$path)),
+                ];
+            })
+            ->values();
+
         return [
             'id' => $task->id,
             'client_issue_id' => $task->client_issue_id,
@@ -677,7 +741,7 @@ class ClientIssueController extends Controller
             'assigned_to' => $task->assigned_to,
             'start_date' => optional($task->start_date)->toDateString(),
             'due_date' => optional($task->due_date)->toDateString(),
-            'attachments' => collect((array) ($task->attachments ?? []))->values(),
+            'attachments' => $attachments,
             'created_at' => optional($task->created_at)->toISOString(),
             'updated_at' => optional($task->updated_at)->toISOString(),
         ];

@@ -252,7 +252,13 @@ foreach ($attachments as $item) {
                                 <div class="row g-2">
                                     @foreach($normalizedAttachments as $att)
                                         @php
-                                            $attachmentPath = $att['path'] ? Storage::url($att['path']) : null;
+                                            $attachmentPath = null;
+                                            if (!empty($att['path'])) {
+                                                $normalizedPath = ltrim(str_replace('\\', '/', (string) $att['path']), '/');
+                                                $attachmentPath = str_starts_with($normalizedPath, 'uploads/')
+                                                    ? asset($normalizedPath)
+                                                    : Storage::url($normalizedPath);
+                                            }
                                             $extension = $att['path'] ? strtolower(pathinfo($att['path'], PATHINFO_EXTENSION)) : '';
                                             $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                             $isPdf = $extension === 'pdf';

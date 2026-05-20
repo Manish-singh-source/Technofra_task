@@ -307,7 +307,7 @@ use Illuminate\Support\Facades\Storage;
                                         
                                         @if(count($normalizedAttachments) > 0)
                                             @php
-                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                                 $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                                 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                             @endphp
@@ -344,7 +344,7 @@ use Illuminate\Support\Facades\Storage;
                                     <!-- Image Preview at the end -->
                                     @if(count($normalizedAttachments) > 0)
                                         @php
-                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                             $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                             $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                         @endphp
@@ -462,7 +462,7 @@ use Illuminate\Support\Facades\Storage;
                                         
                                         @if(count($normalizedAttachments) > 0)
                                             @php
-                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                                 $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                                 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                             @endphp
@@ -498,7 +498,7 @@ use Illuminate\Support\Facades\Storage;
                                     <!-- Image Preview at the end -->
                                     @if(count($normalizedAttachments) > 0)
                                         @php
-                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                             $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                             $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                         @endphp
@@ -616,7 +616,7 @@ use Illuminate\Support\Facades\Storage;
                                         
                                         @if(count($normalizedAttachments) > 0)
                                             @php
-                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                                 $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                                 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                             @endphp
@@ -652,7 +652,7 @@ use Illuminate\Support\Facades\Storage;
                                     <!-- Image Preview at the end -->
                                     @if(count($normalizedAttachments) > 0)
                                         @php
-                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                             $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                             $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                         @endphp
@@ -770,7 +770,7 @@ use Illuminate\Support\Facades\Storage;
                                         
                                         @if(count($normalizedAttachments) > 0)
                                             @php
-                                                $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                                $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                                 $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                                 $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                             @endphp
@@ -806,7 +806,7 @@ use Illuminate\Support\Facades\Storage;
                                     <!-- Image Preview at the end -->
                                     @if(count($normalizedAttachments) > 0)
                                         @php
-                                            $attachmentPath = $normalizedAttachments[0]['path'] ? Storage::url($normalizedAttachments[0]['path']) : null;
+                                            $attachmentPath = !empty($normalizedAttachments[0]['path']) ? (str_starts_with(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/'), 'uploads/') ? asset(ltrim(str_replace('\\', '/', (string) $normalizedAttachments[0]['path']), '/')) : Storage::url($normalizedAttachments[0]['path'])) : null;
                                             $extension = $normalizedAttachments[0]['path'] ? strtolower(pathinfo($normalizedAttachments[0]['path'], PATHINFO_EXTENSION)) : '';
                                             $isImage = in_array($extension, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp']);
                                         @endphp
@@ -1897,6 +1897,8 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
+
+
 
 
 

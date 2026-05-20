@@ -11,7 +11,6 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -386,9 +385,10 @@ class ClientIssueController extends Controller
 
         // Handle multiple file uploads (replace existing if new files provided)
         $attachmentsPaths = $this->normalizeAttachmentEntries($task->attachments, $task->attachment);
-        if ($request->hasFile('attachments')) {
+        $uploadedAttachments = $this->storeUploadedAttachments($request);
+        if (! empty($uploadedAttachments)) {
             $this->deleteAttachmentEntries($attachmentsPaths);
-            $attachmentsPaths = $this->storeUploadedAttachments($request);
+            $attachmentsPaths = $uploadedAttachments;
         }
 
         $task->update([
@@ -563,9 +563,23 @@ class ClientIssueController extends Controller
 
         foreach ($files as $file) {
             if ($file && $file->isValid()) {
+                $originalName = $file->getClientOriginalName();
+                $extension = strtolower((string) $file->getClientOriginalExtension());
+                $baseName = pathinfo($originalName, PATHINFO_FILENAME);
+                $safeBaseName = preg_replace('/[^A-Za-z0-9\-_ ]/', '', $baseName) ?: 'attachment';
+                $fileName = time().'_'.$safeBaseName.($extension !== '' ? '.'.$extension : '');
+                $relativeDir = 'uploads/task-attachments';
+                $absoluteDir = public_path($relativeDir);
+
+                if (! file_exists($absoluteDir)) {
+                    mkdir($absoluteDir, 0755, true);
+                }
+
+                $file->move($absoluteDir, $fileName);
+
                 $attachments[] = [
-                    'path' => $file->store('task-attachments', 'public'),
-                    'name' => $file->getClientOriginalName(),
+                    'path' => $relativeDir.'/'.$fileName,
+                    'name' => $originalName,
                 ];
             }
         }
@@ -608,8 +622,13 @@ class ClientIssueController extends Controller
     {
         foreach ($attachments as $item) {
             $path = is_array($item) ? ($item['path'] ?? null) : null;
-            if ($path && Storage::disk('public')->exists($path)) {
-                Storage::disk('public')->delete($path);
+            if (! $path) {
+                continue;
+            }
+
+            $absolutePath = public_path(ltrim((string) $path, '/'));
+            if (file_exists($absolutePath)) {
+                unlink($absolutePath);
             }
         }
     }
