@@ -23,11 +23,25 @@ class ClientController extends Controller
     //
     public function index(Request $request)
     {
-        $clients = User::with([
+        $statusFilter = $this->normalizeClientStatusFilter($request->input('status'));
+        $perPage = $this->resolvePerPage($request->input('per_page'));
+
+        $clientsQuery = User::with([
             'businessDetail:id,user_id,company_name',
             'companies:id,user_id,client_type,company_name,industry,website',
         ])
             ->where('role', 'client')
+            ->when($statusFilter !== null, function ($query) use ($statusFilter) {
+                $query->where(function ($statusQuery) use ($statusFilter) {
+                    if ($statusFilter === 'active') {
+                        $statusQuery->where('status', 'active')
+                            ->orWhere('status', '1');
+                    } else {
+                        $statusQuery->where('status', 'inactive')
+                            ->orWhere('status', '0');
+                    }
+                });
+            })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
 
@@ -36,13 +50,17 @@ class ClientController extends Controller
                         ->orWhere('last_name', 'like', '%' . $search . '%')
                         ->orWhere('email', 'like', '%' . $search . '%');
                 });
-            })
-            ->paginate(10);
+            });
+
+        $clients = (clone $clientsQuery)->paginate($perPage);
         $clientsCount = $clients->total();
-        $activeClientsCount = User::where('role', 'client')->where('status', 'active')->get();
-        if (!$clients) {
-            return ApiResponse::error('No client found');
-        }
+        $activeClientsCount = (clone $clientsQuery)
+            ->where(function ($query) {
+                $query->where('status', 'active')
+                    ->orWhere('status', '1');
+            })
+            ->count();
+
         return ApiResponse::success([
             'clients' => $clients,
             'count' => $clientsCount,
@@ -248,6 +266,38 @@ class ClientController extends Controller
         }
 
         return 'inactive';
+    }
+
+    private function normalizeClientStatusFilter(mixed $status): ?string
+    {
+        if (is_bool($status)) {
+            return $status ? 'active' : 'inactive';
+        }
+
+        if (is_numeric($status)) {
+            return (int) $status === 1 ? 'active' : ((int) $status === 0 ? 'inactive' : null);
+        }
+
+        if (! is_string($status)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($status));
+
+        return match ($normalized) {
+            'active', '1', 'true' => 'active',
+            'inactive', '0', 'false' => 'inactive',
+            default => null,
+        };
+    }
+
+    private function resolvePerPage(mixed $perPage): int
+    {
+        if (! is_numeric($perPage)) {
+            return 10;
+        }
+
+        return max(1, min((int) $perPage, 100));
     }
 
     private function inputFirst(Request $request, array $keys): ?string
