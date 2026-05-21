@@ -671,7 +671,16 @@ class StaffController extends Controller
         //     'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
         // ]);
 
-        $staffs = User::withTrashed()->with(['address', 'roles', 'teams', 'departments'])->where('role', 'staff')->latest()->get();
+        $status = $request->input('status');
+
+        $staffs = User::withTrashed()
+            ->with(['address', 'roles', 'teams', 'departments'])
+            ->where('role', 'staff')
+            ->when(in_array($status, ['active', 'inactive'], true), function ($query) use ($status) {
+                $query->where('status', $status);
+            })
+            ->latest()
+            ->get();
 
         return response()->json([
             'success' => true,

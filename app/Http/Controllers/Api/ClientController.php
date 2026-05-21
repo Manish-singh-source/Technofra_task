@@ -39,12 +39,14 @@ class ClientController extends Controller
             })
             ->paginate(10);
         $clientsCount = $clients->total();
+        $activeClientsCount = User::where('role', 'client')->where('status', 'active')->total();
         if (!$clients) {
             return ApiResponse::error('No client found');
         }
         return ApiResponse::success([
             'clients' => $clients,
             'count' => $clientsCount,
+            'activeClientsCount' => $activeClientsCount,
         ], 'Clients found');
     }
 
