@@ -6,6 +6,15 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <!-- PWA metadata -->
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <meta name="theme-color" content="#0f172a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <!-- iOS Safari PWA support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="{{ config('app.name', 'Technofra CRM') }}">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ asset('icons/apple-touch-icon-180x180.png') }}">
     <!--favicon-->
     @php($faviconUrl = \App\Models\Setting::resolveGeneralAssetUrl($globalSettings['favicon'] ?? ''))
     @if ($faviconUrl)
@@ -40,6 +49,10 @@
 
     <!-- Custom Notification Styles -->
     <style>
+        .hidden {
+            display: none !important;
+        }
+
         .alert-count {
             position: absolute;
             top: -8px;
@@ -138,9 +151,44 @@
     </style>
 
     <title>{{ $globalSettings['company_name'] ?? 'My CRM' }}</title>
+    @vite(['resources/js/app.js'])
 </head>
 
 <body>
+    <!-- PWA install controls -->
+    <div style="position: fixed; right: 16px; bottom: 16px; z-index: 1100; display: flex; gap: 8px; align-items: center;">
+        <button
+            id="pwa-install-btn"
+            type="button"
+            class="hidden btn btn-dark btn-sm"
+        >
+            Install App
+        </button>
+        <span
+            id="pwa-installed-badge"
+            class="hidden badge bg-success"
+            style="font-size: 0.8rem;"
+        >
+            Installed
+        </span>
+    </div>
+    <div
+        id="ios-install-banner"
+        class="hidden alert alert-info py-2 px-3"
+        style="position: fixed; left: 16px; right: 16px; bottom: 70px; z-index: 1100; margin: 0;"
+    >
+        Tap Share -&gt; Add to Home Screen
+    </div>
+    <div
+        id="pwa-installed-toast"
+        class="hidden"
+        style="position: fixed; right: 16px; bottom: 56px; z-index: 1100; background: #198754; color: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,0.18);"
+        role="status"
+        aria-live="polite"
+    >
+        Installed
+    </div>
+
     <!--wrapper-->
     <div class="wrapper">
         <!--sidebar wrapper -->
