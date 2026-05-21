@@ -46,7 +46,20 @@ class StaffController extends Controller
 
     public function index(Request $request)
     {
+        $statusFilter = $this->normalizeStaffStatusFilter($request->input('status'));
+
         $staffs = User::where('role', 'staff')
+            ->when($statusFilter !== null, function ($query) use ($statusFilter) {
+                $query->where(function ($statusQuery) use ($statusFilter) {
+                    if ($statusFilter === 'active') {
+                        $statusQuery->where('status', 'active')
+                            ->orWhere('status', '1');
+                    } else {
+                        $statusQuery->where('status', 'inactive')
+                            ->orWhere('status', '0');
+                    }
+                });
+            })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));
 
@@ -63,6 +76,29 @@ class StaffController extends Controller
         }
 
         return ApiResponse::success(['staffs' => $staffs, 'totalStaffs' => $staffsCount], 'Staff found');
+    }
+
+    private function normalizeStaffStatusFilter(mixed $status): ?string
+    {
+        if (is_bool($status)) {
+            return $status ? 'active' : 'inactive';
+        }
+
+        if (is_numeric($status)) {
+            return (int) $status === 1 ? 'active' : ((int) $status === 0 ? 'inactive' : null);
+        }
+
+        if (! is_string($status)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($status));
+
+        return match ($normalized) {
+            'active', '1', 'true' => 'active',
+            'inactive', '0', 'false' => 'inactive',
+            default => null,
+        };
     }
 
     public function show($id)
