@@ -100,11 +100,11 @@ class AuthController extends Controller
                 ->withInput();
         }
 
-        // Attempt to log the user in
+        // Attempt to log the user in and always persist auth using remember cookie.
         $credentials = $request->only('email', 'password');
         $remember = $request->boolean('remember');
 
-        if (Auth::attempt($credentials, $remember)) {
+        if (Auth::attempt($credentials, true)) {
             $request->session()->regenerate();
 
             // Store user permissions in session for quick access
