@@ -671,13 +671,21 @@ class StaffController extends Controller
         //     'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
         // ]);
 
-        $status = $request->input('status');
+        $statusFilter = $this->normalizeStaffStatusFilter($request->input('status'));
 
         $staffs = User::withTrashed()
             ->with(['address', 'roles', 'teams', 'departments'])
             ->where('role', 'staff')
-            ->when(in_array($status, ['active', 'inactive'], true), function ($query) use ($status) {
-                $query->where('status', $status);
+            ->when($statusFilter !== null, function ($query) use ($statusFilter) {
+                $query->where(function ($statusQuery) use ($statusFilter) {
+                    if ($statusFilter === 'active') {
+                        $statusQuery->where('status', 'active')
+                            ->orWhere('status', '1');
+                    } else {
+                        $statusQuery->where('status', 'inactive')
+                            ->orWhere('status', '0');
+                    }
+                });
             })
             ->latest()
             ->get();
@@ -686,6 +694,29 @@ class StaffController extends Controller
             'success' => true,
             'data' => $staffs,
         ]);
+    }
+
+    private function normalizeStaffStatusFilter(mixed $status): ?string
+    {
+        if (is_bool($status)) {
+            return $status ? 'active' : 'inactive';
+        }
+
+        if (is_numeric($status)) {
+            return (int) $status === 1 ? 'active' : ((int) $status === 0 ? 'inactive' : null);
+        }
+
+        if (! is_string($status)) {
+            return null;
+        }
+
+        $normalized = strtolower(trim($status));
+
+        return match ($normalized) {
+            'active', '1', 'true' => 'active',
+            'inactive', '0', 'false' => 'inactive',
+            default => null,
+        };
     }
 
     /**
