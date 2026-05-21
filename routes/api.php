@@ -234,45 +234,45 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('projects')->group(function () {
             // Projects Only
             Route::controller(ApiProjectController::class)->group(function () {
-                Route::get('/form-options', 'apiFormOptions')->middleware('permission:view_projects');
-                Route::get('/', 'apiIndex')->middleware('permission:view_projects');
-                Route::post('/', 'apiStore')->middleware('permission:create_projects');
-                Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->middleware('permission:edit_projects');
-                Route::delete('/{id}', 'apiDestroy')->middleware('permission:delete_projects');
-                Route::get('/{id}', 'apiShow')->middleware('permission:view_projects');
+                Route::get('/form-options', 'apiFormOptions');
+                Route::get('/', 'apiIndex');
+                Route::post('/', 'apiStore');
+                Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
+                Route::delete('/{id}', 'apiDestroy');
+                Route::get('/{id}', 'apiShow');
             });
 
             // Projects Milestone
             Route::controller(ApiProjectController::class)->group(function () {
-                Route::get('/{projectId}/milestones', 'apiMilestoneIndex');
-                Route::post('/{projectId}/milestones', 'apiStoreMilestone');
-                Route::match(['put', 'patch'], '/{projectId}/milestones/{milestoneId}', 'apiUpdateMilestone');
-                Route::delete('/{projectId}/milestones/{milestoneId}', 'apiDestroyMilestone');
+                Route::get('/{projectId}/milestones', 'apiMilestoneIndex')->middleware('permission:view_projects');
+                Route::post('/{projectId}/milestones', 'apiStoreMilestone')->middleware('permission:create_projects');
+                Route::match(['put', 'patch'], '/{projectId}/milestones/{milestoneId}', 'apiUpdateMilestone')->middleware('permission:edit_projects');
+                Route::delete('/{projectId}/milestones/{milestoneId}', 'apiDestroyMilestone')->middleware('permission:delete_projects');
             });
 
             // Projects Issues
             Route::controller(ApiProjectController::class)->group(function () {
-                Route::get('/{projectId}/issues', 'apiIssueIndex');
-                Route::post('/{projectId}/issues', 'apiStoreIssue');
-                Route::match(['put', 'patch'], '/{projectId}/issues/{issueId}', 'apiUpdateIssue');
-                Route::delete('/{projectId}/issues/{issueId}', 'apiDestroyIssue');
+                Route::get('/{projectId}/issues', 'apiIssueIndex')->middleware('permission:view_projects');
+                Route::post('/{projectId}/issues', 'apiStoreIssue')->middleware('permission:create_projects');
+                Route::match(['put', 'patch'], '/{projectId}/issues/{issueId}', 'apiUpdateIssue')->middleware('permission:edit_projects');
+                Route::delete('/{projectId}/issues/{issueId}', 'apiDestroyIssue')->middleware('permission:delete_projects');
             });
 
             // Projects Comments
             Route::controller(ApiProjectController::class)->group(function () {
-                Route::get('/{projectId}/comments', 'apiCommentIndex');
-                Route::post('/{projectId}/comments', 'apiStoreComment');
+                Route::get('/{projectId}/comments', 'apiCommentIndex')->middleware('permission:view_projects');
+                Route::post('/{projectId}/comments', 'apiStoreComment')->middleware('permission:create_projects');
             });
 
             // Projects Files
             Route::controller(ApiProjectController::class)->group(function () {
-                Route::get('/{projectId}/files', 'apiFileIndex');
-                Route::post('/{projectId}/files', 'apiUploadFile');
-                Route::delete('/{projectId}/files/{fileId}', 'apiDeleteFile');
+                Route::get('/{projectId}/files', 'apiFileIndex')->middleware('permission:view_projects');
+                Route::post('/{projectId}/files', 'apiUploadFile')->middleware('permission:create_projects');
+                Route::delete('/{projectId}/files/{fileId}', 'apiDeleteFile')->middleware('permission:delete_projects');
             });
 
             // Projects Usage
-            Route::get('/{projectId}/usage', [ApiProjectController::class, 'apiUsage']);
+            Route::get('/{projectId}/usage', [ApiProjectController::class, 'apiUsage'])->middleware('permission:view_projects');
         });
 
         // Task API routes
