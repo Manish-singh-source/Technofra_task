@@ -20,10 +20,38 @@ This document provides cURL examples for the following API routes:
 
 Endpoint: `GET /api/v1/clients/`
 
-Supports pagination via `?page=1` (10 items per page by default).
+Supported query params:
+- `search` (optional): matches `first_name`, `last_name`, `email`
+- `status` (optional): `active`, `inactive`, `1`, `0`, `true`, `false` (case-insensitive)
+- `per_page` (optional): default `10`, min `1`, max `100`
+- `page` (optional): page number for pagination
+
+Pagination/filter example:
 
 ```bash
-curl -X GET "http://localhost:8000/api/v1/clients?page=1" \
+curl -X GET "http://localhost:8000/api/v1/clients?search=john&status=active&per_page=25&page=1" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Accept: application/json"
+```
+
+Status-only examples:
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/clients?status=active" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Accept: application/json"
+```
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/clients?status=inactive" \
+  -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+  -H "Accept: application/json"
+```
+
+Pagination-only example:
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/clients?per_page=10&page=1" \
   -H "Authorization: Bearer YOUR_TOKEN_HERE" \
   -H "Accept: application/json"
 ```

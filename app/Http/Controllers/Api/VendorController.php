@@ -42,16 +42,14 @@ class VendorController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:vendors,email',
-            'phone' => 'required|numeric|digits_between:10,15',
+            'email' => 'nullable|email|unique:vendors,email',
+            'phone' => 'nullable|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
             'status' => 'nullable|string|in:active,inactive',
         ], [
             'name.required' => 'The vendor name field is required.',
-            'email.required' => 'The email field is required.',
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already registered.',
-            'phone.required' => 'The phone field is required.',
             'phone.numeric' => 'The phone must be a number.',
             'phone.digits_between' => 'The phone must be between 10 and 15 digits.',
             'status.nullable' => 'The status field is optional.',

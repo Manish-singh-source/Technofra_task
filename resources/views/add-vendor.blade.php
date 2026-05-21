@@ -45,19 +45,19 @@
 							@enderror
 						</div>
 						<div class="col-md-6">
-							<label for="email" class="form-label">Email ID <span class="text-danger">*</span></label>
+							<label for="email" class="form-label">Email ID</label>
 							<input type="email" class="form-control @error('email') is-invalid @enderror"
 								   id="email" name="email" value="{{ old('email', isset($vendor) ? $vendor->email : '') }}"
-								   placeholder="Enter email address" required>
+								   placeholder="Enter email address">
 							@error('email')
 								<div class="invalid-feedback">{{ $message }}</div>
 							@enderror
 						</div>
 						<div class="col-md-6">
-							<label for="phone" class="form-label">Mobile Number <span class="text-danger">*</span></label>
+							<label for="phone" class="form-label">Mobile Number</label>
 							<input type="text" class="form-control @error('phone') is-invalid @enderror"
 								   id="phone" name="phone" value="{{ old('phone', isset($vendor) ? $vendor->phone : '') }}"
-								   placeholder="Enter mobile number" required>
+								   placeholder="Enter mobile number">
 							@error('phone')
 								<div class="invalid-feedback">{{ $message }}</div>
 							@enderror
