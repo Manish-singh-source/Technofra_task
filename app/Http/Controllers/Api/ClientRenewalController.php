@@ -17,6 +17,22 @@ class ClientRenewalController extends Controller
 {
     private const AVAILABLE_TABS = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
 
+    private function canViewAll($user): bool
+    {
+        return $user->hasRole('admin') || $user->hasRole('super admin');
+    }
+
+    private function scopedQuery($user)
+    {
+        $query = Service::query()->whereNotNull('client_id');
+
+        if (! $this->canViewAll($user)) {
+            $query->where('client_id', $user->id);
+        }
+
+        return $query;
+    }
+
     public function apiFormOptions()
     {
         return ApiResponse::success([
@@ -50,13 +66,14 @@ class ClientRenewalController extends Controller
     public function index(Request $request)
     {
         RenewalStatusHelper::markExpiredClientRenewals();
+        $user = auth()->user();
 
         $activeTab = $this->resolveActiveTab($request->input('tab'));
         $today = Carbon::today()->toDateString();
         $upcomingUntil = Carbon::today()->addDays(7)->toDateString();
 
-        $services = Service::with(['client.businessDetail', 'vendor'])
-            ->whereNotNull('client_id')
+        $services = $this->scopedQuery($user)
+            ->with(['client.businessDetail', 'vendor'])
             ->when($request->filled('from_date'), function ($query) use ($request) {
                 $query->whereDate('billing_date', '>=', $request->input('from_date'));
             })
@@ -131,14 +148,10 @@ class ClientRenewalController extends Controller
 
     public function show($id)
     {
-        $service = Service::with(['client.businessDetail', 'vendor'])->whereNotNull('client_id')->find($id);
-
-        if (! $service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Service not found',
-            ], 404);
-        }
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)
+            ->with(['client.businessDetail', 'vendor'])
+            ->findOrFail($id);
 
         $startDate = $service->start_date;
         $endDate = $service->end_date;
@@ -218,14 +231,8 @@ class ClientRenewalController extends Controller
 
     public function update(Request $request, $id)
     {
-        $service = Service::whereNotNull('client_id')->find($id);
-
-        if (! $service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Service not found',
-            ], 404);
-        }
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|exists:users,id',
@@ -272,14 +279,8 @@ class ClientRenewalController extends Controller
 
     public function destroy($id)
     {
-        $service = Service::whereNotNull('client_id')->find($id);
-
-        if (! $service) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Service not found',
-            ], 404);
-        }
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
 
         $service->delete();
 

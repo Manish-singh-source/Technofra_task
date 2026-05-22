@@ -156,36 +156,22 @@
 
 <body>
     <!-- PWA install controls -->
-    <div style="position: fixed; right: 16px; bottom: 16px; z-index: 1100; display: flex; gap: 8px; align-items: center;">
-        <button
-            id="pwa-install-btn"
-            type="button"
-            class="hidden btn btn-dark btn-sm"
-        >
+    <div
+        style="position: fixed; right: 16px; bottom: 16px; z-index: 1100; display: flex; gap: 8px; align-items: center;">
+        <button id="pwa-install-btn" type="button" class="hidden btn btn-dark btn-sm">
             Install App
         </button>
-        <span
-            id="pwa-installed-badge"
-            class="hidden badge bg-success"
-            style="font-size: 0.8rem;"
-        >
+        <span id="pwa-installed-badge" class="hidden badge bg-success" style="font-size: 0.8rem;">
             Installed
         </span>
     </div>
-    <div
-        id="ios-install-banner"
-        class="hidden alert alert-info py-2 px-3"
-        style="position: fixed; left: 16px; right: 16px; bottom: 70px; z-index: 1100; margin: 0;"
-    >
+    <div id="ios-install-banner" class="hidden alert alert-info py-2 px-3"
+        style="position: fixed; left: 16px; right: 16px; bottom: 70px; z-index: 1100; margin: 0;">
         Tap Share -&gt; Add to Home Screen
     </div>
-    <div
-        id="pwa-installed-toast"
-        class="hidden"
+    <div id="pwa-installed-toast" class="hidden"
         style="position: fixed; right: 16px; bottom: 56px; z-index: 1100; background: #198754; color: #fff; padding: 8px 12px; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,0.18);"
-        role="status"
-        aria-live="polite"
-    >
+        role="status" aria-live="polite">
         Installed
     </div>
 
@@ -378,13 +364,15 @@
                         <div class="menu-title">Meta Leads</div>
                     </a>
                 </li>
-                <li>
-                    <a href="{{ route('google-leads.index') }}">
-                        <div class="parent-icon"><i class="bx bx-line-chart"></i>
-                        </div>
-                        <div class="menu-title">Google Ads Leads</div>
-                    </a>
-                </li>
+                @can('view_google_ads_leads')
+                    <li>
+                        <a href="{{ route('google-leads.index') }}">
+                            <div class="parent-icon"><i class="bx bx-line-chart"></i>
+                            </div>
+                            <div class="menu-title">Google Ads Leads</div>
+                        </a>
+                    </li>
+                @endcan
                 @can('view_staff')
                     <li>
                         <a href="javascript:;" class="has-arrow">

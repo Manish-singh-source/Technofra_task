@@ -191,7 +191,7 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
-
+        // to do list api 
         Route::prefix('todos')->group(function () {
             Route::controller(TodoController::class)->group(function () {
                 Route::get('/', 'index');
