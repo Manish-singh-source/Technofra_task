@@ -188,6 +188,7 @@ class ProjectController extends Controller
             ->orderBy('last_name')
             ->get();
         $staff = User::staffMembers()
+            ->where('status', 'active')
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get();
@@ -273,6 +274,7 @@ class ProjectController extends Controller
             ->orderBy('last_name')
             ->get();
         $staff = User::staffMembers()
+            ->where('status', 'active')
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get();

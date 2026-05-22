@@ -44,6 +44,7 @@ class ProjectController extends Controller
                     ->values(),
                 'staff' => User::query()
                     ->where('role', 'staff')
+                    ->where('status', 'active')
                     ->orderBy('first_name')
                     ->get()
                     ->map(fn(User $member) => [
