@@ -47,7 +47,7 @@ Route::controller(AuthController::class)->group(function () {
 
     // Password Reset Routes
     Route::get('/forgot-password', 'showForgotPasswordForm')->name('password.request');
-    Route::post('/forgot-password', 'forgotPassword')->name('password.email')->middleware('throttle:5,1');
+    Route::post('/forgot-password', 'forgotPassword')->name('password.email');
     Route::get('/reset-password/{token}', 'showResetPasswordForm')->name('password.reset');
     Route::post('/reset-password', 'resetPassword')->name('password.update');
 
@@ -58,7 +58,7 @@ Route::controller(AuthController::class)->group(function () {
 
 
 // Protected routes (require authentication)
-Route::middleware('auth')->group(function () {
+Route::group([], function () {
 
     // Redirect root to dashboard
     Route::get('/', function () {
@@ -84,41 +84,41 @@ Route::middleware('auth')->group(function () {
 
     // ============================= Role Controller ====================
     Route::controller(RoleController::class)->group(function () {
-        Route::get('/roles', 'index')->name('roles.index')->middleware('permission:view_roles');
-        Route::get('/create-role', 'create')->name('role.create')->middleware('permission:create_roles');
-        Route::post('/store-role', 'store')->name('role.store')->middleware('permission:create_roles');
-        Route::get('/edit-role/{id}', 'edit')->name('role.edit')->middleware('permission:edit_roles');
-        Route::put('/edit-role/{id}', 'update')->name('role.update')->middleware('permission:edit_roles');
-        Route::delete('/role/delete/{id}', 'destroy')->name('role.delete')->middleware('permission:delete_roles');
-        Route::delete('/role/delete-selected', 'deleteSelected')->name('delete.selected.role')->middleware('permission:delete_roles');
+        Route::get('/roles', 'index')->name('roles.index');
+        Route::get('/create-role', 'create')->name('role.create');
+        Route::post('/store-role', 'store')->name('role.store');
+        Route::get('/edit-role/{id}', 'edit')->name('role.edit');
+        Route::put('/edit-role/{id}', 'update')->name('role.update');
+        Route::delete('/role/delete/{id}', 'destroy')->name('role.delete');
+        Route::delete('/role/delete-selected', 'deleteSelected')->name('delete.selected.role');
         // permanent delete & restore 
     });
     // ============================= End Role Controller ====================
 
     // Permission routes
-    // Route::middleware(['auth'])->group(function () {
-    //     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions')->middleware('permission:view_roles');
-    //     Route::get('/add-permission', [PermissionController::class, 'create'])->name('add-permission')->middleware('permission:create_roles');
-    //     Route::post('/add-permission', [PermissionController::class, 'store'])->name('store-permission')->middleware('permission:create_roles');
-    //     Route::get('/edit-permission/{id}', [PermissionController::class, 'edit'])->name('permission.edit')->middleware('permission:edit_roles');
-    //     Route::put('/edit-permission/{id}', [PermissionController::class, 'update'])->name('permission.update')->middleware('permission:edit_roles');
-    //     Route::delete('/permission/delete/{id}', [PermissionController::class, 'destroy'])->name('permission.delete')->middleware('permission:delete_roles');
-    //     Route::post('/permission/assign-to-role', [PermissionController::class, 'assignToRole'])->name('permission.assign-to-role')->middleware('permission:edit_roles');
-    //     Route::post('/permission/remove-from-role', [PermissionController::class, 'removeFromRole'])->name('permission.remove-from-role')->middleware('permission:edit_roles');
+    // Route::group([], function () {
+    //     Route::get('/permissions', [PermissionController::class, 'index'])->name('permissions');
+    //     Route::get('/add-permission', [PermissionController::class, 'create'])->name('add-permission');
+    //     Route::post('/add-permission', [PermissionController::class, 'store'])->name('store-permission');
+    //     Route::get('/edit-permission/{id}', [PermissionController::class, 'edit'])->name('permission.edit');
+    //     Route::put('/edit-permission/{id}', [PermissionController::class, 'update'])->name('permission.update');
+    //     Route::delete('/permission/delete/{id}', [PermissionController::class, 'destroy'])->name('permission.delete');
+    //     Route::post('/permission/assign-to-role', [PermissionController::class, 'assignToRole'])->name('permission.assign-to-role');
+    //     Route::post('/permission/remove-from-role', [PermissionController::class, 'removeFromRole'])->name('permission.remove-from-role');
     // });
 
 
     // ============================= Settings Controller ====================
     Route::controller(SettingController::class)->group(function () {
         Route::prefix('settings')->group(function () {
-            Route::get('/', 'index')->name('settings')->middleware('permission:view_general_settings|view_company_information|view_email_settings');
-            Route::put('/general', 'updateGeneral')->name('settings.update.general')->middleware('permission:view_general_settings');
-            Route::put('/company', 'updateCompany')->name('settings.update.company')->middleware('permission:view_company_information');
-            Route::put('/email', 'updateEmail')->name('settings.update.email')->middleware('permission:view_email_settings');
-            Route::put('/renewal', 'updateRenewal')->name('settings.update.renewal')->middleware('permission:view_email_settings');
-            Route::put('/teams', 'updateTeams')->name('settings.update.teams')->middleware('permission:view_general_settings');
-            Route::put('/departments', 'updateDepartments')->name('settings.update.departments')->middleware('permission:view_general_settings');
-            Route::post('/test-email', 'sendTestEmail')->name('settings.test.email')->middleware('permission:view_email_settings');
+            Route::get('/', 'index')->name('settings');
+            Route::put('/general', 'updateGeneral')->name('settings.update.general');
+            Route::put('/company', 'updateCompany')->name('settings.update.company');
+            Route::put('/email', 'updateEmail')->name('settings.update.email');
+            Route::put('/renewal', 'updateRenewal')->name('settings.update.renewal');
+            Route::put('/teams', 'updateTeams')->name('settings.update.teams');
+            Route::put('/departments', 'updateDepartments')->name('settings.update.departments');
+            Route::post('/test-email', 'sendTestEmail')->name('settings.test.email');
             Route::get('/search-tags', 'searchTags')->name('settings.search.tags');
         });
     });
@@ -128,45 +128,45 @@ Route::middleware('auth')->group(function () {
 
     // ============================= Staff Controller ====================
     Route::controller(StaffController::class)->group(function () {
-        Route::get('/staff', 'index')->name('staff')->middleware('permission:view_staff');
-        Route::delete('/staff/delete/{id}', 'destroy')->name('staff.destroy')->middleware('permission:delete_staff');
-        Route::delete('/staff/delete-selected', 'deleteSelected')->name('delete.selected.staff')->middleware('permission:delete_staff');
-        Route::post('/staff/restore/{id}', 'restore')->name('staff.restore')->middleware('permission:edit_staff');
-        Route::delete('/staff/force-delete/{id}', 'forceDelete')->name('staff.force-delete')->middleware('permission:delete_staff');
-        Route::get('/add-staff', 'create')->name('add-staff')->middleware('permission:create_staff');
-        Route::get('/view-staff/{id}', 'show')->name('view-staff')->middleware('permission:view_staff');
-        Route::post('/store-staff', 'store')->name('staff.store')->middleware('permission:create_staff');
-        Route::put('/update-staff/{id}', 'update')->name('staff.update')->middleware('permission:edit_staff');
+        Route::get('/staff', 'index')->name('staff');
+        Route::delete('/staff/delete/{id}', 'destroy')->name('staff.destroy');
+        Route::delete('/staff/delete-selected', 'deleteSelected')->name('delete.selected.staff');
+        Route::post('/staff/restore/{id}', 'restore')->name('staff.restore');
+        Route::delete('/staff/force-delete/{id}', 'forceDelete')->name('staff.force-delete');
+        Route::get('/add-staff', 'create')->name('add-staff');
+        Route::get('/view-staff/{id}', 'show')->name('view-staff');
+        Route::post('/store-staff', 'store')->name('staff.store');
+        Route::put('/update-staff/{id}', 'update')->name('staff.update');
     });
     // ============================= End Staff Controller ====================
 
 
     // ============================= Client Controller ====================
     Route::controller(ClientController::class)->group(function () {
-        Route::get('/clients', 'index')->name('client')->middleware('permission:view_renewals');
-        Route::get('/clients/create', 'create')->name('client.create')->middleware('permission:create_renewals');
-        Route::post('/clients', 'store')->name('client.store')->middleware('permission:create_renewals');
-        Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.client')->middleware('permission:delete_renewals');
-        Route::get('/clients/{id}', 'show')->name('client.view')->middleware('permission:view_renewals');
-        Route::get('/clients/{id}/edit', 'edit')->name('client.edit')->middleware('permission:edit_renewals');
-        Route::put('/clients/{id}', 'update')->name('client.update')->middleware('permission:edit_renewals');
-        Route::delete('/clients/{id}', 'destroy')->name('client.delete')->middleware('permission:delete_renewals');
-        Route::patch('/clients/{id}/status', 'toggleStatus')->name('client.toggleStatus')->middleware('permission:edit_renewals');
-        Route::post('/clients/bulk-upload', 'bulkUpload')->name('client.bulk-upload')->middleware('permission:create_renewals');
-        Route::get('/clients/download-template', 'downloadTemplate')->name('client.download-template')->middleware('permission:view_renewals');
+        Route::get('/clients', 'index')->name('client');
+        Route::get('/clients/create', 'create')->name('client.create');
+        Route::post('/clients', 'store')->name('client.store');
+        Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.client');
+        Route::get('/clients/{id}', 'show')->name('client.view');
+        Route::get('/clients/{id}/edit', 'edit')->name('client.edit');
+        Route::put('/clients/{id}', 'update')->name('client.update');
+        Route::delete('/clients/{id}', 'destroy')->name('client.delete');
+        Route::patch('/clients/{id}/status', 'toggleStatus')->name('client.toggleStatus');
+        Route::post('/clients/bulk-upload', 'bulkUpload')->name('client.bulk-upload');
+        Route::get('/clients/download-template', 'downloadTemplate')->name('client.download-template');
     });
 
-    // Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients')->middleware('permission:create_renewals');
+    // Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients');
 
     // Clients routes
     // Route::controller(CustomerController::class)->group(function () {
-    //     Route::get('/clients', 'index')->name('clients')->middleware('permission:view_clients');
-    //     Route::delete('/clients/{id}', 'delete')->name('clients.delete')->middleware('permission:delete_clients');
-    //     Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.clients')->middleware('permission:delete_clients');
-    //     Route::get('/add-clients', 'create')->name('add-clients')->middleware('permission:create_clients');
-    //     Route::post('/store-client', 'storeclient')->name('store-client')->middleware('permission:create_clients');
-    //     Route::get('/clients-details/{id}', 'show')->name('clients-details')->middleware('permission:view_clients');
-    //     Route::put('/clients-details/{id}', 'update')->name('clients.update')->middleware('permission:edit_clients');
+    //     Route::get('/clients', 'index')->name('clients');
+    //     Route::delete('/clients/{id}', 'delete')->name('clients.delete');
+    //     Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.clients');
+    //     Route::get('/add-clients', 'create')->name('add-clients');
+    //     Route::post('/store-client', 'storeclient')->name('store-client');
+    //     Route::get('/clients-details/{id}', 'show')->name('clients-details');
+    //     Route::put('/clients-details/{id}', 'update')->name('clients.update');
     // });
 
     // ============================= End Client Controller ====================
@@ -178,62 +178,62 @@ Route::middleware('auth')->group(function () {
 
     // ============================= Vendor Controller ====================
     // Vendor CRUD routes
-    Route::resource('vendors', VendorController::class)->middleware('permission:view_vendors');
+    Route::resource('vendors', VendorController::class);
     Route::get('/vendor', function () {
         return view('vendor');
-    })->name('vendor')->middleware('permission:view_renewals');
+    })->name('vendor');
     // Additional routes for backward compatibility
     Route::controller(VendorController::class)->group(function () {
-        Route::get('/add-vendor', 'create')->name('add-vendor')->middleware('permission:create_vendors');
-        Route::post('/vendor1/bulk-upload', 'bulkUpload')->name('vendors.bulk-upload')->middleware('permission:create_vendors');
-        Route::get('/vendor1/download-template', 'downloadTemplate')->name('vendors.download-template')->middleware('permission:view_vendors');
+        Route::get('/add-vendor', 'create')->name('add-vendor');
+        Route::post('/vendor1/bulk-upload', 'bulkUpload')->name('vendors.bulk-upload');
+        Route::get('/vendor1/download-template', 'downloadTemplate')->name('vendors.download-template');
         Route::get('/vendor1', 'index')->name('vendor1');
         Route::delete('/vendor1/delete-selected', 'deleteSelected')->name('delete.selected.vendor');
         Route::post('/vendor1/toggle-status',  'toggleStatus')->name('vendor1.toggleStatus');
     });
 
     // Vendor Service CRUD routes
-    Route::resource('vendor-services', VendorServiceController::class)->middleware('permission:view_renewals');
-    Route::post('/vendor-services/delete-selected', [VendorServiceController::class, 'deleteSelected'])->name('delete.selected.vendor-service')->middleware('permission:delete_renewals');
+    Route::resource('vendor-services', VendorServiceController::class);
+    Route::post('/vendor-services/delete-selected', [VendorServiceController::class, 'deleteSelected'])->name('delete.selected.vendor-service');
     // ============================= End Vendor Controller ====================
 
 
     // Project routes
     Route::controller(ProjectController::class)->group(function () {
-        Route::get('/project', 'index')->name('project')->middleware('permission:view_projects');
+        Route::get('/project', 'index')->name('project');
         Route::get('/my-projects', 'myProjects')->name('my-projects');
-        Route::get('/edit-project/{id}', 'edit')->name('edit-project')->middleware('permission:edit_projects');
-        Route::put('/edit-project/{id}', 'update')->name('update-project')->middleware('permission:edit_projects');
-        Route::get('/add-project', 'create')->name('add-project')->middleware('permission:create_projects');
-        Route::post('/add-project', 'store')->name('store-project')->middleware('permission:create_projects');
-        Route::get('/project-details/{id}', 'show')->name('project-details')->middleware('permission:view_projects');
-        Route::post('/project/{projectId}/milestones', 'storeMilestone')->name('project.milestones.store')->middleware('permission:edit_projects');
-        Route::put('/project/{projectId}/milestones/{milestoneId}', 'updateMilestone')->name('project.milestones.update')->middleware('permission:edit_projects');
-        Route::delete('/project/{projectId}/milestones/{milestoneId}', 'destroyMilestone')->name('project.milestones.destroy')->middleware('permission:edit_projects');
-        Route::post('/project/{projectId}/issues', 'storeIssue')->name('project.issues.store')->middleware('permission:edit_projects');
-        Route::put('/project/{projectId}/issues/{issueId}', 'updateIssue')->name('project.issues.update')->middleware('permission:edit_projects');
-        Route::delete('/project/{projectId}/issues/{issueId}', 'destroyIssue')->name('project.issues.destroy')->middleware('permission:edit_projects');
-        Route::delete('/project/delete/{id}', 'destroy')->name('project.destroy')->middleware('permission:delete_projects');
-        Route::delete('/project/delete-selected', 'deleteSelected')->name('delete.selected.project')->middleware('permission:delete_projects');
+        Route::get('/edit-project/{id}', 'edit')->name('edit-project');
+        Route::put('/edit-project/{id}', 'update')->name('update-project');
+        Route::get('/add-project', 'create')->name('add-project');
+        Route::post('/add-project', 'store')->name('store-project');
+        Route::get('/project-details/{id}', 'show')->name('project-details');
+        Route::post('/project/{projectId}/milestones', 'storeMilestone')->name('project.milestones.store');
+        Route::put('/project/{projectId}/milestones/{milestoneId}', 'updateMilestone')->name('project.milestones.update');
+        Route::delete('/project/{projectId}/milestones/{milestoneId}', 'destroyMilestone')->name('project.milestones.destroy');
+        Route::post('/project/{projectId}/issues', 'storeIssue')->name('project.issues.store');
+        Route::put('/project/{projectId}/issues/{issueId}', 'updateIssue')->name('project.issues.update');
+        Route::delete('/project/{projectId}/issues/{issueId}', 'destroyIssue')->name('project.issues.destroy');
+        Route::delete('/project/delete/{id}', 'destroy')->name('project.destroy');
+        Route::delete('/project/delete-selected', 'deleteSelected')->name('delete.selected.project');
 
         // Project File Routes
-        Route::post('/project/{projectId}/upload-file', 'uploadFile')->name('project.upload-file')->middleware('permission:edit_projects');
-        Route::get('/project/file/{fileId}/download', 'downloadFile')->name('project.file.download')->middleware('permission:view_projects');
-        Route::delete('/project/file/{fileId}/delete', 'deleteFile')->name('project.file.delete')->middleware('permission:delete_projects');
-        Route::post('/project-details/{id}/comment', 'storeComment')->name('project.comment.store')->middleware('permission:view_projects');
+        Route::post('/project/{projectId}/upload-file', 'uploadFile')->name('project.upload-file');
+        Route::get('/project/file/{fileId}/download', 'downloadFile')->name('project.file.download');
+        Route::delete('/project/file/{fileId}/delete', 'deleteFile')->name('project.file.delete');
+        Route::post('/project-details/{id}/comment', 'storeComment')->name('project.comment.store');
     });
 
     // Task routes
     Route::controller(TaskController::class)->group(function () {
-        Route::get('/task', 'index')->name('task')->middleware('permission:view_tasks');
-        Route::get('/add-task', 'create')->name('add-task')->middleware('permission:create_tasks');
-        Route::post('/add-task', 'store')->name('add-task.store')->middleware('permission:create_tasks');
-        Route::get('/task-details/{id}', 'show')->name('task-details')->middleware('permission:view_tasks');
-        Route::post('/task-details/{id}/comment', 'storeComment')->name('task.comment.store')->middleware('permission:view_tasks');
-        Route::get('/edit-task/{id}', 'edit')->name('edit-task')->middleware('permission:edit_tasks');
-        Route::put('/edit-task/{id}', 'update')->name('edit-task.update')->middleware('permission:edit_tasks');
-        Route::delete('/task/delete/{id}', 'destroy')->name('task.destroy')->middleware('permission:delete_tasks');
-        Route::delete('/task/delete-selected', 'deleteSelected')->name('delete.selected.task')->middleware('permission:delete_tasks');
+        Route::get('/task', 'index')->name('task');
+        Route::get('/add-task', 'create')->name('add-task');
+        Route::post('/add-task', 'store')->name('add-task.store');
+        Route::get('/task-details/{id}', 'show')->name('task-details');
+        Route::post('/task-details/{id}/comment', 'storeComment')->name('task.comment.store');
+        Route::get('/edit-task/{id}', 'edit')->name('edit-task');
+        Route::put('/edit-task/{id}', 'update')->name('edit-task.update');
+        Route::delete('/task/delete/{id}', 'destroy')->name('task.destroy');
+        Route::delete('/task/delete-selected', 'deleteSelected')->name('delete.selected.task');
     });
 
     // Client issue routes
@@ -258,16 +258,16 @@ Route::middleware('auth')->group(function () {
 
     // Lead CRUD routes
     Route::controller(LeadController::class)->group(function () {
-        Route::get('/leads', 'index')->name('leads')->middleware('permission:view_leads');
-        Route::get('/add-lead', 'create')->name('add-lead')->middleware('permission:create_leads');
-        Route::post('/store-lead', 'store')->name('lead.store')->middleware('permission:create_leads');
-        Route::get('/view-lead/{id}', 'show')->name('lead.show')->middleware('permission:view_leads');
-        Route::get('/edit-lead/{id}', 'edit')->name('lead.edit')->middleware('permission:edit_leads');
-        Route::put('/update-lead/{id}', 'update')->name('lead.update')->middleware('permission:edit_leads');
-        Route::delete('/delete-lead/{id}', 'destroy')->name('lead.destroy')->middleware('permission:delete_leads');
-        Route::post('/lead/toggle-status', 'toggleStatus')->name('lead.toggleStatus')->middleware('permission:edit_leads');
-        Route::post('/lead/delete-selected', 'deleteSelected')->name('lead.delete-selected')->middleware('permission:delete_leads');
-        Route::get('/lead/export', 'export')->name('lead.export')->middleware('permission:view_leads');
+        Route::get('/leads', 'index')->name('leads');
+        Route::get('/add-lead', 'create')->name('add-lead');
+        Route::post('/store-lead', 'store')->name('lead.store');
+        Route::get('/view-lead/{id}', 'show')->name('lead.show');
+        Route::get('/edit-lead/{id}', 'edit')->name('lead.edit');
+        Route::put('/update-lead/{id}', 'update')->name('lead.update');
+        Route::delete('/delete-lead/{id}', 'destroy')->name('lead.destroy');
+        Route::post('/lead/toggle-status', 'toggleStatus')->name('lead.toggleStatus');
+        Route::post('/lead/delete-selected', 'deleteSelected')->name('lead.delete-selected');
+        Route::get('/lead/export', 'export')->name('lead.export');
     });
 
 
@@ -298,47 +298,47 @@ Route::middleware('auth')->group(function () {
     Route::controller(BookCallController::class)->group(function () {
         Route::get('/book-call', 'index')
             ->name('book-call.index')
-            ->middleware('permission:view_book_calls');
+            ;
         Route::delete('/book-call/{bookCall}', 'destroy')
             ->name('book-call.destroy')
-            ->middleware('permission:view_book_calls');
+            ;
     });
 
     // Digital Marketing Leads routes
     Route::controller(DigitalMarketingLeadController::class)->group(function () {
         Route::get('/digital-marketing-leads', 'index')
             ->name('digital-marketing-leads.index')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
         Route::delete('/digital-marketing-leads/{digitalMarketingLead}', 'destroy')
             ->name('digital-marketing-leads.destroy')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
     });
 
     Route::controller(WebEnquiryController::class)->group(function () {
         Route::get('/web-enquiry/contact', 'contact')
             ->name('web-enquiry.contact')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
         Route::delete('/web-enquiry/contact/{id}', 'contactDestroy')
             ->name('web-enquiry.contact.destroy')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
         Route::get('/web-enquiry/career', 'career')
             ->name('web-enquiry.career')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
         Route::get('/web-enquiry/career/{id}', 'careerShow')
             ->name('web-enquiry.career.show')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
         Route::delete('/web-enquiry/career/{id}', 'careerDestroy')
             ->name('web-enquiry.career.destroy')
-            ->middleware('permission:view_digital_marketing_leads');
+            ;
     });
 
 
 
 
     // Service CRUD routes
-    Route::resource('services', ServiceController::class)->middleware('permission:view_services');
+    Route::resource('services', ServiceController::class);
     Route::controller(ServiceController::class)->group(function () {
-        Route::post('/services/delete-selected', 'deleteSelected')->name('delete.selected.service')->middleware('permission:delete_services');
+        Route::post('/services/delete-selected', 'deleteSelected')->name('delete.selected.service');
         Route::get('/servies', 'index')->name('servies');
     });
 
@@ -351,11 +351,11 @@ Route::middleware('auth')->group(function () {
     // Other protected routes
     Route::get('/add-servies', function () {
         return view('add-servies');
-    })->name('add-servies')->middleware('permission:create_renewals');
+    })->name('add-servies');
 
     Route::get('/servies', function () {
         return view('servies');
-    })->name('servies')->middleware('permission:view_renewals');
+    })->name('servies');
 
     // Mail routes for sending renewal emails
     Route::controller(MailController::class)->group(function () {
@@ -378,7 +378,7 @@ Route::middleware('auth')->group(function () {
 
     // Calendar Event routes
     Route::controller(CalendarEventController::class)->group(function () {
-        Route::prefix('calendar')->name('calendar.')->middleware('permission:view_calendar|view_dashboard')->group(function () {
+        Route::prefix('calendar')->name('calendar.')->group(function () {
             Route::get('/events', 'getEvents')->name('events');
             Route::post('/events', 'store')->name('store');
             Route::get('/events/{id}', 'show')->name('show');
@@ -392,19 +392,18 @@ Route::middleware('auth')->group(function () {
     // Meta Leads:
     Route::prefix('leads/meta')->name('leads.')->group(function () {
         Route::get('/', [App\Http\Controllers\MetaLeadUiController::class, 'index'])
-            ->name('index')
-            ->middleware('permission:view_leads');
+            ->name('index') ;
         Route::get('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'show'])
-            ->name('show')
-            ->middleware('permission:view_leads');
+            ->name('show') ;
         Route::post('/sync', [App\Http\Controllers\MetaLeadUiController::class, 'sync'])
-            ->name('sync')
-            ->middleware('permission:create_leads');
+            ->name('sync');
         Route::delete('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'destroy'])
-            ->name('destroy')
-            ->middleware('permission:delete_leads');
+            ->name('destroy');
     });
 
 });
 
-Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show'])->middleware('auth');
+Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
+
+
+
