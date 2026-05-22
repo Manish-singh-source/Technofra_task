@@ -399,7 +399,7 @@ Route::middleware('auth')->group(function () {
             ->name('sync');
         Route::delete('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'destroy'])
             ->name('destroy');
-    });
+    });                         
 
     Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
 });

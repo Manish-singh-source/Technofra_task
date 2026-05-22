@@ -13,6 +13,7 @@ use App\Models\Task;
 use App\Models\VendorService;
 use App\Models\WebappLead;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -36,12 +37,24 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        $user = auth()->user();
+        $today = Carbon::today();
+        $projectBaseQuery = $this->dashboardProjectQuery();
+        $taskBaseQuery = $this->dashboardTaskQuery();
+        $leadBaseQuery = $this->dashboardLeadQuery();
+        $clientIssueBaseQuery = $this->dashboardClientIssueQuery();
+        $canViewAll = $this->isPrivilegedDashboardUser();
 
         // Renewal Data
-        $clientRenewals = Service::with('client.businessDetail')
-            // ->latest()
+        $clientRenewalsQuery = Service::with('client.businessDetail')
             ->whereNotNull('client_id')
-            ->whereDate('end_date', '>', Carbon::today())
+            ->whereDate('end_date', '>', $today);
+
+        if (! $canViewAll) {
+            $clientRenewalsQuery->where('client_id', optional($user)->id);
+        }
+
+        $clientRenewals = $clientRenewalsQuery
             ->orderBy('end_date')
             ->limit(3)
             ->get()
@@ -58,9 +71,17 @@ class DashboardController extends Controller
                 'type' => 'client_renewal'
             ]);
 
-        $vendorRenewals = VendorService::with('vendor')
-            // ->latest()
-            ->whereDate('end_date', '>', Carbon::today())
+        $vendorRenewalsQuery = VendorService::with('vendor')
+            ->whereDate('end_date', '>', $today);
+
+        if (! $canViewAll) {
+            $vendorRenewalsQuery->whereIn('vendor_id', Service::query()
+                ->whereNotNull('vendor_id')
+                ->where('client_id', optional($user)->id)
+                ->select('vendor_id'));
+        }
+
+        $vendorRenewals = $vendorRenewalsQuery
             ->orderBy('end_date')
             ->limit(3)
             ->get()
@@ -82,19 +103,21 @@ class DashboardController extends Controller
             ->values();
 
         // Projects and Tasks Count
-        $projectsCount = Project::count();
-        $tasksCount = Task::count();
+        $projectsCount = (clone $projectBaseQuery)->count();
+        $tasksCount = (clone $taskBaseQuery)->count();
 
         // Projects Summary month wise
         $months = collect(range(11, 0))
             ->map(fn($offset) => Carbon::now()->subMonths($offset)->format('Y-m'));
 
-        $projectMonthlyCounts = Project::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month_key, COUNT(*) as total")
+        $projectMonthlyCounts = (clone $projectBaseQuery)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month_key, COUNT(*) as total")
             ->where('created_at', '>=', Carbon::now()->subMonths(11)->startOfMonth())
             ->groupBy('month_key')
             ->pluck('total', 'month_key');
 
-        $taskMonthlyCounts = Task::selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month_key, COUNT(*) as total")
+        $taskMonthlyCounts = (clone $taskBaseQuery)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as month_key, COUNT(*) as total")
             ->where('created_at', '>=', Carbon::now()->subMonths(11)->startOfMonth())
             ->groupBy('month_key')
             ->pluck('total', 'month_key');
@@ -113,11 +136,11 @@ class DashboardController extends Controller
         })->values();
 
         // Tasks Summary 
-        $notStartedTasks = Task::where('status', 'not_started')->count();
-        $completedTasks = Task::where('status', 'completed')->count();
-        $inProgressTasks = Task::where('status', 'in_progress')->count();
-        $onHoldTasks = Task::where('status', 'on_hold')->count();
-        $cancelledTasks = Task::where('status', 'cancelled')->count();
+        $notStartedTasks = (clone $taskBaseQuery)->where('status', 'not_started')->count();
+        $completedTasks = (clone $taskBaseQuery)->where('status', 'completed')->count();
+        $inProgressTasks = (clone $taskBaseQuery)->where('status', 'in_progress')->count();
+        $onHoldTasks = (clone $taskBaseQuery)->where('status', 'on_hold')->count();
+        $cancelledTasks = (clone $taskBaseQuery)->where('status', 'cancelled')->count();
         $tasksSummary = [
             'total' => $tasksCount,
             'not_started' => $notStartedTasks,
@@ -128,7 +151,12 @@ class DashboardController extends Controller
         ];
 
         // Client Issues 
-        $clientIssues = ClientIssue::with('project', 'customer')->latest()->limit(3)->get()->map(fn($issue) => [
+        $clientIssues = (clone $clientIssueBaseQuery)
+            ->with('project', 'customer')
+            ->latest()
+            ->limit(3)
+            ->get()
+            ->map(fn($issue) => [
             'id' => $issue->id,
             'issue_description' => $issue->issue_description,
             'priority' => $issue->priority,
@@ -138,7 +166,7 @@ class DashboardController extends Controller
             'customer_name' => optional($issue->customer)->first_name,
             'created_at' => $issue->created_at,
             'updated_at' => $issue->updated_at,
-        ]);
+            ]);
 
         return response()->json([
             'data' => 'Dashboard Data Retrieved Successfully.',
@@ -174,20 +202,126 @@ class DashboardController extends Controller
      */
     public function quickStats()
     {
-        $leadsCount = Lead::count();
-        $digitalMarketingLeadsCount = DigitalMarketingLead::count();
+        $projectBaseQuery = $this->dashboardProjectQuery();
+        $taskBaseQuery = $this->dashboardTaskQuery();
+        $leadBaseQuery = $this->dashboardLeadQuery();
+        $clientIssueBaseQuery = $this->dashboardClientIssueQuery();
+        $digitalMarketingLeadsBaseQuery = $this->dashboardDigitalMarketingLeadQuery();
+        $webAppLeadsBaseQuery = $this->dashboardWebAppLeadQuery();
+
+        $leadsCount = (clone $leadBaseQuery)->count();
+        $digitalMarketingLeadsCount = (clone $digitalMarketingLeadsBaseQuery)->count();
         $webAppLeads = WebappLead::count();
+        $webAppLeads = (clone $webAppLeadsBaseQuery)->count();
 
         $total_leads = $leadsCount + $digitalMarketingLeadsCount + $webAppLeads;
 
 
         $data = [
-            'total_projects' => Project::count() ?? 0,
+            'total_projects' => (clone $projectBaseQuery)->count() ?? 0,
             'total_leads' => $total_leads ?? 0,
-            'total_tasks' => Task::count() ?? 0,
-            'total_issues' => ClientIssue::count() ?? 0,
+            'total_tasks' => (clone $taskBaseQuery)->count() ?? 0,
+            'total_issues' => (clone $clientIssueBaseQuery)->count() ?? 0,
         ];
 
         return ApiResponse::success($data, 'Quick Stats Retrieved Successfully.');
+    }
+
+    private function isPrivilegedDashboardUser(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        return $user->hasAnyRole(['admin', 'super_admin2', 'super_admin']);
+    }
+
+    private function dashboardProjectQuery(): Builder
+    {
+        $query = Project::query();
+
+        if ($this->isPrivilegedDashboardUser()) {
+            return $query;
+        }
+
+        $userId = (int) auth()->id();
+
+        return $query->where(function (Builder $builder) use ($userId) {
+            $builder->whereJsonContains('members', $userId)
+                ->orWhereJsonContains('members', (string) $userId);
+        });
+    }
+
+    private function dashboardTaskQuery(): Builder
+    {
+        $query = Task::query();
+
+        if ($this->isPrivilegedDashboardUser()) {
+            return $query;
+        }
+
+        $userId = (int) auth()->id();
+
+        return $query->where(function (Builder $builder) use ($userId) {
+            $builder->whereJsonContains('assignees', $userId)
+                ->orWhereJsonContains('assignees', (string) $userId)
+                ->orWhereJsonContains('followers', $userId)
+                ->orWhereJsonContains('followers', (string) $userId);
+        });
+    }
+
+    private function dashboardLeadQuery(): Builder
+    {
+        $query = Lead::query();
+
+        if ($this->isPrivilegedDashboardUser()) {
+            return $query;
+        }
+
+        $userId = (int) auth()->id();
+
+        return $query->where(function (Builder $builder) use ($userId) {
+            $builder->whereJsonContains('assigned', $userId)
+                ->orWhereJsonContains('assigned', (string) $userId);
+        });
+    }
+
+    private function dashboardClientIssueQuery(): Builder
+    {
+        $query = ClientIssue::query();
+
+        if ($this->isPrivilegedDashboardUser()) {
+            return $query;
+        }
+
+        $userId = (int) auth()->id();
+
+        return $query->whereHas('teamAssignments', function (Builder $builder) use ($userId) {
+            $builder->where('assigned_to', $userId);
+        });
+    }
+
+    private function dashboardDigitalMarketingLeadQuery(): Builder
+    {
+        $query = DigitalMarketingLead::query();
+
+        if ($this->isPrivilegedDashboardUser()) {
+            return $query;
+        }
+
+        return $query->where('assigned_to', auth()->id());
+    }
+
+    private function dashboardWebAppLeadQuery(): Builder
+    {
+        $query = WebappLead::query();
+
+        if ($this->isPrivilegedDashboardUser()) {
+            return $query;
+        }
+
+        return $query->where('assigned_to', auth()->id());
     }
 }
