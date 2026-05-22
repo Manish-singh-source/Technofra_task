@@ -58,7 +58,7 @@ Route::controller(AuthController::class)->group(function () {
 
 
 // Protected routes (require authentication)
-Route::group([], function () {
+Route::middleware('auth')->group(function () {
 
     // Redirect root to dashboard
     Route::get('/', function () {
@@ -401,9 +401,9 @@ Route::group([], function () {
             ->name('destroy');
     });
 
+    Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
 });
 
-Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
 
 
 
