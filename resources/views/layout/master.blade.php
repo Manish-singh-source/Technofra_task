@@ -227,6 +227,7 @@
                             <div class="menu-title">Renewal Master</div>
                         </a>
                         <ul>
+                             @can('view_services')
                             <li>
                                 <a href="{{ route('services.index') }}">
                                     <div class="parent-icon">
@@ -235,6 +236,10 @@
                                     <div class="menu-title">Client Renewal</div>
                                 </a>
                             </li>
+                             @endcan
+
+
+                              @can('view_vendors_services')
                             <li>
                                 <a href="{{ route('vendor-services.index') }}">
                                     <div class="parent-icon">
@@ -243,6 +248,8 @@
                                     <div class="menu-title">Vendor Renewal</div>
                                 </a>
                             </li>
+
+                             @endcan
                             {{-- 
                             <li>
                                 <a href="{{ route('client') }}">
@@ -252,6 +259,8 @@
                                     <div class="menu-title">Client</div>
                                 </a>
                             </li> --}}
+                            @can('view_vendors')
+                               
                             <li>
                                 <a href="{{ route('vendor1') }}">
                                     <div class="parent-icon">
@@ -260,7 +269,8 @@
                                     <div class="menu-title">Vendor</div>
                                 </a>
                             </li>
-
+ 
+                            @endcan
                         </ul>
                     </li>
                 @endcan

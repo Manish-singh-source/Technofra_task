@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RenewalStatusHelper;
+use App\Models\Service;
 use App\Models\Vendor;
 use App\Imports\VendorsImport;
 use Illuminate\Http\Request;
@@ -10,6 +12,25 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class VendorController extends Controller
 {
+    private function canViewAll($user): bool
+    {
+        return $user && ($user->hasRole('admin') || $user->hasRole('super admin'));
+    }
+
+    private function scopedQuery($user)
+    {
+        $query = Vendor::query();
+
+        if (! $this->canViewAll($user)) {
+            $query->whereIn('id', Service::query()
+                ->whereNotNull('vendor_id')
+                ->where('client_id', optional($user)->id)
+                ->select('vendor_id'));
+        }
+
+        return $query;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -17,22 +38,29 @@ class VendorController extends Controller
      */
     public function deleteSelected(Request $request)
     {
+        $user = auth()->user();
         $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
-        Vendor::destroy($ids);
+        $ids = array_map('intval', $ids);
+
+        $this->scopedQuery($user)->whereIn('id', $ids)->delete();
+
         return redirect()->back()->with('success', 'Selected Vendors deleted successfully.');
     }
+
     public function toggleStatus(Request $request)
     {
-        $Vendors = Vendor::findOrFail($request->id);
-        $Vendors->status = $request->status;
-        $Vendors->save();
+        $user = auth()->user();
+        $vendor = $this->scopedQuery($user)->findOrFail($request->id);
+        $vendor->status = $request->status;
+        $vendor->save();
 
         return response()->json(['success' => true]);
     }
 
     public function index()
     {
-        $vendors = Vendor::latest()->get();
+        $user = auth()->user();
+        $vendors = $this->scopedQuery($user)->latest()->get();
         return view('vendor1', compact('vendors'));
     }
 
@@ -94,7 +122,8 @@ class VendorController extends Controller
      */
     public function show($id)
     {
-        $vendor = Vendor::with('services.client')->findOrFail($id);
+        $user = auth()->user();
+        $vendor = $this->scopedQuery($user)->with('services.client')->findOrFail($id);
         return view('vendor-details', compact('vendor'));
     }
 
@@ -106,7 +135,8 @@ class VendorController extends Controller
      */
     public function edit($id)
     {
-        $vendor = Vendor::findOrFail($id);
+        $user = auth()->user();
+        $vendor = $this->scopedQuery($user)->findOrFail($id);
         return view('add-vendor', compact('vendor'));
     }
 
@@ -119,7 +149,8 @@ class VendorController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $vendor = Vendor::findOrFail($id);
+        $user = auth()->user();
+        $vendor = $this->scopedQuery($user)->findOrFail($id);
 
         // Validate the request
         $validator = Validator::make($request->all(), [
@@ -163,7 +194,8 @@ class VendorController extends Controller
      */
     public function destroy($id)
     {
-        $vendor = Vendor::findOrFail($id);
+        $user = auth()->user();
+        $vendor = $this->scopedQuery($user)->findOrFail($id);
         $vendor->delete();
 
         return redirect()->route('vendors.index')

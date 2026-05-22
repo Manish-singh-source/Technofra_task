@@ -14,6 +14,22 @@ use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
+    private function canViewAll($user): bool
+    {
+        return $user && ($user->hasRole('admin') || $user->hasRole('super admin'));
+    }
+
+    private function scopedQuery($user)
+    {
+        $query = Service::query()->whereNotNull('client_id');
+
+        if (! $this->canViewAll($user)) {
+            $query->where('client_id', optional($user)->id);
+        }
+
+        return $query;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -21,9 +37,12 @@ class ServiceController extends Controller
      */
     public function deleteSelected(Request $request)
     {
+        $user = auth()->user();
         $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
         $ids = array_map('intval', $ids);
-        Service::whereNotNull('client_id')->whereIn('id', $ids)->delete();
+
+        $this->scopedQuery($user)->whereIn('id', $ids)->delete();
+
         return redirect()->back()->with('success', 'Selected Service deleted successfully.');
     }
 
@@ -31,6 +50,7 @@ class ServiceController extends Controller
     {
         RenewalStatusHelper::markExpiredClientRenewals();
 
+        $user = auth()->user();
         $today = Carbon::today()->toDateString();
         $fiveDaysFromNow = Carbon::today()->addDays(5)->toDateString();
         $activeTab = $request->get('tab', 'all');
@@ -40,7 +60,7 @@ class ServiceController extends Controller
             $activeTab = 'all';
         }
 
-        $query = Service::with(['company', 'client.businessDetail', 'vendor'])->whereNotNull('client_id');
+        $query = $this->scopedQuery($user)->with(['company', 'client.businessDetail', 'vendor']);
 
         if ($request->filled('from_date')) {
             $query->where('billing_date', '>=', $request->from_date);
@@ -170,7 +190,8 @@ class ServiceController extends Controller
      */
     public function show($id)
     {
-        $service = Service::with(['company', 'client', 'vendor'])->whereNotNull('client_id')->findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->with(['company', 'client', 'vendor'])->findOrFail($id);
         return view('services.show', compact('service'));
     }
 
@@ -182,7 +203,8 @@ class ServiceController extends Controller
      */
     public function edit($id)
     {
-        $service = Service::whereNotNull('client_id')->findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
         $clientCompanies = ClientBusinessDetail::query()
             ->with('user:id,first_name,last_name,email,role')
             ->whereHas('user', fn ($query) => $query->where('role', 'client'))
@@ -201,7 +223,8 @@ class ServiceController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $service = Service::whereNotNull('client_id')->findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'client_business_detail_id' => [
@@ -265,7 +288,8 @@ class ServiceController extends Controller
      */
     public function destroy($id)
     {
-        $service = Service::whereNotNull('client_id')->findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
         $service->delete();
 
         return redirect()->route('services.index')

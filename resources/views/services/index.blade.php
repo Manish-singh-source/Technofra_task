@@ -113,9 +113,11 @@
                                     </a>
                                 </div>
                                 <div class="col-md-3 text-end">
+                                     @can('create_service')
                                     <a href="{{ route('services.create') }}" class="btn btn-primary radius-30">
                                         <i class="bx bxs-plus-square"></i>Add New Service
                                     </a>
+                                     @endcan
                                 </div>
                             </form>
                         </div>
@@ -233,12 +235,24 @@
                                         </td>
                                         <td>
                                             <div class="d-flex order-actions">
+                                                 @can('view_services_detail')
                                                 <a href="{{ route('services.show', $service->id) }}" title="View"><i
                                                         class='bx bxs-show'></i></a>
+                                                  
+                                                 @endcan    
+                                                 
+                                                @can('edit_services')
                                                 <a href="{{ route('services.edit', $service->id) }}" class="ms-3"
                                                     title="Edit"><i class='bx bxs-edit'></i></a>
+                                                @endcan
+
+                                                 @can('send_mail_services')
                                                 <a href="{{ route('send-mail', $service->id) }}" class="ms-3"
                                                     title="Send Renewal Email"><i class='bx bx-mail-send'></i></a>
+                                                 @endcan
+
+
+                                                @can('delete_services')
                                                 <form method="POST"
                                                     action="{{ route('services.destroy', $service->id) }}"
                                                     class="d-inline ms-3"
@@ -250,6 +264,7 @@
                                                         <i class='bx bxs-trash'></i>
                                                     </button>
                                                 </form>
+                                                 @endcan
                                             </div>
                                         </td>
                                     </tr>

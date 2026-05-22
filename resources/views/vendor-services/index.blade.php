@@ -96,9 +96,11 @@
                                 </a>
                             </div>
                             <div class="col-md-3 text-end">
+                                 @can('create_vendors_service')
                                 <a href="{{ route('vendor-services.create') }}" class="btn btn-primary radius-30">
                                     <i class="bx bxs-plus-square"></i>Add New Vendor Service
                                 </a>
+                                 @endcan
                             </div>
                         </form>
                     </div>
@@ -203,9 +205,18 @@
                                     </td>
                                     <td>
                                         <div class="d-flex order-actions">
+                                            @can('view_vendors_service_detail')
                                             <a href="{{ route('vendor-services.show', $service->id) }}" title="View"><i class='bx bxs-show'></i></a>
-                                            <a href="{{ route('vendor-services.edit', $service->id) }}" class="ms-3" title="Edit"><i class='bx bxs-edit'></i></a>
+                                             @endcan
+
+                                             @can('edit_vendor_service')
+                                            <a href="{{ route('vendor-services.edit', $service->id) }}" class="ms-3" title="Edit"><i class='bx bxs-edit'></i></a> 
+                                            @endcan
+                                            @can('send_mail_vendor_services')
                                             <a href="{{ route('send-mail', $service->id) }}" class="ms-3" title="Send Renewal Email"><i class='bx bx-mail-send'></i></a>
+                                            @endcan
+
+                                            @can('delete_vendor_services')
                                             <form method="POST" action="{{ route('vendor-services.destroy', $service->id) }}" class="d-inline ms-3"
                                                 onsubmit="return confirm('Are you sure you want to delete this vendor service?')">
                                                 @csrf
@@ -214,6 +225,7 @@
                                                     <i class='bx bxs-trash'></i>
                                                 </button>
                                             </form>
+                                            @endcan
                                         </div>
                                     </td>
                                 </tr>

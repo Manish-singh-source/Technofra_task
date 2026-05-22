@@ -61,9 +61,11 @@
                                     </a></li>
                                 </ul>
                             </div>
+                            @can('create_vendors')
                             <a href="{{ route('vendors.create') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Vendor
                             </a>
+                              @endcan
                         </div>
                     </div>
                     <div class="table-responsive">
@@ -101,10 +103,15 @@
                                         </td>
                                         <td>
                                             <div class="d-flex order-actions">
+                                                @can('view_vendor_detail')
                                                 <a href="{{ route('vendors.show', $vendor->id) }}" title="View"><i
                                                         class='bx bxs-show'></i></a>
+                                                @endcan
+                                                @can('edit_vendors')
                                                 <a href="{{ route('vendors.edit', $vendor->id) }}" class="ms-3"
                                                     title="Edit"><i class='bx bxs-edit'></i></a>
+                                                @endcan
+                                                @can('delete_vendors')
                                                 <form method="POST" action="{{ route('vendors.destroy', $vendor->id) }}"
                                                     class="d-inline ms-3"
                                                     onsubmit="return confirm('Are you sure you want to delete this vendor?')">
@@ -115,6 +122,7 @@
                                                                 class='bx bxs-trash'></i></button>
                                                     </a>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </td>
                                     </tr>

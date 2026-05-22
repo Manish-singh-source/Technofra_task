@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\RenewalStatusHelper;
+use App\Models\Service;
 use App\Models\Vendor;
 use App\Models\VendorService;
 use Carbon\Carbon;
@@ -11,6 +12,39 @@ use Illuminate\Support\Facades\Validator;
 
 class VendorServiceController extends Controller
 {
+    private function canViewAll($user): bool
+    {
+        return $user && ($user->hasRole('admin') || $user->hasRole('super admin'));
+    }
+
+    private function scopedQuery($user)
+    {
+        $query = VendorService::query();
+
+        if (! $this->canViewAll($user)) {
+            $query->whereIn('vendor_id', Service::query()
+                ->whereNotNull('vendor_id')
+                ->where('client_id', optional($user)->id)
+                ->select('vendor_id'));
+        }
+
+        return $query;
+    }
+
+    private function scopedVendorsQuery($user)
+    {
+        $query = Vendor::query();
+
+        if (! $this->canViewAll($user)) {
+            $query->whereIn('id', Service::query()
+                ->whereNotNull('vendor_id')
+                ->where('client_id', optional($user)->id)
+                ->select('vendor_id'));
+        }
+
+        return $query;
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -18,9 +52,12 @@ class VendorServiceController extends Controller
      */
     public function deleteSelected(Request $request)
     {
+        $user = auth()->user();
         $ids = is_array($request->ids) ? $request->ids : explode(',', $request->ids);
         $ids = array_map('intval', $ids);
-        VendorService::whereIn('id', $ids)->delete();
+
+        $this->scopedQuery($user)->whereIn('id', $ids)->delete();
+
         return redirect()->back()->with('success', 'Selected Vendor Service deleted successfully.');
     }
 
@@ -28,6 +65,7 @@ class VendorServiceController extends Controller
     {
         RenewalStatusHelper::markExpiredVendorRenewals();
 
+        $user = auth()->user();
         $today = Carbon::today()->toDateString();
         $fiveDaysFromNow = Carbon::today()->addDays(5)->toDateString();
         $activeTab = $request->get('tab', 'all');
@@ -37,7 +75,7 @@ class VendorServiceController extends Controller
             $activeTab = 'all';
         }
 
-        $query = VendorService::with('vendor');
+        $query = $this->scopedQuery($user)->with('vendor');
 
         if ($request->filled('from_date')) {
             $query->where('billing_date', '>=', $request->from_date);
@@ -75,7 +113,8 @@ class VendorServiceController extends Controller
      */
     public function create(Request $request)
     {
-        $vendors = Vendor::orderBy('name')->get();
+        $user = auth()->user();
+        $vendors = $this->scopedVendorsQuery($user)->orderBy('name')->get();
         $selectedVendorId = $request->get('vendor_id');
         return view('vendor-services.create', compact('vendors', 'selectedVendorId'));
     }
@@ -88,6 +127,8 @@ class VendorServiceController extends Controller
      */
     public function store(Request $request)
     {
+        $user = auth()->user();
+
         // Validate the request
         $validator = Validator::make($request->all(), [
             'vendor_id' => 'required|exists:vendors,id',
@@ -119,6 +160,16 @@ class VendorServiceController extends Controller
                 ->withInput();
         }
 
+        if (! $this->canViewAll($user)) {
+            $hasVendorAccess = $this->scopedVendorsQuery($user)
+                ->where('id', $request->vendor_id)
+                ->exists();
+
+            if (! $hasVendorAccess) {
+                abort(403, 'Unauthorized vendor selection.');
+            }
+        }
+
         // Create multiple services
         foreach ($request->services as $serviceData) {
             $data = [
@@ -148,7 +199,8 @@ class VendorServiceController extends Controller
      */
     public function show($id)
     {
-        $service = VendorService::with('vendor')->findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->with('vendor')->findOrFail($id);
         return view('vendor-services.show', compact('service'));
     }
 
@@ -160,8 +212,9 @@ class VendorServiceController extends Controller
      */
     public function edit($id)
     {
-        $service = VendorService::findOrFail($id);
-        $vendors = Vendor::orderBy('name')->get();
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
+        $vendors = $this->scopedVendorsQuery($user)->orderBy('name')->get();
         return view('vendor-services.edit', compact('service', 'vendors'));
     }
 
@@ -174,7 +227,8 @@ class VendorServiceController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $service = VendorService::findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
 
         // Validate the request
         $validator = Validator::make($request->all(), [
@@ -202,6 +256,16 @@ class VendorServiceController extends Controller
             return redirect()->back()
                 ->withErrors($validator)
                 ->withInput();
+        }
+
+        if (! $this->canViewAll($user)) {
+            $hasVendorAccess = $this->scopedVendorsQuery($user)
+                ->where('id', $request->vendor_id)
+                ->exists();
+
+            if (! $hasVendorAccess) {
+                abort(403, 'Unauthorized vendor selection.');
+            }
         }
 
         // Update the service
@@ -234,12 +298,11 @@ class VendorServiceController extends Controller
      */
     public function destroy($id)
     {
-        $service = VendorService::findOrFail($id);
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->findOrFail($id);
         $service->delete();
 
         return redirect()->route('vendor-services.index')
             ->with('success', 'Vendor Service deleted successfully!');
     }
 }
-
-
