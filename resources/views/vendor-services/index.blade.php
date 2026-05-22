@@ -149,9 +149,11 @@
                                 </h6>
                             </div>
                             <div>
+                                @can('delete_seleted_vendor_service')
                                 <button type="button" class="btn btn-danger btn-sm" id="delete-selected">
                                     <i class="bx bx-trash"></i> Delete Selected
-                                </button>
+                                </button>      
+                                @endcan
                             </div>
                         </div>
                     </div>

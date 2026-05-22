@@ -367,6 +367,8 @@
                         </ul>
                     </li>
                 @endcan
+
+                @can('view_meta_lead')
                 <li>
                     <a href="{{ route('leads.index') }}">
                         <div class="parent-icon"><i class="bx bxl-facebook"></i>
@@ -374,6 +376,8 @@
                         <div class="menu-title">Meta Leads</div>
                     </a>
                 </li>
+                @endcan
+
                 @can('view_google_ads_leads')
                     <li>
                         <a href="{{ route('google-leads.index') }}">

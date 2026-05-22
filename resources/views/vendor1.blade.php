@@ -35,9 +35,11 @@
                             class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
                             data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
                         </button>
+                        @can('delete_all_vendor')
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
                             <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
                         </div>
+                        @endcan
                     </div>
                 </div>
             </div>

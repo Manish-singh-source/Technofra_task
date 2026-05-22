@@ -14,7 +14,7 @@ class VendorController extends Controller
 {
     private function canViewAll($user): bool
     {
-        return $user && ($user->hasRole('admin') || $user->hasRole('super admin'));
+        return $user && ($user->hasRole('admin') || $user->hasRole('super_admin2') || $user->hasRole('super_admin'));
     }
 
     private function scopedQuery($user)
