@@ -20,6 +20,8 @@ class VendorService extends Model
         'vendor_id',
         'service_name',
         'service_details',
+        'remark_text',
+        'remark_color',
         'plan_type',
         'start_date',
         'end_date',
@@ -112,6 +114,17 @@ class VendorService extends Model
             'pending' => 'pending',
             'expired' => 'expired',
             default => 'all',
+        };
+    }
+
+    public function getRemarkBadgeStyleAttribute(): string
+    {
+        return match ($this->remark_color) {
+            'red' => 'background-color:#f8d7da;color:#842029;border:1px solid #f1aeb5;',
+            'green' => 'background-color:#d1e7dd;color:#0f5132;border:1px solid #a3cfbb;',
+            'blue' => 'background-color:#cfe2ff;color:#084298;border:1px solid #9ec5fe;',
+            'gray' => 'background-color:#e2e3e5;color:#41464b;border:1px solid #c4c8cb;',
+            default => 'background-color:#fff3cd;color:#664d03;border:1px solid #ffec99;',
         };
     }
 }

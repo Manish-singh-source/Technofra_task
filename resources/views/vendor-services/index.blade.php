@@ -166,6 +166,7 @@
                                 <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                 <th>Vendor Name</th>
                                 <th>Service Renewal</th>
+                                <th>Remark</th>
                                 <th>Plan Type</th>
                                 <th>Start Date</th>
                                 <th>End Date</th>
@@ -181,6 +182,14 @@
                                     <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $service->id }}"></td>
                                     <td>{{ $service->vendor->name ?? 'N/A' }}</td>
                                     <td>{{ $service->service_name }}</td>
+                                    <td>
+                                        @if ($service->remark_text)
+                                            <span class="badge"
+                                                style="{{ $service->remark_badge_style }}">{{ $service->remark_text }}</span>
+                                        @else
+                                            <span class="text-muted">No remark</span>
+                                        @endif
+                                    </td>
                                     <td>{{ ucfirst($service->plan_type) }}</td>
                                     <td>{{ $service->start_date->format('d M Y') }}</td>
                                     <td>
@@ -233,7 +242,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="9" class="text-center py-4">
+                                    <td colspan="10" class="text-center py-4">
                                         <div class="d-flex flex-column align-items-center">
                                             <i class='bx bx-folder-open' style="font-size: 48px; color: #ccc;"></i>
                                             <h6 class="mt-2 text-muted">No vendor services found</h6>
@@ -283,8 +292,8 @@
             pageLength: 10,
             order: [],
             columnDefs: [
-                { orderable: false, targets: [0, 8] },
-                { searchable: false, targets: [0, 8] }
+                { orderable: false, targets: [0, 9] },
+                { searchable: false, targets: [0, 9] }
             ]
         });
 

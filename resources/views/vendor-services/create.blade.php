@@ -71,6 +71,22 @@
 													  id="service_details_0" placeholder="Enter detailed description of the service..." rows="4"></textarea>
 										</div>
 										<div class="col-md-6">
+											<label class="form-label">Remark Text</label>
+											<input type="text" class="form-control remark-text" name="services[0][remark_text]"
+												   placeholder="Example: IMP">
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Remark Color</label>
+											<select class="form-select remark-color" name="services[0][remark_color]">
+												<option value="">Choose a color...</option>
+												<option value="yellow">Yellow</option>
+												<option value="red">Red</option>
+												<option value="green">Green</option>
+												<option value="blue">Blue</option>
+												<option value="gray">Gray</option>
+											</select>
+										</div>
+										<div class="col-md-6">
 											<label class="form-label">Plan Type <span class="text-danger">*</span></label>
 											<select class="form-select" name="services[0][plan_type]" required>
 												<option value="">Choose plan type...</option>
@@ -176,6 +192,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     <label class="form-label">Service Details</label>
                     <textarea class="form-control ckeditor" name="services[${serviceIndex}][service_details]"
                               id="service_details_${serviceIndex}" placeholder="Enter detailed description of the service..." rows="4"></textarea>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Remark Text</label>
+                    <input type="text" class="form-control remark-text" name="services[${serviceIndex}][remark_text]"
+                           placeholder="Example: IMP">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Remark Color</label>
+                    <select class="form-select remark-color" name="services[${serviceIndex}][remark_color]">
+                        <option value="">Choose a color...</option>
+                        <option value="yellow">Yellow</option>
+                        <option value="red">Red</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
+                        <option value="gray">Gray</option>
+                    </select>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Plan Type <span class="text-danger">*</span></label>
