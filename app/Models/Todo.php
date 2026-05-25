@@ -21,6 +21,8 @@ class Todo extends Model
         'repeat_unit',
         'repeat_days',
         'reminder_time',
+        'reminder_email',
+        'reminder_whatsapp',
         'starts_on',
         'ends_type',
         'ends_on',
@@ -40,6 +42,8 @@ class Todo extends Model
         'repeat_days' => 'array',
         'attachments' => 'array',
         'is_completed' => 'boolean',
+        'reminder_email' => 'boolean',
+        'reminder_whatsapp' => 'boolean',
     ];
 
     public function user()

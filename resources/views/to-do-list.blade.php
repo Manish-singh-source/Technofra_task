@@ -156,6 +156,16 @@
                             <h5 class="modal-title" id="todoModalLabel">To Do Reminder</h5>
                         </div>
 
+                        <div class="col-12">
+                            <label class="form-label fw-semibold d-block">Reminder Channels</label>
+                            <div class="todo-reminder-channels">
+                                <label><input type="checkbox" id="todoReminderNone" checked> No reminder</label>
+                                <label><input type="checkbox" id="todoReminderEmail"> Email reminder</label>
+                                <label><input type="checkbox" id="todoReminderWhatsapp"> WhatsApp reminder</label>
+                            </div>
+                            <div class="form-text">Select email, WhatsApp, or both.</div>
+                        </div>
+                        <div id="todoReminderDetails" class="row g-3 d-none">
                         <div class="col-md-4">
                             <label for="todoRepeatInterval" class="form-label fw-semibold">Repeats Every</label>
                             <div class="input-group">
@@ -192,9 +202,9 @@
                         <div class="col-md-6">
                             <label class="form-label fw-semibold d-block">Ends</label>
                             <div class="todo-ends-box">
-                                <label><input type="radio" name="todoEndsType" value="never" checked> Never</label>
+                                <label><input type="radio" name="todoEndsType" value="never"> Never</label>
                                 <label><input type="radio" name="todoEndsType" value="on"> On</label>
-                                <label><input type="radio" name="todoEndsType" value="after"> After</label>
+                                <label><input type="radio" name="todoEndsType" value="after" checked> After</label>
                             </div>
                         </div>
                         <div class="col-md-6 d-none" id="endsOnWrap">
@@ -204,7 +214,8 @@
                         <div class="col-md-6 d-none" id="endsAfterWrap">
                             <label for="todoEndsAfter" class="form-label fw-semibold">Count Day Input</label>
                             <input type="number" id="todoEndsAfter" class="form-control" min="1"
-                                placeholder="Occurrences count">
+                                placeholder="Occurrences count" value="1">
+                        </div>
                         </div>
                     </form>
                     <div id="todoFormError" class="alert alert-danger mt-3 mb-0 d-none"></div>
@@ -415,6 +426,43 @@
             .bg-soft-green {
                 background: #ecfbf2;
                 color: var(--todo-brand-green);
+            }
+
+            .todo-reminder-channels {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                padding: 12px;
+                border: 1px solid var(--todo-border);
+                border-radius: 12px;
+                background: #fbfdff;
+            }
+
+            .todo-reminder-channels label {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                margin: 0;
+                color: var(--todo-text);
+                font-weight: 600;
+                padding: 7px 12px;
+                border-radius: 999px;
+                border: 1px solid #d8e5f0;
+                background: #fff;
+                transition: all 0.2s ease;
+            }
+
+            .todo-reminder-channels label:hover {
+                border-color: #9fc3de;
+                background: #f5fbff;
+            }
+
+            #todoReminderDetails {
+                margin-top: 6px;
+                padding: 14px 10px 8px;
+                border: 1px dashed #c5d9e9;
+                border-radius: 12px;
+                background: #fbfdff;
             }
 
             .todo-note-box {
@@ -688,6 +736,7 @@
                 const repeatDaysWrap = document.getElementById('repeatDaysWrap');
                 const endsOnWrap = document.getElementById('endsOnWrap');
                 const endsAfterWrap = document.getElementById('endsAfterWrap');
+                const reminderDetailsWrap = document.getElementById('todoReminderDetails');
                 const todoRepeatUnit = document.getElementById('todoRepeatUnit');
                 const plannedCount = document.getElementById('plannedCount');
                 const completedCount = document.getElementById('completedCount');
@@ -708,6 +757,9 @@
                     ends_on: document.getElementById('todoEndsOn'),
                     ends_after_occurrences: document.getElementById('todoEndsAfter')
                 };
+                const reminderNoneCheckbox = document.getElementById('todoReminderNone');
+                const reminderEmailCheckbox = document.getElementById('todoReminderEmail');
+                const reminderWhatsappCheckbox = document.getElementById('todoReminderWhatsapp');
                 const todoExistingAttachments = document.getElementById('todoExistingAttachments');
 
                 let todos = @json($formattedTodos);
@@ -717,10 +769,14 @@
                 render();
                 syncRepeatDaysVisibility();
                 syncEndsVisibility();
+                toggleReminderDetailsVisibility();
 
                 document.getElementById('openTodoModal').addEventListener('click', openCreateModal);
                 document.getElementById('saveTodoBtn').addEventListener('click', saveTodo);
                 todoRepeatUnit.addEventListener('change', syncRepeatDaysVisibility);
+                reminderNoneCheckbox.addEventListener('change', onReminderNoneChanged);
+                reminderEmailCheckbox.addEventListener('change', onReminderChannelChanged);
+                reminderWhatsappCheckbox.addEventListener('change', onReminderChannelChanged);
                 document.querySelectorAll('input[name="todoEndsType"]').forEach(function(radio) {
                     radio.addEventListener('change', syncEndsVisibility);
                 });
@@ -752,17 +808,24 @@
                     fields.repeat_interval.value = todo.repeat_interval || 1;
                     fields.repeat_unit.value = todo.repeat_unit || 'day';
                     fields.reminder_time.value = normalizeTime(todo.reminder_time);
+                    const emailReminder = !!todo.reminder_email;
+                    const whatsappReminder = !!todo.reminder_whatsapp;
+                    reminderEmailCheckbox.checked = emailReminder;
+                    reminderWhatsappCheckbox.checked = whatsappReminder;
+                    reminderNoneCheckbox.checked = !emailReminder && !whatsappReminder;
                     fields.starts_on.value = normalizeDate(todo.starts_on || todo.task_date);
                     fields.ends_on.value = normalizeDate(todo.ends_on);
-                    fields.ends_after_occurrences.value = todo.ends_after_occurrences || '';
-                    document.querySelector('input[name="todoEndsType"][value="' + (todo.ends_type || 'never') + '"]')
+                    fields.ends_after_occurrences.value = todo.ends_after_occurrences || 1;
+                    document.querySelector('input[name="todoEndsType"][value="' + (todo.ends_type || 'after') + '"]')
                         .checked = true;
                     document.querySelectorAll('#repeatDaysWrap input[type="checkbox"]').forEach(function(checkbox) {
                         checkbox.checked = Array.isArray(todo.repeat_days_list) && todo.repeat_days_list
                             .includes(checkbox.value);
                     });
                     syncRepeatDaysVisibility();
+                    syncReminderChannelSelection();
                     syncEndsVisibility();
+                    toggleReminderDetailsVisibility();
                     renderExistingAttachments(todo.attachments || []);
                     todoModal.show();
                 }
@@ -889,6 +952,8 @@
                         repeat_unit: fields.repeat_unit.value,
                         repeat_days: fields.repeat_unit.value === 'week' ? repeatDays : [],
                         reminder_time: fields.reminder_time.value || null,
+                        reminder_email: reminderEmailCheckbox.checked ? 1 : 0,
+                        reminder_whatsapp: reminderWhatsappCheckbox.checked ? 1 : 0,
                         starts_on: fields.starts_on.value,
                         ends_type: endsType,
                         ends_on: endsType === 'on' ? (fields.ends_on.value || null) : null,
@@ -963,6 +1028,10 @@
                     const descClass = todo.is_completed ? 'todo-description is-done' : 'todo-description';
                     const repeatDays = Array.isArray(todo.repeat_days_list) && todo.repeat_days_list.length ? 'Days: ' +
                         todo.repeat_days_list.map(shortDay).join(', ') : '';
+                    const reminderChannels = [
+                        todo.reminder_email ? 'Email' : null,
+                        todo.reminder_whatsapp ? 'WhatsApp' : null
+                    ].filter(Boolean).join(' + ');
                     const endsText = todo.ends_type === 'on' ?
                         'Ends on ' + formatDate(todo.ends_on) :
                         (todo.ends_type === 'after' ? 'Ends after ' + todo.ends_after_occurrences + ' times' :
@@ -1001,6 +1070,8 @@
                             repeatDays) + '</span>' : ''),
                         (todo.reminder_time ? '<span class="todo-badge"><i class="bx bx-bell"></i> ' + escapeHtml(
                             'Reminder ' + formatTime(todo.reminder_time)) + '</span>' : ''),
+                        (reminderChannels ? '<span class="todo-badge"><i class="bx bx-send"></i> ' + escapeHtml(
+                            reminderChannels) + '</span>' : '<span class="todo-badge"><i class="bx bx-bell-off"></i> No reminder</span>'),
                         (attachments.length ? '<span class="todo-badge"><i class="bx bx-paperclip"></i> ' +
                             escapeHtml(String(attachments.length) + ' attachment(s)') + '</span>' : ''),
                         '</div>',
@@ -1019,16 +1090,57 @@
                     editingId = null;
                     removedAttachmentIndices = [];
                     document.getElementById('todoForm').reset();
-                    document.querySelector('input[name="todoEndsType"][value="never"]').checked = true;
+                    document.querySelector('input[name="todoEndsType"][value="after"]').checked = true;
+                    reminderNoneCheckbox.checked = true;
+                    reminderEmailCheckbox.checked = false;
+                    reminderWhatsappCheckbox.checked = false;
                     document.querySelectorAll('#repeatDaysWrap input[type="checkbox"]').forEach(function(checkbox) {
                         checkbox.checked = false;
                     });
                     fields.repeat_interval.value = 1;
+                    fields.ends_after_occurrences.value = 1;
                     fields.attachments.value = '';
                     renderExistingAttachments([]);
                     hideError();
                     syncRepeatDaysVisibility();
+                    syncReminderChannelSelection();
                     syncEndsVisibility();
+                    toggleReminderDetailsVisibility();
+                }
+
+                function onReminderNoneChanged() {
+                    if (reminderNoneCheckbox.checked) {
+                        reminderEmailCheckbox.checked = false;
+                        reminderWhatsappCheckbox.checked = false;
+                    }
+                    toggleReminderDetailsVisibility();
+                }
+
+                function onReminderChannelChanged() {
+                    if (reminderEmailCheckbox.checked || reminderWhatsappCheckbox.checked) {
+                        reminderNoneCheckbox.checked = false;
+                        toggleReminderDetailsVisibility();
+                        return;
+                    }
+
+                    reminderNoneCheckbox.checked = true;
+                    toggleReminderDetailsVisibility();
+                }
+
+                function syncReminderChannelSelection() {
+                    if (reminderEmailCheckbox.checked || reminderWhatsappCheckbox.checked) {
+                        reminderNoneCheckbox.checked = false;
+                        toggleReminderDetailsVisibility();
+                        return;
+                    }
+
+                    reminderNoneCheckbox.checked = true;
+                    toggleReminderDetailsVisibility();
+                }
+
+                function toggleReminderDetailsVisibility() {
+                    const shouldShow = reminderEmailCheckbox.checked || reminderWhatsappCheckbox.checked;
+                    reminderDetailsWrap.classList.toggle('d-none', !shouldShow);
                 }
 
                 function syncRepeatDaysVisibility() {
