@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Mail\TodoReminderMail;
+use App\Models\Setting;
 use App\Models\Todo;
 use App\Services\WhatsAppService;
 use Illuminate\Console\Command;
@@ -20,6 +21,16 @@ class SendTodoReminderEmails extends Command
         $now = now();
         $sentCount = 0;
         $whatsAppService = new WhatsAppService();
+        $globalEmailEnabled = !in_array(
+            strtolower((string) Setting::get('auto_todo_reminder_email_enabled', '1')),
+            ['0', 'false', 'off', 'no'],
+            true
+        );
+        $globalWhatsAppEnabled = !in_array(
+            strtolower((string) Setting::get('auto_todo_reminder_whatsapp_enabled', '1')),
+            ['0', 'false', 'off', 'no'],
+            true
+        );
 
         try {
             $todos = Todo::with('user')->incomplete()->get();
@@ -35,8 +46,8 @@ class SendTodoReminderEmails extends Command
                     continue;
                 }
 
-                $sendEmail = (bool) $todo->reminder_email;
-                $sendWhatsApp = (bool) $todo->reminder_whatsapp;
+                $sendEmail = $globalEmailEnabled && (bool) $todo->reminder_email;
+                $sendWhatsApp = $globalWhatsAppEnabled && (bool) $todo->reminder_whatsapp;
 
                 if (!$sendEmail && !$sendWhatsApp) {
                     continue;

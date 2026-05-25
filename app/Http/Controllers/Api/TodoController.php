@@ -105,11 +105,16 @@ class TodoController extends Controller
             'repeat_days' => 'nullable|array',
             'repeat_days.*' => 'in:sunday,monday,tuesday,wednesday,thursday,friday,saturday',
             'reminder_time' => 'nullable|date_format:H:i',
+            'reminder_email' => 'nullable|boolean',
+            'reminder_whatsapp' => 'nullable|boolean',
             'starts_on' => 'required|date',
             'ends_type' => 'required|in:never,on,after',
             'ends_on' => 'nullable|date|required_if:ends_type,on',
             'ends_after_occurrences' => 'nullable|integer|min:1|required_if:ends_type,after',
         ]);
+
+        $data['reminder_email'] = $request->boolean('reminder_email');
+        $data['reminder_whatsapp'] = $request->boolean('reminder_whatsapp');
 
         if (empty($data['remove_attachments'])) {
             unset($data['remove_attachments']);
@@ -138,6 +143,13 @@ class TodoController extends Controller
                 'repeat_units' => ['day', 'week', 'month', 'year'],
                 'repeat_days' => ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'],
                 'ends_types' => ['never', 'on', 'after'],
+                'reminder_channels' => ['none', 'email', 'whatsapp', 'email_whatsapp'],
+                'defaults' => [
+                    'ends_type' => 'after',
+                    'ends_after_occurrences' => 1,
+                    'reminder_email' => false,
+                    'reminder_whatsapp' => false,
+                ],
             ],
         ]);
     }
@@ -198,6 +210,8 @@ class TodoController extends Controller
             'repeat_days' => $todo->repeat_days ?? [],
             'repeat_days_list' => $todo->repeat_days_list,
             'reminder_time' => $todo->reminder_time,
+            'reminder_email' => (bool) $todo->reminder_email,
+            'reminder_whatsapp' => (bool) $todo->reminder_whatsapp,
             'starts_on' => optional($todo->starts_on)?->toDateString(),
             'ends_type' => $todo->ends_type,
             'ends_on' => optional($todo->ends_on)?->toDateString(),
@@ -213,9 +227,9 @@ class TodoController extends Controller
                 ],
                 'api' => [
                     'show' => url('/api/v1/todos/' . $todo->id),
-                    'update' => url('/api/v1/todos/update-todo/' . $todo->id),
-                    'delete' => url('/api/v1/todos/delete-todo/' . $todo->id),
-                    'toggle_status' => url('/api/v1/todos/toggle-todo-status/' . $todo->id),
+                    'update' => url('/api/v1/todos/' . $todo->id),
+                    'delete' => url('/api/v1/todos/' . $todo->id),
+                    'toggle_status' => url('/api/v1/todos/' . $todo->id . '/status'),
                 ],
             ],
         ];

@@ -23,6 +23,9 @@
         if (auth()->user()->hasPermissionTo('view_email_settings')) {
             $availableTabs[] = 'renewal';
         }
+        if (auth()->user()->hasPermissionTo('view_email_settings')) {
+            $availableTabs[] = 'notification';
+        }
         if (auth()->user()->hasPermissionTo('view_general_settings')) {
             $availableTabs[] = 'teams';
         }
@@ -107,6 +110,15 @@
                                         role="tab" aria-controls="renewal"
                                         aria-selected="{{ $activeSettingsTab === 'renewal' ? 'true' : 'false' }}">
                                         <i class="bx bx-bell me-2"></i> Renewal Manage
+                                    </button>
+                                @endif
+                                @if (auth()->user()->hasPermissionTo('view_email_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'notification' ? 'active' : '' }}"
+                                        id="notification-tab" data-bs-toggle="pill" data-bs-target="#notification"
+                                        type="button" role="tab" aria-controls="notification"
+                                        aria-selected="{{ $activeSettingsTab === 'notification' ? 'true' : 'false' }}">
+                                        <i class="bx bx-message-rounded-dots me-2"></i> Notifications
                                     </button>
                                 @endif
                                 @if (auth()->user()->hasPermissionTo('view_general_settings'))
@@ -647,9 +659,10 @@
                                         <div class="row g-3">
                                             <div class="col-12">
                                                 <div class="form-check form-switch">
-                                                    <input class="form-check-input" type="checkbox"
+                                                    <input class="form-check-input notification-sync" type="checkbox"
                                                         id="renewal_notifications_enabled"
                                                         name="renewal_notifications_enabled" value="1"
+                                                        data-sync-group="renewal_notifications_enabled"
                                                         {{ !in_array(strtolower((string) old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
                                                     <label class="form-check-label"
                                                         for="renewal_notifications_enabled">Enable Daily Renewal Email
@@ -703,6 +716,127 @@
                                             <div class="col-12">
                                                 <button type="submit" class="btn btn-primary">Save Renewal
                                                     Settings</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <!-- TAB 5: NOTIFICATIONS -->
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'notification' ? 'show active' : '' }}"
+                                    id="notification" role="tabpanel">
+                                    <h5 class="card-title">Notification Controls</h5>
+                                    <p class="text-muted mb-3">Control automatic cron/queue reminders from one place.</p>
+                                    <hr />
+                                    <form action="{{ route('settings.update.renewal') }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="active_settings_tab" value="notification">
+                                        <input type="hidden" name="renewal_admin_email"
+                                            value="{{ old('renewal_admin_email', $settings['renewal_admin_email'] ?? ($settings['company_email'] ?? '')) }}">
+                                        <input type="hidden" name="renewal_notification_time"
+                                            value="{{ old('renewal_notification_time', $settings['renewal_notification_time'] ?? '16:00') }}">
+                                        <input type="hidden" name="renewal_notice_days"
+                                            value="{{ old('renewal_notice_days', $settings['renewal_notice_days'] ?? 5) }}">
+
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <div class="p-4 rounded-3 border"
+                                                    style="background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 45%, #f7f9ff 100%);">
+                                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                        <div>
+                                                            <h6 class="mb-1">Daily Renewal Summary Email</h6>
+                                                            <small class="text-muted">Sends automatic renewal summary at configured time.</small>
+                                                        </div>
+                                                        <div class="form-check form-switch m-0">
+                                                            <input class="form-check-input notification-sync" type="checkbox"
+                                                                id="notification_renewal_notifications_enabled"
+                                                                name="renewal_notifications_enabled" value="1"
+                                                                data-sync-group="renewal_notifications_enabled"
+                                                                {{ !in_array(strtolower((string) old('renewal_notifications_enabled', $settings['renewal_notifications_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                            <label class="form-check-label small text-muted"
+                                                                for="notification_renewal_notifications_enabled">Enable</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <div class="p-4 rounded-3 border"
+                                                    style="background: linear-gradient(135deg, #fffaf5 0%, #fff5ea 45%, #fffdf9 100%);">
+                                                    <h6 class="mb-3">Calendar Event Auto Notifications</h6>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center justify-content-between p-3 bg-white rounded-3 border">
+                                                                <div>
+                                                                    <strong class="d-block">Email</strong>
+                                                                    <small class="text-muted">Event-time and 10-min reminder emails</small>
+                                                                </div>
+                                                                <div class="form-check form-switch m-0">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                        id="notification_auto_calendar_event_email_enabled"
+                                                                        name="auto_calendar_event_email_enabled" value="1"
+                                                                        {{ !in_array(strtolower((string) old('auto_calendar_event_email_enabled', $settings['auto_calendar_event_email_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center justify-content-between p-3 bg-white rounded-3 border">
+                                                                <div>
+                                                                    <strong class="d-block">WhatsApp</strong>
+                                                                    <small class="text-muted">Event-time and 10-min reminder WhatsApp</small>
+                                                                </div>
+                                                                <div class="form-check form-switch m-0">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                        id="notification_auto_calendar_event_whatsapp_enabled"
+                                                                        name="auto_calendar_event_whatsapp_enabled" value="1"
+                                                                        {{ !in_array(strtolower((string) old('auto_calendar_event_whatsapp_enabled', $settings['auto_calendar_event_whatsapp_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12">
+                                                <div class="p-4 rounded-3 border"
+                                                    style="background: linear-gradient(135deg, #f6fff8 0%, #ecfff1 45%, #f9fffb 100%);">
+                                                    <h6 class="mb-3">Todo Reminder Auto Notifications</h6>
+                                                    <div class="row g-3">
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center justify-content-between p-3 bg-white rounded-3 border">
+                                                                <div>
+                                                                    <strong class="d-block">Email</strong>
+                                                                    <small class="text-muted">Automatic due todo reminder emails</small>
+                                                                </div>
+                                                                <div class="form-check form-switch m-0">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                        id="notification_auto_todo_reminder_email_enabled"
+                                                                        name="auto_todo_reminder_email_enabled" value="1"
+                                                                        {{ !in_array(strtolower((string) old('auto_todo_reminder_email_enabled', $settings['auto_todo_reminder_email_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <div class="d-flex align-items-center justify-content-between p-3 bg-white rounded-3 border">
+                                                                <div>
+                                                                    <strong class="d-block">WhatsApp</strong>
+                                                                    <small class="text-muted">Automatic due todo WhatsApp reminders</small>
+                                                                </div>
+                                                                <div class="form-check form-switch m-0">
+                                                                    <input class="form-check-input" type="checkbox"
+                                                                        id="notification_auto_todo_reminder_whatsapp_enabled"
+                                                                        name="auto_todo_reminder_whatsapp_enabled" value="1"
+                                                                        {{ !in_array(strtolower((string) old('auto_todo_reminder_whatsapp_enabled', $settings['auto_todo_reminder_whatsapp_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-12 d-flex justify-content-end">
+                                                <button type="submit" class="btn btn-primary px-4">
+                                                    Save Notification Controls
+                                                </button>
                                             </div>
                                         </div>
                                     </form>
@@ -991,6 +1125,17 @@
 @push('scripts')
     <script>
         $(document).ready(function() {
+            $(document).on('change', '.notification-sync', function() {
+                const group = $(this).data('sync-group');
+                if (!group) {
+                    return;
+                }
+
+                const isChecked = $(this).is(':checked');
+                $(`.notification-sync[data-sync-group="${group}"]`)
+                    .prop('checked', isChecked);
+            });
+
             // Toggle password visibility
             $('.toggle-password').on('click', function() {
                 const input = $(this).siblings('input');

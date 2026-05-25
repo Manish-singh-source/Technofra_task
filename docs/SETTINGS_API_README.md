@@ -235,6 +235,13 @@ curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/email' \
 - URL: `/api/v1/settings/renewal`
 - Permission required: `view_email_settings`
 
+Returns renewal settings plus automatic cron/queue notification toggles:
+- `renewal_notifications_enabled`
+- `auto_calendar_event_email_enabled`
+- `auto_calendar_event_whatsapp_enabled`
+- `auto_todo_reminder_email_enabled`
+- `auto_todo_reminder_whatsapp_enabled`
+
 ```bash
 curl --location 'http://127.0.0.1:8000/api/v1/settings/renewal' \
 --header 'Accept: application/json' \
@@ -247,6 +254,13 @@ curl --location 'http://127.0.0.1:8000/api/v1/settings/renewal' \
 - URL: `/api/v1/settings/renewal`
 - Permission required: `view_email_settings`
 
+Supported boolean toggle fields:
+- `renewal_notifications_enabled` (daily renewal summary email)
+- `auto_calendar_event_email_enabled`
+- `auto_calendar_event_whatsapp_enabled`
+- `auto_todo_reminder_email_enabled`
+- `auto_todo_reminder_whatsapp_enabled`
+
 ```bash
 curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/renewal' \
 --header 'Accept: application/json' \
@@ -256,7 +270,11 @@ curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/renewal' \
   "renewal_admin_email": "admin@example.com",
   "renewal_notification_time": "09:30",
   "renewal_notice_days": 7,
-  "renewal_notifications_enabled": true
+  "renewal_notifications_enabled": true,
+  "auto_calendar_event_email_enabled": true,
+  "auto_calendar_event_whatsapp_enabled": true,
+  "auto_todo_reminder_email_enabled": true,
+  "auto_todo_reminder_whatsapp_enabled": true
 }'
 ```
 

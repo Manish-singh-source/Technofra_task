@@ -589,6 +589,7 @@
 
                             <div class="auth-meta">
                                 <div class="form-check">
+                                    <input type="hidden" name="remember" value="0">
                                     <input class="form-check-input" type="checkbox" id="rememberCheck" name="remember"
                                         value="1" {{ old('remember', !empty($rememberedEmail ?? '')) ? 'checked' : '' }}>
                                     <label class="form-check-label" for="rememberCheck">Remember me</label>

@@ -311,6 +311,10 @@ class SettingController extends Controller
             'renewal_notification_time' => 'sometimes|required|date_format:H:i',
             'renewal_notice_days' => 'sometimes|required|integer|min:1|max:30',
             'renewal_notifications_enabled' => 'sometimes|nullable|boolean',
+            'auto_calendar_event_email_enabled' => 'sometimes|nullable|boolean',
+            'auto_calendar_event_whatsapp_enabled' => 'sometimes|nullable|boolean',
+            'auto_todo_reminder_email_enabled' => 'sometimes|nullable|boolean',
+            'auto_todo_reminder_whatsapp_enabled' => 'sometimes|nullable|boolean',
         ]);
 
         $validator->after(function ($validator) use ($request, $fields) {
@@ -331,7 +335,13 @@ class SettingController extends Controller
                     continue;
                 }
 
-                $value = $field === 'renewal_notifications_enabled'
+                $value = in_array($field, [
+                    'renewal_notifications_enabled',
+                    'auto_calendar_event_email_enabled',
+                    'auto_calendar_event_whatsapp_enabled',
+                    'auto_todo_reminder_email_enabled',
+                    'auto_todo_reminder_whatsapp_enabled',
+                ], true)
                     ? ($request->boolean($field) ? '1' : '0')
                     : $request->input($field);
 
@@ -764,6 +774,10 @@ class SettingController extends Controller
         $settings = array_merge([
             'renewal_notice_days' => 7,
             'renewal_notifications_enabled' => '0',
+            'auto_calendar_event_email_enabled' => '1',
+            'auto_calendar_event_whatsapp_enabled' => '1',
+            'auto_todo_reminder_email_enabled' => '1',
+            'auto_todo_reminder_whatsapp_enabled' => '1',
         ], Setting::getAllSettings());
 
         $data = [];
@@ -773,6 +787,22 @@ class SettingController extends Controller
 
         $data['renewal_notifications_enabled'] = filter_var(
             $data['renewal_notifications_enabled'],
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $data['auto_calendar_event_email_enabled'] = filter_var(
+            $data['auto_calendar_event_email_enabled'],
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $data['auto_calendar_event_whatsapp_enabled'] = filter_var(
+            $data['auto_calendar_event_whatsapp_enabled'],
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $data['auto_todo_reminder_email_enabled'] = filter_var(
+            $data['auto_todo_reminder_email_enabled'],
+            FILTER_VALIDATE_BOOLEAN
+        );
+        $data['auto_todo_reminder_whatsapp_enabled'] = filter_var(
+            $data['auto_todo_reminder_whatsapp_enabled'],
             FILTER_VALIDATE_BOOLEAN
         );
 
@@ -868,6 +898,10 @@ class SettingController extends Controller
             'renewal_notification_time' => 'text',
             'renewal_notice_days' => 'text',
             'renewal_notifications_enabled' => 'text',
+            'auto_calendar_event_email_enabled' => 'text',
+            'auto_calendar_event_whatsapp_enabled' => 'text',
+            'auto_todo_reminder_email_enabled' => 'text',
+            'auto_todo_reminder_whatsapp_enabled' => 'text',
         ];
     }
 

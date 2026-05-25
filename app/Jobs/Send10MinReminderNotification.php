@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\CalendarEventMail;
 use App\Models\CalendarEvent;
+use App\Models\Setting;
 use App\Services\WhatsAppService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -48,9 +49,20 @@ class Send10MinReminderNotification implements ShouldQueue
             $emailSent = false;
             $whatsappSent = false;
 
+            $emailEnabled = !in_array(
+                strtolower((string) Setting::get('auto_calendar_event_email_enabled', '1')),
+                ['0', 'false', 'off', 'no'],
+                true
+            );
+            $whatsappEnabled = !in_array(
+                strtolower((string) Setting::get('auto_calendar_event_whatsapp_enabled', '1')),
+                ['0', 'false', 'off', 'no'],
+                true
+            );
+
             // Send Email Notifications
             $emailRecipients = $this->event->email_recipients_array;
-            if (!empty($emailRecipients)) {
+            if ($emailEnabled && !empty($emailRecipients)) {
                 foreach ($emailRecipients as $recipient) {
                     try {
                         Mail::to($recipient)->send(new CalendarEventMail($this->event));
@@ -64,7 +76,7 @@ class Send10MinReminderNotification implements ShouldQueue
 
             // Send WhatsApp Notifications
             $whatsappRecipients = $this->event->whatsapp_recipients_array;
-            if (!empty($whatsappRecipients)) {
+            if ($whatsappEnabled && !empty($whatsappRecipients)) {
                 try {
                     $whatsappService = new WhatsAppService();
                     $result = $whatsappService->sendCalendarEventNotification(

@@ -34,7 +34,7 @@ curl --location 'http://127.0.0.1:8000/api/v1/todos/1' \
 ## 4. Create Todo With Multiple Attachments
 
 ```bash
-curl --location 'http://127.0.0.1:8000/api/v1/todos/create-todo' \
+curl --location 'http://127.0.0.1:8000/api/v1/todos' \
 --header 'Accept: application/json' \
 --header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
 --form 'title="Prepare weekly report"' \
@@ -46,8 +46,11 @@ curl --location 'http://127.0.0.1:8000/api/v1/todos/create-todo' \
 --form 'repeat_days[]="monday"' \
 --form 'repeat_days[]="friday"' \
 --form 'reminder_time="09:30"' \
+--form 'reminder_email="1"' \
+--form 'reminder_whatsapp="1"' \
 --form 'starts_on="2026-04-14"' \
---form 'ends_type="never"' \
+--form 'ends_type="after"' \
+--form 'ends_after_occurrences="1"' \
 --form 'attachments[]=@"C:/path/to/file-one.pdf"' \
 --form 'attachments[]=@"C:/path/to/file-two.png"'
 ```
@@ -57,7 +60,7 @@ curl --location 'http://127.0.0.1:8000/api/v1/todos/create-todo' \
 Note: update keeps existing attachments and appends any newly uploaded files.
 
 ```bash
-curl --location --request POST 'http://127.0.0.1:8000/api/v1/todos/update-todo/1' \
+curl --location --request POST 'http://127.0.0.1:8000/api/v1/todos/1' \
 --header 'Accept: application/json' \
 --header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
 --form '_method="PUT"' \
@@ -69,6 +72,8 @@ curl --location --request POST 'http://127.0.0.1:8000/api/v1/todos/update-todo/1
 --form 'repeat_unit="week"' \
 --form 'repeat_days[]="monday"' \
 --form 'reminder_time="10:30"' \
+--form 'reminder_email="1"' \
+--form 'reminder_whatsapp="0"' \
 --form 'starts_on="2026-04-14"' \
 --form 'ends_type="after"' \
 --form 'ends_after_occurrences="5"' \
@@ -78,7 +83,7 @@ curl --location --request POST 'http://127.0.0.1:8000/api/v1/todos/update-todo/1
 ## 6. Toggle Todo Status
 
 ```bash
-curl --location --request PATCH 'http://127.0.0.1:8000/api/v1/todos/toggle-todo-status/1' \
+curl --location --request PATCH 'http://127.0.0.1:8000/api/v1/todos/1/status' \
 --header 'Accept: application/json' \
 --header 'Authorization: Bearer YOUR_SANCTUM_TOKEN' \
 --header 'Content-Type: application/json' \
@@ -90,10 +95,21 @@ curl --location --request PATCH 'http://127.0.0.1:8000/api/v1/todos/toggle-todo-
 ## 7. Delete Todo
 
 ```bash
-curl --location --request DELETE 'http://127.0.0.1:8000/api/v1/todos/delete-todo/1' \
+curl --location --request DELETE 'http://127.0.0.1:8000/api/v1/todos/1' \
 --header 'Accept: application/json' \
 --header 'Authorization: Bearer YOUR_SANCTUM_TOKEN'
 ```
+
+## Reminder Channel Rules
+
+- `reminder_email=0` and `reminder_whatsapp=0` means **No reminder**
+- `reminder_email=1` and `reminder_whatsapp=0` means **Email reminder only**
+- `reminder_email=0` and `reminder_whatsapp=1` means **WhatsApp reminder only**
+- `reminder_email=1` and `reminder_whatsapp=1` means **Email + WhatsApp reminder**
+
+If reminders are enabled, send:
+- `repeat_interval`, `repeat_unit`, `reminder_time`, `starts_on`, `ends_type`
+- Default end behavior used in UI is: `ends_type="after"` with `ends_after_occurrences="1"`
 
 ## Attachment Response Shape
 

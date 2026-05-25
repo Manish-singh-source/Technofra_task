@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Mail\CalendarEventMail;
 use App\Models\CalendarEvent;
+use App\Models\Setting;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -51,6 +52,16 @@ class SendCalendarEventNotification implements ShouldQueue
 
             // Get email recipients
             $recipients = $this->event->email_recipients_array;
+            $emailEnabled = !in_array(
+                strtolower((string) Setting::get('auto_calendar_event_email_enabled', '1')),
+                ['0', 'false', 'off', 'no'],
+                true
+            );
+
+            if (!$emailEnabled) {
+                Log::info("Calendar event email notifications disabled by settings for event: {$this->event->title}");
+                return;
+            }
 
             if (empty($recipients)) {
                 Log::warning("No recipients found for event: {$this->event->title}");
