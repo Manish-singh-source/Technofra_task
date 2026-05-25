@@ -10,6 +10,7 @@ use App\Http\Controllers\DigitalMarketingLeadController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\GoogleLeadViewController;
+use App\Http\Controllers\LeadManagementController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;
@@ -270,6 +271,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/lead/export', 'export')->name('lead.export');
     });
 
+    Route::controller(LeadManagementController::class)->prefix('lead-management')->name('lead-management.')->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{source}/{id}/view', 'show')->name('show');
+        Route::post('/{source}/{id}/assign', 'assign')->name('assign');
+        Route::post('/bulk-assign', 'bulkAssign')->name('bulk-assign');
+        Route::patch('/{source}/{id}/status', 'updateStatus')->name('status');
+        Route::delete('/{source}/{id}', 'destroy')->name('destroy');
+    });
+
 
 
     // Tag routes
@@ -308,6 +318,9 @@ Route::middleware('auth')->group(function () {
     Route::controller(DigitalMarketingLeadController::class)->group(function () {
         Route::get('/digital-marketing-leads', 'index')
             ->name('digital-marketing-leads.index')
+            ;
+        Route::patch('/digital-marketing-leads/{source}/{id}/status', 'updateStatus')
+            ->name('digital-marketing-leads.status')
             ;
         Route::delete('/digital-marketing-leads/{digitalMarketingLead}', 'destroy')
             ->name('digital-marketing-leads.destroy')
@@ -395,6 +408,8 @@ Route::middleware('auth')->group(function () {
             ->name('index') ;
         Route::get('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'show'])
             ->name('show') ;
+        Route::patch('/{lead}/status', [App\Http\Controllers\MetaLeadUiController::class, 'updateStatus'])
+            ->name('status');
         Route::post('/sync', [App\Http\Controllers\MetaLeadUiController::class, 'sync'])
             ->name('sync');
         Route::delete('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'destroy'])
@@ -402,6 +417,8 @@ Route::middleware('auth')->group(function () {
     });                         
 
     Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
+    Route::patch('/google-leads/{googleLead}/status', [GoogleLeadViewController::class, 'updateStatus'])
+        ->name('google-leads.status');
 });
 
 

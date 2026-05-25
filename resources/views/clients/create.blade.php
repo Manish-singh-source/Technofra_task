@@ -30,6 +30,8 @@
                     <div class="form-body mt-4">
                         <form action="{{ route('client.store') }}" method="POST" enctype="multipart/form-data">
                             @csrf
+                            <input type="hidden" name="convert_source" value="{{ old('convert_source') }}">
+                            <input type="hidden" name="convert_id" value="{{ old('convert_id') }}">
 
                             <div class="row">
                                 <div class="col-lg-12">

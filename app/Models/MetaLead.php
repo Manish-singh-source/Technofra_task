@@ -26,6 +26,7 @@ class MetaLead extends Model
         'state',
         'field_data',
         'created_time',
+        'status',
     ];
 
     /**

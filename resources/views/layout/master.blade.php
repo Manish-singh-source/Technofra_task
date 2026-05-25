@@ -283,6 +283,13 @@
                             <div class="menu-title">Leads</div>
                         </a>
                     </li>
+                    <li>
+                        <a href="{{ route('lead-management.index') }}">
+                            <div class="parent-icon"><i class="bx bx-spreadsheet"></i>
+                            </div>
+                            <div class="menu-title">Lead Management</div>
+                        </a>
+                    </li>
                 @endcan
                 @can('view_projects')
                     <li>

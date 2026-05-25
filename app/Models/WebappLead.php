@@ -19,6 +19,7 @@ class WebappLead extends Model
         'message',
         'source_page',
         'created_at',
+        'status',
     ];
 
     protected $casts = [

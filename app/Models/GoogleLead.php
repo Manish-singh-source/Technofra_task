@@ -19,6 +19,7 @@ class GoogleLead extends Model
         'lead_stage',
         'lead_submit_time',
         'raw_payload',
+        'status',
     ];
 
     protected $casts = [

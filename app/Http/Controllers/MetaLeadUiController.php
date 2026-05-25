@@ -10,6 +10,8 @@ use Illuminate\View\View;
 
 class MetaLeadUiController extends Controller
 {
+    private const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'loss'];
+
     public function index(Request $request): View
     {
         $query = MetaLead::query();
@@ -72,5 +74,45 @@ class MetaLeadUiController extends Controller
         $lead->delete();
 
         return redirect()->route('leads.index')->with('success', 'Lead deleted.');
+    }
+
+    public function updateStatus(Request $request, MetaLead $lead): RedirectResponse
+    {
+        $validated = $request->validate([
+            'status' => ['required', 'in:'.implode(',', self::STATUSES)],
+        ]);
+
+        if ($lead->status === 'converted' && $validated['status'] !== 'converted') {
+            return redirect()->back()->with('error', 'Converted lead status cannot be changed.');
+        }
+
+        if ($lead->status === 'converted' && $validated['status'] === 'converted') {
+            return redirect()->back()->with('success', 'Lead is already converted.');
+        }
+
+        if ($validated['status'] === 'converted') {
+            $nameParts = preg_split('/\s+/', trim((string) ($lead->full_name ?? '')), 2);
+
+            return redirect()
+                ->route('client.create')
+                ->withInput([
+                    'convert_source' => 'meta',
+                    'convert_id' => $lead->id,
+                    'first_name' => $nameParts[0] ?? '',
+                    'last_name' => $nameParts[1] ?? '',
+                    'email' => $lead->email ?? '',
+                    'phone' => $lead->phone ?? '',
+                    'status' => 'active',
+                    'city' => $lead->city ?? '',
+                    'state' => $lead->state ?? '',
+                    'company_name' => '',
+                ])
+                ->with('success', 'Conversion pending. Please complete client creation.');
+        }
+
+        $lead->status = $validated['status'];
+        $lead->save();
+
+        return redirect()->back()->with('success', 'Lead status updated successfully.');
     }
 }

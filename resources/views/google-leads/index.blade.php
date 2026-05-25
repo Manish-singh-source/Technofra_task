@@ -9,6 +9,18 @@
 
     <div class="page-wrapper">
         <div class="page-content">
+            @if (session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="ps-3">
                     <nav aria-label="breadcrumb">
@@ -117,6 +129,7 @@
                                     <th>Company</th>
                                     <th>Campaign ID</th>
                                     <th>Lead Stage</th>
+                                    <th>Status</th>
                                     <th>Submitted At</th>
                                     <th>Type</th>
                                     <th>Actions</th>
@@ -134,6 +147,9 @@
                                         <td>
                                             <span class="badge bg-info rounded-pill">{{ $lead->lead_stage ?? 'N/A' }}</span>
                                         </td>
+                                        <td>
+                                            <span class="badge bg-secondary rounded-pill text-uppercase">{{ $lead->status ?? 'new' }}</span>
+                                        </td>
                                         <td>{{ $lead->lead_submit_time?->format('d M Y, h:i A') ?? 'N/A' }}</td>
                                         <td>
                                             @if($lead->is_test)
@@ -143,12 +159,25 @@
                                             @endif
                                         </td>
                                         <td>
-                                            <a href="{{ route('google-leads.show', $lead) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                            <div class="d-flex order-actions align-items-center">
+                                                <a href="{{ route('google-leads.show', $lead) }}" class="text-primary" title="View">
+                                                    <i class='bx bxs-show'></i>
+                                                </a>
+                                                @can('edit_leads')
+                                                    <button type="button" class="text-warning border-0 bg-transparent ms-2"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#statusGoogleLeadModal-{{ $lead->id }}"
+                                                        title="Change Status"
+                                                        style="cursor: pointer;">
+                                                        <i class='bx bxs-edit-alt'></i>
+                                                    </button>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="text-center py-5">
+                                        <td colspan="11" class="text-center py-5">
                                             <p class="text-muted mb-0">No Google Ads leads found for the selected filters.</p>
                                         </td>
                                     </tr>
@@ -164,4 +193,37 @@
             </div>
         </div>
     </div>
+
+    @can('edit_leads')
+        @foreach($leads as $lead)
+            <div class="modal fade" id="statusGoogleLeadModal-{{ $lead->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ route('google-leads.status', $lead) }}">
+                            @csrf
+                            @method('PATCH')
+                            <div class="modal-header">
+                                <h5 class="modal-title">Change Lead Status</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select" required>
+                                    @foreach (['new', 'contacted', 'qualified', 'converted', 'loss'] as $status)
+                                        <option value="{{ $status }}" {{ ($lead->status ?? 'new') === $status ? 'selected' : '' }}>
+                                            {{ ucfirst($status) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    @endcan
 @endsection

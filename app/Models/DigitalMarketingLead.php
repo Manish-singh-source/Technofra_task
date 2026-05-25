@@ -18,6 +18,7 @@ class DigitalMarketingLead extends Model
         'website',
         'source_page',
         'created_at',
+        'status',
     ];
 
     protected $casts = [

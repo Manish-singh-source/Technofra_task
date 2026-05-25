@@ -6,8 +6,13 @@ use App\Helpers\FileUpload;
 use App\Imports\ClientsImport;
 use App\Mail\ClientInviteMail;
 use App\Models\ClientBusinessDetail;
+use App\Models\DigitalMarketingLead;
+use App\Models\GoogleLead;
+use App\Models\Lead;
+use App\Models\MetaLead;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Models\WebappLead;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -66,6 +71,7 @@ class ClientController extends Controller
 
             $this->assignClientRole($client);
             $this->syncClientRelations($client, $payload);
+            $this->markSourceLeadAsConverted($request);
 
             DB::commit();
 
@@ -511,5 +517,31 @@ class ClientController extends Controller
         }
 
         return 'inactive';
+    }
+
+    private function markSourceLeadAsConverted(Request $request): void
+    {
+        $source = trim((string) $request->input('convert_source', ''));
+        $id = (int) $request->input('convert_id', 0);
+
+        if ($source === '' || $id <= 0) {
+            return;
+        }
+
+        $lead = match ($source) {
+            'lead' => Lead::find($id),
+            'digital_marketing' => DigitalMarketingLead::find($id),
+            'webapp' => WebappLead::find($id),
+            'meta' => MetaLead::find($id),
+            'google' => GoogleLead::find($id),
+            default => null,
+        };
+
+        if (! $lead) {
+            return;
+        }
+
+        $lead->status = 'converted';
+        $lead->save();
     }
 }

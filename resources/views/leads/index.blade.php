@@ -97,6 +97,7 @@
                                     <th>Phone</th>
                                     <th>Form ID</th>
                                     <th>City/State</th>
+                                    <th>Status</th>
                                     <th>Lead Date</th>
                                     <th>Actions</th>
                                 </tr>
@@ -108,35 +109,49 @@
                                         <td>
                                             <div class="d-flex align-items-center gap-2">
                                                 @if ($lead->email && $lead->phone)
-                                                    <span class="badge bg-success rounded-pill" title="Complete contact">•</span>
+                                                    <span class="badge bg-success rounded-pill" title="Complete contact">&bull;</span>
                                                 @endif
-                                                <span>{{ $lead->full_name ?: '—' }}</span>
+                                                <span>{{ $lead->full_name ?: '-' }}</span>
                                             </div>
                                         </td>
                                         <td>
                                             @if ($lead->email)
                                                 <a href="mailto:{{ $lead->email }}">{{ $lead->email }}</a>
                                             @else
-                                                —
+                                                -
                                             @endif
                                         </td>
                                         <td>
                                             @if ($lead->phone)
                                                 <a href="tel:{{ $lead->phone }}">{{ $lead->phone }}</a>
                                             @else
-                                                —
+                                                -
                                             @endif
                                         </td>
-                                        <td>{{ $lead->form_id ?: '—' }}</td>
-                                        <td>{{ trim(($lead->city ?: '') . (isset($lead->state) && $lead->city ? ', ' : '') . ($lead->state ?: '')) ?: '—' }}</td>
-                                        <td>{{ $lead->created_time?->format('d M Y, H:i') ?? '—' }}</td>
+                                        <td>{{ $lead->form_id ?: '-' }}</td>
+                                        <td>{{ trim(($lead->city ?: '') . (isset($lead->state) && $lead->city ? ', ' : '') . ($lead->state ?: '')) ?: '-' }}</td>
+                                        <td><span class="badge bg-secondary rounded-pill text-uppercase">{{ $lead->status ?? 'new' }}</span></td>
+                                        <td>{{ $lead->created_time?->format('d M Y, H:i') ?? '-' }}</td>
                                         <td>
-                                            <a href="{{ route('leads.show', $lead) }}" class="btn btn-sm btn-outline-primary">View</a>
+                                            <div class="d-flex order-actions align-items-center">
+                                                <a href="{{ route('leads.show', $lead) }}" class="text-primary" title="View">
+                                                    <i class='bx bxs-show'></i>
+                                                </a>
+                                                @can('edit_leads')
+                                                    <button type="button" class="text-warning border-0 bg-transparent ms-2"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#statusLeadModal-{{ $lead->id }}"
+                                                        title="Change Status"
+                                                        style="cursor: pointer;">
+                                                        <i class='bx bxs-edit-alt'></i>
+                                                    </button>
+                                                @endcan
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="8" class="text-center py-5">
+                                        <td colspan="9" class="text-center py-5">
                                             <div class="d-flex flex-column align-items-center">
                                                 <i class='bx bx-user-x' style="font-size: 48px; color: #ccc;"></i>
                                                 <h6 class="mt-2 text-muted">No leads found.</h6>
@@ -156,4 +171,37 @@
             </div>
         </div>
     </div>
+
+    @can('edit_leads')
+        @foreach ($leads as $lead)
+            <div class="modal fade" id="statusLeadModal-{{ $lead->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <form method="POST" action="{{ route('leads.status', $lead) }}">
+                            @csrf
+                            @method('PATCH')
+                            <div class="modal-header">
+                                <h5 class="modal-title">Change Lead Status</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <label class="form-label">Status</label>
+                                <select name="status" class="form-select" required>
+                                    @foreach (['new', 'contacted', 'qualified', 'converted', 'loss'] as $status)
+                                        <option value="{{ $status }}" {{ ($lead->status ?? 'new') === $status ? 'selected' : '' }}>
+                                            {{ ucfirst($status) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                <button type="submit" class="btn btn-primary">Update</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    @endcan
 @endsection

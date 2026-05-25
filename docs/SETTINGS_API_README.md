@@ -226,7 +226,7 @@ curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/email' \
   "email_signature": "Regards, Technofra",
   "predefined_header": "<p>Hello</p>",
   "predefined_footer": "<p>Thank you</p>"
-}'
+}'s
 ```
 
 ## 8. Get Renewal Notification Settings
@@ -235,10 +235,10 @@ curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/email' \
 - URL: `/api/v1/settings/renewal`
 - Permission required: `view_email_settings`
 
-Returns renewal settings plus automatic cron/queue notification toggles:
-- `renewal_notifications_enabled`
+  Returns renewal settings plus automatic cron/queue notification toggles:
+  - `renewal_notifications_enabled`
 - `auto_calendar_event_email_enabled`
-- `auto_calendar_event_whatsapp_enabled`
+- `auto_calendar_event_whatsapp_enabled`  
 - `auto_todo_reminder_email_enabled`
 - `auto_todo_reminder_whatsapp_enabled`
 

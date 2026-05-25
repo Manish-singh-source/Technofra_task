@@ -9,6 +9,12 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+            @if (session('error'))
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    {{ session('error') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
 
             <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
                 <div class="ps-3">
@@ -65,6 +71,7 @@
                                             <th>Company</th>
                                             <th>Website</th>
                                             <th>Source Page</th>
+                                            <th>Status</th>
                                             <th>Created At</th>
                                             <th>Action</th>
                                         </tr>
@@ -79,9 +86,17 @@
                                                 <td>{{ $lead->company ?: 'N/A' }}</td>
                                                 <td>{{ $lead->website ?: 'N/A' }}</td>
                                                 <td>{{ $lead->source_page }}</td>
+                                                <td><span class="badge bg-secondary rounded-pill text-uppercase">{{ $lead->status ?? 'new' }}</span></td>
                                                 <td>{{ optional($lead->created_at)->format('d M Y h:i A') }}</td>
                                                 <td>
                                                     <div class="d-flex order-actions">
+                                                        @can('edit_digital_marketing_leads')
+                                                        <button type="button" class="btn btn-link p-0 text-warning me-2" title="Change Status"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#statusDigitalLeadModal-{{ $lead->id }}">
+                                                            <i class='bx bxs-edit-alt'></i>
+                                                        </button>
+                                                        @endcan
                                                         <form method="POST" action="{{ route('digital-marketing-leads.destroy', $lead->id) }}" class="d-inline"
                                                             onsubmit="return confirm('Are you sure you want to delete this lead?')">
                                                             @csrf
@@ -95,7 +110,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="9" class="text-center py-4">
+                                                <td colspan="10" class="text-center py-4">
                                                     <div class="d-flex flex-column align-items-center">
                                                         <i class='bx bx-user-x' style="font-size: 48px; color: #ccc;"></i>
                                                         <h6 class="mt-2 text-muted">No leads found</h6>
@@ -122,7 +137,9 @@
                                             <th>Website</th>
                                             <th>Message</th>
                                             <th>Source Page</th>
+                                            <th>Status</th>
                                             <th>Created At</th>
+                                            <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -136,11 +153,21 @@
                                                 <td>{{ $lead->website ?: 'N/A' }}</td>
                                                 <td>{{ $lead->message ?: 'N/A' }}</td>
                                                 <td>{{ $lead->source_page }}</td>
+                                                <td><span class="badge bg-secondary rounded-pill text-uppercase">{{ $lead->status ?? 'new' }}</span></td>
                                                 <td>{{ optional($lead->created_at)->format('d M Y h:i A') }}</td>
+                                                <td>
+                                                    @can('edit_digital_marketing_leads')
+                                                    <button type="button" class="btn btn-link p-0 text-warning" title="Change Status"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#statusWebappLeadModal-{{ $lead->id }}">
+                                                        <i class='bx bxs-edit-alt'></i>
+                                                    </button>
+                                                    @endcan
+                                                </td>
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="9" class="text-center py-4">
+                                                <td colspan="11" class="text-center py-4">
                                                     <div class="d-flex flex-column align-items-center">
                                                         <i class='bx bx-user-x' style="font-size: 48px; color: #ccc;"></i>
                                                         <h6 class="mt-2 text-muted">No web app leads found</h6>
@@ -159,6 +186,70 @@
         </div>
     </div>
 @endsection
+
+@can('edit_digital_marketing_leads')
+    @foreach ($leads as $lead)
+        <div class="modal fade" id="statusDigitalLeadModal-{{ $lead->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ route('digital-marketing-leads.status', ['source' => 'digital_marketing', 'id' => $lead->id]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="modal-header">
+                            <h5 class="modal-title">Change Lead Status</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select" required>
+                                @foreach (['new', 'contacted', 'qualified', 'converted', 'loss'] as $status)
+                                    <option value="{{ $status }}" {{ ($lead->status ?? 'new') === $status ? 'selected' : '' }}>
+                                        {{ ucfirst($status) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
+
+    @foreach ($webappLeads as $lead)
+        <div class="modal fade" id="statusWebappLeadModal-{{ $lead->id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <form method="POST" action="{{ route('digital-marketing-leads.status', ['source' => 'webapp', 'id' => $lead->id]) }}">
+                        @csrf
+                        @method('PATCH')
+                        <div class="modal-header">
+                            <h5 class="modal-title">Change Web/App Lead Status</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                            <label class="form-label">Status</label>
+                            <select name="status" class="form-select" required>
+                                @foreach (['new', 'contacted', 'qualified', 'converted', 'loss'] as $status)
+                                    <option value="{{ $status }}" {{ ($lead->status ?? 'new') === $status ? 'selected' : '' }}>
+                                        {{ ucfirst($status) }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    @endforeach
+@endcan
 
 @push('scripts')
     <script>

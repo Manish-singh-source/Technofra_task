@@ -229,44 +229,6 @@
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-sm-3">
-                                        <h6 class="mb-0">Status</h6>
-                                    </div>
-                                    <div class="col-sm-9 text-secondary">
-                                        @switch($lead->status)
-                                            @case('new')
-                                                <span class="badge bg-danger">New</span>
-                                                @break
-                                            @case('contacted')
-                                                <span class="badge bg-warning">Contacted</span>
-                                                @break
-                                            @case('qualified')
-                                                <span class="badge bg-info">Qualified</span>
-                                                @break
-                                            @case('converted')
-                                                <span class="badge bg-success">Converted</span>
-                                                @break
-                                            @case('lost')
-                                                <span class="badge bg-secondary">Lost</span>
-                                                @break
-                                        @endswitch
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-sm-3">
-                                        <h6 class="mb-0">Tags</h6>
-                                    </div>
-                                    <div class="col-sm-9 text-secondary">
-                                        @if($lead->tags)
-                                            @foreach($lead->tags as $tag)
-                                                <span class="badge bg-primary me-1">{{ $tag }}</span>
-                                            @endforeach
-                                        @else
-                                            N/A
-                                        @endif
-                                    </div>
-                                </div>
-                                <div class="row mb-3">
-                                    <div class="col-sm-3">
                                         <h6 class="mb-0">Created</h6>
                                     </div>
                                     <div class="col-sm-9 text-secondary">
