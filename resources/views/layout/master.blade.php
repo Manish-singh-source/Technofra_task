@@ -424,7 +424,7 @@
                         </ul>
                     </li>
                 @endcan
-                @can('view_general_settings')
+                @can('manage_settings')
                     <li>
                         <a href="{{ route('settings') }}">
                             <div class="parent-icon"><i class="bx bx-cog"></i>

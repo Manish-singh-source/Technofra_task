@@ -167,6 +167,7 @@
                         <div class="card-body p-4">
                             <div class="tab-content" id="settingsTabContent">
                                 <!-- TAB 1: GENERAL -->
+                                @can('view_general_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'general' ? 'show active' : '' }}"
                                     id="general" role="tabpanel">
                                     <h5 class="card-title">General Settings</h5>
@@ -280,8 +281,10 @@
                                         </div>
                                     </form>
                                 </div>
+                                @endcan
 
                                 <!-- TAB 2: COMPANY INFORMATION -->
+                                @can('Company_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'company' ? 'show active' : '' }}"
                                     id="company" role="tabpanel">
                                     <h5 class="card-title">Company Information</h5>
@@ -448,8 +451,11 @@
                                         </div>
                                     </form>
                                 </div>
+                                @endcan
 
+                          
                                 <!-- TAB 3: EMAIL SETTINGS -->
+                                @can('email_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'email' ? 'show active' : '' }}"
                                     id="email" role="tabpanel">
                                     <h5 class="card-title">Email Settings / SMTP</h5>
@@ -645,10 +651,12 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
+                                </div>       
+                                @endcan
 
 
                                 <!-- TAB 4: RENEWAL MANAGE -->
+                                @can('renewal_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'renewal' ? 'show active' : '' }}"
                                     id="renewal" role="tabpanel">
                                     <h5 class="card-title">Renewal Manage</h5>
@@ -719,7 +727,11 @@
                                             </div>
                                         </div>
                                     </form>
-                                </div>
+                                </div>         
+                                @endcan
+
+
+                                @can('notification_settings')
                                 <!-- TAB 5: NOTIFICATIONS -->
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'notification' ? 'show active' : '' }}"
                                     id="notification" role="tabpanel">
@@ -840,8 +852,11 @@
                                             </div>
                                         </div>
                                     </form>
-                                </div>
+                                </div>           
+                                @endcan
+
                                 <!-- TAB 4: TEAMS -->
+                                @can('teams_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'teams' ? 'show active' : '' }}"
                                     id="teams" role="tabpanel">
                                     <h5 class="card-title">Team Settings</h5>
@@ -935,9 +950,11 @@
                                             </div>
                                         </div>
                                     </form>
-                                </div>
+                                </div>           
+                                @endcan
 
                                 <!-- TAB 5: DEPARTMENTS -->
+                                @can('department_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'departments' ? 'show active' : '' }}"
                                     id="departments" role="tabpanel">
                                     <h5 class="card-title">Department Settings</h5>
@@ -990,7 +1007,8 @@
                                             </div>
                                         </div>
                                     </form>
-                                </div>
+                                </div>           
+                                @endcan
 
                             </div>
                         </div>
