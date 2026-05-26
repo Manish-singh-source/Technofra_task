@@ -42,11 +42,18 @@
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                     <h5 class="mb-0">Lead Management</h5>
-                    @can('edit_leads')
-                        <button type="button" class="btn btn-primary btn-sm" id="openBulkAssignModalBtn">
-                            <i class='bx bxs-user-plus'></i> Bulk Assign
-                        </button>
-                    @endcan
+                    <div class="d-flex align-items-center gap-2">
+                        @can('create_leads')
+                            <a href="{{ route('add-lead') }}" class="btn btn-primary btn-sm">
+                                <i class='bx bxs-plus-square'></i> Add New Lead
+                            </a>
+                        @endcan
+                        @can('edit_leads')
+                            <button type="button" class="btn btn-primary btn-sm" id="openBulkAssignModalBtn">
+                                <i class='bx bxs-user-plus'></i> Bulk Assign
+                            </button>
+                        @endcan
+                    </div>
                 </div>
 
                 <div class="d-flex flex-wrap gap-2 mb-3">

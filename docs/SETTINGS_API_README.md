@@ -253,7 +253,7 @@ curl --location 'http://127.0.0.1:8000/api/v1/settings/renewal' \
 - Method: `PUT`
 - URL: `/api/v1/settings/renewal`
 - Permission required: `view_email_settings`
-
+  .0
 Supported boolean toggle fields:
 - `renewal_notifications_enabled` (daily renewal summary email)
 - `auto_calendar_event_email_enabled`
