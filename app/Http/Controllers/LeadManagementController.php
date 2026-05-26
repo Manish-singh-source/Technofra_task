@@ -25,19 +25,22 @@ class LeadManagementController extends Controller
     private const SOURCE_WEBAPP = 'webapp';
     private const SOURCE_META = 'meta';
     private const SOURCE_GOOGLE = 'google';
+    private const SOURCE_INDIAMART = 'indiamart';
+    private const SOURCE_JUSTDIAL = 'justdial';
 
     public function index(Request $request): View
     {
         abort_unless(auth()->user()?->can('view_leads'), 403);
 
         $search = trim((string) $request->query('search', ''));
-        $sourceFilter = trim((string) $request->query('source', ''));
         $sourceLabels = [
             self::SOURCE_LEAD => 'Leads',
             self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
             self::SOURCE_WEBAPP => 'Web App',
             self::SOURCE_META => 'Meta',
             self::SOURCE_GOOGLE => 'Google',
+            self::SOURCE_INDIAMART => 'IndiaMart',
+            self::SOURCE_JUSTDIAL => 'JustDial',
         ];
 
         $filteredBySearch = $this->mergedLeads()
@@ -64,9 +67,6 @@ class LeadManagementController extends Controller
         }
 
         $merged = $filteredBySearch
-            ->when($sourceFilter !== '', function (Collection $items) use ($sourceFilter) {
-                return $items->filter(fn (array $row) => $row['source_type'] === $sourceFilter);
-            })
             ->sortByDesc('created_at_ts')
             ->values();
 
@@ -94,7 +94,7 @@ class LeadManagementController extends Controller
             'staff' => $staff,
             'filters' => [
                 'search' => $search,
-                'source' => $sourceFilter,
+                'source' => '',
             ],
             'sources' => $sourceLabels,
             'tabCounts' => $tabCounts,

@@ -10,6 +10,8 @@
         'webapp' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
         'meta' => ['active' => 'btn-info text-dark', 'inactive' => 'btn-outline-info', 'badge' => 'bg-info text-dark'],
         'google' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
+        'indiamart' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
+        'justdial' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
     ];
 @endphp
 <div class="page-wrapper">
@@ -58,23 +60,35 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-3">
                     @php($allTabStyle = $tabColorClasses['all'])
-                    <a href="{{ route('lead-management.index', array_merge(request()->except('page', 'source'), ['source' => ''])) }}"
-                        class="btn {{ $activeSource === '' ? $allTabStyle['active'] : $allTabStyle['inactive'] }}">
+                    <button type="button"
+                        class="btn source-filter-btn {{ $activeSource === '' ? $allTabStyle['active'] : $allTabStyle['inactive'] }}"
+                        data-source-key=""
+                        data-source-label=""
+                        data-active-class="{{ $allTabStyle['active'] }}"
+                        data-inactive-class="{{ $allTabStyle['inactive'] }}">
                         All
-                        <span class="badge {{ $activeSource === '' ? 'bg-white text-dark' : $allTabStyle['badge'] }} ms-1">
+                        <span class="badge source-filter-badge {{ $activeSource === '' ? 'bg-white text-dark' : $allTabStyle['badge'] }} ms-1"
+                            data-active-badge-class="bg-white text-dark"
+                            data-inactive-badge-class="{{ $allTabStyle['badge'] }}">
                             {{ $tabCounts['all'] ?? 0 }}
                         </span>
-                    </a>
+                    </button>
 
                     @foreach ($sources as $key => $label)
                         @php($tabStyle = $tabColorClasses[$key] ?? ['active' => 'btn-secondary', 'inactive' => 'btn-outline-secondary', 'badge' => 'bg-secondary'])
-                        <a href="{{ route('lead-management.index', array_merge(request()->except('page', 'source'), ['source' => $key])) }}"
-                            class="btn {{ $activeSource === $key ? $tabStyle['active'] : $tabStyle['inactive'] }}">
+                        <button type="button"
+                            class="btn source-filter-btn {{ $activeSource === $key ? $tabStyle['active'] : $tabStyle['inactive'] }}"
+                            data-source-key="{{ $key }}"
+                            data-source-label="{{ $label }}"
+                            data-active-class="{{ $tabStyle['active'] }}"
+                            data-inactive-class="{{ $tabStyle['inactive'] }}">
                             {{ $label }}
-                            <span class="badge {{ $activeSource === $key ? 'bg-white text-dark' : $tabStyle['badge'] }} ms-1">
+                            <span class="badge source-filter-badge {{ $activeSource === $key ? 'bg-white text-dark' : $tabStyle['badge'] }} ms-1"
+                                data-active-badge-class="bg-white text-dark"
+                                data-inactive-badge-class="{{ $tabStyle['badge'] }}">
                                 {{ $tabCounts[$key] ?? 0 }}
                             </span>
-                        </a>
+                        </button>
                     @endforeach
                 </div>
 
@@ -293,11 +307,83 @@
 <script>
     $(document).ready(function() {
         var $table = $('#example');
+        var dataTableInstance = null;
 
         if ($table.length && !$.fn.DataTable.isDataTable($table)) {
-            $table.DataTable({
+            dataTableInstance = $table.DataTable({
                 order: []
             });
+        } else if ($table.length) {
+            dataTableInstance = $table.DataTable();
+        }
+
+        const sourceFilterButtons = document.querySelectorAll('.source-filter-btn');
+        const sourceColumnIndex = 6;
+
+        function escapeRegex(value) {
+            return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        function updateSourceFilterButtonState(activeButton) {
+            sourceFilterButtons.forEach((button) => {
+                const isActive = button === activeButton;
+                const activeClass = button.dataset.activeClass || '';
+                const inactiveClass = button.dataset.inactiveClass || '';
+
+                if (activeClass) {
+                    activeClass.split(' ').filter(Boolean).forEach((className) => {
+                        button.classList.toggle(className, isActive);
+                    });
+                }
+                if (inactiveClass) {
+                    inactiveClass.split(' ').filter(Boolean).forEach((className) => {
+                        button.classList.toggle(className, !isActive);
+                    });
+                }
+
+                const badge = button.querySelector('.source-filter-badge');
+                if (!badge) return;
+
+                const activeBadgeClass = badge.dataset.activeBadgeClass || '';
+                const inactiveBadgeClass = badge.dataset.inactiveBadgeClass || '';
+
+                if (activeBadgeClass) {
+                    activeBadgeClass.split(' ').filter(Boolean).forEach((className) => {
+                        badge.classList.toggle(className, isActive);
+                    });
+                }
+                if (inactiveBadgeClass) {
+                    inactiveBadgeClass.split(' ').filter(Boolean).forEach((className) => {
+                        badge.classList.toggle(className, !isActive);
+                    });
+                }
+            });
+        }
+
+        sourceFilterButtons.forEach((button) => {
+            button.addEventListener('click', function() {
+                if (!dataTableInstance) return;
+
+                const sourceLabel = (this.dataset.sourceLabel || '').trim();
+                if (sourceLabel === '') {
+                    dataTableInstance.column(sourceColumnIndex).search('').draw();
+                } else {
+                    dataTableInstance
+                        .column(sourceColumnIndex)
+                        .search(`^${escapeRegex(sourceLabel)}$`, true, false)
+                        .draw();
+                }
+
+                updateSourceFilterButtonState(this);
+            });
+        });
+
+        const initialActiveButton =
+            Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey === @json($activeSource)) ||
+            Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey === '');
+
+        if (initialActiveButton) {
+            updateSourceFilterButtonState(initialActiveButton);
         }
 
         const bulkAssignModal = new bootstrap.Modal(document.getElementById('bulkAssignModal'));
