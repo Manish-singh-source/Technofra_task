@@ -170,14 +170,6 @@ class AuthController extends Controller
 
         $emailRules = ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user->id)];
 
-        if ($staff) {
-            $emailRules[] = Rule::unique('staff', 'email')->ignore($staff->id);
-        }
-
-        if ($customer) {
-            $emailRules[] = Rule::unique('customers', 'email')->ignore($customer->id);
-        }
-
         $validator = Validator::make($request->all(), [
             'profileImage' => ['nullable', 'image', 'mimes:jpeg,png,jpg,gif,webp', 'max:2048'],
             'name' => ['required', 'string', 'max:255'],
