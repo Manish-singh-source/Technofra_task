@@ -244,7 +244,7 @@ curl --location --request PUT 'http://127.0.0.1:8000/api/v1/settings/email' \
 
 ```bash
 curl --location 'http://127.0.0.1:8000/api/v1/settings/renewal' \
---header 'Accept: application/json' \
+--header 'Accept: application/json' \s
 --header 'Authorization: Bearer YOUR_SANCTUM_TOKEN'
 ```
 

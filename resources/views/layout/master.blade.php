@@ -283,6 +283,9 @@
                             <div class="menu-title">Leads</div>
                         </a>
                     </li>
+                @endcan
+
+                @can('view_leads_management')
                     <li>
                         <a href="{{ route('lead-management.index') }}">
                             <div class="parent-icon"><i class="bx bx-spreadsheet"></i>
@@ -424,7 +427,7 @@
                         </ul>
                     </li>
                 @endcan
-                @can('view_general_settings')
+                @can('manage_settings')
                     <li>
                         <a href="{{ route('settings') }}">
                             <div class="parent-icon"><i class="bx bx-cog"></i>
