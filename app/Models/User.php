@@ -308,6 +308,21 @@ class User extends Authenticatable
         });
     }
 
+    public function ownedLeads()
+    {
+        return $this->hasMany(Lead::class, 'assigned_to');
+    }
+
+    public function leadFollowups()
+    {
+        return $this->hasMany(LeadFollowup::class, 'staff_id');
+    }
+
+    public function leadActivities()
+    {
+        return $this->hasMany(LeadActivity::class, 'user_id');
+    }
+
     public function getFullNameAttribute(): string
     {
         return $this->name;

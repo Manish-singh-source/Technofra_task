@@ -2,13 +2,30 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\LeadManagement\AddFollowupRequest;
+use App\Http\Requests\LeadManagement\AddLeadNoteRequest;
+use App\Http\Requests\LeadManagement\AddLeadReminderRequest;
+use App\Http\Requests\LeadManagement\AssignLeadRequest;
+use App\Http\Requests\LeadManagement\ConvertLeadRequest;
+use App\Http\Requests\LeadManagement\EscalateLeadRequest;
+use App\Http\Requests\LeadManagement\UpdateLeadStatusRequest;
 use App\Models\AssignedLead;
 use App\Models\DigitalMarketingLead;
 use App\Models\GoogleLead;
 use App\Models\Lead;
+use App\Models\LeadConversion;
+use App\Models\LeadEscalation;
+use App\Models\LeadFollowup;
+use App\Models\LeadNote;
+use App\Models\LeadReminder;
+use App\Models\StaffLeadStat;
 use App\Models\MetaLead;
 use App\Models\User;
 use App\Models\WebappLead;
+use App\Services\LeadManagement\LeadPipelineService;
+use App\Services\LeadManagement\LeadStatusService;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -19,7 +36,14 @@ use Illuminate\View\View;
 
 class LeadManagementController extends Controller
 {
-    private const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'loss'];
+    public function __construct(
+        private readonly LeadPipelineService $pipelineService,
+        private readonly LeadStatusService $leadStatusService
+    )
+    {
+    }
+
+    private const STATUSES = ['new', 'attempted_contact', 'contacted', 'qualified', 'demo_scheduled', 'proposal_sent', 'negotiation', 'won', 'lost', 'junk'];
     private const SOURCE_LEAD = 'lead';
     private const SOURCE_DIGITAL_MARKETING = 'digital_marketing';
     private const SOURCE_WEBAPP = 'webapp';
@@ -33,6 +57,7 @@ class LeadManagementController extends Controller
         abort_unless(auth()->user()?->can('view_leads'), 403);
 
         $search = trim((string) $request->query('search', ''));
+        $statusFilter = trim((string) $request->query('status', ''));
         $sourceLabels = [
             self::SOURCE_LEAD => 'Leads',
             self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
@@ -67,6 +92,9 @@ class LeadManagementController extends Controller
         }
 
         $merged = $filteredBySearch
+            ->when($statusFilter !== '', function (Collection $items) use ($statusFilter) {
+                return $items->filter(fn (array $row) => (string) ($row['status'] ?? '') === $statusFilter);
+            })
             ->sortByDesc('created_at_ts')
             ->values();
 
@@ -95,9 +123,11 @@ class LeadManagementController extends Controller
             'filters' => [
                 'search' => $search,
                 'source' => '',
+                'status' => $statusFilter,
             ],
             'sources' => $sourceLabels,
             'tabCounts' => $tabCounts,
+            'statusOptions' => config('lead_statuses', []),
         ]);
     }
 
@@ -105,21 +135,36 @@ class LeadManagementController extends Controller
     {
         abort_unless(auth()->user()?->can('view_leads'), 403);
         $lead = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($lead)->load('statusUpdatedBy');
 
-        return view('lead-management.show', compact('lead'));
+        $timeline = $leadModel->activities()->latest()->limit(100)->get();
+        $followups = $leadModel->followups()->latest('followup_date')->get();
+        $notes = $leadModel->notes()->latest()->get();
+        $reminders = $leadModel->reminders()->latest('remind_at')->get();
+        $assignments = $leadModel->assignments()->latest('assigned_at')->get();
+        $statusHistory = $leadModel->statusHistories()->latest()->get();
+        $staff = User::staffMembers()->orderBy('first_name')->orderBy('last_name')->get();
+        $statusOptions = config('lead_statuses', []);
+
+        return view('lead-management.show', compact(
+            'lead',
+            'timeline',
+            'followups',
+            'notes',
+            'reminders',
+            'assignments',
+            'statusHistory',
+            'staff',
+            'leadModel',
+            'statusOptions'
+        ));
     }
 
-    public function assign(Request $request, string $source, int $id): RedirectResponse
+    public function assign(AssignLeadRequest $request, string $source, int $id): RedirectResponse
     {
         abort_unless(auth()->user()?->can('edit_leads'), 403);
 
-        $validated = $request->validate([
-            'assigned_user_ids' => ['required', 'array', 'min:1'],
-            'assigned_user_ids.*' => [
-                'required',
-                Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'staff')),
-            ],
-        ]);
+        $validated = $request->validated();
 
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
         $existingAssignment = AssignedLead::query()
@@ -134,15 +179,27 @@ class LeadManagementController extends Controller
             ->values()
             ->all();
 
-        AssignedLead::updateOrCreate(
-            [
-                'lead_model' => $normalized['source_type'],
-                'lead_id' => (int) $normalized['source_id'],
-            ],
-            [
-                'staff_ids' => $assigned,
-            ]
-        );
+        DB::transaction(function () use ($normalized, $assigned, $validated) {
+            AssignedLead::updateOrCreate(
+                [
+                    'lead_model' => $normalized['source_type'],
+                    'lead_id' => (int) $normalized['source_id'],
+                ],
+                [
+                    'staff_ids' => $assigned,
+                ]
+            );
+
+            $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+            if (! empty($assigned)) {
+                $this->pipelineService->assignLead(
+                    $leadModel,
+                    (int) $assigned[0],
+                    auth()->id(),
+                    $validated['assignment_note'] ?? null
+                );
+            }
+        });
 
         return redirect()
             ->route('lead-management.index')
@@ -199,6 +256,20 @@ class LeadManagementController extends Controller
                 ]
             );
 
+            $leadModel = $this->resolveLeadEntityForPipeline([
+                'source_type' => $source,
+                'source_id' => $id,
+                'name' => null,
+                'email' => null,
+                'number' => null,
+                'company' => null,
+                'source' => ucfirst(str_replace('_', ' ', $source)),
+                'status' => 'new',
+            ]);
+            if (! empty($assigned)) {
+                $this->pipelineService->assignLead($leadModel, (int) $assigned[0], auth()->id(), 'Bulk assignment');
+            }
+
             $assignedCount++;
         }
 
@@ -218,13 +289,195 @@ class LeadManagementController extends Controller
             ->with('success', 'Lead deleted successfully.');
     }
 
-    public function updateStatus(Request $request, string $source, int $id): RedirectResponse
+    public function addFollowup(AddFollowupRequest $request, string $source, int $id): RedirectResponse
     {
-        abort_unless(auth()->user()?->can('edit_leads'), 403);
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $validated = $request->validated();
 
-        $validated = $request->validate([
-            'status' => ['required', 'in:'.implode(',', self::STATUSES)],
+        DB::transaction(function () use ($leadModel, $validated) {
+            $followup = LeadFollowup::query()->create([
+                'lead_id' => $leadModel->id,
+                'staff_id' => auth()->id(),
+                'followup_date' => Carbon::parse($validated['followup_date']),
+                'followup_type' => $validated['followup_type'],
+                'outcome' => $validated['outcome'] ?? null,
+                'discussion_notes' => $validated['discussion_notes'] ?? null,
+                'next_followup_date' => ! empty($validated['next_followup_date']) ? Carbon::parse($validated['next_followup_date']) : null,
+                'lead_status_after_followup' => $validated['lead_status_after_followup'] ?? null,
+                'reminder_sent' => false,
+            ]);
+
+            if (! empty($validated['next_followup_date'])) {
+                $leadModel->next_followup_at = Carbon::parse($validated['next_followup_date']);
+            }
+            if (! empty($validated['lead_status_after_followup'])) {
+                $oldStatus = (string) ($leadModel->status ?? '');
+                $leadModel->status = $validated['lead_status_after_followup'];
+                $this->pipelineService->logStatusChange($leadModel, $oldStatus, $validated['lead_status_after_followup'], auth()->id(), 'Updated via followup');
+            }
+            $leadModel->save();
+
+            $this->pipelineService->logActivity(
+                $leadModel->id,
+                auth()->id(),
+                'followup_added',
+                'Followup added for lead.',
+                ['followup_id' => $followup->id, 'followup_type' => $followup->followup_type]
+            );
+
+            if (! empty($validated['create_reminder']) && ! empty($validated['next_followup_date'])) {
+                $this->pipelineService->createReminder(
+                    $leadModel->id,
+                    auth()->id(),
+                    Carbon::parse($validated['next_followup_date']),
+                    $validated['reminder_type'] ?? 'dashboard'
+                );
+            }
+        });
+
+        return back()->with('success', 'Followup added successfully.');
+    }
+
+    public function followupHistory(string $source, int $id): View
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $followups = $leadModel->followups()->latest('followup_date')->paginate(20);
+
+        return view('lead-management.followups', compact('leadModel', 'followups', 'normalized'));
+    }
+
+    public function addNote(AddLeadNoteRequest $request, string $source, int $id): RedirectResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $validated = $request->validated();
+
+        $note = LeadNote::query()->create([
+            'lead_id' => $leadModel->id,
+            'user_id' => auth()->id(),
+            'note' => $validated['note'],
+            'is_private' => (bool) ($validated['is_private'] ?? false),
         ]);
+
+        $this->pipelineService->logActivity($leadModel->id, auth()->id(), 'note_added', 'Lead note added.', ['note_id' => $note->id]);
+
+        return back()->with('success', 'Note added successfully.');
+    }
+
+    public function addReminder(AddLeadReminderRequest $request, string $source, int $id): RedirectResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $validated = $request->validated();
+
+        $this->pipelineService->createReminder(
+            $leadModel->id,
+            auth()->id(),
+            Carbon::parse($validated['remind_at']),
+            $validated['reminder_type']
+        );
+
+        return back()->with('success', 'Reminder created successfully.');
+    }
+
+    public function activityTimeline(string $source, int $id): View
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $activities = $leadModel->activities()->latest()->paginate(50);
+
+        return view('lead-management.timeline', compact('leadModel', 'activities', 'normalized'));
+    }
+
+    public function convertLead(ConvertLeadRequest $request, string $source, int $id): RedirectResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $validated = $request->validated();
+
+        DB::transaction(function () use ($leadModel, $validated) {
+            LeadConversion::query()->create([
+                'lead_id' => $leadModel->id,
+                'client_id' => $validated['client_id'] ?? null,
+                'converted_by' => auth()->id(),
+                'conversion_value' => $validated['conversion_value'] ?? null,
+                'converted_at' => now(),
+            ]);
+
+            $oldStatus = (string) ($leadModel->status ?? '');
+            $leadModel->status = 'won';
+            $leadModel->converted_at = now();
+            $leadModel->save();
+
+            $this->pipelineService->logStatusChange($leadModel, $oldStatus, 'won', auth()->id(), 'Lead converted');
+            $this->pipelineService->logActivity($leadModel->id, auth()->id(), 'lead_converted', 'Lead converted successfully.');
+        });
+
+        return back()->with('success', 'Lead converted successfully.');
+    }
+
+    public function escalateLead(EscalateLeadRequest $request, string $source, int $id): RedirectResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $validated = $request->validated();
+
+        $escalation = LeadEscalation::query()->create([
+            'lead_id' => $leadModel->id,
+            'escalated_from' => auth()->id(),
+            'escalated_to' => (int) $validated['escalated_to'],
+            'reason' => $validated['reason'] ?? null,
+            'escalated_at' => now(),
+        ]);
+
+        $this->pipelineService->logActivity($leadModel->id, auth()->id(), 'lead_escalated', 'Lead escalated.', ['escalation_id' => $escalation->id]);
+
+        return back()->with('success', 'Lead escalated successfully.');
+    }
+
+    public function performanceStats(): View
+    {
+        abort_unless(auth()->user()?->can('view_leads'), 403);
+
+        $totalLeads = Lead::query()->count();
+        $convertedLeads = Lead::query()->where('status', 'won')->count();
+        $lostLeads = Lead::query()->whereIn('status', ['lost', 'junk'])->count();
+        $pendingFollowups = Lead::query()->whereNotNull('next_followup_at')->where('next_followup_at', '<=', now())->count();
+        $todayFollowups = LeadFollowup::query()->whereDate('followup_date', now()->toDateString())->count();
+        $conversionRate = $totalLeads > 0 ? round(($convertedLeads / $totalLeads) * 100, 2) : 0;
+        $lostRate = $totalLeads > 0 ? round(($lostLeads / $totalLeads) * 100, 2) : 0;
+
+        $staffStats = StaffLeadStat::query()->with('staff')->orderByDesc('conversion_rate')->get();
+        $leadsPerStatus = Lead::query()
+            ->select('status', DB::raw('COUNT(*) as total'))
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+        $monthlyWonLeads = Lead::query()->where('status', 'won')->whereYear('updated_at', now()->year)->count();
+        $monthlyLostLeads = Lead::query()->where('status', 'lost')->whereYear('updated_at', now()->year)->count();
+
+        return view('lead-management.performance', compact(
+            'totalLeads',
+            'convertedLeads',
+            'lostLeads',
+            'pendingFollowups',
+            'todayFollowups',
+            'conversionRate',
+            'lostRate',
+            'staffStats',
+            'leadsPerStatus',
+            'monthlyWonLeads',
+            'monthlyLostLeads'
+        ));
+    }
+
+    public function updateStatus(UpdateLeadStatusRequest $request, string $source, int $id): RedirectResponse
+    {
+        // abort_unless(auth()->user()?->can('edit_leads'), 403);
+
+        $validated = $request->validated();
 
         $lead = match ($source) {
             self::SOURCE_LEAD => Lead::findOrFail($id),
@@ -235,78 +488,69 @@ class LeadManagementController extends Controller
             default => abort(404),
         };
 
-        if (($lead->status ?? null) === 'converted' && $validated['status'] !== 'converted') {
-            return redirect()->route('lead-management.index')->with('error', 'Converted lead status cannot be changed.');
-        }
+        $leadModel = $this->resolveLeadEntityForPipeline([
+            'source_type' => $source,
+            'source_id' => $id,
+            'name' => $lead->name ?? $lead->full_name ?? null,
+            'email' => $lead->email ?? null,
+            'number' => $lead->phone ?? null,
+            'company' => $lead->company ?? null,
+            'source' => $source,
+        ]);
+        $user = auth()->user();
+        $isAdminRole = in_array(strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? '')), ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
+        $isUnassigned = empty($leadModel->assigned_to);
+        // abort_unless(
+        //     $isAdminRole || $isUnassigned || (int) ($leadModel->assigned_to ?? 0) === (int) ($user?->id ?? 0),
+        //     403
+        // );
 
-        if (($lead->status ?? null) === 'converted' && $validated['status'] === 'converted') {
-            return redirect()->route('lead-management.index')->with('success', 'Lead is already converted.');
-        }
+        DB::transaction(function () use ($lead, $leadModel, $validated) {
+            $this->leadStatusService->applyStatusChange(
+                $leadModel,
+                $validated['status'],
+                auth()->id(),
+                $validated['remarks'] ?? null,
+                $validated['lost_reason'] ?? null,
+                isset($validated['won_value']) ? (float) $validated['won_value'] : null
+            );
 
-        if ($validated['status'] === 'converted') {
-            if ($source === self::SOURCE_LEAD) {
-                $name = trim((string) ($lead->name ?? ''));
-                $email = $lead->email ?? '';
-                $phone = $lead->phone ?? '';
-                $company = $lead->company ?? '';
-                $website = $lead->website ?? '';
-                $city = $lead->city ?? '';
-                $state = $lead->state ?? '';
-                $country = $lead->country ?? '';
-            } elseif ($source === self::SOURCE_META) {
-                $name = trim((string) ($lead->full_name ?? ''));
-                $email = $lead->email ?? '';
-                $phone = $lead->phone ?? '';
-                $company = '';
-                $website = '';
-                $city = $lead->city ?? '';
-                $state = $lead->state ?? '';
-                $country = '';
-            } elseif ($source === self::SOURCE_GOOGLE) {
-                $name = trim((string) ($lead->full_name ?? ''));
-                $email = $lead->email ?? '';
-                $phone = $lead->phone ?? '';
-                $company = $lead->company ?? '';
-                $website = '';
-                $city = '';
-                $state = '';
-                $country = '';
-            } else {
-                $name = trim((string) ($lead->name ?? ''));
-                $email = $lead->email ?? '';
-                $phone = $lead->phone ?? '';
-                $company = $lead->company ?? '';
-                $website = $lead->website ?? '';
-                $city = '';
-                $state = '';
-                $country = '';
-            }
-
-            $nameParts = preg_split('/\s+/', $name, 2);
-
-            return redirect()
-                ->route('client.create')
-                ->withInput([
-                    'convert_source' => $source,
-                    'convert_id' => $lead->id,
-                    'first_name' => $nameParts[0] ?? '',
-                    'last_name' => $nameParts[1] ?? '',
-                    'email' => $email,
-                    'phone' => $phone,
-                    'status' => 'active',
-                    'company_name' => $company,
-                    'website' => $website,
-                    'city' => $city,
-                    'state' => $state,
-                    'country' => $country,
-                ])
-                ->with('success', 'Conversion pending. Please complete client creation.');
-        }
-
-        $lead->status = $validated['status'];
-        $lead->save();
+            // Keep source-specific lead table status in sync.
+            $lead->status = $validated['status'];
+            $lead->save();
+        });
 
         return redirect()->route('lead-management.index')->with('success', 'Lead status updated successfully.');
+    }
+
+    private function resolveLeadEntityForPipeline(array $normalized): Lead
+    {
+        if ($normalized['source_type'] === self::SOURCE_LEAD) {
+            return Lead::query()->findOrFail((int) $normalized['source_id']);
+        }
+
+        $email = trim((string) ($normalized['email'] ?? ''));
+        $phone = trim((string) ($normalized['number'] ?? ''));
+
+        $existing = Lead::query()
+            ->when($email !== '' && $email !== '-', fn ($q) => $q->where('email', $email))
+            ->when($phone !== '' && $phone !== '-', fn ($q) => $q->orWhere('phone', $phone))
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        return Lead::query()->create([
+            'name' => $normalized['name'] ?? 'Lead',
+            'email' => $email !== '-' ? $email : null,
+            'phone' => $phone !== '-' ? $phone : null,
+            'company' => ($normalized['company'] ?? '-') !== '-' ? $normalized['company'] : null,
+            'company_name' => ($normalized['company'] ?? '-') !== '-' ? $normalized['company'] : null,
+            'source' => $normalized['source'] ?? 'Leads',
+            'status' => $normalized['status'] ?? 'new',
+            'created_by' => auth()->id(),
+        ]);
     }
 
     private function mergedLeads(): Collection

@@ -97,10 +97,22 @@
                         <small class="text-muted">
                             Showing {{ $leads->firstItem() }} to {{ $leads->lastItem() }} of {{ $leads->total() }} leads
                         </small>
+                        <form method="GET" action="{{ route('lead-management.index') }}" class="d-flex gap-2">
+                            <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
+                            <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                <option value="">All Statuses</option>
+                                @foreach(($statusOptions ?? []) as $statusOption)
+                                    <option value="{{ $statusOption['slug'] }}" {{ ($filters['status'] ?? '') === $statusOption['slug'] ? 'selected' : '' }}>
+                                        {{ $statusOption['name'] }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </form>
                     </div>
                 @endif
 
                 <div class="table-responsive">
+
                     <table id="example" data-no-default-datatable="true" class="table table-striped table-bordered align-middle">
                         <thead class="table-light">
                             <tr>
@@ -284,12 +296,18 @@
                             <div class="mb-2"><strong>{{ $lead['name'] }}</strong></div>
                             <label class="form-label">Status</label>
                             <select name="status" class="form-select" required>
-                                @foreach (['new', 'contacted', 'qualified', 'converted', 'loss'] as $status)
-                                    <option value="{{ $status }}" {{ ($lead['status'] ?? 'new') === $status ? 'selected' : '' }}>
-                                        {{ ucfirst($status) }}
+                                @foreach (($statusOptions ?? []) as $statusOption)
+                                    <option value="{{ $statusOption['slug'] }}" {{ ($lead['status'] ?? 'new') === $statusOption['slug'] ? 'selected' : '' }}>
+                                        {{ $statusOption['name'] }}
                                     </option>
                                 @endforeach
                             </select>
+                            <label class="form-label mt-2">Won Value (if won)</label>
+                            <input type="number" step="0.01" name="won_value" class="form-control">
+                            <label class="form-label mt-2">Lost Reason (required if lost)</label>
+                            <textarea name="lost_reason" class="form-control" rows="2"></textarea>
+                            <label class="form-label mt-2">Remarks</label>
+                            <input type="text" name="remarks" class="form-control">
                         </div>
                         <div class="modal-footer">
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>

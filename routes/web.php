@@ -277,6 +277,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/{source}/{id}/assign', 'assign')->name('assign');
         Route::post('/bulk-assign', 'bulkAssign')->name('bulk-assign');
         Route::patch('/{source}/{id}/status', 'updateStatus')->name('status');
+        Route::post('/{source}/{id}/followup', 'addFollowup')->name('followup');
+        Route::get('/{source}/{id}/followups', 'followupHistory')->name('followups');
+        Route::post('/{source}/{id}/note', 'addNote')->name('note');
+        Route::post('/{source}/{id}/reminder', 'addReminder')->name('reminder');
+        Route::get('/{source}/{id}/timeline', 'activityTimeline')->name('timeline');
+        Route::post('/{source}/{id}/convert', 'convertLead')->name('convert');
+        Route::post('/{source}/{id}/escalate', 'escalateLead')->name('escalate');
+        Route::get('/performance/stats', 'performanceStats')->name('performance');
         Route::delete('/{source}/{id}', 'destroy')->name('destroy');
     });
 

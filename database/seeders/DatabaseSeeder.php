@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
             RoleSeeder::class,
             SuperAdminSeeder::class,
             HighVolumeDataSeeder::class,
+            LeadStatusSeeder::class,
         ]);
     }
 }
