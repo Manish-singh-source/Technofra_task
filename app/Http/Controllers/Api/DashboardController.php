@@ -282,9 +282,16 @@ class DashboardController extends Controller
 
         $userId = (int) auth()->id();
 
-        return $query->where(function (Builder $builder) use ($userId) {
-            $builder->whereJsonContains('assigned', $userId)
-                ->orWhereJsonContains('assigned', (string) $userId);
+        return $query->whereExists(function ($subQuery) use ($userId) {
+            $subQuery->selectRaw('1')
+                ->from('assigned_leads')
+                ->where('assigned_leads.lead_model', 'lead')
+                ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                ->where(function ($jsonQuery) use ($userId) {
+                    $jsonQuery
+                        ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                        ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                });
         });
     }
 
@@ -311,7 +318,19 @@ class DashboardController extends Controller
             return $query;
         }
 
-        return $query->where('assigned_to', auth()->id());
+        $userId = (int) auth()->id();
+
+        return $query->whereExists(function ($subQuery) use ($userId) {
+            $subQuery->selectRaw('1')
+                ->from('assigned_leads')
+                ->where('assigned_leads.lead_model', 'digital_marketing')
+                ->whereColumn('assigned_leads.lead_id', 'digital_marketing_leads.id')
+                ->where(function ($jsonQuery) use ($userId) {
+                    $jsonQuery
+                        ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                        ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                });
+        });
     }
 
     private function dashboardWebAppLeadQuery(): Builder
@@ -322,6 +341,18 @@ class DashboardController extends Controller
             return $query;
         }
 
-        return $query->where('assigned_to', auth()->id());
+        $userId = (int) auth()->id();
+
+        return $query->whereExists(function ($subQuery) use ($userId) {
+            $subQuery->selectRaw('1')
+                ->from('assigned_leads')
+                ->where('assigned_leads.lead_model', 'webapp')
+                ->whereColumn('assigned_leads.lead_id', 'webapp_leads.id')
+                ->where(function ($jsonQuery) use ($userId) {
+                    $jsonQuery
+                        ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                        ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                });
+        });
     }
 }

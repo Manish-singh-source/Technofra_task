@@ -51,6 +51,7 @@ class LeadManagementController extends Controller
     private const SOURCE_GOOGLE = 'google';
     private const SOURCE_INDIAMART = 'indiamart';
     private const SOURCE_JUSTDIAL = 'justdial';
+    private const SOURCE_PIPELINE = 'lead';
 
     public function index(Request $request): View
     {
@@ -191,6 +192,9 @@ class LeadManagementController extends Controller
             );
 
             $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+            // Keep staff assignment in sync for the pipeline mirror record in `leads`,
+            // since analytics KPIs/charts rely on pipeline fields (status/followups/etc).
+            $this->syncPipelineAssignment($leadModel, $assigned);
             if (! empty($assigned)) {
                 $this->pipelineService->assignLead(
                     $leadModel,
@@ -266,6 +270,7 @@ class LeadManagementController extends Controller
                 'source' => ucfirst(str_replace('_', ' ', $source)),
                 'status' => 'new',
             ]);
+            $this->syncPipelineAssignment($leadModel, $assigned);
             if (! empty($assigned)) {
                 $this->pipelineService->assignLead($leadModel, (int) $assigned[0], auth()->id(), 'Bulk assignment');
             }
@@ -295,9 +300,14 @@ class LeadManagementController extends Controller
         $leadModel = $this->resolveLeadEntityForPipeline($normalized);
         $validated = $request->validated();
 
-        DB::transaction(function () use ($leadModel, $validated) {
+        DB::transaction(function () use ($leadModel, $validated, $normalized) {
+            $sourceType = strtolower(trim((string) ($normalized['source_type'] ?? self::SOURCE_LEAD)));
+            $sourceId = (int) ($normalized['source_id'] ?? 0);
+
             $followup = LeadFollowup::query()->create([
                 'lead_id' => $leadModel->id,
+                'source_type' => $sourceType,
+                'source_id' => $sourceId > 0 ? $sourceId : null,
                 'staff_id' => auth()->id(),
                 'followup_date' => Carbon::parse($validated['followup_date']),
                 'followup_type' => $validated['followup_type'],
@@ -323,7 +333,12 @@ class LeadManagementController extends Controller
                 auth()->id(),
                 'followup_added',
                 'Followup added for lead.',
-                ['followup_id' => $followup->id, 'followup_type' => $followup->followup_type]
+                [
+                    'followup_id' => $followup->id,
+                    'followup_type' => $followup->followup_type,
+                    'source_type' => $followup->source_type,
+                    'source_id' => $followup->source_id,
+                ]
             );
 
             if (! empty($validated['create_reminder']) && ! empty($validated['next_followup_date'])) {
@@ -499,7 +514,7 @@ class LeadManagementController extends Controller
         ]);
         $user = auth()->user();
         $isAdminRole = in_array(strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? '')), ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
-        $isUnassigned = empty($leadModel->assigned_to);
+        $isUnassigned = empty($leadModel->assigned);
         // abort_unless(
         //     $isAdminRole || $isUnassigned || (int) ($leadModel->assigned_to ?? 0) === (int) ($user?->id ?? 0),
         //     403
@@ -551,6 +566,26 @@ class LeadManagementController extends Controller
             'status' => $normalized['status'] ?? 'new',
             'created_by' => auth()->id(),
         ]);
+    }
+
+    private function syncPipelineAssignment(Lead $leadModel, array $staffIds): void
+    {
+        $staffIds = collect($staffIds)
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        AssignedLead::updateOrCreate(
+            [
+                'lead_model' => self::SOURCE_PIPELINE,
+                'lead_id' => (int) $leadModel->id,
+            ],
+            [
+                'staff_ids' => $staffIds,
+            ]
+        );
     }
 
     private function mergedLeads(): Collection

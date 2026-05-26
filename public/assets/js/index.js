@@ -406,9 +406,10 @@ var ctx = chart4El.getContext('2d');
 
 
 
-  // chart 5
-
-    var ctx = document.getElementById("chart5").getContext('2d');
+	  // chart 5
+	    var chart5El = document.getElementById("chart5");
+	    if (chart5El) {
+	    var ctx = chart5El.getContext('2d');
    
       var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
       gradientStroke1.addColorStop(0, '#f54ea2');
@@ -418,7 +419,7 @@ var ctx = chart4El.getContext('2d');
       gradientStroke2.addColorStop(0, '#42e695');
       gradientStroke2.addColorStop(1, '#3bb2b8');
 
-      var myChart = new Chart(ctx, {
+	      var myChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: [1, 2, 3, 4, 5],
@@ -457,7 +458,8 @@ var ctx = chart4El.getContext('2d');
 					  }
 				  }
 			  }
-      });
+	      });
+	      }
 
 
 

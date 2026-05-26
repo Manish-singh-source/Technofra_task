@@ -302,15 +302,24 @@ class User extends Authenticatable
 
     public function assignedLeads()
     {
-        return Lead::query()->where(function ($query) {
-            $query->whereJsonContains('assigned', $this->id)
-                ->orWhereJsonContains('assigned', (string) $this->id);
-        });
+        return Lead::query()
+            ->whereExists(function ($subQuery) {
+                $subQuery->selectRaw('1')
+                    ->from('assigned_leads')
+                    ->where('assigned_leads.lead_model', 'lead')
+                    ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                    ->where(function ($jsonQuery) {
+                        $jsonQuery
+                            ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $this->id])
+                            ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $this->id]);
+                    });
+            });
     }
 
     public function ownedLeads()
     {
-        return $this->hasMany(Lead::class, 'assigned_to');
+        // Legacy name kept; assignments now come from assigned_leads (multi-assign).
+        return $this->assignedLeads();
     }
 
     public function leadFollowups()

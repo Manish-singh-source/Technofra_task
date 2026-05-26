@@ -2,6 +2,7 @@
 
 namespace App\Services\LeadManagement;
 
+use App\Models\AssignedLead;
 use App\Models\Lead;
 use App\Models\LeadActivity;
 use App\Models\LeadAssignment;
@@ -29,8 +30,25 @@ class LeadPipelineService
             ->where('active', true)
             ->update(['active' => false]);
 
-        $lead->assigned_to = $assignedTo;
-        $lead->save();
+        // Current assignees are stored in assigned_leads.staff_ids (multi-assign).
+        // Keep this in sync for the pipeline lead record.
+        $existing = AssignedLead::query()
+            ->where('lead_model', 'lead')
+            ->where('lead_id', (int) $lead->id)
+            ->first();
+
+        $staffIds = collect($existing?->staff_ids ?? [])
+            ->map(fn ($v) => (int) $v)
+            ->push((int) $assignedTo)
+            ->filter(fn ($v) => $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        AssignedLead::updateOrCreate(
+            ['lead_model' => 'lead', 'lead_id' => (int) $lead->id],
+            ['staff_ids' => $staffIds]
+        );
 
         $assignment = LeadAssignment::query()->create([
             'lead_id' => $lead->id,

@@ -5,17 +5,22 @@ var stepper4
 var stepperForm
 
  document.addEventListener('DOMContentLoaded', function () {
-  stepper1 = new Stepper(document.querySelector('#stepper1'))
-  stepper2 = new Stepper(document.querySelector('#stepper2'), {
-    linear: false
-  })
+  // This file is included globally, so guard each init.
+  var el1 = document.querySelector('#stepper1')
+  if (el1) stepper1 = new Stepper(el1)
 
-  stepper3 = new Stepper(document.querySelector('#stepper3'))
+  var el2 = document.querySelector('#stepper2')
+  if (el2) {
+    stepper2 = new Stepper(el2, { linear: false })
+  }
+
+  var el3 = document.querySelector('#stepper3')
+  if (el3) stepper3 = new Stepper(el3)
 
   var stepperFormEl = document.querySelector('#stepperForm')
-  stepperForm = new Stepper(stepperFormEl, {
-    animation: true
-  })
+  if (!stepperFormEl) return
+
+  stepperForm = new Stepper(stepperFormEl, { animation: true })
 
   var btnNextList = [].slice.call(document.querySelectorAll('.btn-next-form'))
   var stepperPanList = [].slice.call(stepperFormEl.querySelectorAll('.bs-stepper-pane'))
@@ -30,6 +35,7 @@ var stepperForm
   })
 
   stepperFormEl.addEventListener('show.bs-stepper', function (event) {
+    if (!form) return
     form.classList.remove('was-validated')
     var nextStep = event.detail.indexStep
     var currentStep = nextStep
@@ -39,9 +45,12 @@ var stepperForm
     }
 
     var stepperPan = stepperPanList[currentStep]
+    if (!stepperPan) return
 
-    if ((stepperPan.getAttribute('id') === 'test-form-1' && !inputMailForm.value.length)
-    || (stepperPan.getAttribute('id') === 'test-form-2' && !inputPasswordForm.value.length)) {
+    var mailEmpty = stepperPan.getAttribute('id') === 'test-form-1' && (!inputMailForm || !inputMailForm.value.length)
+    var passEmpty = stepperPan.getAttribute('id') === 'test-form-2' && (!inputPasswordForm || !inputPasswordForm.value.length)
+
+    if (mailEmpty || passEmpty) {
       event.preventDefault()
       form.classList.add('was-validated')
     }

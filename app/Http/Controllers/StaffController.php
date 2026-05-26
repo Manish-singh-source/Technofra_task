@@ -9,7 +9,9 @@ use App\Models\Project;
 use App\Models\Setting;
 use App\Models\Team;
 use App\Models\User;
+use App\Services\StaffLeadAnalyticsService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Cache;
@@ -25,6 +27,10 @@ use Spatie\Permission\PermissionRegistrar;
 
 class StaffController extends Controller
 {
+    public function __construct(private readonly StaffLeadAnalyticsService $staffLeadAnalyticsService)
+    {
+    }
+
     private const DEFAULT_BUSINESS_TZ = 'UTC';
 
     private const DEFAULT_WORK_START_TIME = '09:00';
@@ -43,7 +49,7 @@ class StaffController extends Controller
         $staff = User::query()
             ->with('address')
             ->whereNotNull('role')
-            ->whereIn('role', ['staff', 'super_admin2'])
+            ->whereIn('role', ['staff', 'super_admin2', 'admin'])
             ->orderBy('first_name')
             ->get()
             ->map(fn(User $user) => $this->hydrateStaffUser($user));
@@ -189,8 +195,54 @@ class StaffController extends Controller
         $projects = $staff->projects()->latest()->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
         $loggedTimeStats = $this->buildStaffLoggedTimeStats($staff);
+        $this->authorizeStaffAnalyticsAccess($staff);
+        $analyticsFilters = [
+            'period' => request()->query('period', '30d'),
+            'from' => request()->query('from'),
+            'to' => request()->query('to'),
+        ];
+        $staffLeadAnalytics = $this->staffLeadAnalyticsService->buildDashboard((int) $staff->id, $analyticsFilters);
+        return view('staff.view', compact(
+            'staff',
+            'roles',
+            'teams',
+            'departments',
+            'projects',
+            'tasks',
+            'loggedTimeStats',
+            'staffLeadAnalytics',
+            'analyticsFilters'
+        ));
+    }
 
-        return view('staff.view', compact('staff', 'roles', 'teams', 'departments', 'projects', 'tasks', 'loggedTimeStats'));
+    public function analytics(Request $request, $id): JsonResponse
+    {
+        $staff = User::withTrashed()->findOrFail($id);
+        $this->authorizeStaffAnalyticsAccess($staff);
+
+        return response()->json(
+            $this->staffLeadAnalyticsService->buildDashboard((int) $staff->id, $request->only(['period', 'from', 'to']))
+        );
+    }
+
+    public function leadChart(Request $request, $id): JsonResponse
+    {
+        $staff = User::withTrashed()->findOrFail($id);
+        $this->authorizeStaffAnalyticsAccess($staff);
+
+        return response()->json(
+            $this->staffLeadAnalyticsService->leadChart((int) $staff->id, $request->only(['period', 'from', 'to']))
+        );
+    }
+
+    public function followupChart(Request $request, $id): JsonResponse
+    {
+        $staff = User::withTrashed()->findOrFail($id);
+        $this->authorizeStaffAnalyticsAccess($staff);
+
+        return response()->json(
+            $this->staffLeadAnalyticsService->followupChart((int) $staff->id, $request->only(['period', 'from', 'to']))
+        );
     }
 
     /**
@@ -381,6 +433,31 @@ class StaffController extends Controller
             'this_month_formatted' => $this->formatMinutes($stats['this_month_minutes']),
             'this_week_formatted' => $this->formatMinutes($stats['this_week_minutes']),
         ];
+    }
+
+    private function authorizeStaffAnalyticsAccess(User $staff): void
+    {
+        $authUser = auth()->user();
+        abort_unless($authUser, 403);
+
+        $rawRole = strtolower(trim((string) ($authUser->getRawOriginal('role') ?? '')));
+        $accessorRole = strtolower(trim((string) ($authUser->role ?? '')));
+        $normalizedRawRole = str_replace([' ', '-'], '_', $rawRole);
+        $normalizedAccessorRole = str_replace([' ', '-'], '_', $accessorRole);
+
+        $rolePrivileged = in_array($normalizedRawRole, ['admin', 'manager', 'super_admin', 'super_admin2'], true)
+            || in_array($normalizedAccessorRole, ['admin', 'manager', 'super_admin', 'super_admin2'], true);
+
+        $spatiePrivileged = method_exists($authUser, 'hasAnyRole')
+            && $authUser->hasAnyRole(['admin', 'manager', 'super_admin', 'super-admin', 'super_admin2']);
+
+        $permissionPrivileged = method_exists($authUser, 'can')
+            && ($authUser->can('view_staff') || $authUser->can('view_leads'));
+
+        $isPrivileged = $rolePrivileged || $spatiePrivileged || $permissionPrivileged;
+        $isSelf = (int) $authUser->id === (int) $staff->id;
+
+        abort_unless($isPrivileged || $isSelf, 403);
     }
 
     private function getStaffRatioForProject(Project $project, int $staffId): float

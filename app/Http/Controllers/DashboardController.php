@@ -389,9 +389,16 @@ class DashboardController extends Controller
             return $query->whereRaw('1 = 0');
         }
 
-        return $query->where(function (Builder $builder) use ($staffId) {
-            $builder->whereJsonContains('assigned', $staffId)
-                ->orWhereJsonContains('assigned', (string) $staffId);
+        return $query->whereExists(function ($subQuery) use ($staffId) {
+            $subQuery->selectRaw('1')
+                ->from('assigned_leads')
+                ->where('assigned_leads.lead_model', 'lead')
+                ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                ->where(function ($jsonQuery) use ($staffId) {
+                    $jsonQuery
+                        ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $staffId])
+                        ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $staffId]);
+                });
         });
     }
 

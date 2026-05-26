@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Helpers\FileUpload;
 use App\Exports\LeadsExport;
 use App\Models\ClientBusinessDetail;
+use App\Models\AssignedLead;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\UserAddress;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -65,7 +67,10 @@ class LeadController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        Lead::create($this->buildLeadPayload($request));
+        DB::transaction(function () use ($request) {
+            $lead = Lead::create($this->buildLeadPayload($request));
+            $this->syncAssignedLeads($lead, $request->assigned ?? []);
+        });
 
         return redirect()->route('leads')->with('success', 'Lead created successfully!');
     }
@@ -96,7 +101,10 @@ class LeadController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        $lead->update($this->buildLeadPayload($request));
+        DB::transaction(function () use ($lead, $request) {
+            $lead->update($this->buildLeadPayload($request));
+            $this->syncAssignedLeads($lead, $request->assigned ?? []);
+        });
 
         if ($request->status == 'converted') {
 
@@ -245,11 +253,25 @@ class LeadController extends Controller
             'zipCode' => $request->zipCode,
             'lead_value' => $request->lead_value,
             'source' => $request->source,
-            'assigned' => $request->assigned ?? [],
             'tags' => $request->tags ?? [],
             'description' => $request->description,
             'status' => $request->status ?? 'new',
         ];
+    }
+
+    private function syncAssignedLeads(Lead $lead, array $staffIds): void
+    {
+        $staffIds = collect($staffIds)
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($v) => $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        AssignedLead::updateOrCreate(
+            ['lead_model' => 'lead', 'lead_id' => (int) $lead->id],
+            ['staff_ids' => $staffIds]
+        );
     }
 
     private function formatLeadResource(Lead $lead): array

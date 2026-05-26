@@ -10,7 +10,7 @@ class LeadFollowup extends Model
     use HasFactory;
 
     protected $fillable = [
-        'lead_id', 'staff_id', 'followup_date', 'followup_type', 'outcome', 'discussion_notes',
+        'lead_id', 'source_type', 'source_id', 'staff_id', 'followup_date', 'followup_type', 'outcome', 'discussion_notes',
         'next_followup_date', 'lead_status_after_followup', 'reminder_sent',
     ];
 

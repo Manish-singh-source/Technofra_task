@@ -13,7 +13,7 @@ class LeadPolicy
             return true;
         }
 
-        return (int) $lead->assigned_to === (int) $user->id;
+        return in_array((int) $user->id, $lead->assigned ?? [], true);
     }
 
     public function update(User $user, Lead $lead): bool

@@ -664,10 +664,14 @@ class HighVolumeDataSeeder extends Seeder
         }
 
         $rows = [];
+        $assignedRows = [];
         $statuses = ['new', 'contacted', 'qualified', 'converted', 'lost'];
         $sources = ['Website', 'Referral', 'LinkedIn', 'Facebook', 'Google Ads', 'Cold Call'];
         for ($i = 0; $i < $count; $i++) {
             $assigned = $staffIds !== [] ? $faker->randomElements($staffIds, random_int(1, min(3, count($staffIds)))) : [];
+            $assigned = array_values(array_unique(array_map('intval', $assigned)));
+
+            $leadId = null;
             $rows[] = [
                 'name' => $faker->name(),
                 'email' => $faker->optional()->safeEmail(),
@@ -682,7 +686,6 @@ class HighVolumeDataSeeder extends Seeder
                 'zipCode' => $faker->postcode(),
                 'lead_value' => $faker->randomFloat(2, 5000, 500000),
                 'source' => $faker->randomElement($sources),
-                'assigned' => json_encode(array_values($assigned)),
                 'tags' => json_encode($faker->randomElements(['hot', 'cold', 'enterprise', 'startup'], random_int(1, 3))),
                 'description' => $faker->optional()->sentence(16),
                 'status' => $faker->randomElement($statuses),
@@ -691,6 +694,26 @@ class HighVolumeDataSeeder extends Seeder
             ];
         }
         $this->chunkInsert('leads', $rows);
+
+        // Backfill assignments for the seeded leads using assigned_leads table.
+        if (Schema::hasTable('assigned_leads') && $staffIds !== []) {
+            $leadIds = DB::table('leads')->orderByDesc('id')->limit($count)->pluck('id')->reverse()->values();
+            foreach ($leadIds as $idx => $id) {
+                $staffPick = $faker->randomElements($staffIds, random_int(1, min(3, count($staffIds))));
+                $staffPick = array_values(array_unique(array_map('intval', $staffPick)));
+                $assignedRows[] = [
+                    'lead_model' => 'lead',
+                    'lead_id' => (int) $id,
+                    'staff_ids' => json_encode($staffPick),
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            foreach (array_chunk($assignedRows, 1000) as $chunk) {
+                DB::table('assigned_leads')->upsert($chunk, ['lead_model', 'lead_id'], ['staff_ids', 'updated_at']);
+            }
+        }
     }
 
     private function seedDigitalMarketingLeads($faker, int $count): void

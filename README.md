@@ -1672,3 +1672,5 @@ jobs:
 *For internal use only — Technofra / MyCRM Project Team*
 *Created By - Saurabh Damale*
 
+php artisan optimize:clear
+php artisan permission:cache-reset

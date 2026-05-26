@@ -136,6 +136,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/staff/force-delete/{id}', 'forceDelete')->name('staff.force-delete');
         Route::get('/add-staff', 'create')->name('add-staff');
         Route::get('/view-staff/{id}', 'show')->name('view-staff');
+        Route::get('/staff/{id}/analytics', 'analytics')->name('staff.analytics');
+        Route::get('/staff/{id}/lead-chart', 'leadChart')->name('staff.lead-chart');
+        Route::get('/staff/{id}/followup-chart', 'followupChart')->name('staff.followup-chart');
         Route::post('/store-staff', 'store')->name('staff.store');
         Route::put('/update-staff/{id}', 'update')->name('staff.update');
     });

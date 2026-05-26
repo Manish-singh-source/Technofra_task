@@ -33,7 +33,6 @@ class Lead extends Model
         'company_name',
         'industry',
         'priority',
-        'assigned_to',
         'expected_value',
         'next_followup_at',
         'requirements',
@@ -46,14 +45,12 @@ class Lead extends Model
         'won_value',
         'pipeline_stage_order',
         'lost_reason',
-        'assigned',
         'tags',
         'description',
         'status',
     ];
 
     protected $casts = [
-        'assigned' => 'array',
         'tags' => 'array',
         'lead_value' => 'decimal:2',
         'expected_value' => 'decimal:2',
@@ -63,6 +60,36 @@ class Lead extends Model
         'lost_at' => 'datetime',
         'won_value' => 'decimal:2',
     ];
+
+    public function assignedLead()
+    {
+        // Source of truth for assignments (multi staff ids) lives in assigned_leads.
+        return $this->hasOne(AssignedLead::class, 'lead_id', 'id')
+            ->where('lead_model', 'lead');
+    }
+
+    public function getAssignedAttribute(): array
+    {
+        $ids = $this->assignedLead?->staff_ids;
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        return collect($ids)
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($v) => $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    public function getAssignedToAttribute(): ?int
+    {
+        // Backward-compatible accessor for code that still expects assigned_to.
+        $ids = $this->assigned;
+
+        return ! empty($ids) ? (int) $ids[0] : null;
+    }
 
     /**
      * Get staff names for assigned staff IDs
@@ -136,6 +163,7 @@ class Lead extends Model
 
     public function assignedStaff()
     {
+        // Primary assignee (first staff id), resolved via accessor.
         return $this->belongsTo(User::class, 'assigned_to');
     }
 

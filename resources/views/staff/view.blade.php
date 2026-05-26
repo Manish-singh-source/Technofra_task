@@ -340,239 +340,603 @@
             </div>
 
 
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="d-flex align-items-center mb-3">Recent Projects
+            <div class="card mb-4">
+                <div class="card-body">
+                    <ul class="nav nav-tabs mb-3" id="staffInsightsTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="leads-tab" data-bs-toggle="tab"
+                                data-bs-target="#leadsTabPane" type="button" role="tab"
+                                aria-controls="leadsTabPane" aria-selected="true">
+                                Leads
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="projects-tab" data-bs-toggle="tab"
+                                data-bs-target="#projectsTabPane" type="button" role="tab"
+                                aria-controls="projectsTabPane" aria-selected="false">
+                                Projects
+                            </button>
+                        </li>
+                    </ul>
 
-                            </h5>
-                            <div class="table-responsive">
-                                <table id="table" class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Project Name</th>
-                                            <th>Start Date</th>
-                                            <th>Deadline</th>
-                                            <th>Status</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($projects as $project)
-                                            <tr>
-                                                <td>{{ $project->project_name }}</td>
-                                                <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}
-                                                </td>
-                                                <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}
-                                                </td>
-                                                <td>
-                                                    @if ($project->status == 'completed')
-                                                        <span class="badge bg-success">Completed</span>
-                                                    @elseif($project->status == 'in_progress')
-                                                        <span class="badge bg-warning text-dark">In
-                                                            Progress</span>
-                                                    @elseif($project->status == 'pending')
-                                                        <span class="badge bg-danger">Pending</span>
-                                                    @else
-                                                        <span
-                                                            class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $project->status)) }}</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="4" class="text-center">No projects found
-                                                    for this staff member.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                    <div class="tab-content" id="staffInsightsTabsContent">
+                        <div class="tab-pane fade show active" id="leadsTabPane" role="tabpanel"
+                            aria-labelledby="leads-tab" tabindex="0">
+                            @php
+                                $analytics = $staffLeadAnalytics ?? ['kpis' => [], 'charts' => [], 'overdue_followups' => [], 'recent_activities' => [], 'top_metrics' => []];
+                                $kpis = $analytics['kpis'] ?? [];
+                                $topMetrics = $analytics['top_metrics'] ?? [];
+                            @endphp
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div
+                                                class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                                <h5 class="mb-0">Lead & Followup KPI Dashboard</h5>
+                                                <form method="GET" action="{{ route('view-staff', $staff->id) }}"
+                                                    class="d-flex flex-wrap gap-2">
+                                                    <select name="period" class="form-select form-select-sm"
+                                                        style="min-width: 180px;">
+                                                        <option value="7d"
+                                                            {{ ($analyticsFilters['period'] ?? '30d') === '7d' ? 'selected' : '' }}>
+                                                            Last 7 days</option>
+                                                        <option value="30d"
+                                                            {{ ($analyticsFilters['period'] ?? '30d') === '30d' ? 'selected' : '' }}>
+                                                            Last 30 days</option>
+                                                        <option value="this_month"
+                                                            {{ ($analyticsFilters['period'] ?? '30d') === 'this_month' ? 'selected' : '' }}>
+                                                            This month</option>
+                                                        <option value="this_quarter"
+                                                            {{ ($analyticsFilters['period'] ?? '30d') === 'this_quarter' ? 'selected' : '' }}>
+                                                            This quarter</option>
+                                                        <option value="this_year"
+                                                            {{ ($analyticsFilters['period'] ?? '30d') === 'this_year' ? 'selected' : '' }}>
+                                                            This year</option>
+                                                        <option value="custom"
+                                                            {{ ($analyticsFilters['period'] ?? '30d') === 'custom' ? 'selected' : '' }}>
+                                                            Custom Range</option>
+                                                    </select>
+                                                    <input type="date" name="from"
+                                                        value="{{ $analyticsFilters['from'] ?? '' }}"
+                                                        class="form-control form-control-sm">
+                                                    <input type="date" name="to"
+                                                        value="{{ $analyticsFilters['to'] ?? '' }}"
+                                                        class="form-control form-control-sm">
+                                                    <button class="btn btn-sm btn-primary">Apply</button>
+                                                </form>
+                                            </div>
 
-            </div>
+                                            <div class="row g-3 mb-3">
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-primary h-100">
+                                                        <div class="card-body p-3"><small>Total Leads</small>
+                                                            <h5 class="mb-0">{{ $kpis['total_leads_assigned'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-info h-100">
+                                                        <div class="card-body p-3"><small>Active Leads</small>
+                                                            <h5 class="mb-0">{{ $kpis['active_leads'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-success h-100">
+                                                        <div class="card-body p-3"><small>Converted</small>
+                                                            <h5 class="mb-0">{{ $kpis['converted_leads'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-danger h-100">
+                                                        <div class="card-body p-3"><small>Lost Leads</small>
+                                                            <h5 class="mb-0">{{ $kpis['lost_leads'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-warning h-100">
+                                                        <div class="card-body p-3"><small>Total Followups</small>
+                                                            <h5 class="mb-0">{{ $kpis['total_followups'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-secondary h-100">
+                                                        <div class="card-body p-3"><small>Pending Followups</small>
+                                                            <h5 class="mb-0">{{ $kpis['pending_followups'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-warning h-100">
+                                                        <div class="card-body p-3"><small>Overdue</small>
+                                                            <h5 class="mb-0">{{ $kpis['overdue_followups'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-primary h-100">
+                                                        <div class="card-body p-3"><small>Today's Followups</small>
+                                                            <h5 class="mb-0">{{ $kpis['todays_followups'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-info h-100">
+                                                        <div class="card-body p-3"><small>Meetings</small>
+                                                            <h5 class="mb-0">{{ $kpis['meetings_scheduled'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div
+                                                        class="card border-start border-0 border-3 border-success h-100">
+                                                        <div class="card-body p-3"><small>Conversion %</small>
+                                                            <h5 class="mb-0">{{ $kpis['conversion_rate'] ?? 0 }}%</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-dark h-100">
+                                                        <div class="card-body p-3"><small>Avg Response</small>
+                                                            <h5 class="mb-0">{{ $kpis['avg_response_time_hours'] ?? 0 }}h
+                                                            </h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-dark h-100">
+                                                        <div class="card-body p-3"><small>Avg Conversion</small>
+                                                            <h5 class="mb-0">{{ $kpis['avg_conversion_time_days'] ?? 0 }}d
+                                                            </h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
 
-            <!-- Recent Tasks Card -->
-            <div class="row">
-                <div class="col-sm-12">
-                    <div class="card">
-                        <div class="card-body">
-
-                            <h5 class="d-flex align-items-center mb-3">Recent Tasks
-
-                            </h5>
-                            <div class="table-responsive">
-                                <table id="tasks-table" class="table table-striped">
-                                    <thead>
-                                        <tr>
-                                            <th>Task Name</th>
-                                            <th>Project</th>
-                                            <th>Due Date</th>
-                                            <th>Status</th>
-                                            <th>Priority</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @forelse($tasks ?? [] as $task)
-                                            <tr>
-                                                <td>{{ $task->title ?? 'N/A' }}</td>
-                                                <td>{{ $task->project->project_name ?? 'N/A' }}</td>
-                                                <td>{{ $task->deadline ? $task->deadline->format('Y-m-d') : 'N/A' }}
-                                                </td>
-                                                <td>
-                                                    @if ($task->status == 'completed')
-                                                        <span class="badge bg-success">Completed</span>
-                                                    @elseif($task->status == 'in_progress')
-                                                        <span class="badge bg-warning text-dark">In
-                                                            Progress</span>
-                                                    @elseif($task->status == 'pending')
-                                                        <span class="badge bg-danger">Pending</span>
-                                                    @else
-                                                        <span
-                                                            class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</span>
-                                                    @endif
-                                                </td>
-                                                <td>
-                                                    @if ($task->priority == 'high')
-                                                        <span class="badge bg-danger">High</span>
-                                                    @elseif($task->priority == 'medium')
-                                                        <span class="badge bg-warning text-dark">Medium</span>
-                                                    @elseif($task->priority == 'low')
-                                                        <span class="badge bg-success">Low</span>
-                                                    @else
-                                                        <span
-                                                            class="badge bg-secondary">{{ ucfirst($task->priority ?? 'N/A') }}</span>
-                                                    @endif
-                                                </td>
-                                            </tr>
-                                        @empty
-                                            <tr>
-                                                <td colspan="5" class="text-center">No tasks found for
-                                                    this staff member.</td>
-                                            </tr>
-                                        @endforelse
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Performance Reports Section -->
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h4 class="mb-3">Performance Reports</h4>
-                </div>
-            </div>
-
-            <!-- Performance Metrics Cards -->
-            @php
-                $completedProjectsCount = collect($projects ?? [])
-                    ->where('status', 'completed')
-                    ->count();
-                $completedTasksCount = collect($tasks ?? [])
-                    ->where('status', 'completed')
-                    ->count();
-            @endphp
-
-            <div class="row mb-4">
-                <div class="col-md-6 col-sm-6">
-                    <div class="card radius-10 border-start border-0 border-4 border-primary h-100">
-                        <div class="card-body">
-
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Total Project Complete</p>
-                                    <h4 class="my-1 text-primary">{{ $completedProjectsCount }}</h4>
-                                    <p class="mb-0 font-13">Completed projects count</p>
+                                            <div class="row g-3">
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Monthly Lead Conversion</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffMonthlyLeadChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Monthly Followup Activity</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffFollowupActivityChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Lead Status Distribution</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffLeadStatusChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Followup Outcome Distribution</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffOutcomeChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Daily Activity Timeline (30d)</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffDailyActivityChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Assigned vs Converted (Monthly)</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffAssignedVsConvertedChart"
+                                                                style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                {{-- 
+                                                <div class="col-lg-12">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Overdue Followup Trend</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffOverdueTrendChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div> --}}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
-                                    <i class='bx bx-briefcase-alt-2'></i>
-                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-sm-6">
-                    <div class="card radius-10 border-start border-0 border-4 border-success h-100">
-                        <div class="card-body">
 
-                            <div class="d-flex align-items-center">
-                                <div>
-                                    <p class="mb-0 text-secondary">Total Task Completed</p>
-                                    <h4 class="my-1 text-success">{{ $completedTasksCount }}</h4>
-                                    <p class="mb-0 font-13">Completed tasks count</p>
-                                </div>
-                                <div class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
-                                    <i class='bx bx-check-circle'></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Performance Charts -->
-            <div class="row mb-4">
-                <div class="col-md-6">
-                    <div class="card radius-10 h-100">
-                        <div class="card-header">
-                            <h5>Monthly Performance Trend</h5>
-                        </div>
-                        <div class="card-body">
-
-                            <div class="chart-container-1">
-                                <canvas id="performanceChart" width="400" height="250"></canvas>
-                            </div>
-                            <div class="mt-3">
-                                <div class="row text-center">
-                                    <div class="col-3">
-                                        <small>Jan</small>
-                                        <h6 class="text-primary">82%</h6>
-                                    </div>
-                                    <div class="col-3">
-                                        <small>Feb</small>
-                                        <h6 class="text-primary">85%</h6>
-                                    </div>
-                                    <div class="col-3">
-                                        <small>Mar</small>
-                                        <h6 class="text-primary">88%</h6>
-                                    </div>
-                                    <div class="col-3">
-                                        <small>Apr</small>
-                                        <h6 class="text-primary">92%</h6>
+                            <div class="row mb-3">
+                                <div class="col-lg-7">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Overdue Followups</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-striped align-middle">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Lead</th>
+                                                            <th>Next Followup</th>
+                                                            <th>Overdue Days</th>
+                                                            <th>Priority</th>
+                                                            <th>Status</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse(($analytics['overdue_followups'] ?? []) as $of)
+                                                            <tr>
+                                                                <td>{{ $of['name'] }}</td>
+                                                                <td>{{ $of['next_followup_at'] }}</td>
+                                                                <td><span
+                                                                        class="badge bg-warning text-dark">{{ $of['overdue_days'] }}</span>
+                                                                </td>
+                                                                <td>{{ ucfirst($of['priority']) }}</td>
+                                                                <td>{{ strtoupper($of['status']) }}</td>
+                                                                <td><a class="btn btn-sm btn-outline-primary"
+                                                                        href="{{ route('lead-management.show', ['source' => 'lead', 'id' => $of['id']]) }}">Open</a>
+                                                                </td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="6" class="text-center">No overdue
+                                                                    followups.</td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="col-lg-5">
+                                    <div class="card h-100">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Top Performance Metrics</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            <ul class="list-group list-group-flush">
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span>Fastest Response</span><strong>{{ $topMetrics['fastest_response_time_hours'] ?? 0 }}h</strong>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span>Highest Conversion
+                                                        Lead</span><strong>{{ $topMetrics['highest_conversion_lead'] ?? '-' }}</strong>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span>Best Conversion
+                                                        Month</span><strong>{{ $topMetrics['best_conversion_month'] ?? '-' }}</strong>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span>Most Active Day</span><strong>{{ $topMetrics['most_active_day'] ?? '-' }}</strong>
+                                                </li>
+                                                <li class="list-group-item d-flex justify-content-between">
+                                                    <span>Avg Followups / Lead</span><strong>{{ $topMetrics['avg_followups_per_lead'] ?? 0 }}</strong>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6">
-                    <div class="card radius-10 h-100">
-                        <div class="card-header">
-                            <h5>Task Completion Breakdown</h5>
-                        </div>
-                        <div class="card-body">
 
-                            <div class="chart-container-1">
-                                <canvas id="taskBreakdownChart" width="400" height="250"></canvas>
+                            {{-- 
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-header">
+                                            <h6 class="mb-0">Recent Lead Activities</h6>
+                                        </div>
+                                        <div class="card-body">
+                                            @forelse(($analytics['recent_activities'] ?? []) as $activity)
+                                                <div class="border-start border-3 border-primary ps-3 mb-3">
+                                                    <div class="d-flex justify-content-between align-items-start">
+                                                        <div>
+                                                            <div class="fw-semibold">
+                                                                {{ ucwords(str_replace('_', ' ', $activity['activity_type'])) }}
+                                                            </div>
+                                                            <div class="text-muted small">{{ $activity['description'] }}
+                                                            </div>
+                                                            @if (!empty($activity['lead_name']))
+                                                                <div class="small">Lead: {{ $activity['lead_name'] }}</div>
+                                                            @endif
+                                                        </div>
+                                                        <small
+                                                            class="text-muted">{{ $activity['created_at'] }}</small>
+                                                    </div>
+                                                </div>
+                                            @empty
+                                                <p class="text-muted mb-0">No recent lead activities found.</p>
+                                            @endforelse
+                                        </div>
+                                    </div>
+                                </div>
+                            </div> --}}
+                        </div>
+
+                        <div class="tab-pane fade" id="projectsTabPane" role="tabpanel"
+                            aria-labelledby="projects-tab" tabindex="0">
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="d-flex align-items-center mb-3">Recent Projects</h5>
+                                            <div class="table-responsive">
+                                                <table id="table" class="table table-striped">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Project Name</th>
+                                                            <th>Start Date</th>
+                                                            <th>Deadline</th>
+                                                            <th>Status</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse($projects as $project)
+                                                            <tr>
+                                                                <td>{{ $project->project_name }}</td>
+                                                                <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}
+                                                                </td>
+                                                                <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}
+                                                                </td>
+                                                                <td>
+                                                                    @if ($project->status == 'completed')
+                                                                        <span
+                                                                            class="badge bg-success">Completed</span>
+                                                                    @elseif($project->status == 'in_progress')
+                                                                        <span
+                                                                            class="badge bg-warning text-dark">In
+                                                                            Progress</span>
+                                                                    @elseif($project->status == 'pending')
+                                                                        <span class="badge bg-danger">Pending</span>
+                                                                    @else
+                                                                        <span
+                                                                            class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $project->status)) }}</span>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="4" class="text-center">No projects found
+                                                                    for this staff member.</td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="mt-3">
-                                <div class="d-flex justify-content-around">
-                                    <div class="text-center">
-                                        <div class="badge bg-success p-2 mb-1">High Priority</div>
-                                        <h6 class="text-success">65%</h6>
+
+                            <div class="row">
+                                <div class="col-sm-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="d-flex align-items-center mb-3">Recent Tasks</h5>
+                                            <div class="table-responsive">
+                                                <table id="tasks-table" class="table table-striped">
+                                                    <thead>
+                                                        <tr>
+                                                            <th>Task Name</th>
+                                                            <th>Project</th>
+                                                            <th>Due Date</th>
+                                                            <th>Status</th>
+                                                            <th>Priority</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @forelse($tasks ?? [] as $task)
+                                                            <tr>
+                                                                <td>{{ $task->title ?? 'N/A' }}</td>
+                                                                <td>{{ $task->project->project_name ?? 'N/A' }}</td>
+                                                                <td>{{ $task->deadline ? $task->deadline->format('Y-m-d') : 'N/A' }}
+                                                                </td>
+                                                                <td>
+                                                                    @if ($task->status == 'completed')
+                                                                        <span
+                                                                            class="badge bg-success">Completed</span>
+                                                                    @elseif($task->status == 'in_progress')
+                                                                        <span
+                                                                            class="badge bg-warning text-dark">In
+                                                                            Progress</span>
+                                                                    @elseif($task->status == 'pending')
+                                                                        <span class="badge bg-danger">Pending</span>
+                                                                    @else
+                                                                        <span
+                                                                            class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $task->status)) }}</span>
+                                                                    @endif
+                                                                </td>
+                                                                <td>
+                                                                    @if ($task->priority == 'high')
+                                                                        <span class="badge bg-danger">High</span>
+                                                                    @elseif($task->priority == 'medium')
+                                                                        <span
+                                                                            class="badge bg-warning text-dark">Medium</span>
+                                                                    @elseif($task->priority == 'low')
+                                                                        <span class="badge bg-success">Low</span>
+                                                                    @else
+                                                                        <span
+                                                                            class="badge bg-secondary">{{ ucfirst($task->priority ?? 'N/A') }}</span>
+                                                                    @endif
+                                                                </td>
+                                                            </tr>
+                                                        @empty
+                                                            <tr>
+                                                                <td colspan="5" class="text-center">No tasks found for
+                                                                    this staff member.</td>
+                                                            </tr>
+                                                        @endforelse
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="text-center">
-                                        <div class="badge bg-warning p-2 mb-1">Medium Priority</div>
-                                        <h6 class="text-warning">25%</h6>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h4 class="mb-3">Performance Reports</h4>
+                                </div>
+                            </div>
+
+                            @php
+                                $completedProjectsCount = collect($projects ?? [])
+                                    ->where('status', 'completed')
+                                    ->count();
+                                $completedTasksCount = collect($tasks ?? [])
+                                    ->where('status', 'completed')
+                                    ->count();
+                            @endphp
+
+                            <div class="row mb-4">
+                                <div class="col-md-6 col-sm-6">
+                                    <div class="card radius-10 border-start border-0 border-4 border-primary h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <p class="mb-0 text-secondary">Total Project Complete</p>
+                                                    <h4 class="my-1 text-primary">{{ $completedProjectsCount }}</h4>
+                                                    <p class="mb-0 font-13">Completed projects count</p>
+                                                </div>
+                                                <div
+                                                    class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
+                                                    <i class='bx bx-briefcase-alt-2'></i>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="text-center">
-                                        <div class="badge bg-danger p-2 mb-1">Low Priority</div>
-                                        <h6 class="text-danger">10%</h6>
+                                </div>
+                                <div class="col-md-6 col-sm-6">
+                                    <div class="card radius-10 border-start border-0 border-4 border-success h-100">
+                                        <div class="card-body">
+                                            <div class="d-flex align-items-center">
+                                                <div>
+                                                    <p class="mb-0 text-secondary">Total Task Completed</p>
+                                                    <h4 class="my-1 text-success">{{ $completedTasksCount }}</h4>
+                                                    <p class="mb-0 font-13">Completed tasks count</p>
+                                                </div>
+                                                <div
+                                                    class="widgets-icons-2 rounded-circle bg-gradient-ohhappiness text-white ms-auto">
+                                                    <i class='bx bx-check-circle'></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card radius-10 h-100">
+                                        <div class="card-header">
+                                            <h5>Monthly Performance Trend</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="chart-container-1">
+                                                <canvas id="performanceChart" width="400" height="250"></canvas>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="row text-center">
+                                                    <div class="col-3">
+                                                        <small>Jan</small>
+                                                        <h6 class="text-primary">82%</h6>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <small>Feb</small>
+                                                        <h6 class="text-primary">85%</h6>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <small>Mar</small>
+                                                        <h6 class="text-primary">88%</h6>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <small>Apr</small>
+                                                        <h6 class="text-primary">92%</h6>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card radius-10 h-100">
+                                        <div class="card-header">
+                                            <h5>Task Completion Breakdown</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="chart-container-1">
+                                                <canvas id="taskBreakdownChart" width="400" height="250"></canvas>
+                                            </div>
+                                            <div class="mt-3">
+                                                <div class="d-flex justify-content-around">
+                                                    <div class="text-center">
+                                                        <div class="badge bg-success p-2 mb-1">High Priority</div>
+                                                        <h6 class="text-success">65%</h6>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <div class="badge bg-warning p-2 mb-1">Medium Priority</div>
+                                                        <h6 class="text-warning">25%</h6>
+                                                    </div>
+                                                    <div class="text-center">
+                                                        <div class="badge bg-danger p-2 mb-1">Low Priority</div>
+                                                        <h6 class="text-danger">10%</h6>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -588,13 +952,37 @@
     <a href="javaScript:;" class="back-to-top"><i class='bx bxs-up-arrow-alt'></i></a>
 @endsection
 
-@push('scripts')
+@section('scripts')
+    <script src="{{ asset('assets/plugins/apexcharts-bundle/js/apexcharts.min.js') }}"></script>
     <script>
-        $(function() {
+        document.addEventListener('DOMContentLoaded', function() {
             "use strict";
 
+            // Visible sanity marker: if this never updates, this script isn't running.
+            document.documentElement.setAttribute('data-staff-charts-js', 'running');
+
+            // If something breaks later (missing libs, blocked CDN, fetch errors),
+            // we still want to show a visible hint inside the chart containers.
+            const chartEls = [
+                '#staffMonthlyLeadChart',
+                '#staffFollowupActivityChart',
+                '#staffLeadStatusChart',
+                '#staffOutcomeChart',
+                '#staffDailyActivityChart',
+                '#staffAssignedVsConvertedChart',
+                '#staffOverdueTrendChart',
+            ];
+            chartEls.forEach((sel) => {
+                const el = document.querySelector(sel);
+                if (el && !el.innerHTML.trim()) {
+                    el.innerHTML = '<div class="text-muted small">Loading charts...</div>';
+                }
+            });
+
+            const $ = window.jQuery;
+
             // Monthly Performance Trend Chart
-            if ($('#performanceChart').length) {
+            if ($ && $('#performanceChart').length && window.Chart) {
                 var ctx = document.getElementById('performanceChart').getContext('2d');
                 new Chart(ctx, {
                     type: 'line',
@@ -628,7 +1016,7 @@
             }
 
             // Task Completion Breakdown Chart
-            if ($('#taskBreakdownChart').length) {
+            if ($ && $('#taskBreakdownChart').length && window.Chart) {
                 var ctx2 = document.getElementById('taskBreakdownChart').getContext('2d');
                 new Chart(ctx2, {
                     type: 'doughnut',
@@ -653,58 +1041,229 @@
             }
 
             // Initialize DataTable for Projects
-            if ($('#table').length) {
-                $('#table').DataTable({
-                    paging: true,
-                    searching: true,
-                    ordering: true,
-                    info: true,
-                    lengthChange: true,
-                    pageLength: 10,
-                    language: {
-                        search: "Search:",
-                        lengthMenu: "Show _MENU_ entries",
-                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                        paginate: {
-                            first: "First",
-                            last: "Last",
-                            next: "Next",
-                            previous: "Previous"
+            if ($ && $.fn && $.fn.DataTable && $('#table').length) {
+                try {
+                    $('#table').DataTable({
+                        paging: true,
+                        searching: true,
+                        ordering: true,
+                        info: true,
+                        lengthChange: true,
+                        pageLength: 10,
+                        language: {
+                            search: "Search:",
+                            lengthMenu: "Show _MENU_ entries",
+                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                            paginate: {
+                                first: "First",
+                                last: "Last",
+                                next: "Next",
+                                previous: "Previous"
+                            }
                         }
-                    }
-                });
+                    });
+                } catch (e) {
+                    console.error('DataTables init failed for #table:', e);
+                }
             }
 
             // Initialize DataTable for Tasks
-            if ($('#tasks-table').length) {
-                $('#tasks-table').DataTable({
-                    paging: true,
-                    searching: true,
-                    ordering: true,
-                    info: true,
-                    lengthChange: true,
-                    pageLength: 10,
-                    language: {
-                        search: "Search:",
-                        lengthMenu: "Show _MENU_ entries",
-                        info: "Showing _START_ to _END_ of _TOTAL_ entries",
-                        paginate: {
-                            first: "First",
-                            last: "Last",
-                            next: "Next",
-                            previous: "Previous"
+            if ($ && $.fn && $.fn.DataTable && $('#tasks-table').length) {
+                try {
+                    $('#tasks-table').DataTable({
+                        paging: true,
+                        searching: true,
+                        ordering: true,
+                        info: true,
+                        lengthChange: true,
+                        pageLength: 10,
+                        language: {
+                            search: "Search:",
+                            lengthMenu: "Show _MENU_ entries",
+                            info: "Showing _START_ to _END_ of _TOTAL_ entries",
+                            paginate: {
+                                first: "First",
+                                last: "Last",
+                                next: "Next",
+                                previous: "Previous"
+                            }
                         }
+                    });
+                } catch (e) {
+                    console.error('DataTables init failed for #tasks-table:', e);
+                }
+            }
+
+            // Fix DataTable column sizing when project tab becomes visible.
+            document.querySelectorAll('button[data-bs-toggle="tab"]').forEach(function(tabButton) {
+                tabButton.addEventListener('shown.bs.tab', function() {
+                    if ($ && $.fn && $.fn.DataTable) {
+                        $.fn.dataTable.tables({ visible: true, api: true }).columns.adjust();
                     }
+                });
+            });
+
+            // Filter functionality
+            if ($) {
+                $('.filter-option').on('click', function() {
+                    var filterType = $(this).data('filter');
+                    console.log('Filter applied: ' + filterType);
+                    // Add your filter logic here
+                    // You can filter the table data based on the selected filter type
                 });
             }
 
-            // Filter functionality
-            $('.filter-option').on('click', function() {
-                var filterType = $(this).data('filter');
-                console.log('Filter applied: ' + filterType);
-                // Add your filter logic here
-                // You can filter the table data based on the selected filter type
-            });
-        });
+            const analyticsUrl = @json(route('staff.analytics', $staff->id));
+            const initialAnalytics = @json($analytics);
+            const params = new URLSearchParams(window.location.search);
+            const charts = {};
+
+            function renderOrUpdateChart(key, el, options) {
+                if (!document.querySelector(el) || !window.ApexCharts) return;
+                if (charts[key]) {
+                    charts[key].updateOptions(options, true, true);
+                    return;
+                }
+                charts[key] = new ApexCharts(document.querySelector(el), options);
+                charts[key].render();
+            }
+
+            function normalizeDonutData(dataset, fallbackLabel) {
+                let labels = Array.isArray(dataset?.labels) ? dataset.labels : [];
+                let series = Array.isArray(dataset?.series) ? dataset.series : [];
+
+                // Support API payloads where series may arrive as an object map.
+                if (!series.length && dataset?.series && typeof dataset.series === 'object') {
+                    labels = Object.keys(dataset.series);
+                    series = Object.values(dataset.series);
+                }
+
+                labels = labels.map((label) => String(label ?? 'Unknown'));
+                series = series.map((value) => Number(value) || 0);
+
+                const minLen = Math.min(labels.length, series.length);
+                labels = labels.slice(0, minLen);
+                series = series.slice(0, minLen);
+
+                if (!labels.length || !series.some((v) => v > 0)) {
+                    return { labels: [fallbackLabel], series: [1] };
+                }
+
+                return { labels, series };
+            }
+
+            function renderAnalytics(payload) {
+                const c = payload.charts || {};
+                const statusDistribution = normalizeDonutData(
+                    c.lead_status_distribution,
+                    'No lead status data'
+                );
+
+                // Clear loading placeholders once we have ApexCharts.
+                chartEls.forEach((sel) => {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent && (el.textContent.includes('Loading charts') || el.textContent.includes('Charts loading') || el.textContent.includes('Loading chart library'))) {
+                        el.innerHTML = '';
+                    }
+                });
+
+                renderOrUpdateChart('leadConversion', '#staffMonthlyLeadChart', {
+                    chart: { type: 'line', height: 300, toolbar: { show: false } },
+                    series: [
+                        { name: 'Assigned', data: c.monthly_lead_conversion?.assigned || [] },
+                        { name: 'Converted', data: c.monthly_lead_conversion?.converted || [] }
+                    ],
+                    xaxis: { categories: c.monthly_lead_conversion?.labels || [] },
+                    colors: ['#0d6efd', '#15ca20'],
+                    stroke: { curve: 'smooth', width: 3 }
+                });
+
+                renderOrUpdateChart('followupActivity', '#staffFollowupActivityChart', {
+                    chart: { type: 'bar', height: 300, stacked: false, toolbar: { show: false } },
+                    series: c.monthly_followup_activity?.series || [],
+                    xaxis: { categories: c.monthly_followup_activity?.labels || [] }
+                });
+
+                renderOrUpdateChart('statusDistribution', '#staffLeadStatusChart', {
+                    chart: { type: 'donut', height: 300 },
+                    labels: statusDistribution.labels,
+                    series: statusDistribution.series,
+                    colors: ['#0d6efd', '#6c757d', '#17a2b8', '#198754', '#ffc107', '#212529', '#fd7e14', '#28a745', '#dc3545', '#adb5bd']
+                });
+
+                renderOrUpdateChart('outcomeDistribution', '#staffOutcomeChart', {
+                    chart: { type: 'donut', height: 300 },
+                    labels: c.followup_outcome_distribution?.labels || [],
+                    series: c.followup_outcome_distribution?.series || [],
+                });
+
+                renderOrUpdateChart('dailyActivity', '#staffDailyActivityChart', {
+                    chart: { type: 'area', height: 300, toolbar: { show: false } },
+                    series: [
+                        { name: 'Followups', data: c.daily_activity_timeline?.followups || [] },
+                        { name: 'Activities', data: c.daily_activity_timeline?.activities || [] }
+                    ],
+                    xaxis: { categories: c.daily_activity_timeline?.labels || [] },
+                    colors: ['#198754', '#0dcaf0']
+                });
+
+                renderOrUpdateChart('assignedVsConverted', '#staffAssignedVsConvertedChart', {
+                    chart: { type: 'bar', height: 300, toolbar: { show: false } },
+                    series: [
+                        { name: 'Assigned', data: c.monthly_assigned_vs_converted?.assigned || [] },
+                        { name: 'Converted', data: c.monthly_assigned_vs_converted?.converted || [] }
+                    ],
+                    xaxis: { categories: c.monthly_assigned_vs_converted?.labels || [] },
+                    colors: ['#0d6efd', '#28a745']
+                });
+
+                renderOrUpdateChart('overdueTrend', '#staffOverdueTrendChart', {
+                    chart: { type: 'line', height: 300, toolbar: { show: false } },
+                    series: [{ name: 'Overdue Followups', data: c.overdue_followup_trend?.series || [] }],
+                    xaxis: { categories: c.overdue_followup_trend?.labels || [] },
+                    colors: ['#fd7e14'],
+                    stroke: { curve: 'smooth', width: 2 }
+                });
+            }
+
+            function fetchAnalyticsAndRender() {
+                fetch(analyticsUrl + (params.toString() ? '?' + params.toString() : ''), {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(res => res.json())
+                .then(payload => renderAnalytics(payload))
+                .catch((error) => {
+                    console.error('Failed loading staff analytics API, rendering initial payload:', error);
+                    renderAnalytics(initialAnalytics || {});
+                });
+            }
+
+            if (!window.ApexCharts) {
+                console.error('ApexCharts library not loaded.');
+                chartEls.forEach((sel) => {
+                    const el = document.querySelector(sel);
+                    if (el) {
+                        el.innerHTML = '<div class="text-muted small">ApexCharts library not loaded (local asset missing).</div>';
+                    }
+                });
+                return;
+            }
+
+            fetchAnalyticsAndRender();
+
+            // If the library never loads (blocked network/CSP) and the Promise doesn't resolve,
+            // ensure the user sees something actionable.
+            setTimeout(() => {
+                if (window.ApexCharts) return;
+                chartEls.forEach((sel) => {
+                    const el = document.querySelector(sel);
+                    if (el && el.textContent && (el.textContent.includes('Charts loading') || el.textContent.includes('Loading chart library'))) {
+                        el.innerHTML = '<div class="text-muted small">Charts not loading. Check browser console/network for blocked scripts.</div>';
+                    }
+                });
+            }, 7000);
+        }, { once: true });
     </script>
-@endpush
+@endsection
