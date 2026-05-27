@@ -273,6 +273,9 @@ class VendorServiceController extends Controller
         }
 
         // Update the service
+        $endDate = Carbon::parse($request->end_date);
+        $computedStatus = $endDate->lt(Carbon::today()) ? 'expired' : 'active';
+
         $data = [
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
@@ -280,7 +283,7 @@ class VendorServiceController extends Controller
             'plan_type' => $request->plan_type,
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
-            'status' => $request->status,
+            'status' => $computedStatus,
         ];
         if (!empty($request->billing_date)) {
             $data['billing_date'] = $request->billing_date;

@@ -262,6 +262,9 @@ class ServiceController extends Controller
 
         $clientCompany = ClientBusinessDetail::findOrFail($request->client_business_detail_id);
 
+        $endDate = Carbon::parse($request->end_date);
+        $computedStatus = $endDate->lt(Carbon::today()) ? 'expired' : 'active';
+
         $service->update([
             'client_id' => $clientCompany->user_id,
             'client_business_detail_id' => $clientCompany->id,
@@ -273,7 +276,7 @@ class ServiceController extends Controller
             'start_date' => $request->start_date,
             'end_date' => $request->end_date,
             'billing_date' => $request->billing_date,
-            'status' => $request->status,
+            'status' => $computedStatus,
         ]);
 
         return redirect()->route('services.index')
