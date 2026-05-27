@@ -307,6 +307,7 @@ class SettingController extends Controller
             'auto_calendar_event_whatsapp_enabled' => 'nullable|boolean',
             'auto_todo_reminder_email_enabled' => 'nullable|boolean',
             'auto_todo_reminder_whatsapp_enabled' => 'nullable|boolean',
+            'mobile_notifications_enabled' => 'nullable|boolean',
         ]);
 
         if ($validator->fails()) {
@@ -345,6 +346,11 @@ class SettingController extends Controller
             Setting::set(
                 'auto_todo_reminder_whatsapp_enabled',
                 $request->boolean('auto_todo_reminder_whatsapp_enabled') ? '1' : '0',
+                'text'
+            );
+            Setting::set(
+                'mobile_notifications_enabled',
+                $request->boolean('mobile_notifications_enabled') ? '1' : '0',
                 'text'
             );
 

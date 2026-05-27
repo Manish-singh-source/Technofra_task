@@ -845,6 +845,26 @@
                                                 </div>
                                             </div>
 
+                                            <div class="col-12">
+                                                <div class="p-4 rounded-3 border"
+                                                    style="background: linear-gradient(135deg, #f7f7ff 0%, #f2f4ff 45%, #fbfbff 100%);">
+                                                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                                                        <div>
+                                                            <h6 class="mb-1">Mobile Notifications</h6>
+                                                            <small class="text-muted">Enable or disable mobile notifications globally.</small>
+                                                        </div>
+                                                        <div class="form-check form-switch m-0">
+                                                            <input class="form-check-input" type="checkbox"
+                                                                id="notification_mobile_notifications_enabled"
+                                                                name="mobile_notifications_enabled" value="1"
+                                                                {{ !in_array(strtolower((string) old('mobile_notifications_enabled', $settings['mobile_notifications_enabled'] ?? '1')), ['0', 'false', 'off', 'no'], true) ? 'checked' : '' }}>
+                                                            <label class="form-check-label small text-muted"
+                                                                for="notification_mobile_notifications_enabled">Enable</label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
                                             <div class="col-12 d-flex justify-content-end">
                                                 <button type="submit" class="btn btn-primary px-4">
                                                     Save Notification Controls
