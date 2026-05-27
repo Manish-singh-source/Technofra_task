@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\GoogleAdsController;
 use App\Http\Controllers\Api\GoogleLeadApiController;
 use App\Http\Controllers\Api\LeadController;
+use App\Http\Controllers\Api\LeadManagementController as ApiLeadManagementController;
 use App\Http\Controllers\Api\MetaLeadController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermissionController;
@@ -217,6 +218,24 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
                 Route::delete('/{id}', 'apiDestroy');
             });
+        });
+
+        // Lead Management API routes
+        Route::controller(ApiLeadManagementController::class)->prefix('lead-management')->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{source}/{id}/view', 'show');
+            Route::post('/{source}/{id}/assign', 'assign');
+            Route::post('/bulk-assign', 'bulkAssign');
+            Route::patch('/{source}/{id}/status', 'updateStatus');
+            Route::post('/{source}/{id}/followup', 'addFollowup');
+            Route::get('/{source}/{id}/followups', 'followupHistory');
+            Route::post('/{source}/{id}/note', 'addNote');
+            Route::post('/{source}/{id}/reminder', 'addReminder');
+            Route::get('/{source}/{id}/timeline', 'activityTimeline');
+            Route::post('/{source}/{id}/convert', 'convertLead');
+            Route::post('/{source}/{id}/escalate', 'escalateLead');
+            Route::get('/performance/stats', 'performanceStats');
+            Route::delete('/{source}/{id}', 'destroy');
         });
 
         // Meta Lead API routes
