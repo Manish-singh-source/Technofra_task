@@ -3,7 +3,7 @@
 namespace App\Jobs;
 
 use App\Models\LeadReminder;
-use App\Notifications\InAppPushNotification;
+use App\Services\UnifiedNotificationService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -20,18 +20,45 @@ class SendLeadDashboardReminderJob implements ShouldQueue
 
     public function handle(): void
     {
-        $reminder = LeadReminder::query()->with('user')->find($this->reminderId);
+        $reminder = LeadReminder::query()->with(['user', 'lead'])->find($this->reminderId);
         if (! $reminder || ! $reminder->user) {
             return;
         }
 
-        $reminder->user->notify(new InAppPushNotification(
-            'Lead Reminder',
-            'You have a pending lead reminder.',
+        [$title, $body] = $this->messageForReminder($reminder);
+
+        app(UnifiedNotificationService::class)->sendToUser(
+            $reminder->user,
+            $title,
+            $body,
             'lead_reminder',
-            ['lead_id' => $reminder->lead_id, 'reminder_type' => $reminder->reminder_type]
-        ));
+            [
+                'lead_id' => $reminder->lead_id,
+                'reminder_type' => $reminder->reminder_type,
+                'remind_at' => optional($reminder->remind_at)?->toDateTimeString(),
+            ]
+        );
 
         $reminder->update(['status' => 'sent', 'sent_at' => now()]);
+    }
+
+    private function messageForReminder(LeadReminder $reminder): array
+    {
+        $leadName = (string) ($reminder->lead?->name ?: 'Lead');
+
+        return match ((string) $reminder->reminder_type) {
+            'followup_reminder_day_before' => [
+                'Followup Reminder (1 Day Left)',
+                "Followup for {$leadName} is tomorrow.",
+            ],
+            'followup_reminder_15_min_before' => [
+                'Followup Reminder (15 Minutes Left)',
+                "Followup for {$leadName} starts in 15 minutes.",
+            ],
+            default => [
+                'Lead Reminder',
+                "You have a pending lead reminder for {$leadName}.",
+            ],
+        };
     }
 }

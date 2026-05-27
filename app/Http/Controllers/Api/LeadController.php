@@ -13,6 +13,7 @@ use App\Models\MetaLead;
 use App\Models\User;
 use App\Models\UserAddress;
 use App\Models\WebappLead;
+use App\Services\LeadManagement\LeadMobileNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -199,6 +200,10 @@ class LeadController extends Controller
             $lead = Lead::create($this->buildLeadPayload($request));
             $this->syncAssignedLeads($lead, $request->assigned ?? []);
         });
+
+        if ($lead) {
+            app(LeadMobileNotificationService::class)->notifyLeadCreatedToAdmins($lead);
+        }
 
         return response()->json([
             'success' => true,

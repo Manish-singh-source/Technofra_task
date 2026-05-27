@@ -9,6 +9,7 @@ use App\Models\AssignedLead;
 use App\Models\Lead;
 use App\Models\User;
 use App\Models\UserAddress;
+use App\Services\LeadManagement\LeadMobileNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -67,10 +68,15 @@ class LeadController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        DB::transaction(function () use ($request) {
+        $lead = null;
+        DB::transaction(function () use ($request, &$lead) {
             $lead = Lead::create($this->buildLeadPayload($request));
             $this->syncAssignedLeads($lead, $request->assigned ?? []);
         });
+
+        if ($lead) {
+            app(LeadMobileNotificationService::class)->notifyLeadCreatedToAdmins($lead);
+        }
 
         return redirect()->route('leads')->with('success', 'Lead created successfully!');
     }

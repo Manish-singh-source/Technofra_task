@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Helpers\FcmNotificationHelper;
+use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\InAppPushNotification;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +19,28 @@ class UnifiedNotificationService
      */
     public function sendToUser(User $user, string $title, string $body, ?string $type = null, array $data = []): array
     {
+        $mobileEnabled = ! in_array(
+            strtolower((string) Setting::get('mobile_notifications_enabled', '1')),
+            ['0', 'false', 'off', 'no'],
+            true
+        );
+
+        if (! $mobileEnabled) {
+            return [
+                'success' => false,
+                'database' => [
+                    'stored' => false,
+                    'notification_id' => null,
+                ],
+                'push' => [
+                    'success' => false,
+                    'sent' => 0,
+                    'failed' => 0,
+                    'message' => 'Mobile notifications are disabled in settings.',
+                ],
+            ];
+        }
+
         $storedInDatabase = false;
         $notificationId = null;
         $notification = new InAppPushNotification($title, $body, $type, $data);

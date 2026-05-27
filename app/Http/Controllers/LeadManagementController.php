@@ -23,6 +23,7 @@ use App\Models\MetaLead;
 use App\Models\User;
 use App\Models\WebappLead;
 use App\Services\LeadManagement\LeadPipelineService;
+use App\Services\LeadManagement\LeadMobileNotificationService;
 use App\Services\LeadManagement\LeadStatusService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
@@ -173,7 +174,13 @@ class LeadManagementController extends Controller
             ->where('lead_id', (int) $normalized['source_id'])
             ->first();
 
-        $assigned = collect($existingAssignment?->staff_ids ?? [])
+        $existingStaffIds = collect($existingAssignment?->staff_ids ?? [])
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0)
+            ->unique()
+            ->values();
+
+        $assigned = $existingStaffIds
             ->map(fn ($value) => (int) $value)
             ->merge(collect($validated['assigned_user_ids'])->map(fn ($value) => (int) $value))
             ->unique()
@@ -204,6 +211,12 @@ class LeadManagementController extends Controller
                 );
             }
         });
+
+        $newlyAssigned = collect($assigned)->diff($existingStaffIds)->values()->all();
+        if (! empty($newlyAssigned)) {
+            $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+            app(LeadMobileNotificationService::class)->notifyLeadAssignedToStaff($leadModel, $newlyAssigned);
+        }
 
         return redirect()
             ->route('lead-management.index')
@@ -250,6 +263,12 @@ class LeadManagementController extends Controller
                 ->values()
                 ->all();
 
+            $existingStaffIds = collect($existingAssignment?->staff_ids ?? [])
+                ->map(fn ($value) => (int) $value)
+                ->filter(fn ($value) => $value > 0)
+                ->unique()
+                ->values();
+
             AssignedLead::updateOrCreate(
                 [
                     'lead_model' => $source,
@@ -273,6 +292,11 @@ class LeadManagementController extends Controller
             $this->syncPipelineAssignment($leadModel, $assigned);
             if (! empty($assigned)) {
                 $this->pipelineService->assignLead($leadModel, (int) $assigned[0], auth()->id(), 'Bulk assignment');
+            }
+
+            $newlyAssigned = collect($assigned)->diff($existingStaffIds)->values()->all();
+            if (! empty($newlyAssigned)) {
+                app(LeadMobileNotificationService::class)->notifyLeadAssignedToStaff($leadModel, $newlyAssigned);
             }
 
             $assignedCount++;
@@ -350,6 +374,20 @@ class LeadManagementController extends Controller
                 );
             }
         });
+
+        $staffIds = $this->resolveLeadStaffIdsForNotification($normalized, $leadModel);
+        if (! empty($staffIds)) {
+            $followupAt = Carbon::parse($validated['followup_date']);
+            app(LeadMobileNotificationService::class)->notifyFollowupCreatedToStaff($leadModel, $staffIds, $followupAt);
+
+            if (! empty($validated['next_followup_date'])) {
+                app(LeadMobileNotificationService::class)->scheduleFollowupReminderPushes(
+                    $leadModel,
+                    $staffIds,
+                    Carbon::parse($validated['next_followup_date'])
+                );
+            }
+        }
 
         return back()->with('success', 'Followup added successfully.');
     }
@@ -798,6 +836,33 @@ class LeadManagementController extends Controller
         abort_unless((bool) $matched, 404);
 
         return $matched;
+    }
+
+    private function resolveLeadStaffIdsForNotification(array $normalized, Lead $leadModel): array
+    {
+        $sourceAssigned = AssignedLead::query()
+            ->where('lead_model', (string) ($normalized['source_type'] ?? 'lead'))
+            ->where('lead_id', (int) ($normalized['source_id'] ?? 0))
+            ->first();
+
+        $sourceStaffIds = collect($sourceAssigned?->staff_ids ?? [])
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0);
+
+        $pipelineAssigned = AssignedLead::query()
+            ->where('lead_model', 'lead')
+            ->where('lead_id', (int) $leadModel->id)
+            ->first();
+
+        $pipelineStaffIds = collect($pipelineAssigned?->staff_ids ?? [])
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0);
+
+        return $sourceStaffIds
+            ->merge($pipelineStaffIds)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function deleteBySource(string $source, int $id): void
