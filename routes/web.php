@@ -22,7 +22,7 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\Web\VendorController;
-use App\Http\Controllers\VendorServiceController;
+use App\Http\Controllers\Web\VendorServiceController;
 use App\Http\Controllers\WebEnquiryController;
 use Illuminate\Support\Facades\Route;
 
@@ -160,19 +160,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/clients/download-template', 'downloadTemplate')->name('client.download-template');
     });
 
-    // Route::get('/add-clients', [CustomerController::class, 'create'])->name('add-clients');
-
-    // Clients routes
-    // Route::controller(CustomerController::class)->group(function () {
-    //     Route::get('/clients', 'index')->name('clients');
-    //     Route::delete('/clients/{id}', 'delete')->name('clients.delete');
-    //     Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.clients');
-    //     Route::get('/add-clients', 'create')->name('add-clients');
-    //     Route::post('/store-client', 'storeclient')->name('store-client');
-    //     Route::get('/clients-details/{id}', 'show')->name('clients-details');
-    //     Route::put('/clients-details/{id}', 'update')->name('clients.update');
-    // });
-
     // ============================= End Client Controller ====================
 
 
@@ -183,15 +170,13 @@ Route::middleware('auth')->group(function () {
     // ============================= Vendor Controller ====================
     // Vendor CRUD routes
     Route::resource('vendors', VendorController::class);
-    Route::get('/vendor', function () {
-        return view('vendor');
-    })->name('vendor');
     // Additional routes for backward compatibility
     Route::controller(VendorController::class)->group(function () {
+        Route::get('/vendor1', 'index')->name('vendor1');
+        
         Route::get('/add-vendor', 'create')->name('add-vendor');
         Route::post('/vendor1/bulk-upload', 'bulkUpload')->name('vendors.bulk-upload');
         Route::get('/vendor1/download-template', 'downloadTemplate')->name('vendors.download-template');
-        Route::get('/vendor1', 'index')->name('vendor1');
         Route::delete('/vendor1/delete-selected', 'deleteSelected')->name('delete.selected.vendor');
         Route::post('/vendor1/toggle-status',  'toggleStatus')->name('vendor1.toggleStatus');
     });

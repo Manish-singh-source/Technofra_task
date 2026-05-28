@@ -112,8 +112,8 @@
 											<select class="form-select" name="services[0][status]" required>
 												<option value="active">Active</option>
 												<option value="inactive">Inactive</option>
-												<option value="pending">Pending</option>
-												<option value="expired">Expired</option>
+												{{-- <option value="pending">Pending</option> --}}
+												{{-- <option value="expired">Expired</option> --}}
 											</select>
 										</div>
 									</div>

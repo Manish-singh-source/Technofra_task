@@ -29,7 +29,7 @@
                 'upcoming' => 'Up Coming',
                 'active' => 'Active',
                 'inactive' => 'Inactive',
-                'pending' => 'Pending / Hold',
+                // 'pending' => 'Pending / Hold',
                 'expired' => 'Expired',
             ];
             $tabColorClasses = [
@@ -37,7 +37,7 @@
                 'upcoming' => ['active' => 'btn-warning text-dark', 'inactive' => 'btn-outline-warning', 'badge' => 'bg-warning text-dark'],
                 'active' => ['active' => 'btn-success', 'inactive' => 'btn-outline-success', 'badge' => 'bg-success'],
                 'inactive' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
-                'pending' => ['active' => 'btn-info text-dark', 'inactive' => 'btn-outline-info', 'badge' => 'bg-info text-dark'],
+                // 'pending' => ['active' => 'btn-info text-dark', 'inactive' => 'btn-outline-info', 'badge' => 'bg-info text-dark'],
                 'expired' => ['active' => 'btn-orange', 'inactive' => 'btn-outline-orange', 'badge' => 'bg-orange'],
             ];
             $visibleCount = $activeTab === 'all' ? $services->count() : $services->where('tab_key', $activeTab)->count();
@@ -59,16 +59,6 @@
                     </ol>
                 </nav>
             </div>
-            <div class="ms-auto">
-                <div class="btn-group">
-                    <button type="button" class="btn btn-primary">Settings</button>
-                    <button type="button"
-                        class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
-                        data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end"></div>
-                </div>
-            </div>
         </div>
 
         <div class="card">
@@ -88,9 +78,11 @@
                                     value="{{ request('to_date') }}">
                             </div>
                             <div class="col-md-3">
+                                {{-- 
                                 <button type="submit" class="btn btn-primary">
                                     <i class="bx bx-search"></i> Filter
-                                </button>
+                                </button> 
+                                --}}
                                 <a href="{{ route('vendor-services.index') }}" class="btn btn-outline-secondary ms-2">
                                     <i class="bx bx-refresh"></i> Clear
                                 </a>

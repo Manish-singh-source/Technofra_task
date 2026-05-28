@@ -22,7 +22,7 @@ use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\Api\TodoController;
 use App\Http\Controllers\Api\WebEnquiryContactController;
 use App\Http\Controllers\Api\V1\VendorController as ApiVendorController;
-use App\Http\Controllers\Api\VendorRenewalController;
+use App\Http\Controllers\Api\V1\VendorRenewalController;
 use App\Http\Controllers\Api\WebEnquiryCareerController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GoogleAdsLeadController;
