@@ -19,12 +19,15 @@ class LeadStatusService
 
     public function validateTransition(string $from, string $to): void
     {
+        $from = $this->normalizeStatus($from);
+        $to = $this->normalizeStatus($to);
+
         if ($from === $to) {
             return;
         }
 
         $ordered = [
-            'new', 'attempted_contact', 'contacted', 'qualified', 'demo_scheduled', 'proposal_sent', 'negotiation', 'won',
+            'new', 'attempted_contact', 'contacted', 'qualified', 'demo_scheduled', 'proposal_sent', 'negotiation', 'converted',
         ];
 
         if (in_array($to, ['lost', 'junk'], true)) {
@@ -34,7 +37,7 @@ class LeadStatusService
             return;
         }
 
-        if (in_array($from, ['won', 'lost', 'junk'], true)) {
+        if (in_array($from, ['converted', 'lost', 'junk'], true)) {
             throw ValidationException::withMessages(['status' => 'Closed leads cannot move back to active pipeline stages.']);
         }
 
@@ -48,7 +51,8 @@ class LeadStatusService
 
     public function applyStatusChange(Lead $lead, string $newStatus, ?int $userId, ?string $remarks = null, ?string $lostReason = null, ?float $wonValue = null): void
     {
-        $oldStatus = (string) ($lead->status ?? 'new');
+        $oldStatus = $this->normalizeStatus((string) ($lead->status ?? 'new'));
+        $newStatus = $this->normalizeStatus($newStatus);
 
         $this->validateTransition($oldStatus, $newStatus);
 
@@ -59,7 +63,7 @@ class LeadStatusService
         $stage = collect(config('lead_statuses', []))->firstWhere('slug', $newStatus);
         $lead->pipeline_stage_order = (int) ($stage['order'] ?? 0);
 
-        if ($newStatus === 'won') {
+        if ($newStatus === 'converted') {
             $lead->converted_at = now();
             if ($wonValue !== null) {
                 $lead->won_value = $wonValue;
@@ -83,6 +87,11 @@ class LeadStatusService
         app(LeadPipelineService::class)->logStatusChange($lead, $oldStatus, $newStatus, $userId, $remarks);
 
         $this->runAutoActions($lead, $newStatus, $userId);
+    }
+
+    private function normalizeStatus(string $status): string
+    {
+        return $status === 'won' ? 'converted' : $status;
     }
 
     private function runAutoActions(Lead $lead, string $status, ?int $userId): void

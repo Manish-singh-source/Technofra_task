@@ -1,5 +1,9 @@
 @extends('layout.master')
 
+@push('styles')
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer" />
+@endpush
+
 @section('content')
 @php
     $activeSource = $filters['source'] ?? '';
@@ -12,6 +16,16 @@
         'google' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
         'indiamart' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
         'justdial' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
+    ];
+    $tabIcons = [
+        'all' => 'bx-grid-alt',
+        'lead' => 'bx-user',
+        'digital_marketing' => 'bx-line-chart',
+        'webapp' => 'bx-code-alt',
+        'meta' => 'fa-brands fa-meta',
+        'google' => 'bxl-google',
+        'indiamart' => 'bx-store',
+        'justdial' => 'bx-phone-call',
     ];
 @endphp
 <div class="page-wrapper">
@@ -45,6 +59,9 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                     <h5 class="mb-0">Lead Management</h5>
                     <div class="d-flex align-items-center gap-2">
+                        <a href="{{ route('lead-management.performance') }}" class="btn btn-outline-dark btn-sm">
+                            <i class='bx bx-line-chart me-1'></i> Performance
+                        </a>
                         @can('create_leads')
                             <a href="{{ route('add-lead') }}" class="btn btn-primary btn-sm">
                                 <i class='bx bxs-plus-square'></i> Add New Lead
@@ -66,6 +83,7 @@
                         data-source-label=""
                         data-active-class="{{ $allTabStyle['active'] }}"
                         data-inactive-class="{{ $allTabStyle['inactive'] }}">
+                        <i class='{{ str_contains(($tabIcons['all'] ?? ''), 'fa-') ? ($tabIcons['all'] ?? 'bx bx-grid-alt') : 'bx ' . ($tabIcons['all'] ?? 'bx-grid-alt') }} me-1'></i>
                         All
                         <span class="badge source-filter-badge {{ $activeSource === '' ? 'bg-white text-dark' : $allTabStyle['badge'] }} ms-1"
                             data-active-badge-class="bg-white text-dark"
@@ -82,6 +100,7 @@
                             data-source-label="{{ $label }}"
                             data-active-class="{{ $tabStyle['active'] }}"
                             data-inactive-class="{{ $tabStyle['inactive'] }}">
+                            <i class='{{ str_contains(($tabIcons[$key] ?? ''), 'fa-') ? ($tabIcons[$key] ?? 'bx bx-category') : 'bx ' . ($tabIcons[$key] ?? 'bx-category') }} me-1'></i>
                             {{ $label }}
                             <span class="badge source-filter-badge {{ $activeSource === $key ? 'bg-white text-dark' : $tabStyle['badge'] }} ms-1"
                                 data-active-badge-class="bg-white text-dark"
@@ -246,7 +265,7 @@
         <div class="modal fade" id="assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
-                    <form method="POST" action="{{ route('lead-management.assign', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}">
+                    <form method="POST" action="{{ route('lead-management.assign', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}" data-role="assign-lead-form">
                         @csrf
                         <div class="modal-header">
                             <h5 class="modal-title">Assign Lead</h5>
@@ -302,7 +321,7 @@
                                     </option>
                                 @endforeach
                             </select>
-                            <label class="form-label mt-2">Won Value (if won)</label>
+                            <label class="form-label mt-2">Conversion Value (if converted)</label>
                             <input type="number" step="0.01" name="won_value" class="form-control">
                             <label class="form-label mt-2">Lost Reason (required if lost)</label>
                             <textarea name="lost_reason" class="form-control" rows="2"></textarea>
@@ -500,7 +519,7 @@
             });
         });
 
-        document.querySelectorAll('form[action*="/assign"]').forEach((form) => {
+        document.querySelectorAll('form[data-role=\"assign-lead-form\"]').forEach((form) => {
             form.addEventListener('submit', function(event) {
                 const checkedStaff = form.querySelectorAll('input[name="assigned_user_ids[]"]:checked');
                 if (checkedStaff.length === 0) {

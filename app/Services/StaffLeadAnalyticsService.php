@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
 
 class StaffLeadAnalyticsService
 {
-    private const CLOSED_STATUSES = ['won', 'converted', 'lost', 'loss', 'junk'];
+    private const CLOSED_STATUSES = ['converted', 'won', 'lost', 'loss', 'junk'];
 
     private const WON_STATUSES = ['won', 'converted'];
 
@@ -83,7 +83,7 @@ class StaffLeadAnalyticsService
         $overdueFollowups = $this->assignedLeadQuery($staffId)
             ->whereNotNull('next_followup_at')
             ->where('next_followup_at', '<', now())
-            ->whereNotIn('status', ['won', 'lost'])
+            ->whereNotIn('status', ['converted', 'won', 'lost'])
             ->count();
 
         $todayFollowups = $this->followupsForAssignedLeadsQuery($staffId)
@@ -106,7 +106,7 @@ class StaffLeadAnalyticsService
             ->value('avg_hours');
 
         $avgConversionDays = (float) $this->assignedLeadQuery($staffId)
-            ->where('status', 'won')
+            ->whereIn('status', ['converted', 'won'])
             ->whereNotNull('converted_at')
             ->selectRaw('AVG(TIMESTAMPDIFF(DAY, created_at, converted_at)) as avg_days')
             ->value('avg_days');
@@ -238,7 +238,7 @@ class StaffLeadAnalyticsService
         $overdueTrendRows = $this->assignedLeadQuery($staffId)
             ->whereNotNull('next_followup_at')
             ->where('next_followup_at', '<', now())
-            ->whereNotIn('status', ['won', 'lost'])
+            ->whereNotIn('status', ['converted', 'won', 'lost'])
             ->selectRaw('DATE(next_followup_at) d, COUNT(*) total')
             ->groupBy('d')
             ->pluck('total', 'd');
@@ -256,12 +256,12 @@ class StaffLeadAnalyticsService
             'lead_status_distribution' => [
                 'labels' => $statusLabels->isNotEmpty()
                     ? ($otherCount > 0 ? $statusLabels->concat(['Other'])->values() : $statusLabels)
-                    : collect(['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Negotiation', 'Won', 'Lost']),
+                    : collect(['New', 'Contacted', 'Qualified', 'Proposal Sent', 'Negotiation', 'Converted', 'Lost']),
                 'series' => $statusSlugs->isNotEmpty()
                     ? ($otherCount > 0
                         ? $statusSlugs->map(fn($s) => (int) ($statusCounts[$s] ?? 0))->concat([$otherCount])->values()
                         : $statusSlugs->map(fn($s) => (int) ($statusCounts[$s] ?? 0))->values())
-                    : collect(['new', 'contacted', 'qualified', 'proposal_sent', 'negotiation', 'won', 'lost'])
+                    : collect(['new', 'contacted', 'qualified', 'proposal_sent', 'negotiation', 'converted', 'lost'])
                     ->map(fn($s) => (int) ($statusCounts[$s] ?? 0))
                     ->values(),
             ],
@@ -291,7 +291,7 @@ class StaffLeadAnalyticsService
         return $this->assignedLeadQuery($staffId)
             ->whereNotNull('next_followup_at')
             ->where('next_followup_at', '<', now())
-            ->whereNotIn('status', ['won', 'lost'])
+            ->whereNotIn('status', ['converted', 'won', 'lost'])
             ->orderBy('next_followup_at')
             ->limit(20)
             ->get(['id', 'name', 'priority', 'status', 'next_followup_at'])
@@ -333,7 +333,7 @@ class StaffLeadAnalyticsService
 
         $highestLead = $this->assignedLeadQuery($staffId)->orderByDesc('won_value')->first(['name', 'won_value']);
 
-        $bestMonth = $this->assignedLeadQuery($staffId)->where('status', 'won')
+        $bestMonth = $this->assignedLeadQuery($staffId)->whereIn('status', ['converted', 'won'])
             ->selectRaw('DATE_FORMAT(updated_at, "%Y-%m") ym, COUNT(*) total')
             ->groupBy('ym')->orderByDesc('total')->first();
 
@@ -440,13 +440,13 @@ class StaffLeadAnalyticsService
 
     private function normalizedStatusSql(string $leadModel, string $column): string
     {
-        // Non-pipeline sources still use converted/loss while pipeline uses won/lost.
+        // Non-pipeline sources can use converted/loss while pipeline may still have legacy won/lost.
         if ($leadModel === self::ASSIGNED_LEAD_MODEL) {
             return 'LOWER(TRIM(COALESCE(' . $column . ', "")))';
         }
 
         return 'CASE LOWER(TRIM(COALESCE(' . $column . ', "")))
-            WHEN "converted" THEN "won"
+            WHEN "won" THEN "converted"
             WHEN "loss" THEN "lost"
             ELSE LOWER(TRIM(COALESCE(' . $column . ', "")))
         END';

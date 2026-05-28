@@ -23,6 +23,8 @@
             </div>
             <div class="d-flex flex-wrap gap-2">
                 <a href="{{ route('lead-management.index') }}" class="btn btn-outline-secondary btn-sm">Back</a>
+                <a href="{{ route('lead-management.followups', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}" class="btn btn-outline-primary btn-sm">Followup History</a>
+                <a href="{{ route('lead-management.timeline', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}" class="btn btn-outline-info btn-sm">Full Timeline</a>
                 <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addFollowupModal">
                     <i class='bx bx-calendar-plus me-1'></i>Add Followup
                 </button>
@@ -49,6 +51,44 @@
                 </div>
             </div>
             <div class="col-lg-4">
+                {{-- 
+                <div class="card border-0 shadow-sm mb-3">
+                    <div class="card-body">
+                        <h6 class="fw-semibold mb-3">Lead Actions</h6>
+                        <form method="POST" action="{{ route('lead-management.convert', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}" class="row g-2 mb-3">
+                            @csrf
+                            <div class="col-12">
+                                <label class="form-label">Conversion Value</label>
+                                <input type="number" step="0.01" min="0" name="conversion_value" class="form-control" placeholder="Optional">
+                            </div>
+                            <div class="col-12 d-grid">
+                                <button type="submit" class="btn btn-outline-success btn-sm">Mark As Converted</button>
+                            </div>
+                        </form>
+                        <form method="POST" action="{{ route('lead-management.escalate', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}" class="row g-2">
+                            @csrf
+                            <div class="col-12">
+                                <label class="form-label">Escalate To</label>
+                                <select name="escalated_to" class="form-select" required>
+                                    <option value="">Select Staff</option>
+                                    @foreach ($staff as $member)
+                                        <option value="{{ $member->id }}">
+                                            {{ $member->name ?: trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')) }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label">Reason</label>
+                                <textarea name="reason" class="form-control" rows="2" placeholder="Optional"></textarea>
+                            </div>
+                            <div class="col-12 d-grid">
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Escalate Lead</button>
+                            </div>
+                        </form>
+                    </div>
+                </div> 
+                --}}
                 <div class="card border-0 shadow-sm h-100">
                     <div class="card-body">
                         <h6 class="fw-semibold mb-3">Update Status</h6>
@@ -66,7 +106,7 @@
                                 </select>
                             </div>
                             <div class="col-12">
-                                <label class="form-label">Won Value</label>
+                                <label class="form-label">Conversion Value</label>
                                 <input type="number" step="0.01" name="won_value" class="form-control" placeholder="Optional">
                             </div>
                             <div class="col-12">
@@ -288,7 +328,7 @@
                             <label class="form-label">Lead Status</label>
                             <select name="lead_status_after_followup" class="form-select">
                                 <option value="">No Change</option>
-                                @foreach (['new','attempted_contact','contacted','qualified','demo_scheduled','proposal_sent','negotiation','won','lost','junk'] as $status)
+                                @foreach (['new','attempted_contact','contacted','qualified','demo_scheduled','proposal_sent','negotiation','converted','lost','junk'] as $status)
                                     <option value="{{ $status }}">{{ ucwords(str_replace('_', ' ', $status)) }}</option>
                                 @endforeach
                             </select>

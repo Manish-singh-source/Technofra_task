@@ -163,6 +163,9 @@
                                                 <a href="{{ route('google-leads.show', $lead) }}" class="text-primary" title="View">
                                                     <i class='bx bxs-show'></i>
                                                 </a>
+                                                <a href="{{ route('lead-management.show', ['source' => 'google', 'id' => $lead->id]) }}" class="text-dark ms-2" title="Open In Lead Management">
+                                                    <i class='bx bx-network-chart'></i>
+                                                </a>
                                                 @can('edit_leads')
                                                     <button type="button" class="text-warning border-0 bg-transparent ms-2"
                                                         data-bs-toggle="modal"

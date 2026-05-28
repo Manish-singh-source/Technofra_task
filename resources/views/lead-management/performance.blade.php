@@ -9,7 +9,7 @@
 <div class="col-md-2"><div class="card"><div class="card-body"><small>Today's Followups</small><h5>{{ $todayFollowups }}</h5></div></div></div>
 <div class="col-md-2"><div class="card"><div class="card-body"><small>Conversion Rate</small><h5>{{ $conversionRate }}%</h5></div></div></div>
 <div class="col-md-2"><div class="card"><div class="card-body"><small>Lost Rate</small><h5>{{ $lostRate }}%</h5></div></div></div>
-<div class="col-md-2"><div class="card"><div class="card-body"><small>Monthly Won</small><h5>{{ $monthlyWonLeads }}</h5></div></div></div>
+<div class="col-md-2"><div class="card"><div class="card-body"><small>Monthly Converted</small><h5>{{ $monthlyWonLeads }}</h5></div></div></div>
 <div class="col-md-2"><div class="card"><div class="card-body"><small>Monthly Lost</small><h5>{{ $monthlyLostLeads }}</h5></div></div></div>
 </div>
 <div class="card mb-3"><div class="card-body">

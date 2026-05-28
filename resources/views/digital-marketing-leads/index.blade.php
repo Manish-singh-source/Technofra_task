@@ -90,6 +90,11 @@
                                                 <td>{{ optional($lead->created_at)->format('d M Y h:i A') }}</td>
                                                 <td>
                                                     <div class="d-flex order-actions">
+                                                        <a href="{{ route('lead-management.show', ['source' => 'digital_marketing', 'id' => $lead->id]) }}"
+                                                            class="btn btn-link p-0 text-dark me-2"
+                                                            title="Open In Lead Management">
+                                                            <i class='bx bx-network-chart'></i>
+                                                        </a>
                                                         @can('edit_digital_marketing_leads')
                                                         <button type="button" class="btn btn-link p-0 text-warning me-2" title="Change Status"
                                                             data-bs-toggle="modal"
@@ -156,13 +161,20 @@
                                                 <td><span class="badge bg-secondary rounded-pill text-uppercase">{{ $lead->status ?? 'new' }}</span></td>
                                                 <td>{{ optional($lead->created_at)->format('d M Y h:i A') }}</td>
                                                 <td>
-                                                    @can('edit_digital_marketing_leads')
-                                                    <button type="button" class="btn btn-link p-0 text-warning" title="Change Status"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#statusWebappLeadModal-{{ $lead->id }}">
-                                                        <i class='bx bxs-edit-alt'></i>
-                                                    </button>
-                                                    @endcan
+                                                    <div class="d-flex order-actions">
+                                                        <a href="{{ route('lead-management.show', ['source' => 'webapp', 'id' => $lead->id]) }}"
+                                                            class="btn btn-link p-0 text-dark me-2"
+                                                            title="Open In Lead Management">
+                                                            <i class='bx bx-network-chart'></i>
+                                                        </a>
+                                                        @can('edit_digital_marketing_leads')
+                                                        <button type="button" class="btn btn-link p-0 text-warning" title="Change Status"
+                                                            data-bs-toggle="modal"
+                                                            data-bs-target="#statusWebappLeadModal-{{ $lead->id }}">
+                                                            <i class='bx bxs-edit-alt'></i>
+                                                        </button>
+                                                        @endcan
+                                                    </div>
                                                 </td>
                                             </tr>
                                         @empty

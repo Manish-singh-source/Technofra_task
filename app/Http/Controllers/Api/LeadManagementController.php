@@ -25,6 +25,7 @@ use App\Models\User;
 use App\Models\WebappLead;
 use App\Services\LeadManagement\LeadPipelineService;
 use App\Services\LeadManagement\LeadMobileNotificationService;
+use App\Services\LeadManagement\LeadClientConversionService;
 use App\Services\LeadManagement\LeadStatusService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
@@ -39,7 +40,8 @@ class LeadManagementController extends Controller
 {
     public function __construct(
         private readonly LeadPipelineService $pipelineService,
-        private readonly LeadStatusService $leadStatusService
+        private readonly LeadStatusService $leadStatusService,
+        private readonly LeadClientConversionService $leadClientConversionService
     ) {
     }
 
@@ -310,20 +312,36 @@ class LeadManagementController extends Controller
         ]);
 
         DB::transaction(function () use ($lead, $leadModel, $validated) {
+            $normalizedStatus = ((string) ($validated['status'] ?? '')) === 'won' ? 'converted' : (string) $validated['status'];
+
             $this->leadStatusService->applyStatusChange(
                 $leadModel,
-                $validated['status'],
+                $normalizedStatus,
                 auth()->id(),
                 $validated['remarks'] ?? null,
                 $validated['lost_reason'] ?? null,
                 isset($validated['won_value']) ? (float) $validated['won_value'] : null
             );
 
-            $lead->status = $validated['status'];
+            $lead->status = $normalizedStatus;
             $lead->save();
+
+            if ($normalizedStatus === 'converted') {
+                $clientUser = $this->leadClientConversionService->ensureClientFromLead($leadModel);
+
+                LeadConversion::query()->updateOrCreate(
+                    ['lead_id' => $leadModel->id],
+                    [
+                        'client_id' => $clientUser->id,
+                        'converted_by' => auth()->id(),
+                        'conversion_value' => isset($validated['won_value']) ? (float) $validated['won_value'] : null,
+                        'converted_at' => now(),
+                    ]
+                );
+            }
         });
 
-        return ApiResponse::success(['status' => $validated['status']], 'Lead status updated successfully.');
+        return ApiResponse::success(['status' => ((string) ($validated['status'] ?? '')) === 'won' ? 'converted' : $validated['status']], 'Lead status updated successfully.');
     }
 
     public function addFollowup(AddFollowupRequest $request, string $source, int $id): JsonResponse
@@ -467,24 +485,25 @@ class LeadManagementController extends Controller
         $validated = $request->validated();
 
         DB::transaction(function () use ($leadModel, $validated) {
+            $clientUser = $this->leadClientConversionService->ensureClientFromLead($leadModel);
             LeadConversion::query()->create([
                 'lead_id' => $leadModel->id,
-                'client_id' => $validated['client_id'] ?? null,
+                'client_id' => $validated['client_id'] ?? $clientUser->id,
                 'converted_by' => auth()->id(),
                 'conversion_value' => $validated['conversion_value'] ?? null,
                 'converted_at' => now(),
             ]);
 
             $oldStatus = (string) ($leadModel->status ?? '');
-            $leadModel->status = 'won';
+            $leadModel->status = 'converted';
             $leadModel->converted_at = now();
             $leadModel->save();
 
-            $this->pipelineService->logStatusChange($leadModel, $oldStatus, 'won', auth()->id(), 'Lead converted');
+            $this->pipelineService->logStatusChange($leadModel, $oldStatus, 'converted', auth()->id(), 'Lead converted');
             $this->pipelineService->logActivity($leadModel->id, auth()->id(), 'lead_converted', 'Lead converted successfully.');
         });
 
-        return ApiResponse::success(['lead_id' => $leadModel->id, 'status' => 'won'], 'Lead converted successfully.');
+        return ApiResponse::success(['lead_id' => $leadModel->id, 'status' => 'converted'], 'Lead converted successfully.');
     }
 
     public function escalateLead(EscalateLeadRequest $request, string $source, int $id): JsonResponse
@@ -511,7 +530,7 @@ class LeadManagementController extends Controller
         abort_unless(auth()->user()?->can('view_leads'), 403);
 
         $totalLeads = Lead::query()->count();
-        $convertedLeads = Lead::query()->where('status', 'won')->count();
+        $convertedLeads = Lead::query()->whereIn('status', ['converted', 'won'])->count();
         $lostLeads = Lead::query()->whereIn('status', ['lost', 'junk'])->count();
         $pendingFollowups = Lead::query()->whereNotNull('next_followup_at')->where('next_followup_at', '<=', now())->count();
         $todayFollowups = LeadFollowup::query()->whereDate('followup_date', now()->toDateString())->count();
@@ -532,7 +551,7 @@ class LeadManagementController extends Controller
                 ->groupBy('status')
                 ->pluck('total', 'status')
                 ->toArray(),
-            'monthlyWonLeads' => Lead::query()->where('status', 'won')->whereYear('updated_at', now()->year)->count(),
+            'monthlyWonLeads' => Lead::query()->whereIn('status', ['converted', 'won'])->whereYear('updated_at', now()->year)->count(),
             'monthlyLostLeads' => Lead::query()->where('status', 'lost')->whereYear('updated_at', now()->year)->count(),
         ], 'Performance stats fetched successfully.');
     }

@@ -33,7 +33,7 @@ class EscalateOverdueLeads extends Command
                     $q->whereNull('next_followup_at')->where('created_at', '<', now()->subHours(48));
                 });
             })
-            ->whereNotIn('status', ['won', 'lost', 'junk'])
+            ->whereNotIn('status', ['converted', 'won', 'lost', 'junk'])
             ->get();
 
         foreach ($leads as $lead) {

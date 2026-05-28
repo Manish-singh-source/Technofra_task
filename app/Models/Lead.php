@@ -12,7 +12,8 @@ class Lead extends Model
     public const STATUS_NEW = 'new';
     public const STATUS_CONTACTED = 'contacted';
     public const STATUS_QUALIFIED = 'qualified';
-    public const STATUS_WON = 'won';
+    public const STATUS_WON = 'won'; // Legacy alias
+    public const STATUS_CONVERTED = 'converted';
     public const STATUS_LOST = 'lost';
 
     protected $fillable = [
@@ -174,7 +175,7 @@ class Lead extends Model
 
     public function isWon(): bool
     {
-        return (string) $this->status === self::STATUS_WON;
+        return in_array((string) $this->status, [self::STATUS_WON, self::STATUS_CONVERTED], true);
     }
 
     public function isLost(): bool
@@ -189,12 +190,12 @@ class Lead extends Model
 
     public function canConvert(): bool
     {
-        return ! in_array((string) $this->status, [self::STATUS_WON, self::STATUS_LOST, 'junk'], true);
+        return ! in_array((string) $this->status, [self::STATUS_CONVERTED, self::STATUS_WON, self::STATUS_LOST, 'junk'], true);
     }
 
     public function canEdit(): bool
     {
-        return ! in_array((string) $this->status, [self::STATUS_WON, self::STATUS_LOST, 'junk'], true);
+        return ! in_array((string) $this->status, [self::STATUS_CONVERTED, self::STATUS_WON, self::STATUS_LOST, 'junk'], true);
     }
 
     public function currentStage(): ?array

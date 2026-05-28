@@ -517,9 +517,9 @@ Definition of done:
 - No breaking changes.
 - Code production-ready.
 
-1. client is not converted when changing lead status
-2. in bulk show department dropdown and then show that departments staff members for assigning lead
+1. client is not converted when changing lead status      - done
+2. in bulk show department dropdown and then show that departments staff members for assigning lead - 
 3. in followup if we select google meet then create meeting link and send it to client and staff.
 4. in dashboard show leads also show followup of that date also time.
 5. also keep edit button in followups
-6. add icons in tabs for leads management.
+6. add icons in tabs for leads management.  
