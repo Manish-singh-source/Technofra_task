@@ -8,21 +8,38 @@ use App\Models\ProjectComment;
 use App\Models\ProjectFile;
 use App\Models\ProjectIssue;
 use App\Models\ProjectMilestone;
+use App\Models\ProjectActivity;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
 use App\Models\Task;
+use App\Models\TaskTimeLog;
 use App\Models\User;
+use App\Services\ProjectManagement\ProjectDashboardService;
+use App\Services\ProjectManagement\MilestoneProgressService;
+use App\Services\ProjectManagement\ProjectActivityService;
+use App\Services\ProjectManagement\ProjectLifecycleService;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Log;
 
 class ProjectController extends Controller
 {
     private const DEFAULT_BUSINESS_TZ = 'UTC';
+
+    public function __construct(
+        private ProjectLifecycleService $projectLifecycleService,
+        private MilestoneProgressService $milestoneProgressService,
+        private ProjectActivityService $projectActivityService,
+        private ProjectDashboardService $projectDashboardService
+    ) {}
 
     /**
      * Get the logged-in client user
@@ -132,9 +149,7 @@ class ProjectController extends Controller
         }
 
         $staff = $this->getLoggedInStaff();
-        if (! $staff) {
-            return;
-        }
+        abort_if(! $staff, 403, $message);
 
         $memberIds = collect($project->members ?? [])
             ->filter(fn ($memberId) => $memberId !== null && $memberId !== '')
@@ -147,11 +162,7 @@ class ProjectController extends Controller
     {
         $projects = $this->visibleProjectsQuery()
             ->with(['customer'])
-            ->get()
-            ->each(function ($project) {
-                $project->setAttribute('staff_members', $project->staffMembers());
-            })
-            ;
+            ->get();
 
         $staffIds = $projects
             ->pluck('members')
@@ -168,6 +179,19 @@ class ProjectController extends Controller
             ->orderBy('last_name')
             ->get()
             ->keyBy('id');
+
+        $projects->each(function ($project) use ($staff) {
+            $memberIds = collect($project->members ?? [])
+                ->filter(fn ($id) => $id !== null && $id !== '')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values();
+
+            $project->setAttribute('staff_members', $memberIds
+                ->map(fn ($id) => $staff->get($id))
+                ->filter()
+                ->values());
+        });
 
         $allProjects = $projects->count();
         $planningProjects = $projects->where('status', 'not_started')->count();
@@ -205,6 +229,7 @@ class ProjectController extends Controller
                 Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client')),
             ],
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
+            'lifecycle_stage' => 'nullable|string',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
             'billing_type' => 'nullable|in:fixed_rate,hourly_rate',
@@ -228,10 +253,19 @@ class ProjectController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        try {
+            $this->projectLifecycleService->ensureValidStage($request->lifecycle_stage);
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationException::withMessages([
+                'lifecycle_stage' => $e->getMessage(),
+            ]);
+        }
+
         $project = Project::create([
             'project_name' => $request->project_name,
             'customer_id' => $request->customer,
             'status' => $request->status ?? 'not_started',
+            'lifecycle_stage' => $request->lifecycle_stage ?? 'project_created',
             'start_date' => $request->start_date,
             'deadline' => $request->deadline,
             'billing_type' => $request->billing_type,
@@ -259,6 +293,18 @@ class ProjectController extends Controller
 
         $this->createInitialStatusLog($project);
         $this->sendProjectCreationNotifications($project);
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'project_created',
+            'Project Created',
+            'Project created: '.$project->project_name,
+            null,
+            Auth::id(),
+            [
+                'status' => $project->status,
+                'lifecycle_stage' => $project->lifecycle_stage,
+            ]
+        );
 
         return redirect()->route('project')->with('success', 'Project created successfully!');
     }
@@ -295,6 +341,7 @@ class ProjectController extends Controller
                 Rule::exists('users', 'id')->where(fn ($query) => $query->where('role', 'client')),
             ],
             'status' => 'nullable|in:not_started,in_progress,on_hold,completed,cancelled',
+            'lifecycle_stage' => 'nullable|string',
             'start_date' => 'nullable|date',
             'deadline' => 'nullable|date|after_or_equal:start_date',
             'billing_type' => 'nullable|in:fixed_rate,hourly_rate',
@@ -316,6 +363,14 @@ class ProjectController extends Controller
             return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        try {
+            $this->projectLifecycleService->ensureValidStage($request->lifecycle_stage);
+        } catch (\InvalidArgumentException $e) {
+            throw ValidationException::withMessages([
+                'lifecycle_stage' => $e->getMessage(),
+            ]);
+        }
+
         $oldStatus = $project->status;
         $newStatus = $request->status ?? 'not_started';
 
@@ -323,6 +378,7 @@ class ProjectController extends Controller
             'project_name' => $request->project_name,
             'customer_id' => $request->customer,
             'status' => $newStatus,
+            'lifecycle_stage' => $request->lifecycle_stage ?? $project->lifecycle_stage,
             'start_date' => $request->start_date,
             'deadline' => $request->deadline,
             'billing_type' => $request->billing_type,
@@ -349,29 +405,53 @@ class ProjectController extends Controller
         }
 
         $this->syncStatusTimeline($project, $oldStatus, $newStatus);
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'project_updated',
+            'Project Updated',
+            'Project updated: '.$project->project_name,
+            null,
+            Auth::id(),
+            [
+                'old_status' => $oldStatus,
+                'new_status' => $newStatus,
+                'lifecycle_stage' => $project->lifecycle_stage,
+            ]
+        );
 
         return redirect()->route('project')->with('success', 'Project updated successfully!');
     }
 
     public function show($id)
     {
-        $project = Project::with([
+        $project = Project::query()
+            ->select([
+                'id',
+                'project_name',
+                'customer_id',
+                'status',
+                'lifecycle_stage',
+                'start_date',
+                'deadline',
+                'tags',
+                'members',
+                'description',
+                'priority',
+                'technologies',
+                'deployment_date',
+                'maintenance_expiry',
+            ])
+            ->with([
             'customer',
             'customerUser.address',
             'customerUser',
             'statusLogs' => function ($query) {
                 $query->orderBy('started_at');
             },
-        ])->findOrFail($id);
+            ])
+            ->findOrFail($id);
 
         $this->authorizeProjectAccess($project);
-
-        $staff = User::staffMembers()
-            ->orderBy('first_name')
-            ->orderBy('last_name')
-            ->get()
-            ->keyBy('id');
-        $memberIds = collect($project->members ?? [])->filter()->values();
 
         $elapsedBoundary = $this->getElapsedBoundary();
         $inProgressIntervals = $this->getProjectActiveIntervals($project, $elapsedBoundary);
@@ -379,7 +459,54 @@ class ProjectController extends Controller
         $projectElapsedHours = round($projectElapsedMinutes / 60, 1);
 
         // Fetch tasks for this project before member-level metrics calculation.
-        $tasks = Task::where('project_id', $id)->with('project')->orderBy('created_at', 'desc')->get();
+        $tasks = Task::query()
+            ->select([
+                'id',
+                'project_id',
+                'title',
+                'assignees',
+                'status',
+                'priority',
+                'deadline',
+                'created_at',
+            ])
+            ->where('project_id', $id)
+            ->orderByDesc('created_at')
+            ->get();
+        $memberIds = collect($project->members ?? [])->filter()->map(fn ($id) => (int) $id)->values();
+        $taskAssigneeIds = $tasks->pluck('assignees')
+            ->flatten()
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+        $relevantStaffIds = $memberIds->merge($taskAssigneeIds)->unique()->values();
+
+        $taskStatusCounts = $tasks->countBy(fn ($task) => (string) $task->status);
+        $taskAssignments = [];
+        $taskAssignmentStartMap = [];
+        foreach ($tasks as $task) {
+            $taskCreatedAt = $this->toBusinessTz($task->created_at);
+            foreach (collect($task->assignees ?? [])->map(fn ($assigneeId) => (int) $assigneeId)->unique() as $assigneeId) {
+                $taskAssignments[$assigneeId] = ($taskAssignments[$assigneeId] ?? 0) + 1;
+
+                if ($taskCreatedAt === null) {
+                    continue;
+                }
+
+                $existingStart = $taskAssignmentStartMap[$assigneeId] ?? null;
+                if ($existingStart === null || $taskCreatedAt->lt($existingStart)) {
+                    $taskAssignmentStartMap[$assigneeId] = $taskCreatedAt->copy();
+                }
+            }
+        }
+
+        $staff = User::staffMembers()
+            ->select(['id', 'first_name', 'last_name', 'profile_image', 'email'])
+            ->whereIn('id', $relevantStaffIds)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
 
         $taskStatusMeta = [
             'not_started' => ['label' => 'Not Started', 'badge_class' => 'bg-secondary'],
@@ -392,7 +519,7 @@ class ProjectController extends Controller
         $totalTasks = $tasks->count();
         $usageDistribution = [];
         foreach ($taskStatusMeta as $status => $meta) {
-            $count = $tasks->where('status', $status)->count();
+            $count = (int) ($taskStatusCounts[$status] ?? 0);
             $usageDistribution[] = [
                 'status' => $status,
                 'label' => $meta['label'],
@@ -424,15 +551,7 @@ class ProjectController extends Controller
 
         $memberMetrics = [];
         foreach ($memberIds as $memberId) {
-            $memberAssignmentStart = $tasks
-                ->filter(function ($task) use ($memberId) {
-                    return collect($task->assignees ?? [])
-                        ->map(fn ($assigneeId) => (int) $assigneeId)
-                        ->contains((int) $memberId);
-                })
-                ->min('created_at');
-
-            $assignmentStartAt = $this->toBusinessTz($memberAssignmentStart);
+            $assignmentStartAt = $taskAssignmentStartMap[(int) $memberId] ?? null;
             $memberElapsedMinutes = $assignmentStartAt
                 ? $this->calculateIntervalsElapsedMinutesWithinRange($inProgressIntervals, $assignmentStartAt, $elapsedBoundary)
                 : 0;
@@ -443,11 +562,15 @@ class ProjectController extends Controller
             ];
         }
 
-        $allProjects = $this->visibleProjectsQuery()->get();
-
         // Get project files
-        $projectFiles = ProjectFile::where('project_id', $id)->orderBy('created_at', 'desc')->get();
-        $milestones = ProjectMilestone::where('project_id', $id)
+        $projectFiles = ProjectFile::query()
+            ->select(['id', 'project_id', 'original_name', 'file_size', 'file_path', 'created_at'])
+            ->where('project_id', $id)
+            ->orderByDesc('created_at')
+            ->get();
+        $milestones = ProjectMilestone::query()
+            ->select(['id', 'project_id', 'title', 'description', 'status', 'due_date', 'completed_at', 'sort_order'])
+            ->where('project_id', $id)
             ->orderBy('sort_order')
             ->orderBy('due_date')
             ->orderBy('id')
@@ -461,9 +584,10 @@ class ProjectController extends Controller
         ];
 
         // Get client issues for this project
-        $issues = ProjectIssue::where('project_id', $id)
-            ->with(['customer'])
-            ->orderBy('created_at', 'desc')
+        $issues = ProjectIssue::query()
+            ->select(['id', 'project_id', 'issue_description', 'priority', 'status', 'created_at', 'updated_at'])
+            ->where('project_id', $id)
+            ->orderByDesc('created_at')
             ->get();
 
         $issueStats = [
@@ -474,14 +598,14 @@ class ProjectController extends Controller
             'closed' => $issues->where('status', 'closed')->count(),
         ];
 
-        $completedTasks = $tasks->where('status', 'completed')->count();
-        $inProgressTasks = $tasks->where('status', 'in_progress')->count();
+        $completedTasks = (int) ($taskStatusCounts['completed'] ?? 0);
+        $inProgressTasks = (int) ($taskStatusCounts['in_progress'] ?? 0);
         $overdueTasks = $tasks->filter(function ($task) {
             return $task->deadline
                 && $task->deadline->isPast()
                 && ! in_array($task->status, ['completed', 'cancelled'], true);
         })->count();
-        $notStartedTasks = $tasks->where('status', 'not_started')->count();
+        $notStartedTasks = (int) ($taskStatusCounts['not_started'] ?? 0);
         $doneMilestones = $milestoneStats['completed'] ?? 0;
         $resolvedIssues = ($issueStats['resolved'] ?? 0) + ($issueStats['closed'] ?? 0);
 
@@ -527,16 +651,164 @@ class ProjectController extends Controller
             'total_issues' => $issueStats['total'] ?? 0,
         ];
 
-        // Get project comments
+        // Get project comments (paginated with dedicated page parameter)
         $projectComments = ProjectComment::where('project_id', $id)
-            ->with('user')
-            ->orderBy('created_at', 'desc')
-            ->get();
+            ->with(['user:id,name,profile_image,email'])
+            ->orderByDesc('created_at')
+            ->paginate(8, ['*'], 'comments_page')
+            ->withQueryString();
+
+        $recentActivities = collect();
+        if (Schema::hasTable('project_activities')) {
+            $recentActivities = ProjectActivity::query()
+                ->select([
+                    'id',
+                    'project_id',
+                    'task_id',
+                    'user_id',
+                    'activity_type',
+                    'title',
+                    'description',
+                    'activity_at',
+                    'created_at',
+                ])
+                ->where('project_id', $project->id)
+                ->with(['user:id,first_name,last_name,email', 'task:id,title'])
+                ->orderByDesc(DB::raw('COALESCE(activity_at, created_at)'))
+                ->paginate(10, ['*'], 'timeline_page')
+                ->withQueryString();
+        }
+
+        $pendingIssues = $issues->whereIn('status', ['open', 'in_progress'])->values();
+
+        $timeTrackingStats = [
+            'total_hours' => 0,
+            'manual_hours' => 0,
+            'timer_hours' => 0,
+            'entries_count' => 0,
+        ];
+
+        if (Schema::hasTable('task_time_logs')) {
+            $timeSummary = TaskTimeLog::query()
+                ->join('tasks', 'tasks.id', '=', 'task_time_logs.task_id')
+                ->where('tasks.project_id', $project->id)
+                ->selectRaw('COALESCE(SUM(task_time_logs.duration_minutes), 0) as total_minutes')
+                ->selectRaw("COALESCE(SUM(CASE WHEN task_time_logs.log_type = 'manual' THEN task_time_logs.duration_minutes ELSE 0 END), 0) as manual_minutes")
+                ->selectRaw("COALESCE(SUM(CASE WHEN task_time_logs.log_type = 'timer' THEN task_time_logs.duration_minutes ELSE 0 END), 0) as timer_minutes")
+                ->selectRaw('COUNT(*) as entries_count')
+                ->first();
+
+            $totalMinutes = (float) ($timeSummary->total_minutes ?? 0);
+            $manualMinutes = (float) ($timeSummary->manual_minutes ?? 0);
+            $timerMinutes = (float) ($timeSummary->timer_minutes ?? 0);
+
+            $timeTrackingStats = [
+                'total_hours' => round($totalMinutes / 60, 2),
+                'manual_hours' => round($manualMinutes / 60, 2),
+                'timer_hours' => round($timerMinutes / 60, 2),
+                'entries_count' => (int) ($timeSummary->entries_count ?? 0),
+            ];
+        }
+
+        $latestDeployment = null;
+        if (Schema::hasTable('project_deployments')) {
+            $latestDeployment = DB::table('project_deployments')
+                ->where('project_id', $project->id)
+                ->orderByDesc('deployed_at')
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        $deploymentSummary = [
+            'status' => $latestDeployment->status ?? ($project->status === 'completed' ? 'deployed' : 'pending'),
+            'environment' => $latestDeployment->environment ?? null,
+            'version' => $latestDeployment->version ?? null,
+            'deployed_at' => $latestDeployment->deployed_at ?? ($project->deployment_date?->toDateString()),
+            'maintenance_expiry' => $project->maintenance_expiry?->toDateString(),
+        ];
+
+        $workloadDistribution = collect($project->members ?? [])
+            ->filter()
+            ->map(function ($memberId) use ($staff, $taskAssignments) {
+                $memberId = (int) $memberId;
+                if (! isset($staff[$memberId])) {
+                    return null;
+                }
+
+                $assignedTaskCount = (int) ($taskAssignments[$memberId] ?? 0);
+
+                return [
+                    'member_id' => $memberId,
+                    'member_name' => trim(($staff[$memberId]->first_name ?? '').' '.($staff[$memberId]->last_name ?? '')),
+                    'tasks_count' => $assignedTaskCount,
+                ];
+            })
+            ->filter()
+            ->sortByDesc('tasks_count')
+            ->values();
+
+        $taskStatusAnalytics = [
+            'labels' => collect($usageDistribution)->pluck('label')->values()->all(),
+            'counts' => collect($usageDistribution)->pluck('count')->values()->all(),
+        ];
+
+        $workloadAnalytics = [
+            'labels' => $workloadDistribution->pluck('member_name')->values()->all(),
+            'counts' => $workloadDistribution->pluck('tasks_count')->values()->all(),
+        ];
+
+        $overdueTrendLabels = [];
+        $overdueTrendCounts = [];
+        $overdueEndDate = now($this->businessTimezone())->startOfDay();
+        $overdueCountsByDate = $tasks
+            ->filter(function ($task) {
+                return $task->deadline
+                    && ! in_array($task->status, ['completed', 'cancelled'], true);
+            })
+            ->groupBy(function ($task) {
+                return $task->deadline->copy()->startOfDay()->format('Y-m-d');
+            })
+            ->map(fn ($group) => $group->count());
+
+        for ($dayOffset = 6; $dayOffset >= 0; $dayOffset--) {
+            $date = $overdueEndDate->copy()->subDays($dayOffset);
+            $label = $date->format('D');
+            $count = (int) ($overdueCountsByDate[$date->format('Y-m-d')] ?? 0);
+
+            $overdueTrendLabels[] = $label;
+            $overdueTrendCounts[] = $count;
+        }
+
+        $milestoneCompletionRate = ($milestoneStats['total'] ?? 0) > 0
+            ? round((($milestoneStats['completed'] ?? 0) / $milestoneStats['total']) * 100, 2)
+            : 0;
+        $milestoneCompletionAnalytics = [
+            'completed' => (int) ($milestoneStats['completed'] ?? 0),
+            'remaining' => max((int) ($milestoneStats['total'] ?? 0) - (int) ($milestoneStats['completed'] ?? 0), 0),
+            'rate' => $milestoneCompletionRate,
+        ];
+
+        $sprintVelocityAnalytics = [
+            'labels' => [],
+            'velocities' => [],
+        ];
+        if (Schema::hasTable('sprints')) {
+            $sprints = DB::table('sprints')
+                ->where('project_id', $project->id)
+                ->orderBy('start_date')
+                ->orderBy('id')
+                ->limit(8)
+                ->get(['name', 'velocity']);
+
+            $sprintVelocityAnalytics = [
+                'labels' => $sprints->map(fn ($sprint) => $sprint->name ?: 'Sprint')->values()->all(),
+                'velocities' => $sprints->map(fn ($sprint) => (int) ($sprint->velocity ?? 0))->values()->all(),
+            ];
+        }
 
         return view('project-details', compact(
             'project',
             'staff',
-            'allProjects',
             'memberMetrics',
             'projectElapsedHours',
             'tasks',
@@ -552,8 +824,99 @@ class ProjectController extends Controller
             'weeklyActivityLabels',
             'weeklyActivityData',
             'totalTasks',
-            'projectProgress'
+            'projectProgress',
+            'recentActivities',
+            'pendingIssues',
+            'timeTrackingStats',
+            'deploymentSummary',
+            'workloadDistribution',
+            'taskStatusAnalytics',
+            'workloadAnalytics',
+            'overdueTrendLabels',
+            'overdueTrendCounts',
+            'milestoneCompletionAnalytics',
+            'sprintVelocityAnalytics'
         ));
+    }
+
+    public function ajaxCharts(int $projectId): JsonResponse
+    {
+        $project = Project::findOrFail($projectId);
+        $this->authorizeProjectAccess($project);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->projectDashboardService->charts($projectId),
+        ]);
+    }
+
+    public function ajaxActivityFeed(Request $request, int $projectId): JsonResponse
+    {
+        $project = Project::findOrFail($projectId);
+        $this->authorizeProjectAccess($project);
+
+        $perPage = max(5, min(50, (int) $request->input('per_page', 15)));
+        $feed = $this->projectDashboardService->activityFeed($projectId, $perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $feed->items(),
+            'meta' => [
+                'current_page' => $feed->currentPage(),
+                'last_page' => $feed->lastPage(),
+                'total' => $feed->total(),
+            ],
+        ]);
+    }
+
+    public function ajaxMilestoneProgress(int $projectId): JsonResponse
+    {
+        $project = Project::findOrFail($projectId);
+        $this->authorizeProjectAccess($project);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->projectDashboardService->milestoneProgress($projectId),
+        ]);
+    }
+
+    public function ajaxTaskFilter(Request $request, int $projectId): JsonResponse
+    {
+        $project = Project::findOrFail($projectId);
+        $this->authorizeProjectAccess($project);
+
+        $validated = $request->validate([
+            'status' => 'nullable|string|in:not_started,pending,in_progress,completed,on_hold,cancelled',
+            'priority' => 'nullable|string|in:low,medium,high',
+            'q' => 'nullable|string|max:255',
+            'limit' => 'nullable|integer|min:1|max:200',
+        ]);
+
+        $tasks = $this->projectDashboardService->filteredTasks($projectId, $validated);
+
+        return response()->json([
+            'success' => true,
+            'data' => $tasks->map(fn (Task $task) => [
+                'id' => (int) $task->id,
+                'title' => (string) $task->title,
+                'status' => (string) $task->status,
+                'workflow_status' => (string) ($task->workflow_status ?? 'backlog'),
+                'priority' => (string) ($task->priority ?? 'medium'),
+                'deadline' => optional($task->deadline)?->toDateString(),
+            ])->values(),
+            'meta' => ['count' => $tasks->count()],
+        ]);
+    }
+
+    public function ajaxKanbanSnapshot(int $projectId): JsonResponse
+    {
+        $project = Project::findOrFail($projectId);
+        $this->authorizeProjectAccess($project);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->projectDashboardService->kanbanBoard($projectId),
+        ]);
     }
 
     public function storeMilestone(Request $request, $projectId)
@@ -571,7 +934,7 @@ class ProjectController extends Controller
         $nextSortOrder = (int) ProjectMilestone::where('project_id', $projectId)->max('sort_order') + 1;
         $completedAt = $validated['status'] === 'completed' ? now($this->businessTimezone()) : null;
 
-        ProjectMilestone::create([
+        $milestone = ProjectMilestone::create([
             'project_id' => $projectId,
             'title' => $validated['title'],
             'description' => $validated['description'] ?? null,
@@ -580,6 +943,16 @@ class ProjectController extends Controller
             'completed_at' => $completedAt,
             'sort_order' => $nextSortOrder,
         ]);
+        $this->milestoneProgressService->syncForMilestone((int) $milestone->id);
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'milestone_created',
+            'Milestone Created',
+            'Milestone created: '.$milestone->title,
+            null,
+            Auth::id(),
+            ['milestone_id' => $milestone->id, 'status' => $milestone->status]
+        );
 
         return redirect()
             ->route('project-details', $projectId)
@@ -610,6 +983,16 @@ class ProjectController extends Controller
             'due_date' => $validated['due_date'] ?? null,
             'completed_at' => $completedAt,
         ]);
+        $this->milestoneProgressService->syncForMilestone((int) $milestone->id);
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'milestone_updated',
+            'Milestone Updated',
+            'Milestone updated: '.$milestone->title,
+            null,
+            Auth::id(),
+            ['milestone_id' => $milestone->id, 'status' => $milestone->status]
+        );
 
         return redirect()
             ->route('project-details', $projectId)
@@ -622,7 +1005,17 @@ class ProjectController extends Controller
         $milestone = ProjectMilestone::where('id', $milestoneId)->where('project_id', $projectId)->firstOrFail();
         $this->authorizeProjectAccess($project, 'You are not authorized to update this project.');
 
+        $milestoneTitle = $milestone->title;
         $milestone->delete();
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'milestone_deleted',
+            'Milestone Deleted',
+            'Milestone deleted: '.$milestoneTitle,
+            null,
+            Auth::id(),
+            ['milestone_id' => (int) $milestoneId]
+        );
 
         return redirect()
             ->route('project-details', $projectId)
@@ -703,9 +1096,17 @@ class ProjectController extends Controller
             'user_id' => Auth::id(),
             'comment' => $validated['comment'],
         ]);
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'project_comment_added',
+            'Project Comment Added',
+            'A project comment was added.',
+            null,
+            Auth::id()
+        );
 
         return redirect()
-            ->route('project-details', $projectId)
+            ->route('project-details', [$projectId, 'tab' => 'comments'])
             ->with('success', 'Comment added successfully.');
     }
 
@@ -751,6 +1152,16 @@ class ProjectController extends Controller
             'started_at' => now($this->businessTimezone()),
             'ended_at' => null,
         ]);
+
+        $this->projectActivityService->log(
+            (int) $project->id,
+            'project_status_changed',
+            'Project Status Changed',
+            'Project status changed.',
+            null,
+            Auth::id(),
+            ['from' => $oldStatus, 'to' => $newStatus]
+        );
     }
 
     private function getElapsedBoundary(): Carbon
@@ -890,7 +1301,7 @@ class ProjectController extends Controller
     /**
      * Store a project file
      */
-    private function storeProjectFile($projectId, $file)
+    private function storeProjectFile($projectId, $file): ProjectFile
     {
         $originalName = $file->getClientOriginalName();
         $extension = strtolower($file->getClientOriginalExtension());
@@ -907,7 +1318,7 @@ class ProjectController extends Controller
         // Store the file
         $file->move($directory, $fileName);
 
-        ProjectFile::create([
+        return ProjectFile::create([
             'project_id' => $projectId,
             'file_name' => $fileName,
             'original_name' => $originalName,
@@ -929,7 +1340,16 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            $this->storeProjectFile($projectId, $request->file('file'));
+            $uploadedFile = $this->storeProjectFile($projectId, $request->file('file'));
+            $this->projectActivityService->log(
+                (int) $projectId,
+                'project_file_uploaded',
+                'File Uploaded',
+                'A file was uploaded to the project.',
+                null,
+                Auth::id(),
+                ['file_id' => $uploadedFile->id ?? null]
+            );
 
             return response()->json(['success' => true, 'message' => 'File uploaded successfully!']);
         }

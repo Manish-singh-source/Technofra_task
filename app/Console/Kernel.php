@@ -31,6 +31,12 @@ class Kernel extends ConsoleKernel
         }
 
         $schedule->command('notifications:send-daily')->dailyAt($dailyNotificationTime);
+        $schedule->command('project-management:send-notifications --days='.((int) config('project_management.notifications.milestone_deadline_days', 2)))
+            ->dailyAt('09:00')
+            ->withoutOverlapping();
+        $schedule->command('project-management:sync-milestone-progress')
+            ->hourly()
+            ->withoutOverlapping();
         $schedule->command('meta:sync-leads')->hourly()->withoutOverlapping();
         $schedule->command('leads:escalate-overdue')->hourly()->withoutOverlapping();
 

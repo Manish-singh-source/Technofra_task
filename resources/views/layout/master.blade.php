@@ -275,6 +275,7 @@
                     </li>
                 @endcan
                 <!-- Leads section - removed permission check -->
+                {{-- 
                 @can('view_leads')
                     <li>
                         <a href="{{ route('leads') }}">
@@ -283,7 +284,8 @@
                             <div class="menu-title">Leads</div>
                         </a>
                     </li>
-                @endcan
+                @endcan 
+                --}}
 
                 @can('view_leads_management')
                     <li>
@@ -350,13 +352,15 @@
                     </li>
                 @endcan
                 @can('view_digital_marketing_leads')
+                    {{-- 
                     <li>
                         <a href="{{ route('digital-marketing-leads.index') }}">
                             <div class="parent-icon"><i class="bx bx-globe"></i>
                             </div>
                             <div class="menu-title">Web Leads</div>
                         </a>
-                    </li>
+                    </li> 
+                    --}}
                     <li>
                         <a href="javascript:;" class="has-arrow">
                             <div class="parent-icon"><i class="bx bx-message-dots"></i>
@@ -378,6 +382,7 @@
                     </li>
                 @endcan
 
+                {{-- 
                 @can('view_meta_lead')
                 <li>
                     <a href="{{ route('leads.index') }}">
@@ -386,8 +391,10 @@
                         <div class="menu-title">Meta Leads</div>
                     </a>
                 </li>
-                @endcan
+                @endcan 
+                --}}
 
+                {{-- 
                 @can('view_google_ads_leads')
                     <li>
                         <a href="{{ route('google-leads.index') }}">
@@ -396,7 +403,8 @@
                             <div class="menu-title">Google Ads Leads</div>
                         </a>
                     </li>
-                @endcan
+                @endcan 
+                --}}
                 @can('view_staff')
                     <li>
                         <a href="javascript:;" class="has-arrow">

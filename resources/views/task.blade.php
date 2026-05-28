@@ -118,6 +118,9 @@
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
                         <div class="ms-auto d-flex gap-2">
+                            <a href="{{ route('task.kanban') }}" class="btn btn-outline-primary radius-30 mt-2 mt-lg-0">
+                                <i class='bx bx-columns'></i>Kanban Board
+                            </a>
                             <div class="btn-group">
                                 <ul class="dropdown-menu">
                                     <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#bulkUploadModal">

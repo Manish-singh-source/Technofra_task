@@ -262,7 +262,10 @@
 		<!-- Navigation Tabs -->
 		<ul class="nav nav-tabs mb-4" id="projectTabs" role="tablist">
 			<li class="nav-item" role="presentation">
-				<button class="nav-link active" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="true">Employees</button>
+				<button class="nav-link active" id="dashboard-tab" data-bs-toggle="tab" data-bs-target="#dashboard" type="button" role="tab" aria-controls="dashboard" aria-selected="true">Dashboard</button>
+			</li>
+			<li class="nav-item" role="presentation">
+				<button class="nav-link" id="employees-tab" data-bs-toggle="tab" data-bs-target="#employees" type="button" role="tab" aria-controls="employees" aria-selected="false">Employees</button>
 			</li>
 			<li class="nav-item" role="presentation">
 				<button class="nav-link" id="tasks-tab" data-bs-toggle="tab" data-bs-target="#tasks" type="button" role="tab" aria-controls="tasks" aria-selected="false">Tasks</button>
@@ -281,13 +284,190 @@
 				<button class="nav-link" id="issues-tab" data-bs-toggle="tab" data-bs-target="#issues" type="button" role="tab" aria-controls="issues" aria-selected="false">Issues</button>
 			</li>
 			<li class="nav-item" role="presentation">
-				<button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab" aria-controls="comments" aria-selected="false">Comments</button>
+				<button class="nav-link" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button" role="tab" aria-controls="timeline" aria-selected="false">Timeline</button>
 			</li>
-			
-		</ul>
+				<li class="nav-item" role="presentation">
+					<button class="nav-link" id="comments-tab" data-bs-toggle="tab" data-bs-target="#comments" type="button" role="tab" aria-controls="comments" aria-selected="false">Comments</button>
+				</li>
+				<li class="nav-item" role="presentation">
+					<button class="nav-link" id="live-insights-tab" data-bs-toggle="tab" data-bs-target="#live-insights" type="button" role="tab" aria-controls="live-insights" aria-selected="false">Live Insights</button>
+				</li>
+				
+			</ul>
 
 		<div class="tab-content" id="projectTabsContent">
-			<div class="tab-pane fade show active" id="employees" role="tabpanel" aria-labelledby="employees-tab">
+			<div class="tab-pane fade show active" id="dashboard" role="tabpanel" aria-labelledby="dashboard-tab">
+				<div class="row g-3 mb-3">
+					<div class="col-md-3">
+						<div class="card radius-10 border-start border-0 border-4 border-primary h-100">
+							<div class="card-body">
+								<p class="mb-1 text-secondary">Overall Progress</p>
+								<h4 class="mb-0 text-primary">{{ $projectProgress['overall'] }}%</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="card radius-10 border-start border-0 border-4 border-success h-100">
+							<div class="card-body">
+								<p class="mb-1 text-secondary">Tasks Completed</p>
+								<h4 class="mb-0 text-success">{{ $projectProgress['completed_tasks'] }}/{{ $projectProgress['total_tasks'] }}</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="card radius-10 border-start border-0 border-4 border-warning h-100">
+							<div class="card-body">
+								<p class="mb-1 text-secondary">Milestones Done</p>
+								<h4 class="mb-0 text-warning">{{ $milestoneStats['completed'] }}/{{ $milestoneStats['total'] }}</h4>
+							</div>
+						</div>
+					</div>
+					<div class="col-md-3">
+						<div class="card radius-10 border-start border-0 border-4 border-danger h-100">
+							<div class="card-body">
+								<p class="mb-1 text-secondary">Pending Issues</p>
+								<h4 class="mb-0 text-danger">{{ $pendingIssues->count() }}</h4>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="row g-3 mb-3">
+					<div class="col-lg-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Time Tracking Stats</h5></div>
+							<div class="card-body">
+								<div class="row g-3 text-center">
+									<div class="col-4">
+										<h5 class="mb-0">{{ number_format($timeTrackingStats['total_hours'], 2) }}h</h5>
+										<small class="text-muted">Total</small>
+									</div>
+									<div class="col-4">
+										<h5 class="mb-0">{{ number_format($timeTrackingStats['timer_hours'], 2) }}h</h5>
+										<small class="text-muted">Timer</small>
+									</div>
+									<div class="col-4">
+										<h5 class="mb-0">{{ number_format($timeTrackingStats['manual_hours'], 2) }}h</h5>
+										<small class="text-muted">Manual</small>
+									</div>
+								</div>
+								<div class="mt-3 text-muted small">Entries Logged: {{ $timeTrackingStats['entries_count'] }}</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Deployment Status</h5></div>
+							<div class="card-body">
+								<div class="mb-2"><strong>Status:</strong> <span class="badge bg-info">{{ ucfirst(str_replace('_', ' ', $deploymentSummary['status'] ?? 'pending')) }}</span></div>
+								<div class="mb-2"><strong>Environment:</strong> {{ $deploymentSummary['environment'] ?? 'N/A' }}</div>
+								<div class="mb-2"><strong>Version:</strong> {{ $deploymentSummary['version'] ?? 'N/A' }}</div>
+								<div class="mb-2"><strong>Deployed At:</strong> {{ $deploymentSummary['deployed_at'] ?? 'N/A' }}</div>
+								<div><strong>Maintenance Expiry:</strong> {{ $deploymentSummary['maintenance_expiry'] ?? 'N/A' }}</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="row g-3">
+					<div class="col-lg-4">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Workload Distribution</h5></div>
+							<div class="card-body">
+								@forelse($workloadDistribution as $workload)
+									<div class="d-flex justify-content-between mb-2">
+										<span>{{ $workload['member_name'] }}</span>
+										<span class="badge bg-light text-dark">{{ $workload['tasks_count'] }} tasks</span>
+									</div>
+								@empty
+									<p class="text-muted mb-0">No team workload data available.</p>
+								@endforelse
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-4">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Pending Issues</h5></div>
+							<div class="card-body">
+								@forelse($pendingIssues->take(6) as $issue)
+									<div class="mb-2 pb-2 border-bottom">
+										<div class="small fw-semibold">{{ \Illuminate\Support\Str::limit($issue->issue_description, 75) }}</div>
+											<div class="small text-muted">{{ ucfirst(str_replace('_', ' ', $issue->status)) }} &bull; {{ ucfirst($issue->priority) }}</div>
+									</div>
+								@empty
+									<p class="text-muted mb-0">No pending issues.</p>
+								@endforelse
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-4">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Recent Activities</h5></div>
+							<div class="card-body">
+								@forelse($recentActivities as $activity)
+									<div class="mb-2 pb-2 border-bottom">
+										<div class="small fw-semibold">{{ $activity->title ?: ucfirst(str_replace('_', ' ', $activity->activity_type)) }}</div>
+										<div class="small text-muted">{{ $activity->description ?: 'Activity logged.' }}</div>
+										<div class="small text-muted">
+											{{ optional($activity->activity_at ?? $activity->created_at)->diffForHumans() }}
+										</div>
+									</div>
+								@empty
+									<p class="text-muted mb-0">No recent activities yet.</p>
+								@endforelse
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<div class="row g-3 mt-1">
+					<div class="col-lg-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Task Status Distribution</h5></div>
+							<div class="card-body">
+								<div id="apexTaskStatusChart" style="min-height: 280px;"></div>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Workload Distribution</h5></div>
+							<div class="card-body">
+								<div id="apexWorkloadChart" style="min-height: 280px;"></div>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-6">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Overdue Tasks Trend</h5></div>
+							<div class="card-body">
+								<div id="apexOverdueTrendChart" style="min-height: 280px;"></div>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Milestone Completion</h5></div>
+							<div class="card-body">
+								<div id="apexMilestoneCompletionChart" style="min-height: 230px;"></div>
+								<div class="text-center mt-2">
+									<strong>{{ number_format($milestoneCompletionAnalytics['rate'] ?? 0, 2) }}%</strong>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3">
+						<div class="card radius-10 h-100">
+							<div class="card-header"><h5 class="mb-0">Sprint Velocity</h5></div>
+							<div class="card-body">
+								<div id="apexSprintVelocityChart" style="min-height: 230px;"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="tab-pane fade" id="employees" role="tabpanel" aria-labelledby="employees-tab">
 				<!-- Employees Table -->
 				<div class="card radius-10">
 					<div class="card-header">
@@ -339,9 +519,14 @@
 					<div class="card-header">
 						<div class="d-flex justify-content-between align-items-center">
 							<h5>Project Tasks</h5>
-							@can('create_tasks')
-							<a href="{{ route('add-task', ['project_id' => $project->id]) }}" class="btn btn-primary radius-30 btn-sm"><i class='bx bx-plus'></i> Create Task</a>
-							@endcan
+							<div class="d-flex gap-2">
+								<a href="{{ route('task.kanban', ['project_id' => $project->id]) }}" class="btn btn-outline-primary radius-30 btn-sm">
+									<i class='bx bx-columns'></i> Kanban
+								</a>
+								@can('create_tasks')
+								<a href="{{ route('add-task', ['project_id' => $project->id]) }}" class="btn btn-primary radius-30 btn-sm"><i class='bx bx-plus'></i> Create Task</a>
+								@endcan
+							</div>
 						</div>
 					</div>
 					<div class="card-body">
@@ -446,7 +631,7 @@
 												<i class="bx {{ $file->file_icon }} bx-lg text-primary mb-2"></i>
 											@endif
 											<h6 class="mb-1">{{ $file->original_name }}</h6>
-											<small class="text-muted">{{ $file->formatted_size }} • Uploaded: {{ $file->created_at->format('M d, Y') }}</small>
+												<small class="text-muted">{{ $file->formatted_size }} &bull; Uploaded: {{ $file->created_at->format('M d, Y') }}</small>
 										</div>
 										<div class="mt-3">
 											<a href="{{ asset($file->file_path) }}" target="_blank" class="btn btn-sm btn-outline-primary radius-30">
@@ -688,9 +873,6 @@
 												{{ ucfirst($issue->priority) }}
 											</span>
 										</p>
-										@if($issue->tasks && $issue->tasks->count() > 0)
-										<p><strong>Tasks:</strong> {{ $issue->tasks->count() }}</p>
-										@endif
 										<small class="text-muted">Reported: {{ $issue->created_at->format('M d, Y') }} | Updated: {{ $issue->updated_at->format('M d, Y') }}</small>
 										@can('edit_projects')
 										<div class="mt-3">
@@ -725,15 +907,54 @@
 					</div>
 				</div>
 			</div>
+			<div class="tab-pane fade" id="timeline" role="tabpanel" aria-labelledby="timeline-tab">
+				<div class="card radius-10">
+					<div class="card-header">
+						<div class="d-flex justify-content-between align-items-center">
+							<h5 class="mb-0">Project Activity Timeline</h5>
+							<small class="text-muted">Recent actions across tasks, milestones, files and deployments</small>
+						</div>
+					</div>
+						<div class="card-body">
+							<div class="timeline">
+								@forelse($recentActivities as $activity)
+								<div class="timeline-item active">
+									<div class="timeline-marker"></div>
+									<div class="timeline-content">
+										<div class="d-flex justify-content-between align-items-start mb-1">
+											<strong>{{ $activity->title ?: ucfirst(str_replace('_', ' ', $activity->activity_type)) }}</strong>
+											<small class="text-muted">{{ optional($activity->activity_at ?? $activity->created_at)->diffForHumans() }}</small>
+										</div>
+										<div class="text-muted mb-1">{{ $activity->description ?: 'Activity logged.' }}</div>
+										@if($activity->task)
+											<div class="small">Task: <a href="{{ route('task-details', $activity->task->id) }}">{{ $activity->task->title }}</a></div>
+										@endif
+										@if($activity->user)
+											<div class="small text-muted">By: {{ trim(($activity->user->first_name ?? '').' '.($activity->user->last_name ?? '')) ?: ($activity->user->email ?? 'System') }}</div>
+										@endif
+									</div>
+								</div>
+								@empty
+									<div class="text-muted">No activities recorded yet.</div>
+								@endforelse
+							</div>
+							@if(method_exists($recentActivities, 'links') && $recentActivities->hasPages())
+								<div class="mt-3">
+									{{ $recentActivities->appends(['tab' => 'timeline'])->links() }}
+								</div>
+							@endif
+						</div>
+					</div>
+				</div>
 			<!-- Comments Tab -->
-			<div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
+				<div class="tab-pane fade" id="comments" role="tabpanel" aria-labelledby="comments-tab">
 				<div class="card radius-10">
 					<div class="card-header">
 						<h5 class="mb-0">Comments</h5>
 					</div>
 					<div class="card-body">
-						<div id="comments-list" class="mb-3">
-							@forelse($projectComments as $comment)
+							<div id="comments-list" class="mb-3">
+								@forelse($projectComments as $comment)
 								<div class="d-flex align-items-start mb-3 comment-item">
 									<img src="{{ $comment->user?->profile_image_url ?? 'https://placehold.co/40x40' }}" class="rounded-circle me-3" alt="User" width="40" height="40">
 									<div class="flex-grow-1">
@@ -742,12 +963,17 @@
 										<small class="text-muted">{{ $comment->created_at->diffForHumans() }}</small>
 									</div>
 								</div>
-							@empty
-								<p class="text-muted">No comments yet.</p>
-							@endforelse
-						</div>
-						<div class="border-top pt-3">
-							<form action="{{ route('project.comment.store', $project->id) }}" method="POST">
+								@empty
+									<p class="text-muted">No comments yet.</p>
+								@endforelse
+							</div>
+							@if(method_exists($projectComments, 'links') && $projectComments->hasPages())
+								<div class="mb-3">
+									{{ $projectComments->appends(['tab' => 'comments'])->links() }}
+								</div>
+							@endif
+							<div class="border-top pt-3">
+								<form action="{{ route('project.comment.store', $project->id) }}" method="POST">
 								@csrf
 								<div class="mb-3">
 									<textarea class="form-control" name="comment" rows="3" placeholder="Add a comment..." required></textarea>
@@ -757,9 +983,10 @@
 						</div>
 					</div>
 				</div>
+				</div>
+				<x-project.live-insights-pane :project="$project" />
+				
 			</div>
-			
-		</div>
 
 	</div>
 </div>
@@ -1101,13 +1328,13 @@
 	padding: 12px 14px;
 }
 
-.comments-list .comment-item {
+	#comments-list .comment-item {
 	border-bottom: 1px solid #e9ecef;
 	padding-bottom: 20px;
 	margin-bottom: 20px;
 }
 
-.comments-list .comment-item:last-child {
+	#comments-list .comment-item:last-child {
 	border-bottom: none;
 	padding-bottom: 0;
 	margin-bottom: 0;
@@ -1128,6 +1355,7 @@
 @push('scripts')
 <!-- CKEditor CDN -->
 <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 <script>
 $(function() {
     "use strict";
@@ -1136,8 +1364,8 @@ $(function() {
         $('#addMilestoneModal').modal('show');
     @endif
 
-    // Time Distribution Chart (Doughnut)
-    if (document.getElementById("timeChart")) {
+	    // Time Distribution Chart (Doughnut)
+	    if (typeof Chart !== 'undefined' && document.getElementById("timeChart")) {
         var ctx = document.getElementById("timeChart").getContext('2d');
 
         var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
@@ -1188,8 +1416,8 @@ $(function() {
         });
     }
 
-    // Weekly Activity Chart (Line)
-    if (document.getElementById("activityChart")) {
+	    // Weekly Activity Chart (Line)
+	    if (typeof Chart !== 'undefined' && document.getElementById("activityChart")) {
         var ctx = document.getElementById('activityChart').getContext('2d');
 
         var gradientStroke1 = ctx.createLinearGradient(0, 0, 0, 300);
@@ -1233,32 +1461,232 @@ $(function() {
         });
     }
 
-    // Initialize Select2 for followers, assignees, and tags dropdowns
-    $('#followers').select2({
-        placeholder: "Select followers",
-        allowClear: true
-    });
-
-    $('#assignees').select2({
-        placeholder: "Select assignees",
-        allowClear: true
-    });
-
-    $('#tags').select2({
-        placeholder: "Select or add tags",
-        tags: true,
-        allowClear: true
-    });
-
-    // Initialize CKEditor
-    ClassicEditor
-        .create(document.querySelector('.ckeditor'))
-        .catch(error => {
-            console.error('Error initializing CKEditor:', error);
+    // ApexCharts: Task Status Distribution
+    if (typeof ApexCharts !== 'undefined' && document.getElementById("apexTaskStatusChart")) {
+        var taskStatusChart = new ApexCharts(document.querySelector("#apexTaskStatusChart"), {
+            chart: { type: 'donut', height: 280 },
+            labels: @json($taskStatusAnalytics['labels'] ?? []),
+            series: @json($taskStatusAnalytics['counts'] ?? []),
+            legend: { position: 'bottom' },
+            dataLabels: { enabled: true }
         });
+        taskStatusChart.render();
+    }
 
-    // File upload form submission
-    $('#uploadFileForm').on('submit', function(e) {
+    // ApexCharts: Workload Distribution
+    if (typeof ApexCharts !== 'undefined' && document.getElementById("apexWorkloadChart")) {
+        var workloadChart = new ApexCharts(document.querySelector("#apexWorkloadChart"), {
+            chart: { type: 'bar', height: 280, toolbar: { show: false } },
+            series: [{
+                name: 'Assigned Tasks',
+                data: @json($workloadAnalytics['counts'] ?? [])
+            }],
+            xaxis: {
+                categories: @json($workloadAnalytics['labels'] ?? []),
+                labels: { rotate: -20 }
+            },
+            plotOptions: { bar: { borderRadius: 4, columnWidth: '45%' } },
+            colors: ['#0d6efd']
+        });
+        workloadChart.render();
+    }
+
+    // ApexCharts: Overdue Trend
+    if (typeof ApexCharts !== 'undefined' && document.getElementById("apexOverdueTrendChart")) {
+        var overdueTrendChart = new ApexCharts(document.querySelector("#apexOverdueTrendChart"), {
+            chart: { type: 'line', height: 280, toolbar: { show: false } },
+            series: [{
+                name: 'Overdue Tasks',
+                data: @json($overdueTrendCounts ?? [])
+            }],
+            xaxis: {
+                categories: @json($overdueTrendLabels ?? [])
+            },
+            stroke: { curve: 'smooth', width: 3 },
+            colors: ['#dc3545']
+        });
+        overdueTrendChart.render();
+    }
+
+    // ApexCharts: Milestone Completion
+    if (typeof ApexCharts !== 'undefined' && document.getElementById("apexMilestoneCompletionChart")) {
+        var milestoneCompletionChart = new ApexCharts(document.querySelector("#apexMilestoneCompletionChart"), {
+            chart: { type: 'radialBar', height: 230 },
+            series: [{{ (float) ($milestoneCompletionAnalytics['rate'] ?? 0) }}],
+            labels: ['Completion'],
+            colors: ['#198754'],
+            plotOptions: {
+                radialBar: {
+                    hollow: { size: '65%' },
+                    dataLabels: {
+                        name: { show: true },
+                        value: { formatter: function (val) { return val.toFixed(0) + '%'; } }
+                    }
+                }
+            }
+        });
+        milestoneCompletionChart.render();
+    }
+
+    // ApexCharts: Sprint Velocity
+    if (typeof ApexCharts !== 'undefined' && document.getElementById("apexSprintVelocityChart")) {
+        var sprintVelocityLabels = @json($sprintVelocityAnalytics['labels'] ?? []);
+        var sprintVelocityData = @json($sprintVelocityAnalytics['velocities'] ?? []);
+        var hasSprintData = sprintVelocityLabels.length > 0;
+
+        var sprintVelocityChart = new ApexCharts(document.querySelector("#apexSprintVelocityChart"), {
+            chart: { type: 'area', height: 230, toolbar: { show: false } },
+            series: [{
+                name: 'Velocity',
+                data: hasSprintData ? sprintVelocityData : [0]
+            }],
+            xaxis: {
+                categories: hasSprintData ? sprintVelocityLabels : ['No Sprints']
+            },
+            stroke: { curve: 'smooth', width: 2 },
+            colors: ['#6f42c1'],
+            dataLabels: { enabled: false }
+        });
+        sprintVelocityChart.render();
+    }
+
+	    // Initialize Select2 only when elements exist on this page.
+	    if ($.fn.select2) {
+	        if ($('#followers').length) {
+	            $('#followers').select2({
+	                placeholder: "Select followers",
+	                allowClear: true
+	            });
+	        }
+
+	        if ($('#assignees').length) {
+	            $('#assignees').select2({
+	                placeholder: "Select assignees",
+	                allowClear: true
+	            });
+	        }
+
+	        if ($('#tags').length) {
+	            $('#tags').select2({
+	                placeholder: "Select or add tags",
+	                tags: true,
+	                allowClear: true
+	            });
+	        }
+	    }
+
+	    // Initialize CKEditor only when a matching element exists.
+	    var editorEl = document.querySelector('.ckeditor');
+	    if (editorEl && typeof ClassicEditor !== 'undefined') {
+	        ClassicEditor
+	            .create(editorEl)
+	            .catch(error => {
+	                console.error('Error initializing CKEditor:', error);
+	            });
+	    }
+
+	    // Employees tab: quick client-side row filtering.
+	    var employeeSearchInput = document.getElementById('searchInput');
+	    if (employeeSearchInput) {
+	        employeeSearchInput.addEventListener('input', function () {
+	            var query = this.value.toLowerCase().trim();
+	            document.querySelectorAll('#employees tbody tr').forEach(function (row) {
+	                row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+	            });
+	        });
+	    }
+
+	    // Preserve active tab when coming from paginated timeline/comments links.
+	    var tabFromQuery = new URLSearchParams(window.location.search).get('tab');
+	    if (tabFromQuery && typeof bootstrap !== 'undefined') {
+	        var tabTrigger = document.querySelector('#projectTabs button[data-bs-target="#' + tabFromQuery + '"]');
+	        if (tabTrigger) {
+	            bootstrap.Tab.getOrCreateInstance(tabTrigger).show();
+	        }
+	    }
+
+	    // Live Insights tab data loaders (append-only enhancements).
+	    var liveStatusChart = null;
+	    async function loadLiveInsights() {
+	        try {
+	            const [chartRes, feedRes, boardRes] = await Promise.all([
+	                fetch('{{ route('project.ajax.charts', $project->id) }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } }),
+	                fetch('{{ route('project.ajax.activity-feed', $project->id) }}?per_page=10', { headers: { 'X-Requested-With': 'XMLHttpRequest' } }),
+	                fetch('{{ route('project.ajax.kanban-snapshot', $project->id) }}', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+	            ]);
+
+	            const chartJson = await chartRes.json();
+	            const feedJson = await feedRes.json();
+	            const boardJson = await boardRes.json();
+
+	            if (chartJson.success) {
+	                const summary = chartJson.data.summary || {};
+	                document.getElementById('insight-total-tasks').textContent = summary.total_tasks ?? 0;
+	                document.getElementById('insight-overdue-tasks').textContent = summary.overdue_tasks ?? 0;
+	                document.getElementById('insight-milestone-completion').textContent = (summary.milestone_completion_percent ?? 0) + '%';
+
+	                if (typeof ApexCharts !== 'undefined' && document.getElementById('liveInsightStatusChart')) {
+	                    if (liveStatusChart) {
+	                        liveStatusChart.destroy();
+	                    }
+	                    liveStatusChart = new ApexCharts(document.querySelector('#liveInsightStatusChart'), {
+	                        chart: { type: 'donut', height: 280 },
+	                        labels: chartJson.data.task_status?.labels || [],
+	                        series: chartJson.data.task_status?.series || [],
+	                        legend: { position: 'bottom' }
+	                    });
+	                    liveStatusChart.render();
+	                }
+	            }
+
+	            if (feedJson.success) {
+	                const container = document.getElementById('liveActivityFeed');
+	                const rows = feedJson.data || [];
+	                if (!rows.length) {
+	                    container.innerHTML = '<p class="text-muted mb-0">No recent activities.</p>';
+	                } else {
+	                    container.innerHTML = rows.map((row) => {
+	                        const title = row.title || (row.activity_type || 'Activity').replaceAll('_', ' ');
+	                        const body = row.description || 'Activity logged.';
+	                        return `<div class="mb-2 pb-2 border-bottom">
+	                            <div class="small fw-semibold">${title}</div>
+	                            <div class="small text-muted">${body}</div>
+	                        </div>`;
+	                    }).join('');
+	                }
+	            }
+
+	            if (boardJson.success) {
+	                const boardEl = document.getElementById('liveMiniKanban');
+	                const cols = boardJson.data.columns || [];
+	                boardEl.innerHTML = cols.map((col) => `
+	                    <div class="col-lg-2 col-md-4 col-6">
+	                        <div class="border rounded p-2 h-100" style="background:#f8f9fb;">
+	                            <div class="d-flex justify-content-between align-items-center mb-2">
+	                                <strong class="small">${col.label}</strong>
+	                                <span class="badge bg-light text-dark">${col.count}</span>
+	                            </div>
+	                            <div class="small text-muted">${(col.tasks || []).slice(0, 3).map(t => t.title).join('<br>') || 'No tasks'}</div>
+	                        </div>
+	                    </div>
+	                `).join('');
+	            }
+	        } catch (e) {
+	            console.error('Live insights load failed:', e);
+	        }
+	    }
+
+	    const liveInsightsTab = document.getElementById('live-insights-tab');
+	    if (liveInsightsTab) {
+	        liveInsightsTab.addEventListener('shown.bs.tab', loadLiveInsights);
+	    }
+
+	    if (tabFromQuery === 'live-insights') {
+	        loadLiveInsights();
+	    }
+
+	    // File upload form submission
+	    $('#uploadFileForm').on('submit', function(e) {
         e.preventDefault();
         var formData = new FormData(this);
         var btn = $('#uploadBtn');
@@ -1355,5 +1783,6 @@ function editIssue(button) {
 @endpush
 
 @endsection
+
 
 

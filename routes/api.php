@@ -292,6 +292,19 @@ Route::middleware('auth:sanctum')->group(function () {
 
             // Projects Usage
             Route::get('/{projectId}/usage', [ApiProjectController::class, 'apiUsage']);
+            Route::get('/{projectId}/kanban', [ApiProjectController::class, 'apiKanbanBoard']);
+            Route::post('/{projectId}/kanban/move', [ApiProjectController::class, 'apiKanbanMove']);
+            Route::get('/{projectId}/charts', [ApiProjectController::class, 'apiCharts']);
+            Route::get('/{projectId}/activity-feed', [ApiProjectController::class, 'apiActivityFeed']);
+            Route::get('/{projectId}/milestone-progress', [ApiProjectController::class, 'apiMilestoneProgress']);
+            Route::get('/{projectId}/tasks/filter', [ApiProjectController::class, 'apiFilterTasks']);
+
+            // Projects Change Requests
+            Route::controller(ApiProjectController::class)->group(function () {
+                Route::get('/{projectId}/change-requests', 'apiChangeRequestIndex');
+                Route::post('/{projectId}/change-requests', 'apiStoreChangeRequest');
+                Route::match(['put', 'patch'], '/{projectId}/change-requests/{changeRequestId}/status', 'apiUpdateChangeRequestStatus');
+            });
         });
 
         // Task API routes
@@ -310,12 +323,40 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::controller(ApiTaskController::class)->group(function () {
                 Route::get('/{taskId}/comments', 'apiCommentIndex');
                 Route::post('/{taskId}/comments', 'apiStoreComment');
+                Route::match(['put', 'patch'], '/{taskId}/comments/{commentId}', 'apiUpdateComment');
             });
 
             Route::controller(ApiTaskController::class)->group(function () {
                 Route::get('/{taskId}/attachments', 'apiAttachmentIndex');
                 Route::post('/{taskId}/attachments', 'apiUploadAttachment');
                 Route::delete('/{taskId}/attachments/{attachmentId}', 'apiDeleteAttachment');
+            });
+
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::get('/{taskId}/dependencies', 'apiDependencyIndex');
+                Route::post('/{taskId}/dependencies', 'apiStoreDependency');
+                Route::delete('/{taskId}/dependencies/{dependsOnTaskId}', 'apiDeleteDependency');
+            });
+
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::get('/{taskId}/checklists', 'apiChecklistIndex');
+                Route::post('/{taskId}/checklists', 'apiStoreChecklist');
+                Route::match(['put', 'patch'], '/{taskId}/checklists/{checklistId}', 'apiUpdateChecklist');
+                Route::delete('/{taskId}/checklists/{checklistId}', 'apiDeleteChecklist');
+            });
+
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::post('/{taskId}/time-logs/start', 'apiTimeLogStart');
+                Route::post('/{taskId}/time-logs/stop', 'apiTimeLogStop');
+                Route::post('/{taskId}/time-logs/manual', 'apiTimeLogManual');
+                Route::get('/{taskId}/time-logs/report', 'apiTimeLogReport');
+            });
+
+            Route::controller(ApiTaskController::class)->group(function () {
+                Route::post('/{taskId}/qa/request-review', 'apiQaRequestReview');
+                Route::post('/{taskId}/qa/review', 'apiQaReview');
+                Route::post('/{taskId}/qa/approve', 'apiQaApprove');
+                Route::post('/{taskId}/deploy', 'apiMarkDeployed');
             });
         });
 

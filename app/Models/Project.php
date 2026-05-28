@@ -14,6 +14,7 @@ class Project extends Model
         'project_name',
         'customer_id',
         'status',
+        'lifecycle_stage',
         'start_date',
         'deadline',
         'billing_type',
@@ -24,6 +25,17 @@ class Project extends Model
         'description',
         'priority',
         'technologies',
+        'project_code',
+        'project_type',
+        'actual_hours',
+        'progress_percentage',
+        'project_manager_id',
+        'approved_by',
+        'approved_at',
+        'deployment_date',
+        'maintenance_expiry',
+        'health_status',
+        'last_activity_at',
     ];
 
     protected $casts = [
@@ -33,6 +45,12 @@ class Project extends Model
         'deadline' => 'date',
         'total_rate' => 'decimal:2',
         'technologies' => 'array',
+        'actual_hours' => 'decimal:2',
+        'progress_percentage' => 'integer',
+        'approved_at' => 'datetime',
+        'deployment_date' => 'date',
+        'maintenance_expiry' => 'date',
+        'last_activity_at' => 'datetime',
     ];
 
     public function customer()
@@ -69,6 +87,36 @@ class Project extends Model
     public function milestones()
     {
         return $this->hasMany(ProjectMilestone::class);
+    }
+
+    public function issues()
+    {
+        return $this->hasMany(ProjectIssue::class);
+    }
+
+    public function comments()
+    {
+        return $this->hasMany(ProjectComment::class);
+    }
+
+    public function files()
+    {
+        return $this->hasMany(ProjectFile::class);
+    }
+
+    public function activities()
+    {
+        return $this->hasMany(ProjectActivity::class);
+    }
+
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'project_manager_id');
+    }
+
+    public function changeRequests()
+    {
+        return $this->hasMany(ProjectChangeRequest::class);
     }
 
     // project members list

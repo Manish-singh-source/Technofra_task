@@ -225,11 +225,19 @@ Route::middleware('auth')->group(function () {
         Route::get('/project/file/{fileId}/download', 'downloadFile')->name('project.file.download');
         Route::delete('/project/file/{fileId}/delete', 'deleteFile')->name('project.file.delete');
         Route::post('/project-details/{id}/comment', 'storeComment')->name('project.comment.store');
+        Route::get('/project/{projectId}/ajax/charts', 'ajaxCharts')->name('project.ajax.charts');
+        Route::get('/project/{projectId}/ajax/activity-feed', 'ajaxActivityFeed')->name('project.ajax.activity-feed');
+        Route::get('/project/{projectId}/ajax/milestone-progress', 'ajaxMilestoneProgress')->name('project.ajax.milestone-progress');
+        Route::get('/project/{projectId}/ajax/task-filter', 'ajaxTaskFilter')->name('project.ajax.task-filter');
+        Route::get('/project/{projectId}/ajax/kanban-snapshot', 'ajaxKanbanSnapshot')->name('project.ajax.kanban-snapshot');
     });
 
     // Task routes
     Route::controller(TaskController::class)->group(function () {
         Route::get('/task', 'index')->name('task');
+        Route::get('/task-kanban', 'kanban')->name('task.kanban');
+        Route::get('/task-kanban/data', 'kanbanData')->name('task.kanban.data');
+        Route::post('/task-kanban/{id}/move', 'kanbanMove')->name('task.kanban.move');
         Route::get('/add-task', 'create')->name('add-task');
         Route::post('/add-task', 'store')->name('add-task.store');
         Route::get('/task-details/{id}', 'show')->name('task-details');
