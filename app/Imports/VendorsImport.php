@@ -28,7 +28,7 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
             'email'     => $row['email'],
             'phone'     => $row['phone'],
             'address'   => $row['address'] ?? null,
-            'status'    => $row['status'] ?? 1,
+            'status'    => 1,
         ]);
     }
 
@@ -38,11 +38,10 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     public function rules(): array
     {
         return [
-            'vendor_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:vendors,email',
-            'phone' => 'required|numeric|digits:10',
+            'vendor_name' => 'required|string|max:255|unique:vendors,name',
+            'email' => 'nullable|email|unique:vendors,email',
+            'phone' => 'nullable|numeric|digits:10',
             'address' => 'nullable|string|max:1000',
-            'status' => 'nullable|boolean',
         ];
     }
 
@@ -52,11 +51,10 @@ class VendorsImport implements ToModel, WithHeadingRow, WithValidation, SkipsOnE
     public function customValidationMessages()
     {
         return [
-            'vendor_name.required' => 'Vendor name is required.',
-            'email.required' => 'Email is required.',
+            'vendor_name.unique' => 'Vendor name is required.',
+            'vendor_name.required' => 'Vendor name is already registered.',
             'email.email' => 'Email must be a valid email address.',
             'email.unique' => 'This email is already registered.',
-            'phone.required' => 'Phone number is required.',
             'phone.min' => 'Phone number must be at least 10 characters.',
         ];
     }

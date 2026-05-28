@@ -1457,12 +1457,15 @@
                 success: function(response) {
                     if (response.success) {
                         alert('Status updated successfully!');
+                        location.reload();
                     } else {
                         alert('Failed to update status.');
+                        location.reload();
                     }
                 },
                 error: function() {
                     alert('Status update failed!');
+                    location.reload();
                 }
             });
         });

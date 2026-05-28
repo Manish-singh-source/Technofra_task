@@ -84,11 +84,12 @@ class VendorController extends Controller
     {
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:vendors,name',
             'email' => 'nullable|email|unique:vendors,email',
             'phone' => 'nullable|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
         ], [
+            'name.unique' => 'Vendor Name is already registered.',
             'name.required' => 'The vendor name field is required.',
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already registered.',
@@ -108,6 +109,7 @@ class VendorController extends Controller
             'email' => $request->email,
             'phone' => $request->phone,
             'address' => $request->address,
+            'status' => '1'
         ]);
 
         return redirect()->route('vendors.index')
@@ -154,16 +156,15 @@ class VendorController extends Controller
 
         // Validate the request
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:vendors,email,' . $id,
-            'phone' => 'required|numeric|digits_between:10,15',
+            'name' => 'required|string|max:255|unique:vendors,name,' .$id,
+            'email' => 'nullable|email|unique:vendors,email,' . $id,
+            'phone' => 'nullable|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
         ], [
+            'name.unique' => 'Vendor Name is already registered.',
             'name.required' => 'The vendor name field is required.',
-            'email.required' => 'The email field is required.',
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already registered.',
-            'phone.required' => 'The phone field is required.',
             'phone.numeric' => 'The phone must be a number.',
             'phone.digits_between' => 'The phone must be between 10 and 15 digits.',
         ]);
@@ -248,7 +249,6 @@ class VendorController extends Controller
             'email',
             'phone',
             'address',
-            'status'
         ];
 
         $sampleData = [

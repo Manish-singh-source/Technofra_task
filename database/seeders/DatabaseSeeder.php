@@ -18,8 +18,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             SuperAdminSeeder::class,
-            HighVolumeDataSeeder::class,
-            LeadStatusSeeder::class,
+            // HighVolumeDataSeeder::class,
+            // LeadStatusSeeder::class,
         ]);
     }
 }

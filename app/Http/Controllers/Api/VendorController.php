@@ -41,12 +41,13 @@ class VendorController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'name' => 'required|string|max:255|unique:vendors,name',
             'email' => 'nullable|email|unique:vendors,email',
             'phone' => 'nullable|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
             'status' => 'nullable|string|in:active,inactive',
         ], [
+            'name.unique' => 'Vendor Name is already registered.',
             'name.required' => 'The vendor name field is required.',
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already registered.',
@@ -61,7 +62,11 @@ class VendorController extends Controller
         }
 
         try {
-            $vendor = Vendor::create($validator->validated());
+            // format status 
+            $data = $validator->validated();
+            $data['status'] = '1';
+
+            $vendor = Vendor::create($data);
 
             return ApiResponse::success($vendor, 'Vendor created successfully', 201);
         } catch (\Exception $e) {
@@ -78,17 +83,16 @@ class VendorController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:vendors,email,' . $vendor->id,
-            'phone' => 'required|numeric|digits_between:10,15',
+            'name' => 'required|string|max:255|unique:vendors,name,' . $vendor->id,
+            'email' => 'nullable|email|unique:vendors,email,' . $vendor->id,
+            'phone' => 'nullable|numeric|digits_between:10,15',
             'address' => 'nullable|string|max:1000',
             'status' => 'nullable|string|in:active,inactive',
         ], [
+            'name.unique' => 'Vendor Name is already registered.',
             'name.required' => 'The vendor name field is required.',
-            'email.required' => 'The email field is required.',
             'email.email' => 'Please enter a valid email address.',
             'email.unique' => 'This email is already registered.',
-            'phone.required' => 'The phone field is required.',
             'phone.numeric' => 'The phone must be a number.',
             'phone.digits_between' => 'The phone must be between 10 and 15 digits.',
             'status.nullable' => 'The status field is optional.',
@@ -100,7 +104,11 @@ class VendorController extends Controller
         }
 
         try {
-            $vendor->update($validator->validated());
+            $data = $validator->validated();
+
+            $data['status'] = $data['status'] == 'active' ? '1' : '0';
+
+            $vendor->update($data);
 
             return ApiResponse::success($vendor, 'Vendor updated successfully');
         } catch (\Exception $e) {
@@ -124,5 +132,4 @@ class VendorController extends Controller
             return ApiResponse::error('Failed to delete vendor.', ['exception' => $e->getMessage()], 500);
         }
     }
-
 }

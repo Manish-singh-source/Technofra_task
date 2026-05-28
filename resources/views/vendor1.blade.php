@@ -1,4 +1,4 @@
-@extends('/layout/master')
+@extends('layout.master')
 @section('content')
     <!--start page wrapper -->
     <div class="page-wrapper">
@@ -84,18 +84,18 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse($vendors as $vendor)
+                                @forelse($vendors as $index => $vendor)
                                     <tr>
                                         <td> <input class="form-check-input row-checkbox" type="checkbox" name="ids[]"
                                                     value="{{ $vendor->id }}"></td>
                                         <td>
                                             <div class="d-flex align-items-center">
-                                                <h6 class="mb-0 font-14">{{ $vendor->id }}</h6>
+                                                <h6 class="mb-0 font-14">{{ $index + 1 }}</h6>
                                             </div>
                                         </td>
-                                        <td>{{ $vendor->name }}</td>
-                                        <td>{{ $vendor->email }}</td>
-                                        <td>{{ $vendor->phone }}</td>
+                                        <td>{{ ucwords($vendor->name) }}</td>
+                                        <td>{{ $vendor->email ?? 'N/A' }}</td>
+                                        <td>{{ $vendor->phone ?? 'N/A' }}</td>
                                         <td>
                                             <div class="form-switch form-check-success">
                                                 <input class="form-check-input status-switch1" type="checkbox"
@@ -210,8 +210,8 @@
                             <ul class="mb-0">
                                 <li>Download the template file first</li>
                                 <li>Fill in your vendor data following the template format</li>
-                                <li>Required columns: vendor_name, email, phone</li>
-                                <li>Optional columns: address, status (1 for active, 0 for inactive)</li>
+                                <li>Required columns: vendor_name </li>
+                                <li>Optional columns: email, phone, address</li>
                             </ul>
                         </div>
                     </div>
