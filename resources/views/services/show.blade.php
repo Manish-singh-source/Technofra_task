@@ -34,10 +34,6 @@
                             <div class="card-body">
                                 <ul class="list-group">
                                     <li class="list-group-item d-flex justify-content-between">
-                                        <b>Service ID:</b>
-                                        <p class="mb-0">{{ $service->id }}</p>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
                                         <b>Company Name:</b>
                                         <p class="mb-0">{{ $service->company?->company_name ?: ($service->client?->businessDetail?->company_name ?: 'N/A') }}</p>
                                     </li>
@@ -98,14 +94,6 @@
                                                 {{ ucfirst($service->status) }}
                                             </span>
                                         </p>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <b>Created At:</b>
-                                        <p class="mb-0">{{ $service->created_at->format('d M Y, h:i A') }}</p>
-                                    </li>
-                                    <li class="list-group-item d-flex justify-content-between">
-                                        <b>Last Updated:</b>
-                                        <p class="mb-0">{{ $service->updated_at->format('d M Y, h:i A') }}</p>
                                     </li>
                                 </ul>
                             </div>

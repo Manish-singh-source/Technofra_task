@@ -146,6 +146,26 @@ Route::middleware('auth')->group(function () {
     // ============================= End Staff Controller ====================
 
 
+
+    // ============================= Renewals Section Start ====================
+    // Vendor CRUD routes
+    Route::resource('vendors', VendorController::class);
+    // Additional routes for backward compatibility
+    Route::controller(VendorController::class)->group(function () {
+        Route::get('/vendor1', 'index')->name('vendor1');
+
+        Route::get('/add-vendor', 'create')->name('add-vendor');
+        Route::post('/vendor1/bulk-upload', 'bulkUpload')->name('vendors.bulk-upload');
+        Route::get('/vendor1/download-template', 'downloadTemplate')->name('vendors.download-template');
+        Route::delete('/vendor1/delete-selected', 'deleteSelected')->name('delete.selected.vendor');
+        Route::post('/vendor1/toggle-status',  'toggleStatus')->name('vendor1.toggleStatus');
+    });
+
+    // Vendor Service CRUD routes - Vendor Renewals
+    Route::resource('vendor-services', VendorServiceController::class);
+    Route::post('/vendor-services/delete-selected', [VendorServiceController::class, 'deleteSelected'])->name('delete.selected.vendor-service');
+
+
     // ============================= Client Controller ====================
     Route::controller(WebClientController::class)->group(function () {
         Route::get('/clients', 'index')->name('client');
@@ -161,33 +181,17 @@ Route::middleware('auth')->group(function () {
         Route::get('/clients/download-template', 'downloadTemplate')->name('client.download-template');
     });
 
-    // ============================= End Client Controller ====================
-
-
-
-
-
-
-    // ============================= Vendor Controller ====================
-    // Vendor CRUD routes
-    Route::resource('vendors', VendorController::class);
-    // Additional routes for backward compatibility
-    Route::controller(VendorController::class)->group(function () {
-        Route::get('/vendor1', 'index')->name('vendor1');
-        
-        Route::get('/add-vendor', 'create')->name('add-vendor');
-        Route::post('/vendor1/bulk-upload', 'bulkUpload')->name('vendors.bulk-upload');
-        Route::get('/vendor1/download-template', 'downloadTemplate')->name('vendors.download-template');
-        Route::delete('/vendor1/delete-selected', 'deleteSelected')->name('delete.selected.vendor');
-        Route::post('/vendor1/toggle-status',  'toggleStatus')->name('vendor1.toggleStatus');
+    // Service CRUD routes - Client Renewals
+    Route::resource('services', ServiceController::class);
+    Route::controller(ServiceController::class)->group(function () {
+        Route::post('/services/delete-selected', 'deleteSelected')->name('delete.selected.service');
+        Route::get('/servies', 'index')->name('servies');
     });
-
-    // Vendor Service CRUD routes
-    Route::resource('vendor-services', VendorServiceController::class);
-    Route::post('/vendor-services/delete-selected', [VendorServiceController::class, 'deleteSelected'])->name('delete.selected.vendor-service');
-    // ============================= End Vendor Controller ====================
+    // ============================= Renewals Section End ====================
 
 
+
+    // ============================= Projects Section Start ====================
     // Project routes
     Route::controller(ProjectController::class)->group(function () {
         Route::get('/project', 'index')->name('project');
@@ -252,22 +256,10 @@ Route::middleware('auth')->group(function () {
         Route::patch('/client-issue/{clientIssue}/task/{task}/status', 'taskUpdateStatus')->name('client-issue.task.update-status');
         Route::delete('/client-issue/{clientIssue}/task/{task}', 'taskDestroy')->name('client-issue.task.destroy');
     });
+    // ============================= Projects Section End ====================
 
 
-    // Lead CRUD routes
-    Route::controller(LeadController::class)->group(function () {
-        Route::get('/leads', 'index')->name('leads');
-        Route::get('/add-lead', 'create')->name('add-lead');
-        Route::post('/store-lead', 'store')->name('lead.store');
-        Route::get('/view-lead/{id}', 'show')->name('lead.show');
-        Route::get('/edit-lead/{id}', 'edit')->name('lead.edit');
-        Route::put('/update-lead/{id}', 'update')->name('lead.update');
-        Route::delete('/delete-lead/{id}', 'destroy')->name('lead.destroy');
-        Route::post('/lead/toggle-status', 'toggleStatus')->name('lead.toggleStatus');
-        Route::post('/lead/delete-selected', 'deleteSelected')->name('lead.delete-selected');
-        Route::get('/lead/export', 'export')->name('lead.export');
-    });
-
+    // ============================= Leads Section Start ====================
     Route::controller(LeadManagementController::class)->prefix('lead-management')->name('lead-management.')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/{source}/{id}/view', 'show')->name('show');
@@ -285,6 +277,83 @@ Route::middleware('auth')->group(function () {
         Route::delete('/{source}/{id}', 'destroy')->name('destroy');
     });
 
+    // Lead CRUD routes
+    Route::controller(LeadController::class)->group(function () {
+        Route::get('/leads', 'index')->name('leads');
+        Route::get('/add-lead', 'create')->name('add-lead');
+        Route::post('/store-lead', 'store')->name('lead.store');
+        Route::get('/view-lead/{id}', 'show')->name('lead.show');
+        Route::get('/edit-lead/{id}', 'edit')->name('lead.edit');
+        Route::put('/update-lead/{id}', 'update')->name('lead.update');
+        Route::delete('/delete-lead/{id}', 'destroy')->name('lead.destroy');
+        Route::post('/lead/toggle-status', 'toggleStatus')->name('lead.toggleStatus');
+        Route::post('/lead/delete-selected', 'deleteSelected')->name('lead.delete-selected');
+        Route::get('/lead/export', 'export')->name('lead.export');
+    });
+
+
+    // Digital Marketing Leads routes
+    Route::controller(DigitalMarketingLeadController::class)->group(function () {
+        Route::get('/digital-marketing-leads', 'index')
+            ->name('digital-marketing-leads.index')
+        ;
+        Route::patch('/digital-marketing-leads/{source}/{id}/status', 'updateStatus')
+            ->name('digital-marketing-leads.status')
+        ;
+        Route::delete('/digital-marketing-leads/{digitalMarketingLead}', 'destroy')
+            ->name('digital-marketing-leads.destroy')
+        ;
+    });
+
+    Route::controller(WebEnquiryController::class)->group(function () {
+        Route::get('/web-enquiry/contact', 'contact')
+            ->name('web-enquiry.contact')
+        ;
+        Route::delete('/web-enquiry/contact/{id}', 'contactDestroy')
+            ->name('web-enquiry.contact.destroy')
+        ;
+        Route::get('/web-enquiry/career', 'career')
+            ->name('web-enquiry.career')
+        ;
+        Route::get('/web-enquiry/career/{id}', 'careerShow')
+            ->name('web-enquiry.career.show')
+        ;
+        Route::delete('/web-enquiry/career/{id}', 'careerDestroy')
+            ->name('web-enquiry.career.destroy')
+        ;
+    });
+
+
+    Route::controller(BookCallController::class)->group(function () {
+        Route::get('/book-call', 'index')
+            ->name('book-call.index')
+        ;
+        Route::delete('/book-call/{bookCall}', 'destroy')
+            ->name('book-call.destroy')
+        ;
+    });
+
+    // Meta Leads:
+    Route::prefix('leads/meta')->name('leads.')->group(function () {
+        Route::get('/', [App\Http\Controllers\MetaLeadUiController::class, 'index'])
+            ->name('index');
+        Route::get('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'show'])
+            ->name('show');
+        Route::patch('/{lead}/status', [App\Http\Controllers\MetaLeadUiController::class, 'updateStatus'])
+            ->name('status');
+        Route::post('/sync', [App\Http\Controllers\MetaLeadUiController::class, 'sync'])
+            ->name('sync');
+        Route::delete('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'destroy'])
+            ->name('destroy');
+    });
+
+    Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
+    Route::patch('/google-leads/{googleLead}/status', [GoogleLeadViewController::class, 'updateStatus'])
+        ->name('google-leads.status');
+    // ============================= Leads Section End ====================
+
+
+
 
 
     // Tag routes
@@ -299,7 +368,7 @@ Route::middleware('auth')->group(function () {
     });
 
 
-
+    // ============================= To Do Section Start ====================
     Route::controller(TodoController::class)->group(function () {
         Route::get('/to-do-list', 'index')->name('to-do-list');
         Route::get('/todos', 'list')->name('todos.list');
@@ -308,57 +377,9 @@ Route::middleware('auth')->group(function () {
         Route::delete('/todos/{todo}', 'destroy')->name('todos.destroy');
         Route::patch('/todos/{todo}/status', 'toggleStatus')->name('todos.status');
     });
+    // ============================= To Do Section End ====================
 
 
-    Route::controller(BookCallController::class)->group(function () {
-        Route::get('/book-call', 'index')
-            ->name('book-call.index')
-            ;
-        Route::delete('/book-call/{bookCall}', 'destroy')
-            ->name('book-call.destroy')
-            ;
-    });
-
-    // Digital Marketing Leads routes
-    Route::controller(DigitalMarketingLeadController::class)->group(function () {
-        Route::get('/digital-marketing-leads', 'index')
-            ->name('digital-marketing-leads.index')
-            ;
-        Route::patch('/digital-marketing-leads/{source}/{id}/status', 'updateStatus')
-            ->name('digital-marketing-leads.status')
-            ;
-        Route::delete('/digital-marketing-leads/{digitalMarketingLead}', 'destroy')
-            ->name('digital-marketing-leads.destroy')
-            ;
-    });
-
-    Route::controller(WebEnquiryController::class)->group(function () {
-        Route::get('/web-enquiry/contact', 'contact')
-            ->name('web-enquiry.contact')
-            ;
-        Route::delete('/web-enquiry/contact/{id}', 'contactDestroy')
-            ->name('web-enquiry.contact.destroy')
-            ;
-        Route::get('/web-enquiry/career', 'career')
-            ->name('web-enquiry.career')
-            ;
-        Route::get('/web-enquiry/career/{id}', 'careerShow')
-            ->name('web-enquiry.career.show')
-            ;
-        Route::delete('/web-enquiry/career/{id}', 'careerDestroy')
-            ->name('web-enquiry.career.destroy')
-            ;
-    });
-
-
-
-
-    // Service CRUD routes
-    Route::resource('services', ServiceController::class);
-    Route::controller(ServiceController::class)->group(function () {
-        Route::post('/services/delete-selected', 'deleteSelected')->name('delete.selected.service');
-        Route::get('/servies', 'index')->name('servies');
-    });
 
 
     // Backward-compatible route (menu currently uses app-to-do)
@@ -405,27 +426,4 @@ Route::middleware('auth')->group(function () {
             Route::post('/toggle-status', 'toggleStatus')->name('toggleStatus');
         });
     });
-
-
-    // Meta Leads:
-    Route::prefix('leads/meta')->name('leads.')->group(function () {
-        Route::get('/', [App\Http\Controllers\MetaLeadUiController::class, 'index'])
-            ->name('index') ;
-        Route::get('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'show'])
-            ->name('show') ;
-        Route::patch('/{lead}/status', [App\Http\Controllers\MetaLeadUiController::class, 'updateStatus'])
-            ->name('status');
-        Route::post('/sync', [App\Http\Controllers\MetaLeadUiController::class, 'sync'])
-            ->name('sync');
-        Route::delete('/{lead}', [App\Http\Controllers\MetaLeadUiController::class, 'destroy'])
-            ->name('destroy');
-    });                         
-
-    Route::resource('google-leads', GoogleLeadViewController::class)->only(['index', 'show']);
-    Route::patch('/google-leads/{googleLead}/status', [GoogleLeadViewController::class, 'updateStatus'])
-        ->name('google-leads.status');
 });
-
-
-
-

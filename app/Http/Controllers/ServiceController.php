@@ -100,10 +100,11 @@ class ServiceController extends Controller
     {
         $clientCompanies = ClientBusinessDetail::query()
             ->with('user:id,first_name,last_name,email,role')
-            ->whereHas('user', fn($query) => $query->where('role', 'client'))
+            ->where('company_name', '!=', '')
+            ->whereHas('user', fn($query) => $query->where('role', 'client')->where('status', 'active'))
             ->orderBy('company_name')
             ->get();
-        $vendors = Vendor::orderBy('name')->get();
+        $vendors = Vendor::orderBy('name')->where('status', '1')->get();
         $selectedCompanyId = $request->get('client_business_detail_id');
         if (! $selectedCompanyId && $request->filled('client_id')) {
             $selectedCompanyId = ClientBusinessDetail::query()
@@ -207,10 +208,11 @@ class ServiceController extends Controller
         $service = $this->scopedQuery($user)->findOrFail($id);
         $clientCompanies = ClientBusinessDetail::query()
             ->with('user:id,first_name,last_name,email,role')
-            ->whereHas('user', fn($query) => $query->where('role', 'client'))
+            ->where('company_name', '!=', '')
+            ->whereHas('user', fn($query) => $query->where('role', 'client')->where('status', 'active'))
             ->orderBy('company_name')
             ->get();
-        $vendors = Vendor::orderBy('name')->get();
+        $vendors = Vendor::orderBy('name')->where('status', '1')->get();
         return view('services.edit', compact('service', 'clientCompanies', 'vendors'));
     }
 

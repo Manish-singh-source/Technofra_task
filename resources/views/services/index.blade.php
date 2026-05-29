@@ -75,16 +75,6 @@
                         </ol>
                     </nav>
                 </div>
-                <div class="ms-auto">
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary">Settings</button>
-                        <button type="button"
-                            class="btn btn-primary split-bg-primary dropdown-toggle dropdown-toggle-split"
-                            data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
-                        </button>
-                        <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end"></div>
-                    </div>
-                </div>
             </div>
 
             <div class="card">
@@ -105,9 +95,11 @@
                                         value="{{ request('to_date') }}">
                                 </div>
                                 <div class="col-md-3">
+                                    {{-- 
                                     <button type="submit" class="btn btn-primary">
                                         <i class="bx bx-search"></i> Filter
-                                    </button>
+                                    </button> 
+                                    --}}
                                     <a href="{{ route('services.index') }}" class="btn btn-outline-secondary ms-2">
                                         <i class="bx bx-refresh"></i> Clear
                                     </a>
