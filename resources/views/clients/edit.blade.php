@@ -63,7 +63,7 @@
                                                 @enderror
                                                 @if ($client->profile_image)
                                                     <div class="mt-2">
-                                                        <img src="{{ asset('uploads/clients/' . $client->profile_image) }}" alt="Client Profile" class="img-thumbnail" style="max-height: 90px;">
+                                                        <img src="{{ asset($client->profile_image) }}" alt="Client Profile" class="img-thumbnail" style="max-height: 90px;">
                                                     </div>
                                                 @endif
                                             </div>

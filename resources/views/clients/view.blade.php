@@ -39,10 +39,10 @@
                             <p>{{ ucfirst($client->status ?? 'inactive') }}</p>
                         </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Email ID :</b>
-                            <p>{{ $client->email }}</p>
+                            <p>{{ $client->email ?? 'N/A' }}</p>
                         </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Contact No :</b>
-                            <p>{{ $client->phone }}</p>
+                            <p>{{ $client->phone ?? 'N/A' }}</p>
                         </li>
                         <li class="list-group-item d-flex justify-content-between"><b>Address :</b>
                             <p>
@@ -93,101 +93,6 @@
                     </div>
                 </div>
             </div>
-            {{-- 
-			<div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Client Services</h5>
-                </div>
-                <div class="card-body">
-                    <div class="d-lg-flex align-items-center mb-4 gap-3">
-                        <div class="position-relative">
-                            <input type="text" class="form-control ps-5 radius-30" placeholder="Search Services">
-                            <span class="position-absolute top-50 product-show translate-middle-y"><i
-                                    class="bx bx-search"></i></span>
-                        </div>
-                        <div class="ms-auto">
-                            <a href="{{ route('services.create') }}?client_id={{ $client->id }}"
-                                class="btn btn-primary radius-30 mt-2 mt-lg-0">
-                                <i class="bx bxs-plus-square"></i>Add New Service
-                            </a>
-                        </div>
-                    </div>
-                    <div class="table-responsive">
-                        <table class="table mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th><input class="form-check-input me-3" type="checkbox" value=""
-                                            aria-label="..."></th>
-                                    <th>Service ID</th>
-                                    <th>Service Name</th>
-                                    <th>Vendor</th>
-                                    <th>Start Date</th>
-                                    <th>End Date</th>
-                                    <th>Billing Date</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($client->services as $service)
-                                    <tr>
-                                        <td><input class="form-check-input me-3" type="checkbox" value="{{ $service->id }}"
-                                                aria-label="..."></td>
-                                        <td>
-                                            <div class="d-flex align-items-center">
-                                                <h6 class="mb-0 font-14">{{ $service->id }}</h6>
-                                            </div>
-                                        </td>
-                                        <td>{{ $service->service_name }}</td>
-                                        <td>{{ $service->vendor->name ?? 'N/A' }}</td>
-                                        <td>{{ $service->start_date->format('d M Y') }}</td>
-                                        <td>{{ $service->end_date->format('d M Y') }}</td>
-                                        <td>{{ $service->billing_date->format('d M Y') }}</td>
-                                        <td>
-                                            <span class="badge bg-{{ $service->status_badge }}">
-                                                {{ ucfirst($service->status) }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex order-actions">
-                                                <a href="{{ route('services.show', $service->id) }}" title="View"><i
-                                                        class='bx bxs-show'></i></a>
-                                                <a href="{{ route('services.edit', $service->id) }}" class="ms-2"
-                                                    title="Edit"><i class='bx bxs-edit'></i></a>
-                                                <form method="POST" action="{{ route('services.destroy', $service->id) }}"
-                                                    class="d-inline ms-2"
-                                                    onsubmit="return confirm('Are you sure you want to delete this service?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-link p-0 text-danger"
-                                                        title="Delete">
-                                                        <i class='bx bxs-trash'></i>
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="9" class="text-center py-4">
-                                            <div class="d-flex flex-column align-items-center">
-                                                <i class='bx bx-folder-open' style="font-size: 48px; color: #ccc;"></i>
-                                                <h6 class="mt-2 text-muted">No services found for this client</h6>
-                                                <p class="text-muted">Start by adding the first service</p>
-                                                <a href="{{ route('services.create') }}?client_id={{ $client->id }}"
-                                                    class="btn btn-primary btn-sm">
-                                                    <i class="bx bx-plus"></i> Add Service
-                                                </a>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div> 
-			--}}
         </div>
     </div>
     <div class="overlay toggle-icon"></div>

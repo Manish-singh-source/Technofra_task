@@ -247,7 +247,7 @@ class User extends Authenticatable
         if ($this->role == 'Staff') {
             return 'uploads/staff/' . $value;
         } else if ($this->role == 'Client') {
-            return 'uploads/clients/' . $value;
+            return $value;
         } else {
             return $value;
         }
