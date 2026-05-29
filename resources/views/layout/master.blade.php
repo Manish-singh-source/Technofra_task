@@ -368,11 +368,13 @@
                             <div class="menu-title">Web Enquiry</div>
                         </a>
                         <ul>
+                            {{-- 
                             <li>
                                 <a href="{{ route('web-enquiry.contact') }}">
                                     <div class="menu-title">Contact</div>
                                 </a>
-                            </li>
+                            </li> 
+                            --}}
                             <li>
                                 <a href="{{ route('web-enquiry.career') }}">
                                     <div class="menu-title">Career</div>

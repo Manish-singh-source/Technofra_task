@@ -17,6 +17,7 @@ use App\DTOs\LeadManagement\StatusUpdateData;
 use App\Models\AssignedLead;
 use App\Models\DigitalMarketingLead;
 use App\Models\GoogleLead;
+use App\Models\ContactForm;
 use App\Models\Lead;
 use App\Models\LeadConversion;
 use App\Models\LeadEscalation;
@@ -55,6 +56,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     private const SOURCE_WEBAPP = 'webapp';
     private const SOURCE_META = 'meta';
     private const SOURCE_GOOGLE = 'google';
+    private const SOURCE_CONTACTFORM = 'contactform';
     private const SOURCE_INDIAMART = 'indiamart';
     private const SOURCE_JUSTDIAL = 'justdial';
     private const SOURCE_PIPELINE = 'lead';
@@ -71,6 +73,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_WEBAPP => 'Web App',
             self::SOURCE_META => 'Meta',
             self::SOURCE_GOOGLE => 'Google',
+            self::SOURCE_CONTACTFORM => 'Contact Form',
             self::SOURCE_INDIAMART => 'IndiaMart',
             self::SOURCE_JUSTDIAL => 'JustDial',
         ];
@@ -302,6 +305,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_WEBAPP => WebappLead::findOrFail($id),
             self::SOURCE_META => MetaLead::findOrFail($id),
             self::SOURCE_GOOGLE => GoogleLead::findOrFail($id),
+            self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->firstOrFail(),
             default => abort(404),
         };
 
@@ -662,17 +666,41 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             );
         });
 
+        $contactForm = ContactForm::query()
+            ->whereNull('deleted_at')
+            ->get()
+            ->map(function ($contact) {
+                $name = trim(implode(' ', array_filter([
+                    (string) ($contact->fname ?? ''),
+                    (string) ($contact->lname ?? ''),
+                ])));
+
+                return $this->normalizeRow(
+                    self::SOURCE_CONTACTFORM,
+                    (int) $contact->id,
+                    $name !== '' ? $name : null,
+                    $contact->email ?? null,
+                    $contact->contact ?? null,
+                    null,
+                    'Contact Form',
+                    $contact->created_at ?? null,
+                    null
+                );
+            });
+
         $digitalContactKeys = $this->buildContactKeysFromRows($digital);
         $webappContactKeys = $this->buildContactKeysFromRows($webapp);
         $metaContactKeys = $this->buildContactKeysFromRows($meta);
         $googleContactKeys = $this->buildContactKeysFromRows($google);
+        $contactFormContactKeys = $this->buildContactKeysFromRows($contactForm);
 
         $leads = Lead::query()->get()
             ->reject(function (Lead $lead) use (
                 $digitalContactKeys,
                 $webappContactKeys,
                 $metaContactKeys,
-                $googleContactKeys
+                $googleContactKeys,
+                $contactFormContactKeys
             ) {
                 $source = trim((string) ($lead->source ?? ''));
                 $emailKey = $this->normalizeContact((string) ($lead->email ?? ''));
@@ -683,6 +711,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     'Web App' => $this->hasAnyContactMatch($emailKey, $phoneKey, $webappContactKeys),
                     'Meta' => $this->hasAnyContactMatch($emailKey, $phoneKey, $metaContactKeys),
                     'Google' => $this->hasAnyContactMatch($emailKey, $phoneKey, $googleContactKeys),
+                    'Contact Form' => $this->hasAnyContactMatch($emailKey, $phoneKey, $contactFormContactKeys),
                     default => false,
                 };
             })
@@ -701,7 +730,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 );
             });
 
-        return $leads->concat($digital)->concat($webapp)->concat($meta)->concat($google);
+        return $leads->concat($digital)->concat($webapp)->concat($meta)->concat($google)->concat($contactForm);
     }
 
     private function buildContactKeysFromRows(Collection $rows): array
@@ -838,6 +867,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_WEBAPP => WebappLead::findOrFail($id)->delete(),
             self::SOURCE_META => MetaLead::findOrFail($id)->delete(),
             self::SOURCE_GOOGLE => GoogleLead::findOrFail($id)->delete(),
+            self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->delete(),
             default => abort(404),
         };
     }
