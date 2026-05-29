@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\SettingController as ApiSettingController;
 use App\Http\Controllers\Api\TaskController as ApiTaskController;
 use App\Http\Controllers\Api\TodoController;
 use App\Http\Controllers\Api\WebEnquiryContactController;
+use App\Http\Controllers\Api\V1\ClientController as ApiV1ClientController;
 use App\Http\Controllers\Api\V1\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\V1\VendorRenewalController;
 use App\Http\Controllers\Api\WebEnquiryCareerController;
@@ -131,12 +132,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // Customer/Client API routes
         Route::prefix('clients')->group(function () {
-            Route::controller(ClientController::class)->group(function () {
+            Route::controller(ApiV1ClientController::class)->group(function () {
                 Route::get('/', 'index');
-                Route::get('/{id}', 'show');
+                Route::get('/{client}', 'show');
                 Route::post('/', 'store');
-                Route::match(['put', 'patch'], '/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
+                Route::match(['put', 'patch'], '/{client}', 'update');
+                Route::delete('/{client}', 'destroy');
             });
             // Route::get('/', [CustomerController::class, 'apiIndex']);
             // Route::get('/{id}', [CustomerController::class, 'apiShow']);

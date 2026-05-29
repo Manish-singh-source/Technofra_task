@@ -21,6 +21,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TodoController;
+use App\Http\Controllers\Web\ClientController as WebClientController;
 use App\Http\Controllers\Web\VendorController;
 use App\Http\Controllers\Web\VendorServiceController;
 use App\Http\Controllers\WebEnquiryController;
@@ -146,16 +147,16 @@ Route::middleware('auth')->group(function () {
 
 
     // ============================= Client Controller ====================
-    Route::controller(ClientController::class)->group(function () {
+    Route::controller(WebClientController::class)->group(function () {
         Route::get('/clients', 'index')->name('client');
         Route::get('/clients/create', 'create')->name('client.create');
         Route::post('/clients', 'store')->name('client.store');
         Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.client');
-        Route::get('/clients/{id}', 'show')->name('client.view');
-        Route::get('/clients/{id}/edit', 'edit')->name('client.edit');
-        Route::put('/clients/{id}', 'update')->name('client.update');
-        Route::delete('/clients/{id}', 'destroy')->name('client.delete');
-        Route::patch('/clients/{id}/status', 'toggleStatus')->name('client.toggleStatus');
+        Route::get('/clients/{client}', 'show')->name('client.view');
+        Route::get('/clients/{client}/edit', 'edit')->name('client.edit');
+        Route::put('/clients/{client}', 'update')->name('client.update');
+        Route::delete('/clients/{client}', 'destroy')->name('client.delete');
+        Route::patch('/clients/{client}/status', 'toggleStatus')->name('client.toggleStatus');
         Route::post('/clients/bulk-upload', 'bulkUpload')->name('client.bulk-upload');
         Route::get('/clients/download-template', 'downloadTemplate')->name('client.download-template');
     });

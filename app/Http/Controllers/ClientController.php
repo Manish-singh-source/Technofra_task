@@ -68,7 +68,7 @@ class ClientController extends Controller
                 'status' => $payload['status'],
                 'password' => Hash::make($payload['password']),
             ]);
-
+            
             $this->assignClientRole($client);
             $this->syncClientRelations($client, $payload);
             $this->markSourceLeadAsConverted($request);
