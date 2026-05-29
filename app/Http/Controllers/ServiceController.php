@@ -100,7 +100,7 @@ class ServiceController extends Controller
     {
         $clientCompanies = ClientBusinessDetail::query()
             ->with('user:id,first_name,last_name,email,role')
-            ->whereHas('user', fn ($query) => $query->where('role', 'client'))
+            ->whereHas('user', fn($query) => $query->where('role', 'client'))
             ->orderBy('company_name')
             ->get();
         $vendors = Vendor::orderBy('name')->get();
@@ -207,7 +207,7 @@ class ServiceController extends Controller
         $service = $this->scopedQuery($user)->findOrFail($id);
         $clientCompanies = ClientBusinessDetail::query()
             ->with('user:id,first_name,last_name,email,role')
-            ->whereHas('user', fn ($query) => $query->where('role', 'client'))
+            ->whereHas('user', fn($query) => $query->where('role', 'client'))
             ->orderBy('company_name')
             ->get();
         $vendors = Vendor::orderBy('name')->get();
@@ -262,9 +262,13 @@ class ServiceController extends Controller
 
         $clientCompany = ClientBusinessDetail::findOrFail($request->client_business_detail_id);
 
-        $endDate = Carbon::parse($request->end_date);
-        $computedStatus = $endDate->lt(Carbon::today()) ? 'expired' : 'active';
-
+        if ($request->status != 'inactive') {
+            $endDate = Carbon::parse($request->end_date);
+            $computedStatus = $endDate->lt(Carbon::today()) ? 'expired' : 'active';
+        } else {
+            $computedStatus = $request->status;
+        }
+        
         $service->update([
             'client_id' => $clientCompany->user_id,
             'client_business_detail_id' => $clientCompany->id,
