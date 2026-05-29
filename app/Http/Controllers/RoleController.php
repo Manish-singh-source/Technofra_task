@@ -12,10 +12,11 @@ class RoleController extends Controller
     public function index()
     {
         $roles = Role::with('permissions')->get();
-        $activeRoles = Role::where('status', 'active')->count();
-        $inactiveRoles = Role::where('status', 'inactive')->count();
+        // $activeRoles = Role::where('status', 'active')->count();
+        // $inactiveRoles = Role::where('status', 'inactive')->count();
         $permissionsCount = Permission::count();
-        return view('access-control.roles.index', compact('roles', 'activeRoles', 'inactiveRoles', 'permissionsCount'));
+        // return view('access-control.roles.index', compact('roles', 'activeRoles', 'inactiveRoles', 'permissionsCount'));
+        return view('access-control.roles.index', compact('roles', 'permissionsCount'));
     }
 
     public function create()

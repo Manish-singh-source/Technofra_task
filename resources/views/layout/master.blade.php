@@ -362,26 +362,12 @@
                     </li> 
                     --}}
                     <li>
-                        <a href="javascript:;" class="has-arrow">
+                        <a href="{{ route('web-enquiry.career') }}">
                             <div class="parent-icon"><i class="bx bx-message-dots"></i>
                             </div>
-                            <div class="menu-title">Web Enquiry</div>
+                            <div class="menu-title">Career</div>
                         </a>
-                        <ul>
-                            {{-- 
-                            <li>
-                                <a href="{{ route('web-enquiry.contact') }}">
-                                    <div class="menu-title">Contact</div>
-                                </a>
-                            </li> 
-                            --}}
-                            <li>
-                                <a href="{{ route('web-enquiry.career') }}">
-                                    <div class="menu-title">Career</div>
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
+                    </li> 
                 @endcan
 
                 {{-- 

@@ -20,20 +20,12 @@ class WebEnquiryController extends Controller
 
     public function career(Request $request)
     {
-        $applicantType = strtolower(trim((string) $request->query('applicant_type', 'all')));
-        if (! in_array($applicantType, ['all', 'fresher', 'experience'], true)) {
-            $applicantType = 'all';
-        }
-
         $careerEnquiries = DB::table('jobapplication')
             ->whereNull('deleted_at')
-            ->when($applicantType !== 'all', function ($query) use ($applicantType) {
-                $query->whereRaw('LOWER(applicant_type) = ?', [$applicantType]);
-            })
             ->orderByDesc('created_at')
             ->get();
 
-        return view('web-enquiry.career', compact('careerEnquiries', 'applicantType'));
+        return view('web-enquiry.career', compact('careerEnquiries'));
     }
 
     public function careerShow(int $id)

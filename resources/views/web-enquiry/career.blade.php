@@ -12,6 +12,12 @@
             align-items: center;
             gap: 8px;
         }
+
+        .career-filter-btn.active {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
     </style>
 @endpush
 
@@ -53,26 +59,11 @@
                         <span class="badge bg-primary">Total: {{ $careerEnquiries->count() }}</span>
                     </div>
 
-                    <ul class="nav nav-tabs mb-3" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link {{ ($applicantType ?? 'all') === 'all' ? 'active' : '' }}"
-                                href="{{ route('web-enquiry.career', ['applicant_type' => 'all']) }}">
-                                All
-                            </a>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link {{ ($applicantType ?? '') === 'fresher' ? 'active' : '' }}"
-                                href="{{ route('web-enquiry.career', ['applicant_type' => 'fresher']) }}">
-                                Fresher
-                            </a>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <a class="nav-link {{ ($applicantType ?? '') === 'experience' ? 'active' : '' }}"
-                                href="{{ route('web-enquiry.career', ['applicant_type' => 'experience']) }}">
-                                Experience
-                            </a>
-                        </li>
-                    </ul>
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        <button type="button" class="btn btn-outline-primary btn-sm career-filter-btn active" data-applicant-type="all">All</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm career-filter-btn" data-applicant-type="fresher">Fresher</button>
+                        <button type="button" class="btn btn-outline-primary btn-sm career-filter-btn" data-applicant-type="experience">Experience</button>
+                    </div>
 
                     <div class="table-responsive">
                         <table id="example" class="table table-striped table-bordered align-middle" style="width:100%">
@@ -94,13 +85,13 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @forelse ($careerEnquiries as $enquiry)
+                                @forelse ($careerEnquiries as $index => $enquiry)
                                     @php
                                         $resumePath = ltrim((string) ($enquiry->resume_file ?? ''), '/');
                                         $resumeUrl = $resumePath !== '' ? 'https://technofra.com/' . $resumePath : '';
                                     @endphp
                                     <tr>
-                                        <td>{{ $enquiry->id }}</td>
+                                        <td>{{ $index + 1 }}</td>
                                         <td>{{ $enquiry->fname }}</td>
                                         <td>{{ $enquiry->email }}</td>
                                         <td>{{ $enquiry->contact }}</td>
@@ -149,3 +140,46 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const table = $('#example').DataTable({
+            order: [],
+            columnDefs: [
+                { orderable: false, targets: [11, 12] }
+            ]
+        });
+
+        const buttons = document.querySelectorAll('.career-filter-btn');
+        const applicantTypeColumnIndex = 5;
+
+        function setActiveButton(activeButton) {
+            buttons.forEach((button) => {
+                button.classList.toggle('active', button === activeButton);
+            });
+        }
+
+        function escapeRegex(value) {
+            return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+
+        buttons.forEach((button) => {
+            button.addEventListener('click', function () {
+                const applicantType = (this.dataset.applicantType || '').trim();
+
+                if (applicantType === 'all') {
+                    table.column(applicantTypeColumnIndex).search('').draw();
+                } else {
+                    table
+                        .column(applicantTypeColumnIndex)
+                        .search(`^${escapeRegex(applicantType)}$`, true, false)
+                        .draw();
+                }
+
+                setActiveButton(this);
+            });
+        });
+    });
+</script>
+@endpush

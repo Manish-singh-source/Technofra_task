@@ -37,7 +37,7 @@
                         <div class="tab-pane fade show active" id="dashboard" role="tabpanel">
                             <p>Dashboard feature content will be displayed here.</p>
                             <div class="row">
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <div class="card bg-light-primary">
                                         <div class="card-body">
                                             <h6 class="card-title">Total Roles</h6>
@@ -45,7 +45,8 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                {{-- 
+                                <div class="col-md-6">
                                     <div class="card bg-light-success">
                                         <div class="card-body">
                                             <h6 class="card-title">Active Roles</h6>
@@ -53,15 +54,15 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <div class="card bg-light-success">
                                         <div class="card-body">
                                             <h6 class="card-title">Inactive Roles</h6>
                                             <h3 class="mb-0">{{ $inactiveRoles }}</h3>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="col-md-3">
+                                </div> --}}
+                                <div class="col-md-6">
                                     <div class="card bg-light-warning">
                                         <div class="card-body">
                                             <h6 class="card-title">Total Permissions</h6>
