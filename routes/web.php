@@ -10,7 +10,7 @@ use App\Http\Controllers\DigitalMarketingLeadController;
 use App\Http\Controllers\LeadController;
 use App\Http\Controllers\MailController;
 use App\Http\Controllers\GoogleLeadViewController;
-use App\Http\Controllers\LeadManagementController;
+use App\Http\Controllers\Web\LeadManagementController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;

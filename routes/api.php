@@ -10,7 +10,7 @@ use App\Http\Controllers\Api\FcmTestController;
 use App\Http\Controllers\Api\GoogleAdsController;
 use App\Http\Controllers\Api\GoogleLeadApiController;
 use App\Http\Controllers\Api\LeadController;
-use App\Http\Controllers\Api\LeadManagementController as ApiLeadManagementController;
+use App\Http\Controllers\Api\V1\LeadManagementController as ApiLeadManagementController;
 use App\Http\Controllers\Api\MetaLeadController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PermissionController;
