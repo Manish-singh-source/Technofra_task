@@ -735,6 +735,13 @@ class StaffController extends Controller
     public function apiIndex(Request $request)
     {
         $statusFilter = $this->normalizeStaffStatusFilter($request->input('status'));
+        $perPage = (int) $request->input('per_page', 10);
+
+        if ($perPage <= 0) {
+            $perPage = 10;
+        }
+
+        $perPage = min($perPage, 100);
 
         $staffs = User::with(['roles', 'teams', 'departments'])
             ->whereNotNull('role')
@@ -760,14 +767,23 @@ class StaffController extends Controller
                 });
             })
             ->orderBy('first_name')
-            ->get()
-            ->map(fn(User $member) => $this->formatStaffResource($member));
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $staffs->setCollection(
+            $staffs->getCollection()->map(fn(User $member) => $this->formatStaffResource($member))
+        );
 
         return response()->json([
             'success' => true,
             'data' => [
                 'staffs' => $staffs,
-                'totalStaffs' => $staffs->count(),
+                'totalStaffs' => $staffs->total(),
+                'perPage' => $staffs->perPage(),
+                'currentPage' => $staffs->currentPage(),
+                'lastPage' => $staffs->lastPage(),
+                'from' => $staffs->firstItem(),
+                'to' => $staffs->lastItem(),
             ],
         ]);
     }
