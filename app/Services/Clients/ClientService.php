@@ -26,7 +26,7 @@ class ClientService
         $statusFilter = $this->normalizeStatusFilter($status);
 
         return User::query()
-            ->with(['businessDetail:id,user_id,company_name', 'companies:id,user_id,client_type,company_name,industry,website'])
+            ->with(['roles', 'businessDetail:id,user_id,company_name', 'companies:id,user_id,client_type,company_name,industry,website'])
             ->where('role', 'client')
             ->when($statusFilter !== null, function ($nested) use ($statusFilter) {
                 $nested->where(function ($statusQuery) use ($statusFilter) {
@@ -58,7 +58,7 @@ class ClientService
 
     public function findClient(int|string $clientId, bool $withTrashed = false, bool $withServices = false): User
     {
-        $query = User::query()->with(['address', 'businessDetail', 'companies']);
+        $query = User::query()->with(['address', 'businessDetail', 'companies', 'roles']);
 
         if ($withServices) {
             $query->with(['services.vendor']);

@@ -31,29 +31,25 @@ class ClientController extends Controller
         );
 
         $clients = $query->orderBy('first_name')->paginate($perPage)->withQueryString();
+        $clientData = ClientResource::collection($clients->getCollection())->resolve($request);
+        $clientsPayload = $clients->toArray();
+        $clientsPayload['data'] = $clientData;
 
         return ApiResponse::success([
-            'clients' => ClientResource::collection($clients),
-            'count' => (clone $query)->count(),
-            'activeClientsCount' => (clone $query)->where(function ($nested) {
-                $nested->where('status', 'active')->orWhere('status', '1');
-            })->count(),
-            'pagination' => [
-                'total' => $clients->total(),
-                'perPage' => $clients->perPage(),
-                'currentPage' => $clients->currentPage(),
-                'lastPage' => $clients->lastPage(),
-                'from' => $clients->firstItem(),
-                'to' => $clients->lastItem(),
-                'links' => $clients->linkCollection()->values()->all(),
-            ],
+            'clients' => $clientsPayload,
+            'totalClients' => $clients->total(),
+            'perPage' => $clients->perPage(),
+            'currentPage' => $clients->currentPage(),
+            'lastPage' => $clients->lastPage(),
+            'from' => $clients->firstItem(),
+            'to' => $clients->lastItem(),
         ], 'Clients found');
     }
 
     public function show($client)
     {
         $client = $this->clientService->findClient($client, false, false);
-        $client->load(['address', 'businessDetail', 'companies']);
+        $client->load(['address', 'businessDetail', 'companies', 'roles']);
         $client->setAttribute('tasks_count', $client->tasks()->count());
         $client->setAttribute('projects_count', $client->projects()->count());
 
@@ -66,7 +62,7 @@ class ClientController extends Controller
         $invite = $this->clientService->inviteClientIfRequested($client, $request->validated('password'), (bool) $request->validated('send_invite_mail'));
 
         return ApiResponse::success([
-            'client' => new ClientResource($client->fresh(['address', 'businessDetail', 'companies'])),
+            'client' => new ClientResource($client->fresh(['address', 'businessDetail', 'companies', 'roles'])),
             'mail_status' => $invite['mail_status'],
         ], 'Client created successfully.', 201);
     }
@@ -77,7 +73,7 @@ class ClientController extends Controller
         $invite = $this->clientService->inviteClientIfRequested($client, $request->validated('password') ?? '', (bool) $request->validated('send_invite_mail'));
 
         return ApiResponse::success([
-            'client' => new ClientResource($client->fresh(['address', 'businessDetail', 'companies'])),
+            'client' => new ClientResource($client->fresh(['address', 'businessDetail', 'companies', 'roles'])),
             'mail_status' => $invite['mail_status'],
         ], 'Client updated successfully.');
     }
