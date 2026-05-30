@@ -21,15 +21,18 @@ class VendorController extends Controller
     {
         $filters = VendorFilterData::fromArray($request->validated());
         $vendors = $this->vendorService->listForApi(auth()->user(), $filters);
+        $vendorData = VendorResource::collection($vendors->getCollection())->resolve();
+        $vendorsPayload = $vendors->toArray();
+        $vendorsPayload['data'] = $vendorData;
 
         return ApiResponse::success([
-            'items' => VendorResource::collection($vendors->items()),
-            'meta' => [
-                'current_page' => $vendors->currentPage(),
-                'last_page' => $vendors->lastPage(),
-                'per_page' => $vendors->perPage(),
-                'total' => $vendors->total(),
-            ],
+            'vendors' => $vendorsPayload,
+            'totalVendors' => $vendors->total(),
+            'perPage' => $vendors->perPage(),
+            'currentPage' => $vendors->currentPage(),
+            'lastPage' => $vendors->lastPage(),
+            'from' => $vendors->firstItem(),
+            'to' => $vendors->lastItem(),
         ], 'Vendors retrieved successfully');
     }
 
@@ -63,4 +66,3 @@ class VendorController extends Controller
         return ApiResponse::success(null, 'Vendor deleted successfully');
     }
 }
-
