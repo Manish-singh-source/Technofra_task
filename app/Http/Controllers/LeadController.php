@@ -78,7 +78,7 @@ class LeadController extends Controller
             app(LeadMobileNotificationService::class)->notifyLeadCreatedToAdmins($lead);
         }
 
-        return redirect()->route('leads')->with('success', 'Lead created successfully!');
+        return redirect()->route('lead-management.index')->with('success', 'Lead created successfully!');
     }
 
     /**
