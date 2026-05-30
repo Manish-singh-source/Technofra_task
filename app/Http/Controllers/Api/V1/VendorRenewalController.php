@@ -20,20 +20,13 @@ class VendorRenewalController extends Controller
     {
         $filters = VendorServiceFilterData::fromArray($request->validated());
         $renewals = $this->vendorServiceManagementService->listForApi($filters);
+        $renewals->setCollection(
+            $renewals->getCollection()->map(
+                fn ($renewal) => (new VendorRenewalResource($renewal))->resolve()
+            )
+        );
 
-        return ApiResponse::success([
-            'items' => VendorRenewalResource::collection($renewals->getCollection()),
-            'meta' => [
-                'current_page' => $renewals->currentPage(),
-                'last_page' => $renewals->lastPage(),
-                'per_page' => $renewals->perPage(),
-                'total' => $renewals->total(),
-                'from' => $renewals->firstItem(),
-                'to' => $renewals->lastItem(),
-                'next_page_url' => $renewals->nextPageUrl(),
-                'prev_page_url' => $renewals->previousPageUrl(),
-            ],
-        ], 'Vendor renewals found');
+        return ApiResponse::success($renewals, 'Vendor renewals found');
     }
 
     public function show(int $id)
