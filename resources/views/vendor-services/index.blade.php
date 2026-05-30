@@ -68,12 +68,12 @@
                         <form method="GET" action="{{ route('vendor-services.index') }}" class="row g-3 align-items-end" id="dateFilterForm">
                             <input type="hidden" name="tab" id="activeTabInput" value="{{ $activeTab }}">
                             <div class="col-md-3">
-                                <label for="from_date" class="form-label">From Date</label>
+                                <label for="from_date" class="form-label">From Billing Date</label>
                                 <input type="date" class="form-control" id="from_date" name="from_date"
                                     value="{{ request('from_date') }}">
                             </div>
                             <div class="col-md-3">
-                                <label for="to_date" class="form-label">To Date</label>
+                                <label for="to_date" class="form-label">To Billing Date</label>
                                 <input type="date" class="form-control" id="to_date" name="to_date"
                                     value="{{ request('to_date') }}">
                             </div>
