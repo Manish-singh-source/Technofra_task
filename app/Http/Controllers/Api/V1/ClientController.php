@@ -19,15 +19,33 @@ class ClientController extends Controller
 
     public function index(Request $request)
     {
-        $data = $this->clientService->listClients(
+        $perPage = (int) $request->input('per_page', 10);
+        if ($perPage <= 0) {
+            $perPage = 10;
+        }
+        $perPage = min($perPage, 100);
+
+        $query = $this->clientService->clientListQuery(
             $request->input('status'),
             $request->input('search')
         );
 
+        $clients = $query->orderBy('first_name')->paginate($perPage)->withQueryString();
+
         return ApiResponse::success([
-            'clients' => ClientResource::collection($data['clients']),
-            'count' => $data['count'],
-            'activeClientsCount' => $data['activeClientsCount'],
+            'clients' => ClientResource::collection($clients),
+            'count' => (clone $query)->count(),
+            'activeClientsCount' => (clone $query)->where(function ($nested) {
+                $nested->where('status', 'active')->orWhere('status', '1');
+            })->count(),
+            'pagination' => [
+                'total' => $clients->total(),
+                'perPage' => $clients->perPage(),
+                'currentPage' => $clients->currentPage(),
+                'lastPage' => $clients->lastPage(),
+                'from' => $clients->firstItem(),
+                'to' => $clients->lastItem(),
+            ],
         ], 'Clients found');
     }
 

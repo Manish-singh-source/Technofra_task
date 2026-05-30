@@ -21,11 +21,11 @@ use Spatie\Permission\Models\Role;
 
 class ClientService
 {
-    public function listClients(?string $status = null, ?string $search = null)
+    public function clientListQuery(?string $status = null, ?string $search = null)
     {
         $statusFilter = $this->normalizeStatusFilter($status);
 
-        $query = User::query()
+        return User::query()
             ->with(['businessDetail:id,user_id,company_name', 'companies:id,user_id,client_type,company_name,industry,website'])
             ->where('role', 'client')
             ->when($statusFilter !== null, function ($nested) use ($statusFilter) {
@@ -41,6 +41,11 @@ class ClientService
                         ->orWhere('email', 'like', '%' . $search . '%');
                 });
             });
+    }
+
+    public function listClients(?string $status = null, ?string $search = null)
+    {
+        $query = $this->clientListQuery($status, $search);
 
         return [
             'clients' => $query->orderBy('first_name')->get(),
