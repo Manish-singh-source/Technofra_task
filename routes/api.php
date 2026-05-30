@@ -108,25 +108,29 @@ Route::middleware('auth:sanctum')->group(function () {
             });
         });
 
+        Route::prefix('staff-v2')->controller(StaffController::class)->group(function () {
+            Route::get('/form-options', 'apiFormOptions');
+            Route::get('/{id}/analytics', 'analytics')->whereNumber('id');
+            Route::get('/{id}/lead-chart', 'leadChart')->whereNumber('id');
+            Route::get('/{id}/followup-chart', 'followupChart')->whereNumber('id');
+            Route::get('/', 'apiIndex');
+            Route::get('/{id}', 'apiShow')->whereNumber('id');
+            Route::post('/', 'apiStore');
+            Route::match(['put', 'patch'], '/{id}', 'apiUpdate')->whereNumber('id');
+            Route::delete('/{id}', 'apiDestroy')->whereNumber('id');
+            Route::post('/{id}/restore', 'apiRestore')->whereNumber('id');
+            Route::delete('/{id}/force', 'apiForceDelete')->whereNumber('id');
+        });
+
         Route::controller(App\Http\Controllers\Api\StaffController::class)->group(function () {
             Route::prefix('staff-v2')->group(function () {
                 Route::get('/departments', 'departments');
                 Route::get('/teams', 'teams');
-
-                Route::get('/', 'index');
-                Route::get('/{id}', 'show');
-
-            
-                Route::post('/', 'store');
-                Route::put('/{id}', 'update');
-                Route::delete('/{id}', 'destroy');
-                Route::post('/{id}/restore', 'restore');
-                Route::delete('/{id}/force', 'forceDelete');
             });
 
             Route::prefix('staff')->group(function () {
-                Route::get('/{id}/tasks', 'staffTasks');
-                Route::get('/{id}/projects', 'staffProjects');
+                Route::get('/{id}/tasks', 'staffTasks')->whereNumber('id');
+                Route::get('/{id}/projects', 'staffProjects')->whereNumber('id');
             });
         });
 

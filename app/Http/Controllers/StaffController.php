@@ -734,25 +734,12 @@ class StaffController extends Controller
      */
     public function apiIndex(Request $request)
     {
-        // $staff = User::query()
-        //     ->withTrashed()
-        //     ->with(['roles', 'teams', 'departments'])
-        //     ->whereNotNull('role')
-        //     ->when(! $request->boolean('include_trashed'), function ($query) {
-        //         $query->whereNull('deleted_at');
-        //     })
-        //     ->get();
-
-        // return response()->json([
-        //     'success' => true,
-        //     'data' => $staff->map(fn(User $member) => $this->formatStaffResource($member)),
-        // ]);
-
         $statusFilter = $this->normalizeStaffStatusFilter($request->input('status'));
 
         $staffs = User::withTrashed()
-            ->with(['address', 'roles', 'teams', 'departments'])
-            ->where('role', 'staff')
+            ->with(['roles', 'teams', 'departments'])
+            ->whereNotNull('role')
+            ->whereIn('role', ['staff', 'super_admin2', 'admin'])
             ->when($statusFilter !== null, function ($query) use ($statusFilter) {
                 $query->where(function ($statusQuery) use ($statusFilter) {
                     if ($statusFilter === 'active') {
@@ -764,12 +751,25 @@ class StaffController extends Controller
                     }
                 });
             })
-            ->latest()
-            ->get();
+            ->when($request->filled('search'), function ($query) use ($request) {
+                $search = trim((string) $request->input('search'));
+
+                $query->where(function ($nested) use ($search) {
+                    $nested->where('first_name', 'like', '%' . $search . '%')
+                        ->orWhere('last_name', 'like', '%' . $search . '%')
+                        ->orWhere('email', 'like', '%' . $search . '%');
+                });
+            })
+            ->orderBy('first_name')
+            ->get()
+            ->map(fn(User $member) => $this->formatStaffResource($member));
 
         return response()->json([
             'success' => true,
-            'data' => $staffs,
+            'data' => [
+                'staffs' => $staffs,
+                'totalStaffs' => $staffs->count(),
+            ],
         ]);
     }
 
@@ -1260,11 +1260,11 @@ class StaffController extends Controller
                     'force_delete' => route('staff.force-delete', $staff->id),
                 ],
                 'api' => [
-                    'show' => url('/api/staff/' . $staff->id),
-                    'update' => url('/api/staff/' . $staff->id),
-                    'delete' => url('/api/staff/' . $staff->id),
-                    'restore' => url('/api/staff/' . $staff->id . '/restore'),
-                    'force_delete' => url('/api/staff/' . $staff->id . '/force'),
+                    'show' => url('/api/v1/staff-v2/' . $staff->id),
+                    'update' => url('/api/v1/staff-v2/' . $staff->id),
+                    'delete' => url('/api/v1/staff-v2/' . $staff->id),
+                    'restore' => url('/api/v1/staff-v2/' . $staff->id . '/restore'),
+                    'force_delete' => url('/api/v1/staff-v2/' . $staff->id . '/force'),
                 ],
             ],
         ];
