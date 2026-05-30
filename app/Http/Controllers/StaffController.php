@@ -736,8 +736,7 @@ class StaffController extends Controller
     {
         $statusFilter = $this->normalizeStaffStatusFilter($request->input('status'));
 
-        $staffs = User::withTrashed()
-            ->with(['roles', 'teams', 'departments'])
+        $staffs = User::with(['roles', 'teams', 'departments'])
             ->whereNotNull('role')
             ->whereIn('role', ['staff', 'super_admin2', 'admin'])
             ->when($statusFilter !== null, function ($query) use ($statusFilter) {
