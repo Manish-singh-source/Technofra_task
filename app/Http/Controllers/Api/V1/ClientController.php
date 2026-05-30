@@ -45,6 +45,7 @@ class ClientController extends Controller
                 'lastPage' => $clients->lastPage(),
                 'from' => $clients->firstItem(),
                 'to' => $clients->lastItem(),
+                'links' => $clients->linkCollection()->values()->all(),
             ],
         ], 'Clients found');
     }
