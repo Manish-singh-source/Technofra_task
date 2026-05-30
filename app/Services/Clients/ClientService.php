@@ -21,7 +21,7 @@ use Spatie\Permission\Models\Role;
 
 class ClientService
 {
-    public function listClients(?string $status = null, ?string $search = null, int $perPage = 10)
+    public function listClients(?string $status = null, ?string $search = null)
     {
         $statusFilter = $this->normalizeStatusFilter($status);
 
@@ -43,7 +43,7 @@ class ClientService
             });
 
         return [
-            'clients' => $query->orderBy('first_name')->paginate($perPage),
+            'clients' => $query->orderBy('first_name')->get(),
             'count' => (clone $query)->count(),
             'activeClientsCount' => (clone $query)->where(function ($nested) {
                 $nested->where('status', 'active')->orWhere('status', '1');

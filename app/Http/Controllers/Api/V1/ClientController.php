@@ -21,8 +21,7 @@ class ClientController extends Controller
     {
         $data = $this->clientService->listClients(
             $request->input('status'),
-            $request->input('search'),
-            (int) $request->input('per_page', 10)
+            $request->input('search')
         );
 
         return ApiResponse::success([
