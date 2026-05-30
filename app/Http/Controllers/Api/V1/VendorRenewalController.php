@@ -22,12 +22,16 @@ class VendorRenewalController extends Controller
         $renewals = $this->vendorServiceManagementService->listForApi($filters);
 
         return ApiResponse::success([
-            'items' => VendorRenewalResource::collection($renewals->items()),
+            'items' => VendorRenewalResource::collection($renewals->getCollection()),
             'meta' => [
                 'current_page' => $renewals->currentPage(),
                 'last_page' => $renewals->lastPage(),
                 'per_page' => $renewals->perPage(),
                 'total' => $renewals->total(),
+                'from' => $renewals->firstItem(),
+                'to' => $renewals->lastItem(),
+                'next_page_url' => $renewals->nextPageUrl(),
+                'prev_page_url' => $renewals->previousPageUrl(),
             ],
         ], 'Vendor renewals found');
     }
@@ -62,4 +66,3 @@ class VendorRenewalController extends Controller
         return ApiResponse::success(null, 'Vendor renewal deleted successfully');
     }
 }
-

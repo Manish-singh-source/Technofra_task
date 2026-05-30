@@ -17,7 +17,7 @@ class IndexVendorRenewalRequest extends FormRequest
             'tab' => 'nullable|in:all,upcoming,active,inactive,pending,expired',
             'from_date' => 'nullable|date',
             'to_date' => 'nullable|date|after_or_equal:from_date',
+            'per_page' => 'nullable|integer|min:1|max:100',
         ];
     }
 }
-

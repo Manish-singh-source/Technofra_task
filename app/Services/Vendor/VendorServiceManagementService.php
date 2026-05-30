@@ -122,7 +122,7 @@ class VendorServiceManagementService
                 };
             })
             ->orderByDesc('created_at')
-            ->paginate(10);
+            ->paginate($filters->perPage);
     }
 
     public function findForWebOrFail(?User $user, int $id, array $with = []): VendorService
@@ -167,4 +167,3 @@ class VendorServiceManagementService
         abort_if(! $hasVendorAccess, 403, 'Unauthorized vendor selection.');
     }
 }
-

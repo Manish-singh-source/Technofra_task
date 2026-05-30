@@ -11,6 +11,7 @@ class VendorServiceFilterData
         public readonly ?string $fromDate,
         public readonly ?string $toDate,
         public readonly string $tab,
+        public readonly int $perPage = 10,
         public readonly array $availableTabs = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'],
     ) {}
 
@@ -26,8 +27,8 @@ class VendorServiceFilterData
             fromDate: isset($data['from_date']) && $data['from_date'] !== '' ? (string) $data['from_date'] : null,
             toDate: isset($data['to_date']) && $data['to_date'] !== '' ? (string) $data['to_date'] : null,
             tab: $tab,
+            perPage: isset($data['per_page']) ? max(1, min(100, (int) $data['per_page'])) : 10,
             availableTabs: $availableTabs,
         );
     }
 }
-
