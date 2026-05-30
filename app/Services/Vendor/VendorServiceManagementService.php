@@ -68,10 +68,10 @@ class VendorServiceManagementService
 
         $query = $this->scopedServicesQuery($user)->with('vendor');
         if ($filters->fromDate) {
-            $query->where('billing_date', '>=', $filters->fromDate);
+            $query->where('end_date', '>=', $filters->fromDate);
         }
         if ($filters->toDate) {
-            $query->where('billing_date', '<=', $filters->toDate);
+            $query->where('end_date', '<=', $filters->toDate);
         }
 
         $services = $query

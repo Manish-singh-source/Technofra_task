@@ -63,11 +63,11 @@ class ServiceController extends Controller
         $query = $this->scopedQuery($user)->with(['company', 'client.businessDetail', 'vendor']);
 
         if ($request->filled('from_date')) {
-            $query->where('billing_date', '>=', $request->from_date);
+            $query->where('end_date', '>=', $request->from_date);
         }
 
         if ($request->filled('to_date')) {
-            $query->where('billing_date', '<=', $request->to_date);
+            $query->where('end_date', '<=', $request->to_date);
         }
 
         $services = $query
