@@ -225,12 +225,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::controller(ApiLeadManagementController::class)->prefix('lead-management')->group(function () {
             Route::get('/', 'index');
             Route::get('/{source}/{id}/view', 'show');
+            Route::get('/{source}/{id}/assignment', 'listAssignments');
             Route::post('/{source}/{id}/assign', 'assign');
             Route::post('/bulk-assign', 'bulkAssign');
+            Route::get('/{source}/{id}/status-history', 'statusHistory');
             Route::patch('/{source}/{id}/status', 'updateStatus');
             Route::post('/{source}/{id}/followup', 'addFollowup');
             Route::get('/{source}/{id}/followups', 'followupHistory');
+            Route::get('/{source}/{id}/note', 'listNotes');
             Route::post('/{source}/{id}/note', 'addNote');
+            Route::get('/{source}/{id}/reminder', 'listReminders');
             Route::post('/{source}/{id}/reminder', 'addReminder');
             Route::get('/{source}/{id}/timeline', 'activityTimeline');
             Route::post('/{source}/{id}/convert', 'convertLead');

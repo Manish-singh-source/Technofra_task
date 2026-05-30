@@ -165,6 +165,22 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         ], 'Lead details fetched successfully.');
     }
 
+    public function listAssignments(string $source, int $id): JsonResponse
+    {
+        abort_unless(auth()->user()?->can('view_leads'), 403);
+
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $assignments = $leadModel->assignments()->latest('assigned_at')->get();
+
+        return ApiResponse::success([
+            'lead' => $normalized,
+            'lead_id' => $leadModel->id,
+            'assignments' => $assignments,
+        ], 'Lead assignments fetched successfully.');
+    }
+
+
     public function assign(AssignLeadRequest $request, string $source, int $id): JsonResponse
     {
         abort_unless(auth()->user()?->can('edit_leads'), 403);
@@ -293,6 +309,19 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         }
 
         return ApiResponse::success(['assigned_count' => $assignedCount], $assignedCount . ' lead(s) assigned successfully.');
+    }
+
+    public function statusHistory(string $source, int $id): JsonResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $statusHistory = $leadModel->statusHistories()->latest()->get();
+
+        return ApiResponse::success([
+            'lead' => $normalized,
+            'lead_id' => $leadModel->id,
+            'status_history' => $statusHistory,
+        ], 'Lead status history fetched successfully.');
     }
 
     public function updateStatus(UpdateLeadStatusRequest $request, string $source, int $id): JsonResponse
@@ -424,6 +453,19 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         ], 'Followup history fetched successfully.');
     }
 
+    public function listNotes(string $source, int $id): JsonResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $notes = $leadModel->notes()->latest()->paginate(20);
+
+        return ApiResponse::success([
+            'lead' => $normalized,
+            'lead_id' => $leadModel->id,
+            'notes' => $notes,
+        ], 'Lead notes fetched successfully.');
+    }
+
     public function addNote(AddLeadNoteRequest $request, string $source, int $id): JsonResponse
     {
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
@@ -440,6 +482,19 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $this->pipelineService->logActivity($leadModel->id, auth()->id(), 'note_added', 'Lead note added.', ['note_id' => $note->id]);
 
         return ApiResponse::success(['note' => $note], 'Note added successfully.');
+    }
+
+    public function listReminders(string $source, int $id): JsonResponse
+    {
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $reminders = $leadModel->reminders()->latest('remind_at')->paginate(20);
+
+        return ApiResponse::success([
+            'lead' => $normalized,
+            'lead_id' => $leadModel->id,
+            'reminders' => $reminders,
+        ], 'Lead reminders fetched successfully.');
     }
 
     public function addReminder(AddLeadReminderRequest $request, string $source, int $id): JsonResponse

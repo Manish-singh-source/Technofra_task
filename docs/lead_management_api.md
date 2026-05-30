@@ -25,7 +25,41 @@ curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/view" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## 3. Assign Lead
+## 3. Lead Assignment & History
+
+### 3.1 Lead Assignments
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/assignment" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 3.2 Lead Status History
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/status-history" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 3.3 Lead Notes List
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/note" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 3.4 Lead Reminders List
+
+```bash
+curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/reminder" \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+## 4. Assign Lead
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/assign" \
@@ -38,7 +72,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/assign" \
   }'
 ```
 
-## 4. Bulk Assign Leads
+## 5. Bulk Assign Leads
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/bulk-assign" \
@@ -54,7 +88,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/bulk-assign" \
   }'
 ```
 
-## 5. Update Lead Status
+## 6. Update Lead Status
 
 ```bash
 curl -X PATCH "http://localhost:8000/api/v1/lead-management/lead/1/status" \
@@ -69,7 +103,7 @@ curl -X PATCH "http://localhost:8000/api/v1/lead-management/lead/1/status" \
   }'
 ```
 
-## 6. Add Followup
+## 7. Add Followup
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/followup" \
@@ -88,7 +122,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/followup" \
   }'
 ```
 
-## 7. Followup History
+## 8. Followup History
 
 ```bash
 curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/followups" \
@@ -96,7 +130,7 @@ curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/followups" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## 8. Add Note
+## 9. Add Note
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/note" \
@@ -109,7 +143,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/note" \
   }'
 ```
 
-## 9. Add Reminder
+## 10. Add Reminder
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/reminder" \
@@ -122,7 +156,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/reminder" \
   }'
 ```
 
-## 10. Activity Timeline
+## 11. Activity Timeline
 
 ```bash
 curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/timeline" \
@@ -130,7 +164,7 @@ curl -X GET "http://localhost:8000/api/v1/lead-management/lead/1/timeline" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## 11. Convert Lead
+## 12. Convert Lead
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/convert" \
@@ -143,7 +177,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/convert" \
   }'
 ```
 
-## 12. Escalate Lead
+## 13. Escalate Lead
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/escalate" \
@@ -156,7 +190,7 @@ curl -X POST "http://localhost:8000/api/v1/lead-management/lead/1/escalate" \
   }'
 ```
 
-## 13. Performance Stats
+## 14. Performance Stats
 
 ```bash
 curl -X GET "http://localhost:8000/api/v1/lead-management/performance/stats" \
@@ -164,7 +198,7 @@ curl -X GET "http://localhost:8000/api/v1/lead-management/performance/stats" \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## 14. Delete Lead
+## 15. Delete Lead
 
 ```bash
 curl -X DELETE "http://localhost:8000/api/v1/lead-management/lead/1" \
