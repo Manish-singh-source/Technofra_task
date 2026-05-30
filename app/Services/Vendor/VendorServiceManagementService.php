@@ -109,6 +109,27 @@ class VendorServiceManagementService
             ->select('id', 'vendor_id', 'service_name', 'service_details', 'remark_text', 'remark_color', 'plan_type', 'start_date', 'end_date', 'billing_date', 'status', 'created_at', 'updated_at')
             ->when($filters->fromDate, fn ($q) => $q->whereDate('billing_date', '>=', $filters->fromDate))
             ->when($filters->toDate, fn ($q) => $q->whereDate('billing_date', '<=', $filters->toDate))
+            ->when($filters->search, function ($query) use ($filters) {
+                $search = trim($filters->search);
+
+                $query->where('service_name', 'like', '%' . $search . '%');
+            })
+            ->when($filters->status, function ($query) use ($filters, $today, $upcomingUntil) {
+                match ($filters->status) {
+                    'upcoming' => $query->where('status', 'active')
+                        ->whereDate('end_date', '>=', $today)
+                        ->whereDate('end_date', '<=', $upcomingUntil),
+                    'active' => $query->where('status', 'active')
+                        ->where(function ($nested) use ($upcomingUntil) {
+                            $nested->whereNull('end_date')
+                                ->orWhereDate('end_date', '>', $upcomingUntil);
+                        }),
+                    'expired' => $query->where('status', 'expired'),
+                    'inactive' => $query->where('status', 'inactive'),
+                    'pending' => $query->where('status', 'pending'),
+                    default => null,
+                };
+            })
             ->when($filters->tab !== 'all', function ($query) use ($filters, $today, $upcomingUntil) {
                 match ($filters->tab) {
                     'upcoming' => $query->where('status', 'active')->whereDate('end_date', '>=', $today)->whereDate('end_date', '<=', $upcomingUntil),
