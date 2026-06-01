@@ -75,11 +75,11 @@ class ClientService
     {
         return DB::transaction(function () use ($data) {
             $client = User::create([
-                'profile_image' => $this->resolveProfileImageForCreate($data),
+                'profile_image' => $data['profile_image'] ? $this->resolveProfileImageForCreate($data) : 'uploads/clients/' . $this->resolveProfileImageForCreate($data),
                 'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'],
+                'last_name' => $data['last_name'] ?? '',
+                'email' => $data['email'] ?? null,
+                'phone' => $data['phone'] ?? null,
                 'role' => 'client',
                 'status' => $this->normalizeStatus($data['status'] ?? null),
                 'password' => Hash::make($data['password']),
