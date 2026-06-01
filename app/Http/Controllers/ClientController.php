@@ -393,6 +393,8 @@ class ClientController extends Controller
                 trim($request->first_name . ' ' . $request->last_name),
                 'uploads/clients/'
             ));
+
+            $profileImagePath = 'uploads/clients/' . $profileImagePath;
         }
 
         return [
