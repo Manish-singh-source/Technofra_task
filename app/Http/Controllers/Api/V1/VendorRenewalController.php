@@ -10,11 +10,25 @@ use App\Http\Requests\Api\VendorRenewal\IndexVendorRenewalRequest;
 use App\Http\Requests\Api\VendorRenewal\StoreVendorRenewalRequest;
 use App\Http\Requests\Api\VendorRenewal\UpdateVendorRenewalRequest;
 use App\Http\Resources\Api\V1\VendorRenewalResource;
+use App\Models\Vendor;
 use App\Services\Vendor\VendorServiceManagementService;
 
 class VendorRenewalController extends Controller
 {
     public function __construct(private VendorServiceManagementService $vendorServiceManagementService) {}
+
+    public function apiFormOptions()
+    {
+        return ApiResponse::success([
+            'vendors' => Vendor::query()
+                ->select('id', 'name')
+                ->orderBy('name')
+                ->get(),
+            'plan_types' => ['yearly', 'quarterly', 'monthly'],
+            'status_options' => ['active', 'inactive'],
+            'remark_colors' => ['yellow', 'red', 'green', 'blue', 'gray'],
+        ], 'Vendor renewal form options found');
+    }
 
     public function index(IndexVendorRenewalRequest $request)
     {

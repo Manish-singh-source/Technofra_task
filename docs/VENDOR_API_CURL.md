@@ -82,3 +82,18 @@ curl -X DELETE http://localhost:8000/api/v1/vendors/1 \
 curl -X DELETE http://localhost:8000/api/v1/vendors/delete-all \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+## 8. Get vendor renewal form options
+
+This returns the data needed to build the vendor renewal form:
+
+- `vendors`
+- `plan_types`
+- `status_options`
+- `remark_colors`
+
+```bash
+curl -X GET http://localhost:8000/api/v1/vendor-renewals/form-options \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```

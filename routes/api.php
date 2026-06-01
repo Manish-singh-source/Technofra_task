@@ -178,6 +178,8 @@ Route::middleware('auth:sanctum')->group(function () {
         // Vendor Renewal API routes
         Route::prefix('vendor-renewals')->group(function () {
             Route::controller(VendorRenewalController::class)->group(function () {
+                Route::get('/form-options', 'apiFormOptions');
+                
                 Route::get('/', 'index');
                 Route::get('/{id}', 'show');
                 Route::post('/', 'store');
