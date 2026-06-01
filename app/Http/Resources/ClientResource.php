@@ -14,8 +14,6 @@ class ClientResource extends JsonResource
             'profile_image_url' => $this->profile_image ? asset($this->profile_image) : null,
             'first_name' => $this->first_name,
             'last_name' => $this->last_name,
-            'full_name' => $this->full_name,
-            'name' => $this->name,
             'email' => $this->email,
             'phone' => $this->phone,
             'role' => $this->role,
