@@ -34,3 +34,29 @@ curl --location 'http://127.0.0.1:8000/api/v1/staff?status=inactive' \
 --header "Authorization: Bearer $TOKEN"
 ```
 
+## Staff Analytics
+
+### Staff dashboard analytics
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/v1/staff/1/analytics?period=30d' \
+--header "Accept: application/json" \
+--header "Authorization: Bearer $TOKEN"
+```
+
+### Staff lead chart
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/v1/staff/1/lead-chart?period=30d' \
+--header "Accept: application/json" \
+--header "Authorization: Bearer $TOKEN"
+```
+
+### Staff follow-up chart
+
+```bash
+curl --location 'http://127.0.0.1:8000/api/v1/staff/1/followup-chart?period=30d' \
+--header "Accept: application/json" \
+--header "Authorization: Bearer $TOKEN"
+```
+

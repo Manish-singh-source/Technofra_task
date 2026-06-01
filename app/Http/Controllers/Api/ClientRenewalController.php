@@ -75,10 +75,10 @@ class ClientRenewalController extends Controller
         $services = $this->scopedQuery($user)
             ->with(['client.businessDetail', 'vendor'])
             ->when($request->filled('from_date'), function ($query) use ($request) {
-                $query->whereDate('billing_date', '>=', $request->input('from_date'));
+                $query->whereDate('end_date', '>=', $request->input('from_date'));
             })
             ->when($request->filled('to_date'), function ($query) use ($request) {
-                $query->whereDate('billing_date', '<=', $request->input('to_date'));
+                $query->whereDate('end_date', '<=', $request->input('to_date'));
             })
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = trim((string) $request->input('search'));

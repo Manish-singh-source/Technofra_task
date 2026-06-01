@@ -90,8 +90,8 @@ class CalendarEventController extends Controller
         $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'event_date' => 'required|date',
-            'event_time' => 'required|date_format:H:i',
+            'event_date' => 'nullable|date',
+            'event_time' => 'nullable|date_format:H:i',
             'email_recipients' => 'nullable|string',
             'whatsapp_recipients' => 'nullable|string',
         ]);
@@ -147,8 +147,9 @@ class CalendarEventController extends Controller
             $event = CalendarEvent::create([
                 'title' => $request->title,
                 'description' => $request->description,
-                'event_date' => $request->event_date,
-                'event_time' => $eventDateTime,
+                // Use provided date/time or default to null if not provided
+                'event_date' => $request->event_date ?? null,
+                'event_time' => $eventDateTime ?? null,
                 'email_recipients' => $request->email_recipients,
                 'whatsapp_recipients' => $request->whatsapp_recipients,
                 'created_by' => Auth::id(),

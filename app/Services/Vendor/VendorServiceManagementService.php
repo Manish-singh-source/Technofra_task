@@ -107,8 +107,8 @@ class VendorServiceManagementService
         return VendorService::query()
             ->with(['vendor:id,name,email,phone'])
             ->select('id', 'vendor_id', 'service_name', 'service_details', 'remark_text', 'remark_color', 'plan_type', 'start_date', 'end_date', 'billing_date', 'status', 'created_at', 'updated_at')
-            ->when($filters->fromDate, fn ($q) => $q->whereDate('billing_date', '>=', $filters->fromDate))
-            ->when($filters->toDate, fn ($q) => $q->whereDate('billing_date', '<=', $filters->toDate))
+            ->when($filters->fromDate, fn ($q) => $q->whereDate('end_date', '>=', $filters->fromDate))
+            ->when($filters->toDate, fn ($q) => $q->whereDate('end_date', '<=', $filters->toDate))
             ->when($filters->search, function ($query) use ($filters) {
                 $search = trim($filters->search);
 

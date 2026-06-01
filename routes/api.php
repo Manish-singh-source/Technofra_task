@@ -100,6 +100,9 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/form-options', 'apiFormOptions');
                 Route::get('/', 'apiIndex');
                 Route::get('/{id}', 'apiShow');
+                Route::get('/{id}/analytics', 'analytics')->whereNumber('id');
+                Route::get('/{id}/lead-chart', 'leadChart')->whereNumber('id');
+                Route::get('/{id}/followup-chart', 'followupChart')->whereNumber('id');
                 Route::post('/', 'apiStore');
                 Route::match(['put', 'patch'], '/{id}', 'apiUpdate');
                 Route::delete('/{id}', 'apiDestroy');
