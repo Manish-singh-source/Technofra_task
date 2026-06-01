@@ -167,7 +167,7 @@ Route::middleware('auth')->group(function () {
 
 
     // ============================= Client Controller ====================
-    Route::controller(WebClientController::class)->group(function () {
+    Route::controller(ClientController::class)->group(function () {
         Route::get('/clients', 'index')->name('client');
         Route::get('/clients/create', 'create')->name('client.create');
         Route::post('/clients', 'store')->name('client.store');

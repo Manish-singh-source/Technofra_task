@@ -1096,7 +1096,7 @@ class StaffController extends Controller
             'last_name' => 'required|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($id)],
             'phone' => 'required|string|max:20',
-            'role' => ['required', 'string', 'max:255', Rule::exists('roles', 'name')],
+            // 'role' => ['required', 'string', 'max:255', Rule::exists('roles', 'name')],
             'status' => 'required|in:active,inactive',
             'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
             'departments' => 'nullable|array',
