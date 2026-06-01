@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
 
 class RolesController extends Controller
@@ -20,12 +21,16 @@ class RolesController extends Controller
             })
             ->withCount('permissions')
             ->paginate(10);
+        $totalRolesCount = Role::count();
+        $activeRolesCount = Role::where('status', 'active')->count();
+        $inactiveRolesCount = Role::where('status', 'inactive')->count();
+        $permissionsCount = Permission::count();
 
         if (!$roles) {
             return ApiResponse::error('No roles found');
         }
 
-        return ApiResponse::success($roles, 'Roles found');
+        return ApiResponse::success(['roles' => $roles, 'totalRolesCount' => $totalRolesCount, 'activeRolesCount' => $activeRolesCount, 'inactiveRolesCount' => $inactiveRolesCount, 'permissionsCount' => $permissionsCount], 'Roles found');
     }
 
     public function store(Request $request)
