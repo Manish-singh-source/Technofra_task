@@ -22,6 +22,7 @@ class VendorRenewalController extends Controller
         return ApiResponse::success([
             'vendors' => Vendor::query()
                 ->select('id', 'name')
+                ->where('status', '1')
                 ->orderBy('name')
                 ->get(),
             'plan_types' => ['yearly', 'quarterly', 'monthly'],
