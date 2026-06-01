@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\ClientStoreRequest;
 use App\Http\Requests\Api\V1\ClientUpdateRequest;
 use App\Http\Resources\ClientResource;
+use App\Models\User;
 use App\Services\Clients\ClientService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -35,14 +36,19 @@ class ClientController extends Controller
         $clientsPayload = $clients->toArray();
         $clientsPayload['data'] = $clientData;
 
+        $totalActiveClientsCount = User::where('role', 'client')->where('status', 'active')->count();
+        $totalInactiveClientsCount = User::where('role', 'client')->where('status', 'inactive')->count();
+
         return ApiResponse::success([
             'clients' => $clientsPayload,
-            'totalClients' => $clients->total(),
             'perPage' => $clients->perPage(),
             'currentPage' => $clients->currentPage(),
             'lastPage' => $clients->lastPage(),
             'from' => $clients->firstItem(),
             'to' => $clients->lastItem(),
+            'totalClients' => $clients->total(),
+            'totalActiveClientsCount' => $totalActiveClientsCount,
+            'totalInactiveClientsCount' => $totalInactiveClientsCount,
         ], 'Clients found');
     }
 
