@@ -98,11 +98,11 @@ class ClientService
             $profileImagePath = $this->resolveProfileImageForUpdate($client, $data);
 
             $client->update([
-                'profile_image' => $profileImagePath,
+                'profile_image' => $data['profile_image'] ? $profileImagePath : 'uploads/clients/' . $profileImagePath,
                 'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'email' => $data['email'],
-                'phone' => $data['phone'],
+                'last_name' => $data['last_name'] ?? '',
+                'email' => $data['email'] ?? null,
+                'phone' => $data['phone'] ?? null,
                 'status' => $this->normalizeStatus($data['status'] ?? null),
                 'password' => ! empty($data['password']) ? Hash::make($data['password']) : $client->password,
             ]);
