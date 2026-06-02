@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Todo;
+use App\Services\TodoManagement\TodoNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -54,6 +55,7 @@ class TodoController extends Controller
         $data['attachments'] = $this->storeUploadedAttachments($request);
 
         $todo = Todo::create($data);
+        $this->dispatchTodoCrudNotifications($todo, 'created');
 
         return response()->json([
             'success' => true,
@@ -70,6 +72,7 @@ class TodoController extends Controller
         $data['attachments'] = $this->mergeTodoAttachments($todo, $request);
 
         $todo->update($data);
+        $this->dispatchTodoCrudNotifications($todo->fresh(), 'updated');
 
         return response()->json([
             'success' => true,
@@ -83,6 +86,7 @@ class TodoController extends Controller
     {
         $this->authorizeTodo($todo);
         $this->deleteTodoAttachments($todo);
+        $this->dispatchTodoCrudNotifications($todo, 'deleted');
         $todo->delete();
 
         return response()->json([
@@ -169,6 +173,9 @@ class TodoController extends Controller
         $todo->update([
             'is_completed' => $completed,
             'completed_at' => $completed ? now() : null,
+        ]);
+        $this->dispatchTodoCrudNotifications($todo->fresh(), 'status_changed', [
+            'status' => $completed ? 'completed' : 'open',
         ]);
 
         return response()->json([
@@ -305,5 +312,15 @@ class TodoController extends Controller
         }
 
         return $storedAttachments;
+    }
+
+    protected function dispatchTodoCrudNotifications(Todo $todo, string $action, array $context = []): void
+    {
+        $recipient = Auth::user();
+        if (! $recipient) {
+            return;
+        }
+
+        app(TodoNotificationService::class)->notifyCrudOperation($recipient, $todo, $action, $context);
     }
 }

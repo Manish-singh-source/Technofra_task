@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
+use App\Services\TodoManagement\TodoNotificationService;
 
 class TodoController extends Controller
 {
@@ -38,6 +39,7 @@ class TodoController extends Controller
         $data['attachments'] = $this->storeUploadedAttachments($request);
 
         $todo = Todo::create($data);
+        $this->dispatchTodoCrudNotifications($todo, 'created');
 
         return response()->json([
             'message' => 'Todo created successfully.',
@@ -53,6 +55,7 @@ class TodoController extends Controller
         $data['attachments'] = $this->mergeTodoAttachments($todo, $request);
 
         $todo->update($data);
+        $this->dispatchTodoCrudNotifications($todo->fresh(), 'updated');
 
         return response()->json([
             'message' => 'Todo updated successfully.',
@@ -64,6 +67,7 @@ class TodoController extends Controller
     {
         $this->authorizeTodo($todo);
         $this->deleteTodoAttachments($todo);
+        $this->dispatchTodoCrudNotifications($todo, 'deleted');
         $todo->delete();
 
         return response()->json([
@@ -84,6 +88,9 @@ class TodoController extends Controller
         $todo->update([
             'is_completed' => $completed,
             'completed_at' => $completed ? now() : null,
+        ]);
+        $this->dispatchTodoCrudNotifications($todo->fresh(), 'status_changed', [
+            'status' => $completed ? 'completed' : 'open',
         ]);
 
         return response()->json([
@@ -262,5 +269,15 @@ class TodoController extends Controller
                 File::delete($absolutePath);
             }
         }
+    }
+
+    protected function dispatchTodoCrudNotifications(Todo $todo, string $action, array $context = []): void
+    {
+        $recipient = Auth::user();
+        if (! $recipient) {
+            return;
+        }
+
+        app(TodoNotificationService::class)->notifyCrudOperation($recipient, $todo, $action, $context);
     }
 }
