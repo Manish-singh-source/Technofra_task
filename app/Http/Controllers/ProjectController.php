@@ -628,8 +628,8 @@ class ProjectController extends Controller
                 $overallProgress = (int) round(array_sum($availableProgressSignals) / count($availableProgressSignals));
             } else {
                 $overallProgress = match ($project->status) {
-                    'in_progress' => 45,
-                    'on_hold' => 20,
+                    'in_progress' => 0,
+                    'on_hold' => 0,
                     default => 0,
                 };
             }
