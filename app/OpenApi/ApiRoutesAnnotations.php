@@ -133,6 +133,7 @@ namespace App\OpenApi;
  * @OA\Put(path="/api/v1/projects/{id}", tags={"Projects"}, summary="Update project", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))
  * @OA\Patch(path="/api/v1/projects/{id}", tags={"Projects"}, summary="Partial update project", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))
  * @OA\Delete(path="/api/v1/projects/{id}", tags={"Projects"}, summary="Delete project", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))
+ * @OA\Get(path="/api/v1/projects/{projectId}/details", tags={"Projects"}, summary="Project details dashboard", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))
  * @OA\Get(path="/api/v1/projects/{projectId}/milestones", tags={"Projects"}, summary="Project milestones", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))
  * @OA\Post(path="/api/v1/projects/{projectId}/milestones", tags={"Projects"}, summary="Create milestone", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))
  * @OA\Put(path="/api/v1/projects/{projectId}/milestones/{milestoneId}", tags={"Projects"}, summary="Update milestone", security={{"sanctum":{}}}, @OA\Response(response=200, description="OK"))

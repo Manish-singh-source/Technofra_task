@@ -305,6 +305,7 @@ Route::middleware('auth:sanctum')->group(function () {
             });
 
             // Projects Usage
+            Route::get('/{projectId}/details', [ApiProjectController::class, 'apiDetails']);
             Route::get('/{projectId}/usage', [ApiProjectController::class, 'apiUsage']);
             Route::get('/{projectId}/kanban', [ApiProjectController::class, 'apiKanbanBoard']);
             Route::post('/{projectId}/kanban/move', [ApiProjectController::class, 'apiKanbanMove']);

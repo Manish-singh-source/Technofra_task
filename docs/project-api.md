@@ -83,7 +83,26 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 5. Update Project
+## 5. Get Project Detail Dashboard
+
+This endpoint returns the richer payload used by the project details page, including:
+
+- project header data
+- member metrics
+- task, milestone, and issue summaries
+- usage charts and weekly activity
+- progress cards
+- recent activity
+- time tracking and deployment summaries
+- workload and velocity charts
+
+```bash
+curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/details \
+  -H "Accept: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+## 6. Update Project
 
 `PUT` and `PATCH` are both accepted.
 
@@ -124,7 +143,7 @@ curl -X PATCH http://localhost:8000/api/v1/projects/PROJECT_ID \
   -F "project_files[]=@C:/path/to/updated-spec.pdf"
 ```
 
-## 6. Delete Project
+## 7. Delete Project
 
 ```bash
 curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID \
@@ -132,7 +151,7 @@ curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 7. List Milestones
+## 8. List Milestones
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/milestones \
@@ -140,7 +159,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/milestones \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 8. Create Milestone
+## 9. Create Milestone
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/milestones \
@@ -155,7 +174,7 @@ curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/milestones \
   }'
 ```
 
-## 9. Update Milestone
+## 10. Update Milestone
 
 `PUT` and `PATCH` are both accepted.
 
@@ -172,7 +191,7 @@ curl -X PATCH http://localhost:8000/api/v1/projects/PROJECT_ID/milestones/MILEST
   }'
 ```
 
-## 10. Delete Milestone
+## 11. Delete Milestone
 
 ```bash
 curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID/milestones/MILESTONE_ID \
@@ -180,7 +199,7 @@ curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID/milestones/MILES
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 11. List Issues
+## 12. List Issues
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/issues \
@@ -188,7 +207,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/issues \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 12. Create Issue
+## 13. Create Issue
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/issues \
@@ -202,7 +221,7 @@ curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/issues \
   }'
 ```
 
-## 13. Update Issue
+## 14. Update Issue
 
 `PUT` and `PATCH` are both accepted.
 
@@ -218,7 +237,7 @@ curl -X PUT http://localhost:8000/api/v1/projects/PROJECT_ID/issues/ISSUE_ID \
   }'
 ```
 
-## 14. Delete Issue
+## 15. Delete Issue
 
 ```bash
 curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID/issues/ISSUE_ID \
@@ -226,7 +245,7 @@ curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID/issues/ISSUE_ID 
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 15. List Comments
+## 16. List Comments
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/comments \
@@ -234,7 +253,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/comments \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 16. Create Comment
+## 17. Create Comment
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/comments \
@@ -246,7 +265,7 @@ curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/comments \
   }'
 ```
 
-## 17. List Files
+## 18. List Files
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/files \
@@ -254,7 +273,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/files \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 18. Upload File
+## 19. Upload File
 
 Use `multipart/form-data` and send the file under the `file` field.
 
@@ -265,7 +284,7 @@ curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/files \
   -F "file=@C:/path/to/project-brief.pdf"
 ```
 
-## 19. Delete File
+## 20. Delete File
 
 ```bash
 curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID/files/FILE_ID \
@@ -273,7 +292,7 @@ curl -X DELETE http://localhost:8000/api/v1/projects/PROJECT_ID/files/FILE_ID \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 20. Project Usage
+## 21. Project Usage
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/usage \
@@ -281,7 +300,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/usage \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 21. Kanban Board
+## 22. Kanban Board
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/kanban \
@@ -289,7 +308,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/kanban \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 22. Move Task on Kanban
+## 23. Move Task on Kanban
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/kanban/move \
@@ -313,7 +332,7 @@ Allowed `to_column` values:
 - `pending`
 - `completed`
 
-## 23. Project Charts
+## 24. Project Charts
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/charts \
@@ -321,7 +340,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/charts \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 24. Activity Feed
+## 25. Activity Feed
 
 Use `per_page` to change page size. The controller clamps it between 5 and 50.
 
@@ -331,7 +350,7 @@ curl -X GET "http://localhost:8000/api/v1/projects/PROJECT_ID/activity-feed?per_
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 25. Milestone Progress
+## 26. Milestone Progress
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/milestone-progress \
@@ -339,7 +358,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/milestone-progress 
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 26. Filter Tasks
+## 27. Filter Tasks
 
 Query params supported: `status`, `priority`, `q`, `limit`.
 
@@ -349,7 +368,7 @@ curl -X GET "http://localhost:8000/api/v1/projects/PROJECT_ID/tasks/filter?statu
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 27. List Change Requests
+## 28. List Change Requests
 
 ```bash
 curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/change-requests \
@@ -357,7 +376,7 @@ curl -X GET http://localhost:8000/api/v1/projects/PROJECT_ID/change-requests \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## 28. Create Change Request
+## 29. Create Change Request
 
 ```bash
 curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/change-requests \
@@ -371,7 +390,7 @@ curl -X POST http://localhost:8000/api/v1/projects/PROJECT_ID/change-requests \
   }'
 ```
 
-## 29. Update Change Request Status
+## 30. Update Change Request Status
 
 `PUT` and `PATCH` are both accepted.
 

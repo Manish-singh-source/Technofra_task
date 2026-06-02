@@ -8,6 +8,7 @@ use App\Http\Requests\ProjectManagement\KanbanMoveRequest;
 use App\Http\Requests\ProjectManagement\ProjectTaskFilterRequest;
 use App\Mail\ProjectCreatedMail;
 use App\Models\Project;
+use App\Models\ProjectActivity;
 use App\Models\ProjectComment;
 use App\Models\ProjectChangeRequest;
 use App\Models\ProjectFile;
@@ -16,6 +17,7 @@ use App\Models\ProjectMilestone;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
 use App\Models\Task;
+use App\Models\TaskTimeLog;
 use App\Models\User;
 use App\Services\ProjectManagement\MilestoneProgressService;
 use App\Services\ProjectManagement\ProjectActivityService;
@@ -28,6 +30,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Validator;
 
 class ProjectController extends Controller
@@ -175,6 +178,43 @@ class ProjectController extends Controller
         return response()->json([
             'success' => true,
             'data' => $this->buildProjectDetailPayload($project),
+        ]);
+    }
+
+    public function apiDetails($projectId): JsonResponse
+    {
+        $project = Project::query()
+            ->select([
+                'id',
+                'project_name',
+                'customer_id',
+                'status',
+                'lifecycle_stage',
+                'start_date',
+                'deadline',
+                'tags',
+                'members',
+                'description',
+                'priority',
+                'technologies',
+                'deployment_date',
+                'maintenance_expiry',
+                'created_at',
+                'updated_at',
+            ])
+            ->with([
+                'customer',
+                'customerUser.address',
+                'customerUser',
+                'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+            ])
+            ->findOrFail($projectId);
+
+        $this->authorizeProjectAccess($project);
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->buildProjectDetailsDashboardPayload($project),
         ]);
     }
 
@@ -1228,6 +1268,27 @@ class ProjectController extends Controller
         return $minutes;
     }
 
+    private function calculateIntervalsElapsedMinutesWithinRange(array $intervals, Carbon $rangeStart, Carbon $rangeEnd): int
+    {
+        if ($rangeEnd->lte($rangeStart)) {
+            return 0;
+        }
+
+        $minutes = 0;
+        foreach ($intervals as [$start, $end]) {
+            $overlapStart = $start->gt($rangeStart) ? $start : $rangeStart;
+            $overlapEnd = $end->lt($rangeEnd) ? $end : $rangeEnd;
+
+            if ($overlapEnd->lte($overlapStart)) {
+                continue;
+            }
+
+            $minutes += $overlapStart->diffInMinutes($overlapEnd);
+        }
+
+        return $minutes;
+    }
+
     private function getFallbackActiveStart(Project $project): ?Carbon
     {
         $createdAt = $this->toBusinessTz($project->created_at);
@@ -1369,6 +1430,476 @@ class ProjectController extends Controller
                 'started_at' => optional($log->started_at)?->toISOString(),
                 'ended_at' => optional($log->ended_at)?->toISOString(),
             ])->values(),
+        ];
+    }
+
+    private function buildProjectDetailsDashboardPayload(Project $project): array
+    {
+        $project->loadMissing([
+            'customer',
+            'customerUser.address',
+            'customerUser',
+            'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+        ]);
+
+        $elapsedBoundary = $this->getElapsedBoundary();
+        $inProgressIntervals = $this->getProjectActiveIntervals($project, $elapsedBoundary);
+        $projectElapsedMinutes = $this->calculateIntervalsElapsedMinutes($inProgressIntervals);
+
+        $tasks = Task::query()
+            ->select([
+                'id',
+                'project_id',
+                'title',
+                'assignees',
+                'status',
+                'priority',
+                'workflow_status',
+                'deadline',
+                'created_at',
+            ])
+            ->where('project_id', $project->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $taskStatusMeta = [
+            'not_started' => ['label' => 'Not Started', 'badge_class' => 'bg-secondary'],
+            'in_progress' => ['label' => 'In Progress', 'badge_class' => 'bg-primary'],
+            'on_hold' => ['label' => 'On Hold', 'badge_class' => 'bg-warning'],
+            'completed' => ['label' => 'Completed', 'badge_class' => 'bg-success'],
+            'cancelled' => ['label' => 'Cancelled', 'badge_class' => 'bg-danger'],
+        ];
+
+        $taskStatusCounts = $tasks->countBy(fn ($task) => (string) $task->status);
+        $totalTasks = $tasks->count();
+
+        $usageDistribution = [];
+        foreach ($taskStatusMeta as $status => $meta) {
+            $count = (int) ($taskStatusCounts[$status] ?? 0);
+            $usageDistribution[] = [
+                'status' => $status,
+                'label' => $meta['label'],
+                'badge_class' => $meta['badge_class'],
+                'count' => $count,
+                'percentage' => $totalTasks > 0 ? round(($count / $totalTasks) * 100, 1) : 0,
+            ];
+        }
+
+        $usageChartLabels = array_column($usageDistribution, 'label');
+        $usageChartData = array_column($usageDistribution, 'percentage');
+
+        $taskCreatedCountsByDate = $tasks
+            ->groupBy(function ($task) {
+                return $this->toBusinessTz($task->created_at)?->format('Y-m-d');
+            })
+            ->map(fn ($group) => $group->count());
+
+        $weeklyActivityLabels = [];
+        $weeklyActivityData = [];
+        $activityEndDate = now($this->businessTimezone())->startOfDay();
+        for ($dayOffset = 6; $dayOffset >= 0; $dayOffset--) {
+            $date = $activityEndDate->copy()->subDays($dayOffset);
+            $dateKey = $date->format('Y-m-d');
+
+            $weeklyActivityLabels[] = $date->format('D');
+            $weeklyActivityData[] = (int) ($taskCreatedCountsByDate[$dateKey] ?? 0);
+        }
+
+        $memberIds = collect($project->members ?? [])
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        $taskAssigneeIds = $tasks->pluck('assignees')
+            ->flatten()
+            ->filter(fn ($id) => $id !== null && $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
+        $relevantStaffIds = $memberIds
+            ->merge($taskAssigneeIds)
+            ->unique()
+            ->values()
+            ->all();
+
+        $staff = User::staffMembers()
+            ->select(['id', 'first_name', 'last_name', 'profile_image', 'email'])
+            ->whereIn('id', $relevantStaffIds)
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get()
+            ->keyBy('id');
+
+        $taskAssignments = [];
+        $taskAssignmentStartMap = [];
+        foreach ($tasks as $task) {
+            $taskCreatedAt = $this->toBusinessTz($task->created_at);
+            foreach (collect($task->assignees ?? [])->map(fn ($assigneeId) => (int) $assigneeId)->unique() as $assigneeId) {
+                $taskAssignments[$assigneeId] = ($taskAssignments[$assigneeId] ?? 0) + 1;
+
+                if ($taskCreatedAt === null) {
+                    continue;
+                }
+
+                $existingStart = $taskAssignmentStartMap[$assigneeId] ?? null;
+                if ($existingStart === null || $taskCreatedAt->lt($existingStart)) {
+                    $taskAssignmentStartMap[$assigneeId] = $taskCreatedAt->copy();
+                }
+            }
+        }
+
+        $memberMetrics = [];
+        foreach ($memberIds as $memberId) {
+            $assignmentStartAt = $taskAssignmentStartMap[(int) $memberId] ?? null;
+            $memberElapsedMinutes = $assignmentStartAt
+                ? $this->calculateIntervalsElapsedMinutesWithinRange($inProgressIntervals, $assignmentStartAt, $elapsedBoundary)
+                : 0;
+
+            $memberMetrics[$memberId] = [
+                'total_hours' => round($memberElapsedMinutes / 60, 1),
+                'assignment_started_at' => $assignmentStartAt?->toDateTimeString(),
+            ];
+        }
+
+        $projectFiles = ProjectFile::query()
+            ->where('project_id', $project->id)
+            ->with('uploader')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $milestones = ProjectMilestone::query()
+            ->where('project_id', $project->id)
+            ->orderBy('sort_order')
+            ->orderBy('due_date')
+            ->orderBy('id')
+            ->get();
+
+        $issues = ProjectIssue::query()
+            ->where('project_id', $project->id)
+            ->with('customer')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $comments = ProjectComment::query()
+            ->where('project_id', $project->id)
+            ->with('user')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $milestoneStats = [
+            'total' => $milestones->count(),
+            'completed' => $milestones->where('status', 'completed')->count(),
+            'in_progress' => $milestones->where('status', 'in_progress')->count(),
+            'pending' => $milestones->where('status', 'pending')->count(),
+        ];
+
+        $issueStats = [
+            'total' => $issues->count(),
+            'open' => $issues->where('status', 'open')->count(),
+            'in_progress' => $issues->where('status', 'in_progress')->count(),
+            'resolved' => $issues->where('status', 'resolved')->count(),
+            'closed' => $issues->where('status', 'closed')->count(),
+        ];
+
+        $completedTasks = (int) ($taskStatusCounts['completed'] ?? 0);
+        $inProgressTasks = (int) ($taskStatusCounts['in_progress'] ?? 0);
+        $overdueTasks = $tasks->filter(function ($task) {
+            return $task->deadline
+                && $task->deadline->isPast()
+                && ! in_array($task->status, ['completed', 'cancelled'], true);
+        })->count();
+        $notStartedTasks = (int) ($taskStatusCounts['not_started'] ?? 0);
+        $resolvedIssues = ($issueStats['resolved'] ?? 0) + ($issueStats['closed'] ?? 0);
+
+        $progressSignals = [
+            $totalTasks > 0 ? ($completedTasks / $totalTasks) * 100 : null,
+            ($milestoneStats['total'] ?? 0) > 0 ? (($milestoneStats['completed'] / $milestoneStats['total']) * 100) : null,
+            ($issueStats['total'] ?? 0) > 0 ? (($resolvedIssues / $issueStats['total']) * 100) : null,
+        ];
+
+        if ($project->status === 'completed') {
+            $overallProgress = 100;
+        } elseif ($project->status === 'cancelled') {
+            $overallProgress = 0;
+        } else {
+            $availableProgressSignals = array_values(array_filter($progressSignals, function ($value) {
+                return $value !== null;
+            }));
+
+            if (! empty($availableProgressSignals)) {
+                $overallProgress = (int) round(array_sum($availableProgressSignals) / count($availableProgressSignals));
+            } else {
+                $overallProgress = match ($project->status) {
+                    'in_progress' => 0,
+                    'on_hold' => 0,
+                    default => 0,
+                };
+            }
+        }
+
+        $overallProgress = max(0, min(100, $overallProgress));
+        $remainingTasks = max($totalTasks - $completedTasks, 0);
+
+        $projectProgress = [
+            'overall' => $overallProgress,
+            'completed_tasks' => $completedTasks,
+            'in_progress_tasks' => $inProgressTasks,
+            'overdue_tasks' => $overdueTasks,
+            'remaining_tasks' => $remainingTasks,
+            'not_started_tasks' => $notStartedTasks,
+            'total_tasks' => $totalTasks,
+            'completed_milestones' => $milestoneStats['completed'] ?? 0,
+            'total_milestones' => $milestoneStats['total'] ?? 0,
+            'resolved_issues' => $resolvedIssues,
+            'total_issues' => $issueStats['total'] ?? 0,
+        ];
+
+        $pendingIssues = $issues->whereIn('status', ['open', 'in_progress'])->values();
+
+        $timeTrackingStats = [
+            'total_hours' => 0,
+            'manual_hours' => 0,
+            'timer_hours' => 0,
+            'entries_count' => 0,
+        ];
+
+        if (Schema::hasTable('task_time_logs')) {
+            $timeSummary = TaskTimeLog::query()
+                ->join('tasks', 'tasks.id', '=', 'task_time_logs.task_id')
+                ->where('tasks.project_id', $project->id)
+                ->selectRaw('COALESCE(SUM(task_time_logs.duration_minutes), 0) as total_minutes')
+                ->selectRaw("COALESCE(SUM(CASE WHEN task_time_logs.log_type = 'manual' THEN task_time_logs.duration_minutes ELSE 0 END), 0) as manual_minutes")
+                ->selectRaw("COALESCE(SUM(CASE WHEN task_time_logs.log_type = 'timer' THEN task_time_logs.duration_minutes ELSE 0 END), 0) as timer_minutes")
+                ->selectRaw('COUNT(*) as entries_count')
+                ->first();
+
+            $totalMinutes = (float) ($timeSummary->total_minutes ?? 0);
+            $manualMinutes = (float) ($timeSummary->manual_minutes ?? 0);
+            $timerMinutes = (float) ($timeSummary->timer_minutes ?? 0);
+
+            $timeTrackingStats = [
+                'total_hours' => round($totalMinutes / 60, 2),
+                'manual_hours' => round($manualMinutes / 60, 2),
+                'timer_hours' => round($timerMinutes / 60, 2),
+                'entries_count' => (int) ($timeSummary->entries_count ?? 0),
+            ];
+        }
+
+        $latestDeployment = null;
+        if (Schema::hasTable('project_deployments')) {
+            $latestDeployment = DB::table('project_deployments')
+                ->where('project_id', $project->id)
+                ->orderByDesc('deployed_at')
+                ->orderByDesc('id')
+                ->first();
+        }
+
+        $deploymentSummary = [
+            'status' => $latestDeployment->status ?? ($project->status === 'completed' ? 'deployed' : 'pending'),
+            'environment' => $latestDeployment->environment ?? null,
+            'version' => $latestDeployment->version ?? null,
+            'deployed_at' => $latestDeployment->deployed_at ?? ($project->deployment_date?->toDateString()),
+            'maintenance_expiry' => $project->maintenance_expiry?->toDateString(),
+        ];
+
+        $workloadDistribution = collect($project->members ?? [])
+            ->filter()
+            ->map(function ($memberId) use ($staff, $taskAssignments) {
+                $memberId = (int) $memberId;
+                if (! isset($staff[$memberId])) {
+                    return null;
+                }
+
+                $assignedTaskCount = (int) ($taskAssignments[$memberId] ?? 0);
+
+                return [
+                    'member_id' => $memberId,
+                    'member_name' => trim(($staff[$memberId]->first_name ?? '').' '.($staff[$memberId]->last_name ?? '')),
+                    'tasks_count' => $assignedTaskCount,
+                ];
+            })
+            ->filter()
+            ->sortByDesc('tasks_count')
+            ->values();
+
+        $taskStatusAnalytics = [
+            'labels' => collect($usageDistribution)->pluck('label')->values()->all(),
+            'counts' => collect($usageDistribution)->pluck('count')->values()->all(),
+        ];
+
+        $workloadAnalytics = [
+            'labels' => $workloadDistribution->pluck('member_name')->values()->all(),
+            'counts' => $workloadDistribution->pluck('tasks_count')->values()->all(),
+        ];
+
+        $overdueTrendLabels = [];
+        $overdueTrendCounts = [];
+        $overdueEndDate = now($this->businessTimezone())->startOfDay();
+        $overdueCountsByDate = $tasks
+            ->filter(function ($task) {
+                return $task->deadline
+                    && ! in_array($task->status, ['completed', 'cancelled'], true);
+            })
+            ->groupBy(function ($task) {
+                return $task->deadline->copy()->startOfDay()->format('Y-m-d');
+            })
+            ->map(fn ($group) => $group->count());
+
+        for ($dayOffset = 6; $dayOffset >= 0; $dayOffset--) {
+            $date = $overdueEndDate->copy()->subDays($dayOffset);
+            $overdueTrendLabels[] = $date->format('D');
+            $overdueTrendCounts[] = (int) ($overdueCountsByDate[$date->format('Y-m-d')] ?? 0);
+        }
+
+        $milestoneCompletionRate = ($milestoneStats['total'] ?? 0) > 0
+            ? round((($milestoneStats['completed'] ?? 0) / $milestoneStats['total']) * 100, 2)
+            : 0;
+        $milestoneCompletionAnalytics = [
+            'completed' => (int) ($milestoneStats['completed'] ?? 0),
+            'remaining' => max((int) ($milestoneStats['total'] ?? 0) - (int) ($milestoneStats['completed'] ?? 0), 0),
+            'rate' => $milestoneCompletionRate,
+        ];
+
+        $sprintVelocityAnalytics = [
+            'labels' => [],
+            'velocities' => [],
+        ];
+        if (Schema::hasTable('sprints')) {
+            $sprints = DB::table('sprints')
+                ->where('project_id', $project->id)
+                ->orderBy('start_date')
+                ->orderBy('id')
+                ->limit(8)
+                ->get(['name', 'velocity']);
+
+            $sprintVelocityAnalytics = [
+                'labels' => $sprints->map(fn ($sprint) => $sprint->name ?: 'Sprint')->values()->all(),
+                'velocities' => $sprints->map(fn ($sprint) => (int) ($sprint->velocity ?? 0))->values()->all(),
+            ];
+        }
+
+        $recentActivities = collect();
+        $recentActivityMeta = null;
+        if (Schema::hasTable('project_activities')) {
+            $recentActivities = ProjectActivity::query()
+                ->select([
+                    'id',
+                    'project_id',
+                    'task_id',
+                    'user_id',
+                    'activity_type',
+                    'title',
+                    'description',
+                    'activity_at',
+                    'created_at',
+                ])
+                ->where('project_id', $project->id)
+                ->with(['user:id,first_name,last_name,email', 'task:id,title'])
+                ->orderByDesc(DB::raw('COALESCE(activity_at, created_at)'))
+                ->paginate(10, ['*'], 'timeline_page')
+                ->withQueryString();
+
+            $recentActivityMeta = [
+                'current_page' => $recentActivities->currentPage(),
+                'last_page' => $recentActivities->lastPage(),
+                'total' => $recentActivities->total(),
+                'per_page' => $recentActivities->perPage(),
+            ];
+            $recentActivities = collect($recentActivities->items())->values();
+        }
+
+        return [
+            'project' => [
+                'id' => $project->id,
+                'project_name' => $project->project_name,
+                'customer_id' => $project->customer_id,
+                'status' => $project->status,
+                'lifecycle_stage' => $project->lifecycle_stage,
+                'start_date' => optional($project->start_date)?->toDateString(),
+                'deadline' => optional($project->deadline)?->toDateString(),
+                'tags' => $project->tags ?? [],
+                'members' => $project->members ?? [],
+                'description' => $project->description,
+                'priority' => $project->priority,
+                'technologies' => $project->technologies ?? [],
+                'deployment_date' => optional($project->deployment_date)?->toDateString(),
+                'maintenance_expiry' => optional($project->maintenance_expiry)?->toDateString(),
+                'customer' => $project->customer ? [
+                    'id' => $project->customer->id,
+                    'name' => $this->formatUserName($project->customer),
+                    'email' => $project->customer->email,
+                ] : null,
+                'customer_user' => $project->customerUser ? [
+                    'id' => $project->customerUser->id,
+                    'name' => $project->customerUser->name,
+                    'email' => $project->customerUser->email,
+                    'phone' => $project->customerUser->phone,
+                    'address' => $project->customerUser->address ? [
+                        'address_line_1' => $project->customerUser->address->address_line_1 ?? null,
+                        'address_line_2' => $project->customerUser->address->address_line_2 ?? null,
+                        'city' => $project->customerUser->address->city ?? null,
+                        'state' => $project->customerUser->address->state ?? null,
+                        'country' => $project->customerUser->address->country ?? null,
+                        'pincode' => $project->customerUser->address->pincode ?? null,
+                    ] : null,
+                ] : null,
+            ],
+            'member_metrics' => $memberMetrics,
+            'project_elapsed_hours' => round($projectElapsedMinutes / 60, 1),
+            'tasks' => $tasks->map(fn (Task $task) => [
+                'id' => $task->id,
+                'title' => $task->title,
+                'status' => $task->status,
+                'workflow_status' => $task->workflow_status ?? 'backlog',
+                'priority' => $task->priority,
+                'deadline' => optional($task->deadline)?->toDateString(),
+                'assignees' => $task->assignees ?? [],
+                'created_at' => optional($task->created_at)?->toISOString(),
+            ])->values(),
+            'project_files' => $projectFiles->map(fn (ProjectFile $file) => $this->formatFileResource($file))->values(),
+            'milestones' => $milestones->map(fn (ProjectMilestone $milestone) => $this->formatMilestoneResource($milestone))->values(),
+            'milestone_stats' => $milestoneStats,
+            'issues' => $issues->map(fn (ProjectIssue $issue) => $this->formatIssueResource($issue))->values(),
+            'issue_stats' => $issueStats,
+            'project_comments' => $comments->map(fn (ProjectComment $comment) => $this->formatCommentResource($comment))->values(),
+            'usage_distribution' => $usageDistribution,
+            'usage_chart_labels' => $usageChartLabels,
+            'usage_chart_data' => $usageChartData,
+            'weekly_activity_labels' => $weeklyActivityLabels,
+            'weekly_activity_data' => $weeklyActivityData,
+            'total_tasks' => $totalTasks,
+            'project_progress' => $projectProgress,
+            'recent_activities' => $recentActivities,
+            'recent_activity_meta' => $recentActivityMeta,
+            'pending_issues' => $pendingIssues->values(),
+            'time_tracking_stats' => $timeTrackingStats,
+            'deployment_summary' => $deploymentSummary,
+            'workload_distribution' => $workloadDistribution,
+            'task_status_analytics' => $taskStatusAnalytics,
+            'workload_analytics' => $workloadAnalytics,
+            'overdue_trend_labels' => $overdueTrendLabels,
+            'overdue_trend_counts' => $overdueTrendCounts,
+            'milestone_completion_analytics' => $milestoneCompletionAnalytics,
+            'sprint_velocity_analytics' => $sprintVelocityAnalytics,
+            'status_logs' => $project->statusLogs->map(fn (ProjectStatusLog $log) => [
+                'id' => $log->id,
+                'status' => $log->status,
+                'started_at' => optional($log->started_at)?->toISOString(),
+                'ended_at' => optional($log->ended_at)?->toISOString(),
+            ])->values(),
+            'charts' => $this->projectDashboardService->charts((int) $project->id),
+            'kanban' => $this->projectDashboardService->kanbanBoard((int) $project->id),
+            'activity_feed' => $this->projectDashboardService->activityFeed((int) $project->id, 10)->items(),
+            'milestone_progress' => $this->projectDashboardService->milestoneProgress((int) $project->id),
+            'project_dashboard' => [
+                'summary' => [
+                    'elapsed_hours' => round($projectElapsedMinutes / 60, 1),
+                    'overall_progress' => $overallProgress,
+                    'tasks_total' => $totalTasks,
+                    'issues_total' => $issueStats['total'],
+                    'milestones_total' => $milestoneStats['total'],
+                ],
+            ],
         ];
     }
 
