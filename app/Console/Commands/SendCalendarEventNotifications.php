@@ -2,8 +2,8 @@
 
 namespace App\Console\Commands;
 
-use App\Jobs\SendEventTimeNotification;
 use App\Models\CalendarEvent;
+use App\Jobs\SendCalendarReminderNotification;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
@@ -21,7 +21,7 @@ class SendCalendarEventNotifications extends Command
      *
      * @var string
      */
-    protected $description = 'Check and send calendar event-time notifications';
+    protected $description = 'Check and send calendar reminder notifications';
 
     /**
      * Execute the console command.
@@ -30,39 +30,53 @@ class SendCalendarEventNotifications extends Command
      */
     public function handle()
     {
-        $this->info('Checking for event-time notifications...');
+        $this->info('Checking for calendar reminders...');
 
         try {
-            $eventTimeCount = 0;
+            $now = now();
+            $windowCounts = [
+                CalendarEvent::REMINDER_WINDOW_DAY_BEFORE => 0,
+                CalendarEvent::REMINDER_WINDOW_DAY_OF_6AM => 0,
+                CalendarEvent::REMINDER_WINDOW_ONE_HOUR_BEFORE => 0,
+            ];
             $failureCount = 0;
 
-            $eventTimeEvents = CalendarEvent::pendingEventTimeNotification()
-                ->get()
-                ->filter(function ($event) {
-                    return $event->shouldSendEventTimeNotification();
-                });
+            $events = CalendarEvent::active()->get();
 
-            if ($eventTimeEvents->isNotEmpty()) {
-                $this->info("Found {$eventTimeEvents->count()} event(s) that need event-time notifications.");
+            foreach ($events as $event) {
+                $dueWindows = $event->getDueReminderWindows($now);
 
-                foreach ($eventTimeEvents as $event) {
+                foreach ($dueWindows as $window) {
                     try {
-                        SendEventTimeNotification::dispatch($event);
-                        $this->info("Dispatched event-time notification for: {$event->title}");
-                        $eventTimeCount++;
-                    } catch (\Exception $e) {
-                        $this->error("Failed to dispatch event-time notification for {$event->title}: " . $e->getMessage());
-                        Log::error("Failed to dispatch event-time notification: " . $e->getMessage());
+                        SendCalendarReminderNotification::dispatch($event, $window);
+                        $windowCounts[$window]++;
+                        $this->info(sprintf(
+                            'Dispatched %s reminder for: %s',
+                            str_replace('_', ' ', $window),
+                            $event->title
+                        ));
+                    } catch (\Throwable $exception) {
+                        $this->error(sprintf(
+                            'Failed to dispatch %s reminder for %s: %s',
+                            str_replace('_', ' ', $window),
+                            $event->title,
+                            $exception->getMessage()
+                        ));
+                        Log::error('Failed to dispatch calendar reminder', [
+                            'event_id' => $event->id,
+                            'window' => $window,
+                            'error' => $exception->getMessage(),
+                        ]);
                         $failureCount++;
                     }
                 }
-            } else {
-                $this->info('No events need event-time notifications at this time.');
             }
 
             $this->newLine();
             $this->info('=== Summary ===');
-            $this->info("Event-time notifications dispatched: {$eventTimeCount}");
+            foreach ($windowCounts as $window => $count) {
+                $this->info(sprintf('%s reminders dispatched: %d', str_replace('_', ' ', $window), $count));
+            }
 
             if ($failureCount > 0) {
                 $this->warn("Failed dispatches: {$failureCount}");

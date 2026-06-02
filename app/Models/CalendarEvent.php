@@ -10,6 +10,10 @@ class CalendarEvent extends Model
 {
     use HasFactory;
 
+    public const REMINDER_WINDOW_DAY_BEFORE = 'day_before';
+    public const REMINDER_WINDOW_DAY_OF_6AM = 'day_of_6am';
+    public const REMINDER_WINDOW_ONE_HOUR_BEFORE = 'one_hour_before';
+
     /**
      * The attributes that are mass assignable.
      *
@@ -22,6 +26,8 @@ class CalendarEvent extends Model
         'event_time',
         'email_recipients',
         'whatsapp_recipients',
+        'notification_channels',
+        'reminder_delivery_log',
         'notification_sent',
         'notification_sent_at',
         'reminder_10min_sent',
@@ -40,6 +46,8 @@ class CalendarEvent extends Model
     protected $casts = [
         'event_date' => 'datetime',
         'event_time' => 'datetime',
+        'notification_channels' => 'array',
+        'reminder_delivery_log' => 'array',
         'notification_sent' => 'boolean',
         'notification_sent_at' => 'datetime',
         'reminder_10min_sent' => 'boolean',
@@ -99,6 +107,145 @@ class CalendarEvent extends Model
             return [];
         }
         return array_filter(array_map('trim', explode(',', $this->whatsapp_recipients)));
+    }
+
+    /**
+     * Get notification channels as array.
+     */
+    public function getNotificationChannelsArrayAttribute()
+    {
+        if (empty($this->notification_channels)) {
+            return [];
+        }
+
+        if (is_array($this->notification_channels)) {
+            return array_values(array_filter(array_map('trim', $this->notification_channels)));
+        }
+
+        $decoded = json_decode((string) $this->notification_channels, true);
+
+        if (is_array($decoded)) {
+            return array_values(array_filter(array_map('trim', $decoded)));
+        }
+
+        return [];
+    }
+
+    /**
+     * Get the reminder delivery log as a normalized array.
+     */
+    public function getReminderDeliveryLogAttribute($value): array
+    {
+        if (empty($value)) {
+            return [];
+        }
+
+        if (is_array($value)) {
+            return $value;
+        }
+
+        $decoded = json_decode((string) $value, true);
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    /**
+     * Get the scheduled reminder anchor for this event.
+     */
+    public function getReminderAnchorDateTime(): ?Carbon
+    {
+        if (blank($this->event_date)) {
+            return null;
+        }
+
+        $date = Carbon::parse($this->event_date)->startOfDay();
+
+        if (blank($this->event_time)) {
+            return $date->copy()->setTime(6, 0, 0);
+        }
+
+        $time = Carbon::parse($this->event_time)->format('H:i:s');
+
+        return Carbon::parse($date->format('Y-m-d') . ' ' . $time);
+    }
+
+    /**
+     * Get the reminder target time for a given window.
+     */
+    public function getReminderWindowTarget(string $window): ?Carbon
+    {
+        if (! $this->status) {
+            return null;
+        }
+
+        $anchor = $this->getReminderAnchorDateTime();
+
+        if (! $anchor) {
+            return null;
+        }
+
+        return match ($window) {
+            self::REMINDER_WINDOW_DAY_BEFORE => $anchor->copy()->subDay(),
+            self::REMINDER_WINDOW_DAY_OF_6AM => Carbon::parse($anchor->format('Y-m-d') . ' 06:00:00'),
+            self::REMINDER_WINDOW_ONE_HOUR_BEFORE => $anchor->copy()->subHour(),
+            default => null,
+        };
+    }
+
+    /**
+     * Determine whether a reminder window is due right now.
+     */
+    public function isReminderWindowDue(string $window, ?Carbon $now = null, int $graceMinutes = 5): bool
+    {
+        $target = $this->getReminderWindowTarget($window);
+
+        if (! $target) {
+            return false;
+        }
+
+        $now = $now ?: Carbon::now();
+
+        return $now->greaterThanOrEqualTo($target)
+            && $now->lessThanOrEqualTo($target->copy()->addMinutes($graceMinutes));
+    }
+
+    /**
+     * Get all due reminder windows for the current time.
+     */
+    public function getDueReminderWindows(?Carbon $now = null, int $graceMinutes = 5): array
+    {
+        $now = $now ?: Carbon::now();
+
+        return collect([
+            self::REMINDER_WINDOW_DAY_BEFORE,
+            self::REMINDER_WINDOW_DAY_OF_6AM,
+            self::REMINDER_WINDOW_ONE_HOUR_BEFORE,
+        ])->filter(function (string $window) use ($now, $graceMinutes) {
+            return ! $this->hasReminderWindowBeenSent($window)
+                && $this->isReminderWindowDue($window, $now, $graceMinutes);
+        })->values()->all();
+    }
+
+    /**
+     * Check whether the given reminder window has already been sent.
+     */
+    public function hasReminderWindowBeenSent(string $window): bool
+    {
+        return filled(data_get($this->reminder_delivery_log, "{$window}.sent_at"));
+    }
+
+    /**
+     * Mark a reminder window as sent in the delivery log.
+     */
+    public function markReminderWindowAsSent(string $window, ?Carbon $sentAt = null): void
+    {
+        $log = $this->reminder_delivery_log ?: [];
+
+        $log[$window] = [
+            'sent_at' => ($sentAt ?: Carbon::now())->toIso8601String(),
+        ];
+
+        $this->reminder_delivery_log = $log;
     }
 
     /**

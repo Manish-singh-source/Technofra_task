@@ -20,6 +20,11 @@ class SendTodoReminderEmails extends Command
     {
         $now = now();
         $sentCount = 0;
+        $windowCounts = [
+            Todo::REMINDER_WINDOW_DAY_BEFORE => 0,
+            Todo::REMINDER_WINDOW_DAY_OF_6AM => 0,
+            Todo::REMINDER_WINDOW_ONE_HOUR_BEFORE => 0,
+        ];
         $whatsAppService = new WhatsAppService();
         $globalEmailEnabled = !in_array(
             strtolower((string) Setting::get('auto_todo_reminder_email_enabled', '1')),
@@ -36,57 +41,61 @@ class SendTodoReminderEmails extends Command
             $todos = Todo::with('user')->incomplete()->get();
 
             foreach ($todos as $todo) {
-                $occurrenceDate = $todo->getOccurrenceInReminderWindow($now);
+                $dueReminderWindows = $todo->getDueReminderWindows($now);
 
-                if (!$occurrenceDate) {
-                    continue;
-                }
+                foreach ($dueReminderWindows as $dueReminder) {
+                    $occurrenceDate = $dueReminder['occurrence_date'];
+                    $window = $dueReminder['window'];
 
-                if ($todo->last_reminded_occurrence_on === $occurrenceDate->format('Y-m-d')) {
-                    continue;
-                }
+                    $sendEmail = $globalEmailEnabled && (bool) $todo->reminder_email;
+                    $sendWhatsApp = $globalWhatsAppEnabled && (bool) $todo->reminder_whatsapp;
 
-                $sendEmail = $globalEmailEnabled && (bool) $todo->reminder_email;
-                $sendWhatsApp = $globalWhatsAppEnabled && (bool) $todo->reminder_whatsapp;
+                    if (! $sendEmail && ! $sendWhatsApp) {
+                        continue;
+                    }
 
-                if (!$sendEmail && !$sendWhatsApp) {
-                    continue;
-                }
+                    $reminderSent = false;
+                    $phone = $todo->user?->phone;
+                    $windowLabel = $todo->getReminderWindowLabel($window);
+                    $reminderTime = $todo->getReminderDateTimeForOccurrence($occurrenceDate)->format('h:i A');
 
-                $reminderSent = false;
-                $phone = $todo->user?->phone;
-
-                if ($sendEmail && $todo->user && !empty($todo->user->email)) {
-                    Mail::to($todo->user->email)->send(new TodoReminderMail($todo, $occurrenceDate));
-                    $reminderSent = true;
-                }
-
-                if ($sendWhatsApp && !empty($phone)) {
-                    $message = sprintf(
-                        'Todo reminder: %s on %s at %s',
-                        (string) $todo->title,
-                        $occurrenceDate->format('d M Y'),
-                        $todo->getReminderDateTimeForOccurrence($occurrenceDate)->format('h:i A')
-                    );
-
-                    if ($whatsAppService->sendMessage($phone, $message)) {
+                    if ($sendEmail && $todo->user && !empty($todo->user->email)) {
+                        Mail::to($todo->user->email)->send(new TodoReminderMail($todo, $occurrenceDate, $window));
                         $reminderSent = true;
                     }
+
+                    if ($sendWhatsApp && !empty($phone)) {
+                        $message = sprintf(
+                            'Todo reminder (%s): %s on %s at %s',
+                            $windowLabel,
+                            (string) $todo->title,
+                            $occurrenceDate->format('d M Y'),
+                            $reminderTime
+                        );
+
+                        if ($whatsAppService->sendMessage($phone, $message)) {
+                            $reminderSent = true;
+                        }
+                    }
+
+                    if (! $reminderSent) {
+                        continue;
+                    }
+
+                    $todo->markReminderWindowAsSentForOccurrence($window, $occurrenceDate, $now);
+                    $todo->last_reminded_occurrence_on = $occurrenceDate->format('Y-m-d');
+                    $todo->last_reminder_sent_at = $now;
+                    $todo->save();
+
+                    $windowCounts[$window] = ($windowCounts[$window] ?? 0) + 1;
+                    $sentCount++;
                 }
-
-                if (!$reminderSent) {
-                    continue;
-                }
-
-                $todo->update([
-                    'last_reminded_occurrence_on' => $occurrenceDate->format('Y-m-d'),
-                    'last_reminder_sent_at' => $now,
-                ]);
-
-                $sentCount++;
             }
 
             $this->info("Todo reminders sent: {$sentCount}");
+            foreach ($windowCounts as $window => $count) {
+                $this->info(sprintf('%s reminders sent: %d', str_replace('_', ' ', $window), $count));
+            }
 
             return self::SUCCESS;
         } catch (\Throwable $e) {

@@ -758,20 +758,42 @@
                                 </div>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label">Notification Platforms <span class="text-danger">*</span></label>
+                                <div class="row g-2 notification-channel-group">
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input notification-channel notification-channel-all" type="checkbox" id="notification_channel_all" name="notification_channels[]" value="all" checked>
+                                            <label class="form-check-label" for="notification_channel_all">All platforms</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input notification-channel notification-channel-item" type="checkbox" id="notification_channel_mail" name="notification_channels[]" value="mail" checked>
+                                            <label class="form-check-label" for="notification_channel_mail">Mail</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input notification-channel notification-channel-item" type="checkbox" id="notification_channel_whatsapp" name="notification_channels[]" value="whatsapp" checked>
+                                            <label class="form-check-label" for="notification_channel_whatsapp">WhatsApp</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Choose email delivery, WhatsApp, or both. App and web notifications are sent automatically.</small>
+                                <div class="invalid-feedback d-block" id="notification_channels_error"></div>
+                            </div>
+                            <div class="mb-3">
                                 <label for="email_recipients" class="form-label">Email Recipients (Optional)</label>
                                 <input type="text" class="form-control" id="email_recipients" name="email_recipients"
                                     placeholder="email1@example.com, email2@example.com">
-                                <small class="form-text text-muted">Comma-separated emails. You can keep this empty if WhatsApp
-                                    numbers are added.</small>
+                                <small class="form-text text-muted">Comma-separated emails for direct delivery. Admin and creator accounts are also notified on the selected channels.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone
-                                    Numbers) <span class="text-danger">*</span></label>
+                                <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers)</label>
                                 <input type="text" class="form-control" id="whatsapp_recipients"
                                     name="whatsapp_recipients" placeholder="919876543210, 919876543211">
-                                <small class="form-text text-muted">Use international format. Multiple numbers comma
-                                    separated.</small>
+                                <small class="form-text text-muted">Use international format. Multiple numbers comma separated.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </form>
@@ -827,16 +849,39 @@
                                 </div>
                             </div>
                             <div class="mb-3">
+                                <label class="form-label">Notification Platforms <span class="text-danger">*</span></label>
+                                <div class="row g-2 notification-channel-group">
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input edit-notification-channel edit-notification-channel-all" type="checkbox" id="edit_notification_channel_all" name="notification_channels[]" value="all" checked>
+                                            <label class="form-check-label" for="edit_notification_channel_all">All platforms</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input edit-notification-channel edit-notification-channel-item" type="checkbox" id="edit_notification_channel_mail" name="notification_channels[]" value="mail" checked>
+                                            <label class="form-check-label" for="edit_notification_channel_mail">Mail</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12 col-md-6 col-lg-3">
+                                        <div class="form-check">
+                                            <input class="form-check-input edit-notification-channel edit-notification-channel-item" type="checkbox" id="edit_notification_channel_whatsapp" name="notification_channels[]" value="whatsapp" checked>
+                                            <label class="form-check-label" for="edit_notification_channel_whatsapp">WhatsApp</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <small class="form-text text-muted">Choose email delivery, WhatsApp, or both. App and web notifications are sent automatically.</small>
+                                <div class="invalid-feedback d-block" id="edit_notification_channels_error"></div>
+                            </div>
+                            <div class="mb-3">
                                 <label for="edit_email_recipients" class="form-label">Email Recipients (Optional)</label>
                                 <input type="text" class="form-control" id="edit_email_recipients"
                                     name="email_recipients" placeholder="email1@example.com, email2@example.com">
-                                <small class="form-text text-muted">Comma-separated emails. Optional when WhatsApp numbers
-                                    exist.</small>
+                                <small class="form-text text-muted">Comma-separated emails for direct delivery.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone
-                                    Numbers) <span class="text-danger">*</span></label>
+                                <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers)</label>
                                 <input type="text" class="form-control" id="edit_whatsapp_recipients"
                                     name="whatsapp_recipients" placeholder="919876543210, 919876543211">
                                 <small class="form-text text-muted">International format. Multiple numbers comma
@@ -954,14 +999,20 @@
 
                 calendar.render();
 
+                $(document).on('change', '.notification-channel, .edit-notification-channel', function() {
+                    var isEdit = $(this).hasClass('edit-notification-channel');
+                    var isAll = $(this).hasClass(isEdit ? 'edit-notification-channel-all' : 'notification-channel-all');
+                    syncNotificationChannelGroup(isEdit, isAll);
+                });
+
                 // Save new event
                 $('#saveEventBtn').click(function() {
                     // Clear previous validation errors
                     $('.is-invalid').removeClass('is-invalid');
                     $('.invalid-feedback').text('');
 
-                    if (!hasAnyRecipient($('#email_recipients').val(), $('#whatsapp_recipients').val())) {
-                        showAlert('error', 'Please add at least one email or WhatsApp recipient.');
+                    if (getSelectedNotificationChannels(false).length === 0) {
+                        showAlert('error', 'Please select at least one notification platform.');
                         return;
                     }
 
@@ -979,6 +1030,7 @@
                         event_time: $('#event_time').val(),
                         email_recipients: $('#email_recipients').val(),
                         whatsapp_recipients: $('#whatsapp_recipients').val(),
+                        notification_channels: getSelectedNotificationChannels(false),
                         _token: $('meta[name="csrf-token"]').attr('content')
                     };
 
@@ -1007,6 +1059,10 @@
                                 if (xhr.responseJSON && xhr.responseJSON.errors) {
                                     var errors = xhr.responseJSON.errors;
                                     $.each(errors, function(key, value) {
+                                        if (key.indexOf('notification_channels') === 0) {
+                                            $('#notification_channels_error').text(value[0]);
+                                            return;
+                                        }
                                         var inputField = $('#event_' + key);
                                         if (inputField.length === 0) {
                                             inputField = $('[name="' + key + '"]');
@@ -1050,6 +1106,7 @@
                                 $('#edit_event_time').val(event.event_time);
                                 $('#edit_email_recipients').val(event.email_recipients);
                                 $('#edit_whatsapp_recipients').val(event.whatsapp_recipients || '');
+                                setSelectedNotificationChannels(event.notification_channels || []);
                                 $('#event_time_status').html(event.event_time_notification_sent ?
                                     '<span class="badge bg-success">Sent</span>' :
                                     '<span class="badge bg-warning">Pending</span>');
@@ -1069,9 +1126,8 @@
                     $('.is-invalid').removeClass('is-invalid');
                     $('.invalid-feedback').text('');
 
-                    if (!hasAnyRecipient($('#edit_email_recipients').val(), $('#edit_whatsapp_recipients')
-                            .val())) {
-                        showAlert('error', 'Please add at least one email or WhatsApp recipient.');
+                    if (getSelectedNotificationChannels(true).length === 0) {
+                        showAlert('error', 'Please select at least one notification platform.');
                         return;
                     }
 
@@ -1092,6 +1148,7 @@
                         event_time: $('#edit_event_time').val(),
                         email_recipients: $('#edit_email_recipients').val(),
                         whatsapp_recipients: $('#edit_whatsapp_recipients').val(),
+                        notification_channels: getSelectedNotificationChannels(true),
                         _token: $('meta[name="csrf-token"]').attr('content'),
                         _method: 'PUT'
                     };
@@ -1119,6 +1176,10 @@
                                 if (xhr.responseJSON.errors) {
                                     var errors = xhr.responseJSON.errors;
                                     $.each(errors, function(key, value) {
+                                        if (key.indexOf('notification_channels') === 0) {
+                                            $('#edit_notification_channels_error').text(value[0]);
+                                            return;
+                                        }
                                         var inputField = $('#edit_event_' + key);
                                         if (inputField.length === 0) {
                                             inputField = $('#edit_' + key);
@@ -1207,6 +1268,65 @@
                             $(this).remove();
                         });
                     }, 5000);
+                }
+
+                function getSelectedNotificationChannels(isEdit = false) {
+                    var allSelector = isEdit ? '.edit-notification-channel-all' : '.notification-channel-all';
+                    var itemSelector = isEdit ? '.edit-notification-channel-item' : '.notification-channel-item';
+
+                    if ($(allSelector).is(':checked')) {
+                        return ['all'];
+                    }
+
+                    var channels = [];
+                    $(itemSelector).each(function() {
+                        if ($(this).is(':checked')) {
+                            channels.push($(this).val());
+                        }
+                    });
+
+                    return channels;
+                }
+
+                function setSelectedNotificationChannels(channels) {
+                    var selected = Array.isArray(channels) ? channels.map(function(channel) {
+                        return String(channel).toLowerCase();
+                    }) : [];
+
+                    var allChannelKeys = ['mail', 'whatsapp'];
+                    var allSelected = selected.length === 0 ||
+                        selected.indexOf('all') !== -1 ||
+                        allChannelKeys.every(function(channel) {
+                            return selected.indexOf(channel) !== -1;
+                        });
+
+                    $('.edit-notification-channel-all').prop('checked', allSelected);
+                    $('.edit-notification-channel-item').each(function() {
+                        $(this).prop('checked', allSelected || selected.indexOf(String($(this).val())) !== -1);
+                    });
+                }
+
+                function syncNotificationChannelGroup(isEdit = false, sourceIsAll = false) {
+                    var allSelector = isEdit ? '.edit-notification-channel-all' : '.notification-channel-all';
+                    var itemSelector = isEdit ? '.edit-notification-channel-item' : '.notification-channel-item';
+
+                    if (sourceIsAll) {
+                        if ($(allSelector).is(':checked')) {
+                            $(itemSelector).prop('checked', true);
+                        } else {
+                            $(itemSelector).prop('checked', false);
+                        }
+                        return;
+                    }
+
+                    var checkedCount = $(itemSelector + ':checked').length;
+                    var totalCount = $(itemSelector).length;
+
+                    if (checkedCount === totalCount) {
+                        $(allSelector).prop('checked', true);
+                    } else if (checkedCount < totalCount) {
+                        $(allSelector).prop('checked', false);
+                    }
                 }
 
                 function hasAnyRecipient(emailRecipients, whatsappRecipients) {

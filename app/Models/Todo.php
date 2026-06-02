@@ -10,6 +10,10 @@ class Todo extends Model
 {
     use HasFactory;
 
+    public const REMINDER_WINDOW_DAY_BEFORE = 'day_before';
+    public const REMINDER_WINDOW_DAY_OF_6AM = 'day_of_6am';
+    public const REMINDER_WINDOW_ONE_HOUR_BEFORE = 'one_hour_before';
+
     protected $fillable = [
         'user_id',
         'title',
@@ -23,6 +27,7 @@ class Todo extends Model
         'reminder_time',
         'reminder_email',
         'reminder_whatsapp',
+        'reminder_delivery_log',
         'starts_on',
         'ends_type',
         'ends_on',
@@ -39,6 +44,7 @@ class Todo extends Model
         'ends_on' => 'date',
         'completed_at' => 'datetime',
         'last_reminder_sent_at' => 'datetime',
+        'reminder_delivery_log' => 'array',
         'repeat_days' => 'array',
         'attachments' => 'array',
         'is_completed' => 'boolean',
@@ -129,21 +135,115 @@ class Todo extends Model
         return Carbon::parse($occurrenceDate->format('Y-m-d') . ' ' . $time);
     }
 
-    public function getOccurrenceInReminderWindow(Carbon $now, int $graceMinutes = 5): ?Carbon
+    public function getReminderWindowTargetForOccurrence(Carbon $occurrenceDate, string $window): ?Carbon
     {
-        foreach ([$now->copy()->subDay()->startOfDay(), $now->copy()->startOfDay()] as $date) {
-            if (!$this->isOccurrenceDate($date)) {
+        $occurrenceDate = $occurrenceDate->copy()->startOfDay();
+        $anchor = $this->getReminderDateTimeForOccurrence($occurrenceDate);
+
+        return match ($window) {
+            self::REMINDER_WINDOW_DAY_BEFORE => $anchor->copy()->subDay(),
+            self::REMINDER_WINDOW_DAY_OF_6AM => $occurrenceDate->copy()->setTime(6, 0, 0),
+            self::REMINDER_WINDOW_ONE_HOUR_BEFORE => $anchor->copy()->subHour(),
+            default => null,
+        };
+    }
+
+    public function isReminderWindowDueForOccurrence(Carbon $occurrenceDate, string $window, Carbon $now, int $graceMinutes = 5): bool
+    {
+        $target = $this->getReminderWindowTargetForOccurrence($occurrenceDate, $window);
+
+        if (! $target) {
+            return false;
+        }
+
+        return $now->greaterThanOrEqualTo($target)
+            && $now->lessThanOrEqualTo($target->copy()->addMinutes($graceMinutes));
+    }
+
+    public function getDueReminderWindows(Carbon $now, int $graceMinutes = 5): array
+    {
+        $occurrenceDates = collect([
+            $now->copy()->startOfDay(),
+            $now->copy()->addDay()->startOfDay(),
+        ])->unique(fn (Carbon $date) => $date->format('Y-m-d'));
+
+        $windows = [
+            self::REMINDER_WINDOW_DAY_BEFORE,
+            self::REMINDER_WINDOW_DAY_OF_6AM,
+            self::REMINDER_WINDOW_ONE_HOUR_BEFORE,
+        ];
+
+        $due = [];
+
+        foreach ($occurrenceDates as $occurrenceDate) {
+            if (! $this->isOccurrenceDate($occurrenceDate)) {
                 continue;
             }
 
-            $reminderAt = $this->getReminderDateTimeForOccurrence($date);
+            foreach ($windows as $window) {
+                if ($this->hasReminderWindowBeenSentForOccurrence($window, $occurrenceDate)) {
+                    continue;
+                }
 
-            if ($now->greaterThanOrEqualTo($reminderAt) && $now->lessThanOrEqualTo($reminderAt->copy()->addMinutes($graceMinutes))) {
-                return $date->copy();
+                if ($this->isReminderWindowDueForOccurrence($occurrenceDate, $window, $now, $graceMinutes)) {
+                    $due[] = [
+                        'occurrence_date' => $occurrenceDate->copy(),
+                        'window' => $window,
+                    ];
+                }
             }
         }
 
-        return null;
+        return $due;
+    }
+
+    public function getOccurrenceInReminderWindow(Carbon $now, int $graceMinutes = 5): ?Carbon
+    {
+        $due = $this->getDueReminderWindows($now, $graceMinutes);
+
+        return $due[0]['occurrence_date'] ?? null;
+    }
+
+    public function hasReminderWindowBeenSentForOccurrence(string $window, Carbon $occurrenceDate): bool
+    {
+        $occurrenceKey = $occurrenceDate->format('Y-m-d');
+
+        return filled(data_get($this->reminder_delivery_log, "{$occurrenceKey}.{$window}.sent_at"));
+    }
+
+    public function markReminderWindowAsSentForOccurrence(string $window, Carbon $occurrenceDate, ?Carbon $sentAt = null): void
+    {
+        $log = $this->reminder_delivery_log ?: [];
+        $occurrenceKey = $occurrenceDate->format('Y-m-d');
+
+        $log[$occurrenceKey][$window] = [
+            'sent_at' => ($sentAt ?: Carbon::now())->toIso8601String(),
+        ];
+
+        $this->reminder_delivery_log = $log;
+    }
+
+    /**
+     * Get a human-readable label for a reminder window.
+     */
+    public function getReminderWindowLabel(string $window): string
+    {
+        return match ($window) {
+            self::REMINDER_WINDOW_DAY_BEFORE => '1 Day Before',
+            self::REMINDER_WINDOW_DAY_OF_6AM => '6 AM',
+            self::REMINDER_WINDOW_ONE_HOUR_BEFORE => '1 Hour Before',
+            default => ucfirst(str_replace('_', ' ', $window)),
+        };
+    }
+
+    public function getReminderWindowMessage(string $window): string
+    {
+        return match ($window) {
+            self::REMINDER_WINDOW_DAY_BEFORE => 'one-day-before reminder',
+            self::REMINDER_WINDOW_DAY_OF_6AM => '6 AM reminder',
+            self::REMINDER_WINDOW_ONE_HOUR_BEFORE => 'one-hour-before reminder',
+            default => $this->getReminderWindowLabel($window) . ' reminder',
+        };
     }
 
     public function isOccurrenceDate(Carbon $candidate): bool

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\CalendarEvent;
+use App\Services\CalendarManagement\CalendarNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\{Auth, DB, Log, Validator};
 use Carbon\Carbon;
@@ -94,6 +95,8 @@ class CalendarEventController extends Controller
             'event_time' => 'nullable|date_format:H:i',
             'email_recipients' => 'nullable|string',
             'whatsapp_recipients' => 'nullable|string',
+            'notification_channels' => 'nullable|array|min:1',
+            'notification_channels.*' => 'in:all,mail,whatsapp',
         ]);
 
         if ($validator->fails()) {
@@ -103,10 +106,12 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        if (empty(trim((string) $request->email_recipients)) && empty(trim((string) $request->whatsapp_recipients))) {
+        $notificationChannels = $this->normalizeNotificationChannels($request);
+
+        if (empty($notificationChannels)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please add at least one email or WhatsApp recipient.'
+                'message' => 'Please select at least one notification platform.'
             ], 422);
         }
 
@@ -152,6 +157,7 @@ class CalendarEventController extends Controller
                 'event_time' => $eventDateTime ?? null,
                 'email_recipients' => $request->email_recipients,
                 'whatsapp_recipients' => $request->whatsapp_recipients,
+                'notification_channels' => $notificationChannels,
                 'created_by' => Auth::id(),
                 'status' => 1,
             ]);
@@ -159,6 +165,7 @@ class CalendarEventController extends Controller
             DB::commit();
 
             $this->logActivity('Calendar event created: ' . $event->title, $event);
+            app(CalendarNotificationService::class)->notifyCreated($event);
 
             return response()->json([
                 'success' => true,
@@ -205,6 +212,7 @@ class CalendarEventController extends Controller
                     'event_time' => $event->event_time->format('H:i'),
                     'email_recipients' => $event->email_recipients,
                     'whatsapp_recipients' => $event->whatsapp_recipients,
+                    'notification_channels' => $event->notification_channels_array,
                     'notification_sent' => $event->notification_sent,
                     'reminder_10min_sent' => $event->reminder_10min_sent,
                     'event_time_notification_sent' => $event->event_time_notification_sent,
@@ -259,6 +267,8 @@ class CalendarEventController extends Controller
             'event_time' => 'required|date_format:H:i',
             'email_recipients' => 'nullable|string',
             'whatsapp_recipients' => 'nullable|string',
+            'notification_channels' => 'nullable|array|min:1',
+            'notification_channels.*' => 'in:all,mail,whatsapp',
         ]);
 
         if ($validator->fails()) {
@@ -268,10 +278,12 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        if (empty(trim((string) $request->email_recipients)) && empty(trim((string) $request->whatsapp_recipients))) {
+        $notificationChannels = $this->normalizeNotificationChannels($request);
+
+        if (empty($notificationChannels)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Please add at least one email or WhatsApp recipient.'
+                'message' => 'Please select at least one notification platform.'
             ], 422);
         }
 
@@ -317,6 +329,7 @@ class CalendarEventController extends Controller
                 'event_time' => $eventDateTime,
                 'email_recipients' => $request->email_recipients,
                 'whatsapp_recipients' => $request->whatsapp_recipients,
+                'notification_channels' => $notificationChannels,
             ]);
 
             DB::commit();
@@ -331,6 +344,7 @@ class CalendarEventController extends Controller
                     'title' => $event->title,
                     'start' => $event->event_date->format('Y-m-d') . 'T' . $event->event_time->format('H:i:s'),
                     'description' => $event->description,
+                    'notification_channels' => $event->notification_channels_array,
                     'backgroundColor' => $event->notification_sent ? '#28a745' : '#007bff',
                     'borderColor' => $event->notification_sent ? '#28a745' : '#007bff',
                 ]
@@ -495,6 +509,21 @@ class CalendarEventController extends Controller
         return CalendarEvent::query()->where('created_by', Auth::id());
     }
 
+    private function normalizeNotificationChannels(Request $request): array
+    {
+        $channels = collect($request->input('notification_channels', []))
+            ->map(fn ($channel) => strtolower(trim((string) $channel)))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($channels->contains('all')) {
+            return ['mail', 'whatsapp'];
+        }
+
+        return $channels->intersect(['mail', 'whatsapp'])->values()->all();
+    }
+
     private function logActivity(string $message, ?CalendarEvent $event = null): void
     {
         if (!function_exists('activity')) {
@@ -535,6 +564,7 @@ class CalendarEventController extends Controller
             'email_recipients_array' => $event->email_recipients_array,
             'whatsapp_recipients' => $event->whatsapp_recipients,
             'whatsapp_recipients_array' => $event->whatsapp_recipients_array,
+            'notification_channels' => $event->notification_channels_array,
             'notification_sent' => (bool) $event->notification_sent,
             'notification_sent_at' => optional($event->notification_sent_at)?->toISOString(),
             'reminder_10min_sent' => (bool) $event->reminder_10min_sent,

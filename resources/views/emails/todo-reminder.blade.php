@@ -31,6 +31,7 @@
         $repeatDays = !empty($todo->repeat_days_list)
             ? collect($todo->repeat_days_list)->map(fn($day) => ucfirst(substr($day, 0, 3)))->implode(', ')
             : 'Not specified';
+        $reminderWindowLabel = $reminderWindowLabel ?? '6 AM';
     @endphp
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
@@ -66,6 +67,9 @@
                         <td style="padding:18px 48px 0 48px;">
                             <h1 style="margin:0; font-size:24px; line-height:1.35; color:#2b3b52; font-weight:700;">Todo
                                 Reminder Request</h1>
+                            <p style="margin:10px 0 0 0; font-size:14px; color:#64748b;">
+                                Reminder window: {{ $reminderWindowLabel }}
+                            </p>
                         </td>
                     </tr>
 

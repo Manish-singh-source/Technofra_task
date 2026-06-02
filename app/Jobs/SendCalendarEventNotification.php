@@ -47,6 +47,7 @@ class SendCalendarEventNotification implements ShouldQueue
             // Check if notification already sent
             if ($this->event->notification_sent) {
                 Log::info("Notification already sent for event: {$this->event->title}");
+                DB::rollBack();
                 return;
             }
 

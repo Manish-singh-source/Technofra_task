@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Calendar Event Reminder</title>
+    <title>{{ $notificationType === 'created' ? 'Calendar Event Notification' : 'Calendar Event Reminder' }}</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -98,18 +98,28 @@
     </style>
 </head>
 <body>
+    @php
+        $reminderLabel = match ($notificationType) {
+            'day_before' => '1 Day Before Reminder',
+            'day_of_6am' => '6 AM Reminder',
+            'one_hour_before' => '1 Hour Before Reminder',
+            'event_time' => 'Event Time Reminder',
+            'reminder_10min' => '10 Minute Reminder',
+            default => 'Event Reminder',
+        };
+    @endphp
     <div class="email-container">
         <!-- Header -->
         <div class="header">
-            <div class="logo">Calendar Event Reminder</div>
+            <div class="logo">{{ $notificationType === 'created' ? 'Calendar Event Notification' : 'Calendar Event Reminder' }}</div>
             {{-- <div class="logo">Technofra Renewal Master</div> --}}
             {{-- <p>Calendar Event Reminder</p> --}}
         </div>
 
         <!-- Alert Box -->
         <div class="alert-box">
-            <strong>⏰ Event Reminder</strong><br>
-            This is a reminder for your scheduled event
+            <strong>{{ $notificationType === 'created' ? 'Event Notification' : $reminderLabel }}</strong><br>
+            {{ $notificationType === 'created' ? 'This is a notification for your scheduled event' : 'This is a reminder for your scheduled event' }}
         </div>
 
         <!-- Event Details -->
