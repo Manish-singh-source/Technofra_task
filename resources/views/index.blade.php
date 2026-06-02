@@ -783,7 +783,7 @@
                                 <div class="invalid-feedback d-block" id="notification_channels_error"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="email_recipients" class="form-label">Email Recipients (Optional)</label>
+                                <label for="email_recipients" class="form-label">Email Recipients</label>
                                 <input type="text" class="form-control" id="email_recipients" name="email_recipients"
                                     placeholder="email1@example.com, email2@example.com">
                                 <small class="form-text text-muted">Comma-separated emails for direct delivery. Admin and creator accounts are also notified on the selected channels.</small>
