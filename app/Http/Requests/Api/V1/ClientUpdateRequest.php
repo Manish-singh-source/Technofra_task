@@ -15,14 +15,21 @@ class ClientUpdateRequest extends FormRequest
 
     public function rules(): array
     {
-        $clientId = $this->route('client')?->id ?? $this->route('id');
+        $routeClient = $this->route('client');
+        $clientId = data_get($routeClient, 'id', $routeClient) ?? $this->route('id');
 
         return [
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'first_name' => 'required|string|min:3|max:255',
             'last_name' => 'nullable|string|min:3|max:255',
-            'email' => ['nullable', 'email', Rule::unique('users', 'email')->ignore($clientId)],
+            'email' => [
+                'nullable',
+                'email',
+                Rule::unique('users', 'email')
+                    ->ignore($clientId)
+                    ->where(fn ($query) => $query->where('role', 'client')),
+            ],
             'phone' => 'nullable|string|min:10|max:20',
             'status' => ['nullable', Rule::in(['active', 'inactive'])],
             'password' => 'nullable|string|min:8',
