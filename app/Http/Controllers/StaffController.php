@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\Team;
+use App\Models\TaskTimeLog;
 use App\Models\User;
 use App\Services\StaffLeadAnalyticsService;
 use Carbon\Carbon;
@@ -195,6 +196,7 @@ class StaffController extends Controller
         $projects = $staff->projects()->latest()->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
         $loggedTimeStats = $this->buildStaffLoggedTimeStats($staff);
+        $staffProjectAnalytics = $this->buildStaffProjectAnalytics($staff, $projects, $tasks);
         $this->authorizeStaffAnalyticsAccess($staff);
         $analyticsFilters = [
             'period' => request()->query('period', '30d'),
@@ -210,6 +212,7 @@ class StaffController extends Controller
             'projects',
             'tasks',
             'loggedTimeStats',
+            'staffProjectAnalytics',
             'staffLeadAnalytics',
             'analyticsFilters'
         ));
@@ -243,6 +246,139 @@ class StaffController extends Controller
         return response()->json(
             $this->staffLeadAnalyticsService->followupChart((int) $staff->id, $request->only(['period', 'from', 'to']))
         );
+    }
+
+    private function buildStaffProjectAnalytics(User $staff, $projects, $tasks): array
+    {
+        $projects = collect($projects);
+        $tasks = collect($tasks);
+        $now = now();
+        $days = collect(range(29, 0))->map(fn ($i) => $now->copy()->subDays($i)->startOfDay());
+
+        $projectStatusLabels = ['not_started', 'in_progress', 'completed', 'on_hold', 'cancelled'];
+        $taskStatusLabels = ['not_started', 'in_progress', 'completed', 'on_hold', 'cancelled'];
+
+        $projectStatusCounts = $projects->countBy(fn ($project) => (string) ($project->status ?? 'not_started'));
+        $taskStatusCounts = $tasks->countBy(fn ($task) => (string) ($task->status ?? 'not_started'));
+
+        $projectsStartedByMonth = $projects
+            ->filter(fn ($project) => ! empty($project->start_date))
+            ->groupBy(fn ($project) => $project->start_date->format('Y-m'))
+            ->map->count();
+
+        $projectDeadlinesByMonth = $projects
+            ->filter(fn ($project) => ! empty($project->deadline))
+            ->groupBy(fn ($project) => $project->deadline->format('Y-m'))
+            ->map->count();
+
+        $projectStatusDistribution = [
+            'labels' => collect($projectStatusLabels)->map(fn ($label) => ucfirst(str_replace('_', ' ', $label)))->all(),
+            'series' => collect($projectStatusLabels)->map(fn ($label) => (int) ($projectStatusCounts[$label] ?? 0))->values()->all(),
+        ];
+
+        $taskStatusDistribution = [
+            'labels' => collect($taskStatusLabels)->map(fn ($label) => ucfirst(str_replace('_', ' ', $label)))->all(),
+            'series' => collect($taskStatusLabels)->map(fn ($label) => (int) ($taskStatusCounts[$label] ?? 0))->values()->all(),
+        ];
+
+        $taskOptions = $tasks
+            ->map(fn ($task) => [
+                'id' => (int) $task->id,
+                'label' => trim((string) $task->title . ' (' . (string) optional($task->project)->project_name . ')'),
+                'project_id' => (int) ($task->project_id ?? 0),
+                'project_name' => (string) optional($task->project)->project_name,
+                'status' => (string) ($task->status ?? 'not_started'),
+            ])
+            ->values()
+            ->all();
+
+        $taskIds = $tasks->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
+        $taskCompletionLabels = $days->map(fn ($day) => $day->format('d M'))->values()->all();
+        $emptyTaskCompletionSeries = static function () use ($taskCompletionLabels, $days): array {
+            return [
+                'labels' => $taskCompletionLabels,
+                'series' => [
+                    ['name' => 'In Progress', 'data' => array_fill(0, $days->count(), 0)],
+                    ['name' => 'Completed', 'data' => array_fill(0, $days->count(), 0)],
+                ],
+            ];
+        };
+
+        $taskCompletionDatasets = [
+            'all' => $emptyTaskCompletionSeries(),
+        ];
+
+        foreach ($taskOptions as $taskOption) {
+            $taskCompletionDatasets[(string) $taskOption['id']] = $emptyTaskCompletionSeries();
+        }
+
+        if (! empty($taskIds)) {
+            $completionRows = TaskTimeLog::query()
+                ->join('tasks', 'tasks.id', '=', 'task_time_logs.task_id')
+                ->where('task_time_logs.user_id', $staff->id)
+                ->whereIn('tasks.status', ['in_progress', 'completed'])
+                ->whereRaw(
+                    'DATE(COALESCE(task_time_logs.ended_at, task_time_logs.started_at)) BETWEEN ? AND ?',
+                    [$days->first()->toDateString(), $days->last()->toDateString()]
+                )
+                ->selectRaw(
+                    'DATE(COALESCE(task_time_logs.ended_at, task_time_logs.started_at)) as activity_date, tasks.id as task_id, tasks.status as task_status, SUM(task_time_logs.duration_minutes) as total_minutes'
+                )
+                ->groupBy('activity_date', 'tasks.id', 'task_status')
+                ->get();
+
+            foreach ($completionRows as $row) {
+                $dayIndex = $days->search(fn ($day) => $day->toDateString() === (string) $row->activity_date);
+
+                if ($dayIndex === false) {
+                    continue;
+                }
+
+                $statusIndex = (string) $row->task_status === 'completed' ? 1 : 0;
+                $hours = round(((float) $row->total_minutes) / 60, 2);
+                $taskKey = (string) $row->task_id;
+
+                $taskCompletionDatasets['all']['series'][$statusIndex]['data'][$dayIndex] += $hours;
+
+                if (isset($taskCompletionDatasets[$taskKey])) {
+                    $taskCompletionDatasets[$taskKey]['series'][$statusIndex]['data'][$dayIndex] += $hours;
+                }
+            }
+        }
+
+        return [
+            'kpis' => [
+                'total_projects' => $projects->count(),
+                'active_projects' => $projects->where('status', 'in_progress')->count(),
+                'completed_projects' => $projects->where('status', 'completed')->count(),
+                'pending_projects' => $projects->where('status', 'pending')->count(),
+                'overdue_projects' => $projects->filter(function ($project) {
+                    return $project->deadline
+                        && method_exists($project->deadline, 'isPast')
+                        && $project->deadline->isPast()
+                        && $project->status !== 'completed';
+                })->count(),
+                'total_tasks' => $tasks->count(),
+                'completed_tasks' => $tasks->where('status', 'completed')->count(),
+                'in_progress_tasks' => $tasks->where('status', 'in_progress')->count(),
+                'pending_tasks' => $tasks->where('status', 'pending')->count(),
+                'completion_rate' => $projects->count() > 0
+                    ? round(($projects->where('status', 'completed')->count() / $projects->count()) * 100, 2)
+                    : 0,
+                'avg_progress' => round((float) $projects->avg(fn ($project) => (float) ($project->progress_percentage ?? 0)), 2),
+            ],
+            'charts' => [
+                'project_status_distribution' => $projectStatusDistribution,
+                'task_status_distribution' => $taskStatusDistribution,
+                'monthly_project_activity' => [
+                    'labels' => collect(range(11, 0))->map(fn ($i) => $now->copy()->startOfMonth()->subMonths($i)->format('M Y'))->values()->all(),
+                    'projects_started' => collect(range(11, 0))->map(fn ($i) => (int) ($projectsStartedByMonth[$now->copy()->startOfMonth()->subMonths($i)->format('Y-m')] ?? 0))->values()->all(),
+                    'project_deadlines' => collect(range(11, 0))->map(fn ($i) => (int) ($projectDeadlinesByMonth[$now->copy()->startOfMonth()->subMonths($i)->format('Y-m')] ?? 0))->values()->all(),
+                ],
+                'monthly_task_completion' => $taskCompletionDatasets,
+            ],
+            'task_options' => $taskOptions,
+        ];
     }
 
     /**

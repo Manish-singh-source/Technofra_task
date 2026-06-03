@@ -707,6 +707,136 @@
 
                         <div class="tab-pane fade" id="projectsTabPane" role="tabpanel"
                             aria-labelledby="projects-tab" tabindex="0">
+                            @php
+                                $projectAnalytics = $staffProjectAnalytics ?? ['kpis' => [], 'charts' => []];
+                                $projectKpis = $projectAnalytics['kpis'] ?? [];
+                                $projectCharts = $projectAnalytics['charts'] ?? [];
+                            @endphp
+                            <div class="row mb-3">
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                                <h5 class="mb-0">Project & Task Analytics</h5>
+                                                <span class="text-muted small">Overview of projects and workload assigned to this staff member</span>
+                                            </div>
+                                            <div class="row g-3">
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-primary h-100">
+                                                        <div class="card-body p-3">
+                                                            <small>Total Projects</small>
+                                                            <h5 class="mb-0">{{ $projectKpis['total_projects'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-info h-100">
+                                                        <div class="card-body p-3">
+                                                            <small>Active Projects</small>
+                                                            <h5 class="mb-0">{{ $projectKpis['active_projects'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-success h-100">
+                                                        <div class="card-body p-3">
+                                                            <small>Completed Projects</small>
+                                                            <h5 class="mb-0">{{ $projectKpis['completed_projects'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-warning h-100">
+                                                        <div class="card-body p-3">
+                                                            <small>Overdue Projects</small>
+                                                            <h5 class="mb-0">{{ $projectKpis['overdue_projects'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-secondary h-100">
+                                                        <div class="card-body p-3">
+                                                            <small>Total Tasks</small>
+                                                            <h5 class="mb-0">{{ $projectKpis['total_tasks'] ?? 0 }}</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-xl-2 col-md-4 col-sm-6">
+                                                    <div class="card border-start border-0 border-3 border-dark h-100">
+                                                        <div class="card-body p-3">
+                                                            <small>Avg Progress</small>
+                                                            <h5 class="mb-0">{{ $projectKpis['avg_progress'] ?? 0 }}%</h5>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row g-3 mt-1">
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Project Status Distribution</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffProjectStatusChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Task Status Distribution</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffTaskStatusChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Monthly Project Timeline</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div id="staffMonthlyProjectActivityChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg-6">
+                                                    <div class="card h-100">
+                                                        <div class="card-header">
+                                                            <h6 class="mb-0">Monthly Task Completion</h6>
+                                                        </div>
+                                                        <div class="card-body">
+                                                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                                                                <div class="text-muted small">
+                                                                    Last 30 days, split by in-progress and completed task hours, filtered by the selected task.
+                                                                </div>
+                                                                <select id="staffTaskCompletionTaskFilter" class="form-select form-select-sm" style="min-width: 220px;">
+                                                                    <option value="all">All Tasks</option>
+                                                                    @foreach (($projectAnalytics['task_options'] ?? []) as $taskOption)
+                                                                        <option value="{{ $taskOption['id'] }}">
+                                                                            {{ $taskOption['label'] }}
+                                                                        </option>
+                                                                    @endforeach
+                                                                </select>
+                                                            </div>
+                                                            <div id="staffTaskCompletionChart" style="height:300px;">
+                                                                <div class="text-muted small">Charts loading...</div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="row mb-4">
                                 <div class="col-12">
                                     <div class="card">
@@ -971,6 +1101,10 @@
                 '#staffDailyActivityChart',
                 '#staffAssignedVsConvertedChart',
                 '#staffOverdueTrendChart',
+                '#staffProjectStatusChart',
+                '#staffTaskStatusChart',
+                '#staffMonthlyProjectActivityChart',
+                '#staffTaskCompletionChart',
             ];
             chartEls.forEach((sel) => {
                 const el = document.querySelector(sel);
@@ -1115,6 +1249,8 @@
 
             const analyticsUrl = @json(route('staff.analytics', $staff->id));
             const initialAnalytics = @json($analytics);
+            const initialProjectAnalytics = @json($staffProjectAnalytics);
+            const projectAnalyticsData = initialProjectAnalytics || {};
             const params = new URLSearchParams(window.location.search);
             const charts = {};
 
@@ -1226,6 +1362,91 @@
                 });
             }
 
+            function renderTaskCompletionChart(taskId) {
+                const datasets = projectAnalyticsData.charts?.monthly_task_completion || {};
+                const dataset = datasets[String(taskId || 'all')] || datasets.all || {
+                    labels: [],
+                    series: [
+                        { name: 'In Progress', data: [] },
+                        { name: 'Completed', data: [] }
+                    ]
+                };
+
+                renderOrUpdateChart('taskCompletion', '#staffTaskCompletionChart', {
+                    chart: { type: 'bar', height: 300, stacked: true, toolbar: { show: false } },
+                    plotOptions: {
+                        bar: {
+                            horizontal: false,
+                            columnWidth: '55%',
+                        }
+                    },
+                    dataLabels: { enabled: false },
+                    series: dataset.series || [],
+                    xaxis: {
+                        categories: dataset.labels || [],
+                        title: { text: 'Day of Month' }
+                    },
+                    yaxis: {
+                        title: { text: 'Hours' },
+                        min: 0
+                    },
+                    colors: ['#17a2b8', '#198754'],
+                    tooltip: {
+                        y: {
+                            formatter: function(value) {
+                                return Number(value || 0).toFixed(2) + ' hrs';
+                            }
+                        }
+                    }
+                });
+            }
+
+            function renderProjectAnalytics() {
+                const c = projectAnalyticsData.charts || {};
+                const projectStatus = normalizeDonutData(
+                    c.project_status_distribution,
+                    'No project status data'
+                );
+                const taskStatus = normalizeDonutData(
+                    c.task_status_distribution,
+                    'No task status data'
+                );
+
+                renderOrUpdateChart('projectStatus', '#staffProjectStatusChart', {
+                    chart: { type: 'donut', height: 300 },
+                    labels: projectStatus.labels,
+                    series: projectStatus.series,
+                    colors: ['#0d6efd', '#17a2b8', '#198754', '#ffc107', '#dc3545'],
+                });
+
+                renderOrUpdateChart('taskStatus', '#staffTaskStatusChart', {
+                    chart: { type: 'donut', height: 300 },
+                    labels: taskStatus.labels,
+                    series: taskStatus.series,
+                    colors: ['#0d6efd', '#17a2b8', '#198754', '#ffc107', '#dc3545'],
+                });
+
+                renderOrUpdateChart('monthlyProjectActivity', '#staffMonthlyProjectActivityChart', {
+                    chart: { type: 'line', height: 300, toolbar: { show: false } },
+                    series: [
+                        { name: 'Projects Started', data: c.monthly_project_activity?.projects_started || [] },
+                        { name: 'Project Deadlines', data: c.monthly_project_activity?.project_deadlines || [] }
+                    ],
+                    xaxis: { categories: c.monthly_project_activity?.labels || [] },
+                    colors: ['#6f42c1', '#0d6efd'],
+                    stroke: { curve: 'smooth', width: 3 }
+                });
+
+                renderTaskCompletionChart(document.getElementById('staffTaskCompletionTaskFilter')?.value || 'all');
+            }
+
+            const taskCompletionFilter = document.getElementById('staffTaskCompletionTaskFilter');
+            if (taskCompletionFilter) {
+                taskCompletionFilter.addEventListener('change', function() {
+                    renderTaskCompletionChart(this.value || 'all');
+                });
+            }
+
             function fetchAnalyticsAndRender() {
                 fetch(analyticsUrl + (params.toString() ? '?' + params.toString() : ''), {
                     headers: {
@@ -1233,10 +1454,14 @@
                     }
                 })
                 .then(res => res.json())
-                .then(payload => renderAnalytics(payload))
+                .then(payload => {
+                    renderAnalytics(payload);
+                    renderProjectAnalytics();
+                })
                 .catch((error) => {
                     console.error('Failed loading staff analytics API, rendering initial payload:', error);
                     renderAnalytics(initialAnalytics || {});
+                    renderProjectAnalytics();
                 });
             }
 
