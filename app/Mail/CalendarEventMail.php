@@ -4,6 +4,7 @@ namespace App\Mail;
 
 use App\Models\CalendarEvent;
 use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailables\Address;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -16,6 +17,8 @@ class CalendarEventMail extends Mailable
     public $event;
     public string $notificationType;
     public string $subjectLine;
+    public ?string $fromAddress;
+    public ?string $fromName;
 
     /**
      * Create a new message instance.
@@ -23,11 +26,19 @@ class CalendarEventMail extends Mailable
      * @param \App\Models\CalendarEvent $event
      * @return void
      */
-    public function __construct(CalendarEvent $event, string $notificationType = 'reminder', ?string $subjectLine = null)
+    public function __construct(
+        CalendarEvent $event,
+        string $notificationType = 'reminder',
+        ?string $subjectLine = null,
+        ?string $fromAddress = null,
+        ?string $fromName = null
+    )
     {
         $this->event = $event;
         $this->notificationType = $notificationType;
         $this->subjectLine = $subjectLine ?: $this->defaultSubject($notificationType);
+        $this->fromAddress = $fromAddress ?: $this->resolveFromAddress();
+        $this->fromName = $fromName ?: $this->resolveFromName();
     }
 
     /**
@@ -37,9 +48,17 @@ class CalendarEventMail extends Mailable
      */
     public function envelope()
     {
-        return new Envelope(
-            subject: $this->subjectLine,
-        );
+        $envelope = new Envelope(subject: $this->subjectLine);
+
+        if ($this->fromAddress !== null && filter_var($this->fromAddress, FILTER_VALIDATE_EMAIL)) {
+            $envelope = new Envelope(
+                subject: $this->subjectLine,
+                from: new Address($this->fromAddress, $this->fromName ?: config('mail.from.name', config('app.name'))),
+                replyTo: [new Address($this->fromAddress, $this->fromName ?: config('mail.from.name', config('app.name')))],
+            );
+        }
+
+        return $envelope;
     }
 
     /**
@@ -79,5 +98,29 @@ class CalendarEventMail extends Mailable
             'one_hour_before' => 'Calendar Event 1 Hour Before Reminder: ' . $this->event->title,
             default => 'Calendar Event Reminder: ' . $this->event->title,
         };
+    }
+
+    private function resolveFromAddress(): ?string
+    {
+        $creatorEmail = trim((string) ($this->event->creator->email ?? ''));
+
+        if ($creatorEmail !== '' && filter_var($creatorEmail, FILTER_VALIDATE_EMAIL)) {
+            return $creatorEmail;
+        }
+
+        $configFromAddress = trim((string) config('mail.from.address', ''));
+
+        return $configFromAddress !== '' ? $configFromAddress : null;
+    }
+
+    private function resolveFromName(): string
+    {
+        $creatorName = trim((string) ($this->event->creator->name ?? ''));
+
+        if ($creatorName !== '') {
+            return $creatorName;
+        }
+
+        return (string) config('mail.from.name', config('app.name'));
     }
 }

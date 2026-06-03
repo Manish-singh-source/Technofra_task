@@ -783,14 +783,14 @@
                                 <div class="invalid-feedback d-block" id="notification_channels_error"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="email_recipients" class="form-label">Email Recipients</label>
+                                <label for="email_recipients" class="form-label">Email Recipients (Optional)</label>
                                 <input type="text" class="form-control" id="email_recipients" name="email_recipients"
                                     placeholder="email1@example.com, email2@example.com">
                                 <small class="form-text text-muted">Comma-separated emails for direct delivery. Admin and creator accounts are also notified on the selected channels.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers)</label>
+                                <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers, Optional)</label>
                                 <input type="text" class="form-control" id="whatsapp_recipients"
                                     name="whatsapp_recipients" placeholder="919876543210, 919876543211">
                                 <small class="form-text text-muted">Use international format. Multiple numbers comma separated.</small>
@@ -881,7 +881,7 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers)</label>
+                                <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers, Optional)</label>
                                 <input type="text" class="form-control" id="edit_whatsapp_recipients"
                                     name="whatsapp_recipients" placeholder="919876543210, 919876543211">
                                 <small class="form-text text-muted">International format. Multiple numbers comma

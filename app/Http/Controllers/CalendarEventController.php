@@ -115,7 +115,7 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        $emails = array_filter(array_map('trim', explode(',', (string) $request->email_recipients)));
+        $emails = $this->normalizeDelimitedRecipients($request->email_recipients);
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return response()->json([
@@ -125,9 +125,12 @@ class CalendarEventController extends Controller
             }
         }
 
-        if ($request->whatsapp_recipients) {
-            $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
-            foreach ($phones as $phone) {
+        $phones = $this->normalizeDelimitedRecipients($request->whatsapp_recipients);
+        foreach ($phones as $phone) {
+            if ($phone === '') {
+                continue;
+            }
+
                 $cleanPhone = preg_replace('/\D+/', '', $phone);
                 if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
                     return response()->json([
@@ -135,7 +138,6 @@ class CalendarEventController extends Controller
                         'message' => "Invalid phone number: {$phone}"
                     ], 422);
                 }
-            }
         }
 
         DB::beginTransaction();
@@ -155,8 +157,8 @@ class CalendarEventController extends Controller
                 // Use provided date/time or default to null if not provided
                 'event_date' => $request->event_date ?? null,
                 'event_time' => $eventDateTime ?? null,
-                'email_recipients' => $request->email_recipients,
-                'whatsapp_recipients' => $request->whatsapp_recipients,
+                'email_recipients' => $emails !== [] ? implode(', ', $emails) : null,
+                'whatsapp_recipients' => $phones !== [] ? implode(', ', $phones) : null,
                 'notification_channels' => $notificationChannels,
                 'created_by' => Auth::id(),
                 'status' => 1,
@@ -287,7 +289,7 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        $emails = array_filter(array_map('trim', explode(',', (string) $request->email_recipients)));
+        $emails = $this->normalizeDelimitedRecipients($request->email_recipients);
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 return response()->json([
@@ -297,9 +299,12 @@ class CalendarEventController extends Controller
             }
         }
 
-        if ($request->whatsapp_recipients) {
-            $phones = array_filter(array_map('trim', explode(',', $request->whatsapp_recipients)));
-            foreach ($phones as $phone) {
+        $phones = $this->normalizeDelimitedRecipients($request->whatsapp_recipients);
+        foreach ($phones as $phone) {
+            if ($phone === '') {
+                continue;
+            }
+
                 $cleanPhone = preg_replace('/\D+/', '', $phone);
                 if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
                     return response()->json([
@@ -307,7 +312,6 @@ class CalendarEventController extends Controller
                         'message' => "Invalid phone number: {$phone}"
                     ], 422);
                 }
-            }
         }
 
         DB::beginTransaction();
@@ -327,14 +331,15 @@ class CalendarEventController extends Controller
                 'description' => $request->description,
                 'event_date' => $request->event_date,
                 'event_time' => $eventDateTime,
-                'email_recipients' => $request->email_recipients,
-                'whatsapp_recipients' => $request->whatsapp_recipients,
+                'email_recipients' => $emails !== [] ? implode(', ', $emails) : null,
+                'whatsapp_recipients' => $phones !== [] ? implode(', ', $phones) : null,
                 'notification_channels' => $notificationChannels,
             ]);
 
             DB::commit();
 
             $this->logActivity('Calendar event updated: ' . $event->title, $event);
+            app(CalendarNotificationService::class)->notifyUpdated($event);
 
             return response()->json([
                 'success' => true,
@@ -522,6 +527,15 @@ class CalendarEventController extends Controller
         }
 
         return $channels->intersect(['mail', 'whatsapp'])->values()->all();
+    }
+
+    private function normalizeDelimitedRecipients(?string $value): array
+    {
+        return collect(explode(',', (string) $value))
+            ->map(fn ($recipient) => trim((string) $recipient))
+            ->filter(fn ($recipient) => $recipient !== '')
+            ->values()
+            ->all();
     }
 
     private function logActivity(string $message, ?CalendarEvent $event = null): void

@@ -26,6 +26,11 @@ class CalendarNotificationService
         return $this->dispatch($event, 'created');
     }
 
+    public function notifyUpdated(CalendarEvent $event): array
+    {
+        return $this->dispatch($event, 'updated');
+    }
+
     public function notifyReminder(CalendarEvent $event, string $reminderType = 'reminder_10min'): array
     {
         return $this->dispatch($event, $reminderType);
