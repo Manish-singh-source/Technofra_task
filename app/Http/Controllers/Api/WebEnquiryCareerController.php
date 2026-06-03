@@ -70,19 +70,20 @@ class WebEnquiryCareerController extends Controller
             ->map(fn ($item) => $this->mapCareer($item))
             ->values();
 
+        $careersPayload = $careers->toArray();
+        $careersPayload['data'] = $data;
+
         return response()->json([
             'success' => true,
-            'data' => $data,
-            'meta' => [
-                'pagination' => [
-                    'current_page' => $careers->currentPage(),
-                    'last_page' => $careers->lastPage(),
-                    'per_page' => $careers->perPage(),
-                    'total' => $careers->total(),
-                    'from' => $careers->firstItem(),
-                    'to' => $careers->lastItem(),
-                    'has_more_pages' => $careers->hasMorePages(),
-                ],
+            'message' => 'Career enquiries found',
+            'data' => [
+                'careers' => $careersPayload,
+                'perPage' => $careers->perPage(),
+                'currentPage' => $careers->currentPage(),
+                'lastPage' => $careers->lastPage(),
+                'from' => $careers->firstItem(),
+                'to' => $careers->lastItem(),
+                'totalCareers' => $careers->total(),
                 'sorting' => [
                     'sort_by' => $sortBy,
                     'sort_order' => $sortOrder,
