@@ -1131,7 +1131,7 @@ class ProjectController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'members' => 'nullable|array',
-            'members.*' => 'exists:staff,id',
+            'members.*' => 'exists:users,id',
             'description' => 'nullable|string',
             'priority' => 'nullable|in:low,medium,high',
             'technologies' => 'nullable|array',
