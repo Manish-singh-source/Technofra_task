@@ -214,6 +214,6 @@ return [
     ])->toArray(),
 
     // config/app.php
-'admin_email' => env('ADMIN_EMAIL', 'support@technofra.com'),
+    'admin_email' => env('ADMIN_EMAIL', 'support@technofra.com'),
 
 ];
