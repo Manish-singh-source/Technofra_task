@@ -192,10 +192,14 @@ class StaffController extends Controller
         $roles = Role::all();
         $teams = Team::getTeamOptions();
         $departments = Department::getDepartmentOptions();
-        $projects = $staff->projects()->latest()->get();
+        $projects = $staff->projects()
+            ->with(['statusHistories' => fn ($query) => $query->orderBy('changed_at')])
+            ->latest()
+            ->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
         $loggedTimeStats = $this->buildStaffLoggedTimeStats($staff);
         $staffProjectAnalytics = $this->buildStaffProjectAnalytics($staff, $projects, $tasks);
+        $projectTimelineRows = $staffProjectAnalytics['charts']['monthly_project_timeline'] ?? [];
         $this->authorizeStaffAnalyticsAccess($staff);
         $analyticsFilters = [
             'period' => request()->query('period', '30d'),
@@ -212,6 +216,7 @@ class StaffController extends Controller
             'tasks',
             'loggedTimeStats',
             'staffProjectAnalytics',
+            'projectTimelineRows',
             'staffLeadAnalytics',
             'analyticsFilters'
         ));
@@ -226,9 +231,12 @@ class StaffController extends Controller
         $leadAnalytics = $this->staffLeadAnalyticsService->buildDashboard((int) $staff->id, $filters);
         $projects = $staff->projects()->latest()->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
+        $projectAnalytics = $this->buildStaffProjectAnalytics($staff, $projects, $tasks);
 
         return response()->json(array_merge($leadAnalytics, [
-            'project_analytics' => $this->buildStaffProjectAnalytics($staff, $projects, $tasks),
+            'project_analytics' => $projectAnalytics,
+            'project_timeline_rows' => $projectAnalytics['charts']['monthly_project_timeline'] ?? [],
+            'task_status_overview' => $projectAnalytics['charts']['task_status_overview'] ?? [],
         ]));
     }
 
@@ -333,23 +341,73 @@ class StaffController extends Controller
             ->map(function ($project) use ($today) {
                 $startDate = $project->start_date->copy()->startOfDay();
                 $endDate = $project->deadline->copy()->startOfDay();
-                $isOverdue = $endDate->lt($today) && ($project->status !== 'completed');
-                $differenceDays = $isOverdue
-                    ? $endDate->diffInDays($today)
-                    : $today->diffInDays($endDate);
+                $latestHistory = collect($project->statusHistories ?? [])
+                    ->sortByDesc(fn ($history) => optional($history->changed_at)?->timestamp ?? 0)
+                    ->first();
 
+                $currentStatus = strtolower((string) ($project->status ?? 'not_started'));
+                $statusChangedAt = $latestHistory?->changed_at?->copy()->startOfDay()
+                    ?? $project->updated_at?->copy()->startOfDay();
+                $finishedAt = $latestHistory?->changed_at?->copy()->endOfDay()
+                    ?? $project->updated_at?->copy()->endOfDay();
+                $isFinished = in_array($currentStatus, ['completed', 'finished'], true);
+                $isOnHold = $currentStatus === 'on_hold';
+                $isUpcoming = $today->lt($startDate);
+                $hasStarted = ! $isUpcoming;
+                $isPastEndDate = $today->gt($endDate);
+                $finishedBeforeDeadline = $isFinished && $finishedAt && $finishedAt->lte($endDate->copy()->endOfDay());
+
+                if ($isUpcoming) {
+                    $statusLabel = 'Not Started';
+                    $differenceLabel = 'Starts on ' . $startDate->format('M d, Y');
+                    $barColor = '#6c757d';
+                    $statusTextClass = 'text-secondary';
+                } elseif ($isFinished) {
+                    if ($isPastEndDate && ! $finishedBeforeDeadline) {
+                        $statusLabel = 'Overdue';
+                        $differenceDays = $endDate->diffInDays($today);
+                        $differenceLabel = 'Finished after deadline, overdue by ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's');
+                        $barColor = '#dc3545';
+                        $statusTextClass = 'text-danger';
+                    } else {
+                        $statusLabel = 'Finished';
+                        $differenceLabel = 'Finished on ' . ($finishedAt?->format('M d, Y') ?? $today->format('M d, Y'));
+                        $barColor = '#198754';
+                        $statusTextClass = 'text-success';
+                    }
+                } elseif ($isPastEndDate) {
+                    $statusLabel = 'Overdue';
+                    $differenceDays = $endDate->diffInDays($today);
+                    $differenceLabel = 'Overdue by ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's');
+                    $barColor = '#dc3545';
+                    $statusTextClass = 'text-danger';
+                } elseif ($hasStarted && ! $isOnHold) {
+                    $statusLabel = 'In Progress';
+                    $differenceDays = $today->diffInDays($endDate);
+                    $differenceLabel = 'Due in ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's');
+                    $barColor = '#0d6efd';
+                    $statusTextClass = 'text-primary';
+                } else {
+                    $statusLabel = 'Pending';
+                    $differenceLabel = $isOnHold
+                        ? 'On hold since ' . ($statusChangedAt?->format('M d, Y') ?? $today->format('M d, Y'))
+                        : 'Pending';
+                    $barColor = '#6c757d';
+                    $statusTextClass = 'text-secondary';
+                }
                 return [
                     'project_name' => $project->project_name,
                     'start_date' => $startDate->toDateString(),
                     'start_label' => $startDate->format('M d, Y'),
                     'end_date' => $endDate->toDateString(),
                     'end_label' => $endDate->format('M d, Y'),
-                    'is_overdue' => $isOverdue,
-                    'difference_days' => $differenceDays,
-                    'difference_label' => $isOverdue
-                        ? 'Overdue by ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's')
-                        : 'Due in ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's'),
-                    'bar_color' => $isOverdue ? '#dc3545' : '#198754',
+                    'status_label' => $statusLabel,
+                    'status_changed_label' => $statusChangedAt?->format('M d, Y'),
+                    'status_text_class' => $statusTextClass,
+                    'is_overdue' => $statusLabel === 'Overdue',
+                    'difference_days' => $differenceDays ?? null,
+                    'difference_label' => $differenceLabel,
+                    'bar_color' => $barColor,
                 ];
             })
             ->all();

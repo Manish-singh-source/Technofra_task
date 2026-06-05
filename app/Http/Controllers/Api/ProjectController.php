@@ -14,6 +14,7 @@ use App\Models\ProjectChangeRequest;
 use App\Models\ProjectFile;
 use App\Models\ProjectIssue;
 use App\Models\ProjectMilestone;
+use App\Models\ProjectStatusHistory;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
 use App\Models\Task;
@@ -171,6 +172,7 @@ class ProjectController extends Controller
         $project = Project::with([
             'customer',
             'statusLogs' => fn($query) => $query->orderBy('started_at'),
+            'statusHistories' => fn ($query) => $query->orderBy('changed_at')->with('changedBy'),
         ])->findOrFail($id);
 
         $this->authorizeProjectAccess($project);
@@ -207,6 +209,7 @@ class ProjectController extends Controller
                 'customerUser.address',
                 'customerUser',
                 'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+                'statusHistories' => fn ($query) => $query->orderBy('changed_at')->with('changedBy'),
             ])
             ->findOrFail($projectId);
 
@@ -243,6 +246,7 @@ class ProjectController extends Controller
             }
 
             $this->createInitialStatusLog($project);
+            $this->createInitialStatusHistory($project);
             $this->sendProjectCreationNotifications($project);
             $this->projectActivityService->log(
                 (int) $project->id,
@@ -262,7 +266,7 @@ class ProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Project created successfully.',
-                'data' => $this->buildProjectDetailPayload($project->fresh(['customer', 'statusLogs'])),
+                'data' => $this->buildProjectDetailPayload($project->fresh(['customer', 'statusLogs', 'statusHistories'])),
             ], 201);
         } catch (\InvalidArgumentException $e) {
             DB::rollBack();
@@ -312,6 +316,7 @@ class ProjectController extends Controller
             }
 
             $this->syncStatusTimeline($project->fresh('statusLogs'), $oldStatus, $newStatus);
+            $this->recordStatusHistory($project, $oldStatus, $newStatus, Auth::id());
             $this->projectActivityService->log(
                 (int) $project->id,
                 'project_updated',
@@ -331,7 +336,7 @@ class ProjectController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Project updated successfully.',
-                'data' => $this->buildProjectDetailPayload($project->fresh(['customer', 'statusLogs'])),
+                'data' => $this->buildProjectDetailPayload($project->fresh(['customer', 'statusLogs', 'statusHistories'])),
             ]);
         } catch (\InvalidArgumentException $e) {
             DB::rollBack();
@@ -1176,6 +1181,11 @@ class ProjectController extends Controller
         ]);
     }
 
+    private function createInitialStatusHistory(Project $project): void
+    {
+        $this->recordStatusHistory($project, null, (string) $project->status, Auth::id());
+    }
+
     private function syncStatusTimeline(Project $project, string $oldStatus, string $newStatus): void
     {
         $openLog = ProjectStatusLog::where('project_id', $project->id)
@@ -1218,6 +1228,21 @@ class ProjectController extends Controller
             Auth::id(),
             ['from' => $oldStatus, 'to' => $newStatus]
         );
+    }
+
+    private function recordStatusHistory(Project $project, ?string $fromStatus, string $toStatus, ?int $changedBy = null): void
+    {
+        if ($fromStatus !== null && $fromStatus === $toStatus) {
+            return;
+        }
+
+        ProjectStatusHistory::create([
+            'project_id' => $project->id,
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'changed_by' => $changedBy,
+            'changed_at' => now($this->businessTimezone()),
+        ]);
     }
 
     private function getElapsedBoundary(): Carbon
@@ -1327,6 +1352,7 @@ class ProjectController extends Controller
         $project->loadMissing([
             'customer',
             'statusLogs' => fn($query) => $query->orderBy('started_at'),
+            'statusHistories' => fn ($query) => $query->orderBy('changed_at')->with('changedBy'),
         ]);
 
         $elapsedBoundary = $this->getElapsedBoundary();
@@ -1430,6 +1456,14 @@ class ProjectController extends Controller
                 'started_at' => optional($log->started_at)?->toISOString(),
                 'ended_at' => optional($log->ended_at)?->toISOString(),
             ])->values(),
+            'status_history' => $project->statusHistories->map(fn (ProjectStatusHistory $history) => [
+                'id' => $history->id,
+                'from_status' => $history->from_status,
+                'to_status' => $history->to_status,
+                'changed_by' => $history->changed_by,
+                'changed_by_name' => optional($history->changedBy)->name ?? optional($history->changedBy)->email ?? null,
+                'changed_at' => optional($history->changed_at)?->toISOString(),
+            ])->values(),
         ];
     }
 
@@ -1440,6 +1474,7 @@ class ProjectController extends Controller
             'customerUser.address',
             'customerUser',
             'statusLogs' => fn ($query) => $query->orderBy('started_at'),
+            'statusHistories' => fn ($query) => $query->orderBy('changed_at')->with('changedBy'),
         ]);
 
         $elapsedBoundary = $this->getElapsedBoundary();
@@ -1886,6 +1921,14 @@ class ProjectController extends Controller
                 'status' => $log->status,
                 'started_at' => optional($log->started_at)?->toISOString(),
                 'ended_at' => optional($log->ended_at)?->toISOString(),
+            ])->values(),
+            'status_history' => $project->statusHistories->map(fn (ProjectStatusHistory $history) => [
+                'id' => $history->id,
+                'from_status' => $history->from_status,
+                'to_status' => $history->to_status,
+                'changed_by' => $history->changed_by,
+                'changed_by_name' => optional($history->changedBy)->name ?? optional($history->changedBy)->email ?? null,
+                'changed_at' => optional($history->changed_at)?->toISOString(),
             ])->values(),
             'charts' => $this->projectDashboardService->charts((int) $project->id),
             'kanban' => $this->projectDashboardService->kanbanBoard((int) $project->id),

@@ -710,33 +710,6 @@
                             @php
                                 $projectAnalytics = $staffProjectAnalytics ?? ['kpis' => [], 'charts' => []];
                                 $projectKpis = $projectAnalytics['kpis'] ?? [];
-                                $projectTimelineRows = collect($projects ?? [])
-                                    ->filter(fn ($project) => $project->start_date && $project->deadline)
-                                    ->sortByDesc(fn ($project) => $project->start_date?->timestamp ?? 0)
-                                    ->values()
-                                    ->map(function ($project) {
-                                        $startDate = $project->start_date->copy()->startOfDay();
-                                        $endDate = $project->deadline->copy()->startOfDay();
-                                        $today = now()->startOfDay();
-                                        $isOverdue = $endDate->lt($today) && ($project->status !== 'completed');
-                                        $differenceDays = $isOverdue
-                                            ? $endDate->diffInDays($today)
-                                            : $today->diffInDays($endDate);
-
-                                        return [
-                                            'project_name' => $project->project_name,
-                                            'start_date' => $startDate->toDateString(),
-                                            'start_label' => $startDate->format('M d, Y'),
-                                            'end_date' => $endDate->toDateString(),
-                                            'end_label' => $endDate->format('M d, Y'),
-                                            'is_overdue' => $isOverdue,
-                                            'difference_days' => $differenceDays,
-                                            'difference_label' => $isOverdue
-                                                ? 'Overdue by ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's')
-                                                : 'Due in ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's'),
-                                            'bar_color' => $isOverdue ? '#dc3545' : '#198754',
-                                        ];
-                                    });
                             @endphp
                             <div class="row mb-3">
                                 <div class="col-12">
@@ -831,9 +804,10 @@
                                                                 <div class="text-muted small">Charts loading...</div>
                                                             </div>
                                                             <div class="d-flex flex-wrap gap-3 mt-3 small text-muted">
-                                                                <span><i class="bx bxs-circle text-success me-1"></i>On schedule</span>
+                                                                <span><i class="bx bxs-circle text-secondary me-1"></i>Not Started / Pending</span>
+                                                                <span><i class="bx bxs-circle text-primary me-1"></i>In Progress</span>
                                                                 <span><i class="bx bxs-circle text-danger me-1"></i>Overdue</span>
-                                                                <span><i class="bx bxs-circle text-secondary me-1"></i>Missing dates are excluded</span>
+                                                                <span><i class="bx bxs-circle text-success me-1"></i>Finished</span>
                                                             </div>
                                                             <div class="table-responsive mt-3">
                                                                 <table class="table table-sm align-middle mb-0">
@@ -842,7 +816,7 @@
                                                                             <th>Project</th>
                                                                             <th>Start Date</th>
                                                                             <th>End Date</th>
-                                                                            <th>Overdue Difference</th>
+                                                                            <th>Status Snapshot</th>
                                                                         </tr>
                                                                     </thead>
                                                                     <tbody>
@@ -851,7 +825,7 @@
                                                                                 <td class="fw-semibold">{{ $timelineRow['project_name'] }}</td>
                                                                                 <td>{{ $timelineRow['start_label'] }}</td>
                                                                                 <td>{{ $timelineRow['end_label'] }}</td>
-                                                                                <td class="{{ $timelineRow['is_overdue'] ? 'text-danger' : 'text-success' }}">
+                                                                                <td class="{{ $timelineRow['status_text_class'] ?? ($timelineRow['is_overdue'] ? 'text-danger' : 'text-success') }}">
                                                                                     {{ $timelineRow['difference_label'] }}
                                                                                 </td>
                                                                             </tr>

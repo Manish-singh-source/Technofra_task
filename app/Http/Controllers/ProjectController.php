@@ -9,6 +9,7 @@ use App\Models\ProjectFile;
 use App\Models\ProjectIssue;
 use App\Models\ProjectMilestone;
 use App\Models\ProjectActivity;
+use App\Models\ProjectStatusHistory;
 use App\Models\ProjectStatusLog;
 use App\Models\Setting;
 use App\Models\Task;
@@ -292,6 +293,7 @@ class ProjectController extends Controller
         }
 
         $this->createInitialStatusLog($project);
+        $this->createInitialStatusHistory($project);
         $this->sendProjectCreationNotifications($project);
         $this->projectActivityService->log(
             (int) $project->id,
@@ -405,6 +407,7 @@ class ProjectController extends Controller
         }
 
         $this->syncStatusTimeline($project, $oldStatus, $newStatus);
+        $this->recordStatusHistory($project, $oldStatus, $newStatus, Auth::id());
         $this->projectActivityService->log(
             (int) $project->id,
             'project_updated',
@@ -1120,6 +1123,11 @@ class ProjectController extends Controller
         ]);
     }
 
+    private function createInitialStatusHistory(Project $project): void
+    {
+        $this->recordStatusHistory($project, null, (string) $project->status, Auth::id());
+    }
+
     private function syncStatusTimeline(Project $project, string $oldStatus, string $newStatus): void
     {
         $openLog = ProjectStatusLog::where('project_id', $project->id)
@@ -1162,6 +1170,21 @@ class ProjectController extends Controller
             Auth::id(),
             ['from' => $oldStatus, 'to' => $newStatus]
         );
+    }
+
+    private function recordStatusHistory(Project $project, ?string $fromStatus, string $toStatus, ?int $changedBy = null): void
+    {
+        if ($fromStatus !== null && $fromStatus === $toStatus) {
+            return;
+        }
+
+        ProjectStatusHistory::create([
+            'project_id' => $project->id,
+            'from_status' => $fromStatus,
+            'to_status' => $toStatus,
+            'changed_by' => $changedBy,
+            'changed_at' => now($this->businessTimezone()),
+        ]);
     }
 
     private function getElapsedBoundary(): Carbon

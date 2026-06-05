@@ -84,6 +84,11 @@ class Project extends Model
         return $this->hasMany(ProjectStatusLog::class);
     }
 
+    public function statusHistories()
+    {
+        return $this->hasMany(ProjectStatusHistory::class);
+    }
+
     public function milestones()
     {
         return $this->hasMany(ProjectMilestone::class);
