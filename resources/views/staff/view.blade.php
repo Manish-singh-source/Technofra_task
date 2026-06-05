@@ -710,7 +710,6 @@
                             @php
                                 $projectAnalytics = $staffProjectAnalytics ?? ['kpis' => [], 'charts' => []];
                                 $projectKpis = $projectAnalytics['kpis'] ?? [];
-                                $projectCharts = $projectAnalytics['charts'] ?? [];
                                 $projectTimelineRows = collect($projects ?? [])
                                     ->filter(fn ($project) => $project->start_date && $project->deadline)
                                     ->sortByDesc(fn ($project) => $project->start_date?->timestamp ?? 0)
@@ -726,33 +725,6 @@
 
                                         return [
                                             'project_name' => $project->project_name,
-                                            'start_date' => $startDate->toDateString(),
-                                            'start_label' => $startDate->format('M d, Y'),
-                                            'end_date' => $endDate->toDateString(),
-                                            'end_label' => $endDate->format('M d, Y'),
-                                            'is_overdue' => $isOverdue,
-                                            'difference_days' => $differenceDays,
-                                            'difference_label' => $isOverdue
-                                                ? 'Overdue by ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's')
-                                                : 'Due in ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's'),
-                                            'bar_color' => $isOverdue ? '#dc3545' : '#198754',
-                                        ];
-                                    });
-                                $taskTimelineRows = collect($tasks ?? [])
-                                    ->filter(fn ($task) => $task->start_date && $task->deadline)
-                                    ->sortByDesc(fn ($task) => $task->start_date?->timestamp ?? 0)
-                                    ->values()
-                                    ->map(function ($task) {
-                                        $startDate = $task->start_date->copy()->startOfDay();
-                                        $endDate = $task->deadline->copy()->startOfDay();
-                                        $today = now()->startOfDay();
-                                        $isOverdue = $endDate->lt($today) && ! in_array($task->status, ['completed', 'cancelled'], true);
-                                        $differenceDays = $isOverdue
-                                            ? $endDate->diffInDays($today)
-                                            : $today->diffInDays($endDate);
-
-                                        return [
-                                            'task_name' => $task->title,
                                             'start_date' => $startDate->toDateString(),
                                             'start_label' => $startDate->format('M d, Y'),
                                             'end_date' => $endDate->toDateString(),
@@ -897,44 +869,11 @@
                                                 <div class="col-lg-6">
                                                     <div class="card h-100">
                                                         <div class="card-header">
-                                                            <h6 class="mb-0">Monthly Task Completion</h6>
+                                                            <h6 class="mb-0">Task Status Overview</h6>
                                                         </div>
                                                         <div class="card-body">
                                                             <div id="staffTaskCompletionChart" style="min-height:320px;">
                                                                 <div class="text-muted small">Charts loading...</div>
-                                                            </div>
-                                                            <div class="d-flex flex-wrap gap-3 mt-3 small text-muted">
-                                                                <span><i class="bx bxs-circle text-success me-1"></i>On schedule</span>
-                                                                <span><i class="bx bxs-circle text-danger me-1"></i>Overdue</span>
-                                                                <span><i class="bx bxs-circle text-secondary me-1"></i>Missing dates are excluded</span>
-                                                            </div>
-                                                            <div class="table-responsive mt-3">
-                                                                <table class="table table-sm align-middle mb-0">
-                                                                    <thead class="table-light">
-                                                                        <tr>
-                                                                            <th>Task</th>
-                                                                            <th>Start Date</th>
-                                                                            <th>End Date</th>
-                                                                            <th>Overdue Difference</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <tbody>
-                                                                        @forelse ($taskTimelineRows as $timelineRow)
-                                                                            <tr>
-                                                                                <td class="fw-semibold">{{ $timelineRow['task_name'] }}</td>
-                                                                                <td>{{ $timelineRow['start_label'] }}</td>
-                                                                                <td>{{ $timelineRow['end_label'] }}</td>
-                                                                                <td class="{{ $timelineRow['is_overdue'] ? 'text-danger' : 'text-success' }}">
-                                                                                    {{ $timelineRow['difference_label'] }}
-                                                                                </td>
-                                                                            </tr>
-                                                                        @empty
-                                                                            <tr>
-                                                                                <td colspan="4" class="text-muted">No tasks with both a start date and end date were found.</td>
-                                                                            </tr>
-                                                                        @endforelse
-                                                                    </tbody>
-                                                                </table>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -1359,7 +1298,6 @@
             const initialProjectAnalytics = @json($staffProjectAnalytics);
             const projectAnalyticsData = initialProjectAnalytics || {};
             const projectTimelineData = @json($projectTimelineRows);
-            const taskTimelineData = @json($taskTimelineRows);
             const params = new URLSearchParams(window.location.search);
             const charts = {};
 
@@ -1395,6 +1333,22 @@
                 }
 
                 return { labels, series };
+            }
+
+            function normalizeTaskStatusOverview(dataset) {
+                const rows = Array.isArray(dataset?.data) ? dataset.data : [];
+                const labels = rows.map((item) => String(item?.status ?? 'Unknown'));
+                const series = rows.map((item) => Number(item?.count) || 0);
+                const colors = Array.isArray(dataset?.colors) && dataset.colors.length
+                    ? dataset.colors
+                    : ['#6c757d', '#0d6efd', '#dc3545', '#198754'];
+
+                return {
+                    rows,
+                    labels,
+                    series,
+                    colors,
+                };
             }
 
             function escapeHtml(value) {
@@ -1484,7 +1438,7 @@
                 });
             }
 
-            function renderMonthlyTaskTimeline() {
+            function renderTaskStatusOverview() {
                 const target = '#staffTaskCompletionChart';
                 const el = document.querySelector(target);
 
@@ -1492,73 +1446,131 @@
                     return;
                 }
 
-                const timelineRows = Array.isArray(taskTimelineData) ? taskTimelineData : [];
+                const taskStatusOverview = normalizeTaskStatusOverview(projectAnalyticsData.charts?.task_status_overview);
 
-                if (!timelineRows.length) {
-                    el.innerHTML = '<div class="text-muted small">No dated tasks available for the timeline chart.</div>';
+                if (!taskStatusOverview.labels.length) {
+                    el.innerHTML = '<div class="text-muted small">No task status data available for the overview chart.</div>';
                     return;
                 }
 
-                const series = [{
-                    name: 'Task Duration',
-                    data: timelineRows.map((item) => ({
-                        x: item.task_name,
-                        y: [new Date(item.start_date).getTime(), new Date(item.end_date).getTime()],
-                        fillColor: item.bar_color || (item.is_overdue ? '#dc3545' : '#198754'),
-                    })),
-                }];
+                const isDarkMode = document.documentElement.getAttribute('data-bs-theme') === 'dark'
+                    || document.body.classList.contains('dark-mode')
+                    || document.body.classList.contains('dark-theme');
+                const chartTextColor = isDarkMode ? '#e9ecef' : '#495057';
+                const gridColor = isDarkMode ? '#495057' : '#edf2f7';
+                const tooltipTheme = isDarkMode ? 'dark' : 'light';
 
-                renderOrUpdateChart('taskCompletion', target, {
+                renderOrUpdateChart('taskStatusOverview', target, {
                     chart: {
-                        type: 'rangeBar',
-                        height: Math.max(300, (timelineRows.length * 36) + 60),
+                        type: 'bar',
+                        height: 320,
                         toolbar: { show: false },
+                        foreColor: chartTextColor,
+                    },
+                    theme: {
+                        mode: isDarkMode ? 'dark' : 'light',
                     },
                     plotOptions: {
                         bar: {
-                            horizontal: true,
-                            rangeBarGroupRows: true,
-                            barHeight: '70%',
+                            horizontal: false,
+                            distributed: true,
+                            columnWidth: '54%',
+                            borderRadius: 10,
+                            borderRadiusApplication: 'end',
                         },
                     },
                     dataLabels: {
-                        enabled: false,
+                        enabled: true,
+                        offsetY: -18,
+                        formatter: function(val) {
+                            return `${val}`;
+                        },
+                        style: {
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            colors: [chartTextColor],
+                        },
+                    },
+                    stroke: {
+                        width: 0,
                     },
                     grid: {
+                        borderColor: gridColor,
                         strokeDashArray: 4,
+                        padding: {
+                            top: 8,
+                        },
                     },
-                    series,
+                    series: [{
+                        name: 'Tasks',
+                        data: taskStatusOverview.series,
+                    }],
+                    colors: taskStatusOverview.colors,
                     xaxis: {
-                        type: 'datetime',
+                        categories: taskStatusOverview.labels,
                         labels: {
-                            datetimeUTC: false,
+                            style: {
+                                colors: taskStatusOverview.labels.map(() => chartTextColor),
+                                fontWeight: 600,
+                            },
+                        },
+                        axisBorder: {
+                            color: gridColor,
+                        },
+                        axisTicks: {
+                            color: gridColor,
                         },
                     },
                     yaxis: {
+                        min: 0,
+                        title: {
+                            text: 'Number of Tasks',
+                            style: {
+                                color: chartTextColor,
+                            },
+                        },
                         labels: {
                             style: {
-                                fontSize: '12px',
+                                colors: [chartTextColor],
                             },
                         },
                     },
                     tooltip: {
+                        theme: tooltipTheme,
                         custom: function({ dataPointIndex }) {
-                            const item = timelineRows[dataPointIndex];
+                            const item = taskStatusOverview.rows[dataPointIndex];
+
                             if (!item) {
                                 return '';
                             }
 
                             return `
                                 <div class="p-2">
-                                    <div class="fw-semibold mb-1">${escapeHtml(item.task_name)}</div>
-                                    <div class="small text-muted">Start: ${escapeHtml(item.start_label)}</div>
-                                    <div class="small text-muted">End: ${escapeHtml(item.end_label)}</div>
-                                    <div class="small ${item.is_overdue ? 'text-danger' : 'text-success'}">${escapeHtml(item.difference_label)}</div>
+                                    <div class="fw-semibold mb-1">${escapeHtml(item.status)}</div>
+                                    <div class="small text-muted">Tasks: ${escapeHtml(item.count)}</div>
                                 </div>
                             `;
                         },
                     },
-                    colors: timelineRows.map((item) => item.bar_color || (item.is_overdue ? '#dc3545' : '#198754')),
+                    legend: {
+                        show: false,
+                    },
+                    fill: {
+                        opacity: 1,
+                    },
+                    responsive: [{
+                        breakpoint: 576,
+                        options: {
+                            plotOptions: {
+                                bar: {
+                                    columnWidth: '66%',
+                                },
+                            },
+                            dataLabels: {
+                                offsetY: -14,
+                            },
+                        },
+                    }],
                 });
             }
 
@@ -1636,7 +1648,7 @@
                 });
 
                 renderMonthlyProjectTimeline();
-                renderMonthlyTaskTimeline();
+                renderTaskStatusOverview();
             }
 
             function renderProjectAnalytics() {

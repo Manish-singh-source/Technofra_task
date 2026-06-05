@@ -8,7 +8,6 @@ use App\Models\Department;
 use App\Models\Project;
 use App\Models\Setting;
 use App\Models\Team;
-use App\Models\TaskTimeLog;
 use App\Models\User;
 use App\Services\StaffLeadAnalyticsService;
 use Carbon\Carbon;
@@ -223,9 +222,14 @@ class StaffController extends Controller
         $staff = User::withTrashed()->findOrFail($id);
         $this->authorizeStaffAnalyticsAccess($staff);
 
-        return response()->json(
-            $this->staffLeadAnalyticsService->buildDashboard((int) $staff->id, $request->only(['period', 'from', 'to']))
-        );
+        $filters = $request->only(['period', 'from', 'to']);
+        $leadAnalytics = $this->staffLeadAnalyticsService->buildDashboard((int) $staff->id, $filters);
+        $projects = $staff->projects()->latest()->get();
+        $tasks = $staff->tasks()->with('project')->latest()->get();
+
+        return response()->json(array_merge($leadAnalytics, [
+            'project_analytics' => $this->buildStaffProjectAnalytics($staff, $projects, $tasks),
+        ]));
     }
 
     public function leadChart(Request $request, $id): JsonResponse
@@ -253,7 +257,6 @@ class StaffController extends Controller
         $projects = collect($projects);
         $tasks = collect($tasks);
         $now = now();
-        $days = collect(range(29, 0))->map(fn ($i) => $now->copy()->subDays($i)->startOfDay());
 
         $projectStatusLabels = ['not_started', 'in_progress', 'completed', 'on_hold', 'cancelled'];
         $taskStatusLabels = ['not_started', 'in_progress', 'completed', 'on_hold', 'cancelled'];
@@ -281,70 +284,8 @@ class StaffController extends Controller
             'series' => collect($taskStatusLabels)->map(fn ($label) => (int) ($taskStatusCounts[$label] ?? 0))->values()->all(),
         ];
 
-        $taskOptions = $tasks
-            ->map(fn ($task) => [
-                'id' => (int) $task->id,
-                'label' => trim((string) $task->title . ' (' . (string) optional($task->project)->project_name . ')'),
-                'project_id' => (int) ($task->project_id ?? 0),
-                'project_name' => (string) optional($task->project)->project_name,
-                'status' => (string) ($task->status ?? 'not_started'),
-            ])
-            ->values()
-            ->all();
-
-        $taskIds = $tasks->pluck('id')->map(fn ($id) => (int) $id)->values()->all();
-        $taskCompletionLabels = $days->map(fn ($day) => $day->format('d M'))->values()->all();
-        $emptyTaskCompletionSeries = static function () use ($taskCompletionLabels, $days): array {
-            return [
-                'labels' => $taskCompletionLabels,
-                'series' => [
-                    ['name' => 'In Progress', 'data' => array_fill(0, $days->count(), 0)],
-                    ['name' => 'Completed', 'data' => array_fill(0, $days->count(), 0)],
-                ],
-            ];
-        };
-
-        $taskCompletionDatasets = [
-            'all' => $emptyTaskCompletionSeries(),
-        ];
-
-        foreach ($taskOptions as $taskOption) {
-            $taskCompletionDatasets[(string) $taskOption['id']] = $emptyTaskCompletionSeries();
-        }
-
-        if (! empty($taskIds)) {
-            $completionRows = TaskTimeLog::query()
-                ->join('tasks', 'tasks.id', '=', 'task_time_logs.task_id')
-                ->where('task_time_logs.user_id', $staff->id)
-                ->whereIn('tasks.status', ['in_progress', 'completed'])
-                ->whereRaw(
-                    'DATE(COALESCE(task_time_logs.ended_at, task_time_logs.started_at)) BETWEEN ? AND ?',
-                    [$days->first()->toDateString(), $days->last()->toDateString()]
-                )
-                ->selectRaw(
-                    'DATE(COALESCE(task_time_logs.ended_at, task_time_logs.started_at)) as activity_date, tasks.id as task_id, tasks.status as task_status, SUM(task_time_logs.duration_minutes) as total_minutes'
-                )
-                ->groupBy('activity_date', 'tasks.id', 'task_status')
-                ->get();
-
-            foreach ($completionRows as $row) {
-                $dayIndex = $days->search(fn ($day) => $day->toDateString() === (string) $row->activity_date);
-
-                if ($dayIndex === false) {
-                    continue;
-                }
-
-                $statusIndex = (string) $row->task_status === 'completed' ? 1 : 0;
-                $hours = round(((float) $row->total_minutes) / 60, 2);
-                $taskKey = (string) $row->task_id;
-
-                $taskCompletionDatasets['all']['series'][$statusIndex]['data'][$dayIndex] += $hours;
-
-                if (isset($taskCompletionDatasets[$taskKey])) {
-                    $taskCompletionDatasets[$taskKey]['series'][$statusIndex]['data'][$dayIndex] += $hours;
-                }
-            }
-        }
+        $taskStatusOverview = $this->buildTaskStatusOverview($tasks);
+        $projectTimeline = $this->buildProjectTimelineRows($projects);
 
         return [
             'kpis' => [
@@ -370,15 +311,176 @@ class StaffController extends Controller
             'charts' => [
                 'project_status_distribution' => $projectStatusDistribution,
                 'task_status_distribution' => $taskStatusDistribution,
+                'task_status_overview' => $taskStatusOverview,
                 'monthly_project_activity' => [
                     'labels' => collect(range(11, 0))->map(fn ($i) => $now->copy()->startOfMonth()->subMonths($i)->format('M Y'))->values()->all(),
                     'projects_started' => collect(range(11, 0))->map(fn ($i) => (int) ($projectsStartedByMonth[$now->copy()->startOfMonth()->subMonths($i)->format('Y-m')] ?? 0))->values()->all(),
                     'project_deadlines' => collect(range(11, 0))->map(fn ($i) => (int) ($projectDeadlinesByMonth[$now->copy()->startOfMonth()->subMonths($i)->format('Y-m')] ?? 0))->values()->all(),
                 ],
-                'monthly_task_completion' => $taskCompletionDatasets,
+                'monthly_project_timeline' => $projectTimeline,
             ],
-            'task_options' => $taskOptions,
         ];
+    }
+
+    private function buildProjectTimelineRows($projects): array
+    {
+        $today = now()->startOfDay();
+
+        return collect($projects)
+            ->filter(fn ($project) => $project->start_date && $project->deadline)
+            ->sortByDesc(fn ($project) => $project->start_date?->timestamp ?? 0)
+            ->values()
+            ->map(function ($project) use ($today) {
+                $startDate = $project->start_date->copy()->startOfDay();
+                $endDate = $project->deadline->copy()->startOfDay();
+                $isOverdue = $endDate->lt($today) && ($project->status !== 'completed');
+                $differenceDays = $isOverdue
+                    ? $endDate->diffInDays($today)
+                    : $today->diffInDays($endDate);
+
+                return [
+                    'project_name' => $project->project_name,
+                    'start_date' => $startDate->toDateString(),
+                    'start_label' => $startDate->format('M d, Y'),
+                    'end_date' => $endDate->toDateString(),
+                    'end_label' => $endDate->format('M d, Y'),
+                    'is_overdue' => $isOverdue,
+                    'difference_days' => $differenceDays,
+                    'difference_label' => $isOverdue
+                        ? 'Overdue by ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's')
+                        : 'Due in ' . $differenceDays . ' day' . ($differenceDays === 1 ? '' : 's'),
+                    'bar_color' => $isOverdue ? '#dc3545' : '#198754',
+                ];
+            })
+            ->all();
+    }
+
+    private function buildTaskStatusOverview($tasks): array
+    {
+        $tasks = collect($tasks);
+        $today = now()->startOfDay();
+        $statusLabels = [
+            'pending' => 'Pending',
+            'in_progress' => 'In Progress',
+            'overdue' => 'Overdue',
+            'completed' => 'Completed',
+        ];
+        $statusColors = [
+            '#6c757d',
+            '#0d6efd',
+            '#dc3545',
+            '#198754',
+        ];
+
+        $counts = array_fill_keys(array_keys($statusLabels), 0);
+
+        foreach ($tasks as $task) {
+            $status = $this->resolveTaskStatusOverview($task, $today);
+            $counts[$status] = ($counts[$status] ?? 0) + 1;
+        }
+
+        $data = [];
+        foreach ($statusLabels as $key => $label) {
+            $data[] = [
+                'status' => $label,
+                'count' => (int) ($counts[$key] ?? 0),
+            ];
+        }
+
+        return [
+            'data' => $data,
+            'labels' => collect($data)->pluck('status')->values()->all(),
+            'series' => collect($data)->pluck('count')->values()->all(),
+            'colors' => $statusColors,
+        ];
+    }
+
+    private function resolveTaskStatusOverview($task, Carbon $today): string
+    {
+        $progress = $this->resolveTaskProgressValue($task);
+        $status = strtolower((string) data_get($task, 'status', ''));
+        $startDate = $this->normalizeTaskDate(data_get($task, 'start_date'));
+        $endDate = $this->normalizeTaskDate(data_get($task, 'deadline'));
+
+        if ($progress >= 100 || $status === 'completed') {
+            return 'completed';
+        }
+
+        if ($startDate && $today->lessThanOrEqualTo($startDate)) {
+            return 'pending';
+        }
+
+        if ($startDate && $endDate && $today->greaterThanOrEqualTo($startDate) && $today->lessThanOrEqualTo($endDate) && $progress > 0 && $progress < 100) {
+            return 'in_progress';
+        }
+
+        if ($endDate && $today->greaterThan($endDate) && $progress < 100) {
+            return 'overdue';
+        }
+
+        if ($progress > 0 && $progress < 100) {
+            return 'in_progress';
+        }
+
+        if (in_array($status, ['pending', 'not_started'], true)) {
+            return 'pending';
+        }
+
+        if ($status === 'in_progress') {
+            return 'in_progress';
+        }
+
+        if ($endDate && $today->greaterThan($endDate)) {
+            return 'overdue';
+        }
+
+        return 'pending';
+    }
+
+    private function resolveTaskProgressValue($task): int
+    {
+        $progress = data_get($task, 'progress');
+
+        if ($progress === null) {
+            $progress = data_get($task, 'progress_percentage');
+        }
+
+        if ($progress === null && data_get($task, 'completed_at')) {
+            return 100;
+        }
+
+        if ($progress === null) {
+            $status = strtolower((string) data_get($task, 'status', ''));
+
+            if ($status === 'completed') {
+                return 100;
+            }
+
+            if ($status === 'in_progress') {
+                return 50;
+            }
+
+            return 0;
+        }
+
+        return max(0, min(100, (int) round((float) $progress)));
+    }
+
+    private function normalizeTaskDate($value): ?Carbon
+    {
+        if ($value instanceof Carbon) {
+            return $value->copy()->startOfDay();
+        }
+
+        if (empty($value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->startOfDay();
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**
