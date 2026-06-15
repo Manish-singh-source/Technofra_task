@@ -323,12 +323,6 @@
     // Initialize CKEditor
     ClassicEditor
         .create(document.querySelector('.ckeditor'))
-        .then(editor => {
-            // Set initial data if editing
-            @if($project->description)
-                editor.setData(`{{ $project->description }}`);
-            @endif
-        })
         .catch(error => {
             console.error('Error initializing CKEditor:', error);
         });
