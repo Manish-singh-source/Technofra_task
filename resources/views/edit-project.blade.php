@@ -168,7 +168,7 @@
                     </div>
                     <div class="col-12">
                         <label for="description" class="form-label">Description</label>
-                        <textarea class="form-control ckeditor @error('description') is-invalid @enderror" name="description" id="description" rows="3">{{ old('description', $project->description) }}</textarea>
+                        <textarea class="form-control ckeditor @error('description') is-invalid @enderror" name="description" id="description" rows="3">{!! old('description', $project->description) !!}</textarea>
                         @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
