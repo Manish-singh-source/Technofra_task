@@ -76,11 +76,18 @@ class VendorServiceManagementService
 
         $services = $query
             ->orderByRaw(
-                'CASE WHEN end_date < ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END',
-                [$today, $today, $fiveDaysFromNow]
+                "CASE
+                    WHEN status = 'active' AND end_date BETWEEN ? AND ? THEN 0
+                    WHEN status = 'expired' OR (status = 'active' AND end_date < ?) THEN 1
+                    WHEN status = 'active' THEN 2
+                    WHEN status = 'inactive' THEN 3
+                    WHEN status = 'pending' THEN 4
+                    ELSE 5
+                 END",
+                [$today, $fiveDaysFromNow, $today]
             )
-            ->latest('updated_at')
             ->orderBy('end_date')
+            ->latest('updated_at')
             ->get();
 
         return [
