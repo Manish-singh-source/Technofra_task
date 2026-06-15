@@ -142,6 +142,7 @@
                                 <th>Number</th>
                                 <th>Company</th>
                                 <th>Source</th>
+                                <th class="d-none">Source Key</th>
                                 <th>Status</th>
                                 <th>Assigned To</th>
                                 <th>Created Date</th>
@@ -164,6 +165,7 @@
                                     <td>{{ $lead['number'] }}</td>
                                     <td>{{ $lead['company'] }}</td>
                                     <td>{{ $lead['source'] }}</td>
+                                    <td class="d-none">{{ $lead['source_type'] }}</td>
                                     <td><span class="badge bg-secondary rounded-pill text-uppercase">{{ $lead['status'] ?? 'new' }}</span></td>
                                     <td>{{ $lead['assigned_to'] ?? '-' }}</td>
                                     <td>{{ $lead['created_at'] }}</td>
@@ -208,7 +210,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="11" class="text-center">No leads found.</td>
+                                    <td colspan="12" class="text-center">No leads found.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -355,7 +357,7 @@
         }
 
         const sourceFilterButtons = document.querySelectorAll('.source-filter-btn');
-        const sourceColumnIndex = 6;
+        const sourceColumnIndex = 7;
 
         function escapeRegex(value) {
             return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -401,13 +403,13 @@
             button.addEventListener('click', function() {
                 if (!dataTableInstance) return;
 
-                const sourceLabel = (this.dataset.sourceLabel || '').trim();
-                if (sourceLabel === '') {
+                const sourceKey = (this.dataset.sourceKey || '').trim();
+                if (sourceKey === '') {
                     dataTableInstance.column(sourceColumnIndex).search('').draw();
                 } else {
                     dataTableInstance
                         .column(sourceColumnIndex)
-                        .search(`^${escapeRegex(sourceLabel)}$`, true, false)
+                        .search(`^${escapeRegex(sourceKey)}$`, true, false)
                         .draw();
                 }
 

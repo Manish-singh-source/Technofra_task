@@ -32,20 +32,100 @@
         </div>
 
 
+        @php
+            $leadName = trim((string) ($lead['name'] ?: 'Lead'));
+            $leadInitials = collect(preg_split('/\s+/', $leadName))
+                ->filter()
+                ->take(2)
+                ->map(fn ($part) => mb_substr($part, 0, 1))
+                ->implode('');
+            $leadInitials = $leadInitials !== '' ? mb_strtoupper($leadInitials) : 'L';
+            $leadStatus = strtolower((string) ($leadModel->status ?? ''));
+            $statusBadgeClass = match ($leadStatus) {
+                'converted', 'won' => 'bg-success-subtle text-success border border-success-subtle',
+                'lost', 'junk' => 'bg-danger-subtle text-danger border border-danger-subtle',
+                'qualified' => 'bg-primary-subtle text-primary border border-primary-subtle',
+                'contacted' => 'bg-info-subtle text-info border border-info-subtle',
+                default => 'bg-secondary-subtle text-secondary border border-secondary-subtle',
+            };
+            $assignedStaffNames = collect($leadModel->assignedStaffNames ?? []);
+            $leadTags = collect(is_array($leadModel->tags ?? null) ? $leadModel->tags : []);
+            $statusUpdatedByName = $leadModel->statusUpdatedBy
+                ? trim(($leadModel->statusUpdatedBy->first_name ?? '') . ' ' . ($leadModel->statusUpdatedBy->last_name ?? ''))
+                : '';
+        @endphp
+
         <div class="row g-3 mb-3">
             <div class="col-lg-8">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <h6 class="fw-semibold mb-3">Lead Information</h6>
-                        <div class="row g-3">
-                            <div class="col-md-6"><small class="text-muted d-block">Email</small><div class="fw-semibold">{{ $lead['email'] ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Phone</small><div class="fw-semibold">{{ $lead['number'] ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Company</small><div class="fw-semibold">{{ $lead['company'] ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Source</small><div class="fw-semibold">{{ $lead['source'] ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Created Date</small><div class="fw-semibold">{{ $lead['created_at'] ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Previous Status</small><div class="fw-semibold">{{ $leadModel->previous_status ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Converted At</small><div class="fw-semibold">{{ optional($leadModel->converted_at)->format('d M Y h:i A') ?: '-' }}</div></div>
-                            <div class="col-md-6"><small class="text-muted d-block">Lost Reason</small><div class="fw-semibold">{{ $leadModel->lost_reason ?: '-' }}</div></div>
+                <div class="card lead-info-card border-0 shadow-sm h-100">
+                    <div class="card-body p-4">
+                        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="lead-avatar">
+                                    {{ $leadInitials }}
+                                </div>
+                                <div>
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                        <h5 class="mb-0 fw-semibold">{{ $leadName }}</h5>
+                                        <span class="badge rounded-pill {{ $statusBadgeClass }}">
+                                            {{ ucwords(str_replace('_', ' ', $leadStatus ?: 'new')) }}
+                                        </span>
+                                    </div>
+                                    <div class="text-muted small">
+                                        {{ $lead['company'] ?: 'Independent lead' }}
+                                        <span class="mx-1">•</span>
+                                        {{ $lead['source'] ?: 'Lead' }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-muted small">Created Date</div>
+                                <div class="fw-semibold">{{ $lead['created_at'] ?: '-' }}</div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-4">
+                                <div class="lead-info-tile h-100">
+                                    <div class="lead-info-label">Contact</div>
+                                    <div class="lead-info-value">{{ $lead['email'] ?: '-' }}</div>
+                                    <div class="lead-info-subvalue">{{ $lead['number'] ?: '-' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="lead-info-tile h-100">
+                                    <div class="lead-info-label">Company</div>
+                                    <div class="lead-info-value">{{ $lead['company'] ?: '-' }}</div>
+                                    <div class="lead-info-subvalue">{{ $leadModel->website ?: 'No website added' }}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="lead-info-tile h-100">
+                                    <div class="lead-info-label">Assigned Staff</div>
+                                    <div class="lead-info-value">
+                                        {{ $assignedStaffNames->isNotEmpty() ? $assignedStaffNames->map(fn ($member) => trim(($member->first_name ?? '') . ' ' . ($member->last_name ?? '')))->filter()->implode(', ') : '-' }}
+                                    </div>
+                                    <div class="lead-info-subvalue">{{ $assignedStaffNames->count() }} team member(s)</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="lead-section mb-3">
+                            <div class="lead-section-title">Description</div>
+                            <div class="lead-section-body">
+                                {{ $leadModel->description ?: 'No description added yet.' }}
+                            </div>
+                        </div>
+
+                        <div class="lead-section">
+                            <div class="lead-section-title">Tags</div>
+                            <div class="d-flex flex-wrap gap-2">
+                                @forelse($leadTags as $tag)
+                                    <span class="badge rounded-pill bg-light text-dark border">{{ $tag }}</span>
+                                @empty
+                                    <span class="text-muted">-</span>
+                                @endforelse
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -243,6 +323,74 @@
 
 @push('styles')
 <style>
+    .crm-lead-view .lead-info-card {
+        background:
+            radial-gradient(circle at top right, rgba(13, 110, 253, 0.08), transparent 34%),
+            linear-gradient(180deg, #ffffff 0%, #fbfcff 100%);
+        border: 1px solid #e7ebf3;
+        border-radius: 20px;
+    }
+    .crm-lead-view .lead-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 18px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 20px;
+        color: #0d6efd;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.12), rgba(13, 110, 253, 0.04));
+        border: 1px solid rgba(13, 110, 253, 0.12);
+        flex-shrink: 0;
+    }
+    .crm-lead-view .lead-info-tile {
+        border: 1px solid #e6e8ee;
+        border-radius: 16px;
+        background: #fff;
+        padding: 16px;
+        box-shadow: 0 8px 24px rgba(17, 24, 39, 0.04);
+    }
+    .crm-lead-view .lead-info-label {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6c757d;
+        margin-bottom: 8px;
+        font-weight: 700;
+    }
+    .crm-lead-view .lead-info-value {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1f2937;
+        line-height: 1.35;
+        word-break: break-word;
+    }
+    .crm-lead-view .lead-info-subvalue {
+        margin-top: 6px;
+        font-size: 13px;
+        color: #6c757d;
+        word-break: break-word;
+    }
+    .crm-lead-view .lead-section {
+        border: 1px solid #e6e8ee;
+        border-radius: 16px;
+        background: #fff;
+        padding: 16px;
+    }
+    .crm-lead-view .lead-section-title {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    .crm-lead-view .lead-section-body {
+        color: #1f2937;
+        line-height: 1.7;
+        white-space: pre-line;
+    }
     .crm-lead-view .pipeline-wrap {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
