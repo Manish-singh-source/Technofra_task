@@ -18,6 +18,7 @@ class LeadDetailResource extends JsonResource
             'phone' => $this->phone,
             'company' => $this->company,
             'source' => $this->source,
+            'lead_value' => $this->lead_value,
             'status' => (string) ($this->status ?? 'new'),
             'previous_status' => $this->previous_status,
             'converted_at' => optional($this->converted_at)?->toISOString(),

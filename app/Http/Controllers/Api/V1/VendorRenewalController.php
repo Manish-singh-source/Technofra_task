@@ -25,7 +25,7 @@ class VendorRenewalController extends Controller
                 ->where('status', '1')
                 ->orderBy('name')
                 ->get(),
-            'plan_types' => ['yearly', 'quarterly', 'monthly'],
+            'plan_types' => ['monthly', 'yearly', 'quarterly', 'half_year'],
             'status_options' => ['active', 'inactive'],
             'remark_colors' => ['yellow', 'red', 'green', 'blue', 'gray'],
         ], 'Vendor renewal form options found');

@@ -666,59 +666,63 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     private function mergedLeads(): Collection
     {
         $digital = DigitalMarketingLead::query()->get()->map(function (DigitalMarketingLead $lead) {
-            return $this->normalizeRow(
-                self::SOURCE_DIGITAL_MARKETING,
-                $lead->id,
-                $lead->name,
-                $lead->email,
-                $lead->phone,
-                $lead->company,
-                'Digital Marketing',
-                $lead->created_at,
-                $lead->status
-            );
+                return $this->normalizeRow(
+                    self::SOURCE_DIGITAL_MARKETING,
+                    $lead->id,
+                    $lead->name,
+                    $lead->email,
+                    $lead->phone,
+                    $lead->company,
+                    'Digital Marketing',
+                    null,
+                    $lead->created_at,
+                    $lead->status
+                );
         });
 
         $webapp = WebappLead::query()->get()->map(function (WebappLead $lead) {
-            return $this->normalizeRow(
-                self::SOURCE_WEBAPP,
-                $lead->id,
-                $lead->name,
-                $lead->email,
-                $lead->phone,
-                $lead->company,
-                'Web App',
-                $lead->created_at,
-                $lead->status
-            );
+                return $this->normalizeRow(
+                    self::SOURCE_WEBAPP,
+                    $lead->id,
+                    $lead->name,
+                    $lead->email,
+                    $lead->phone,
+                    $lead->company,
+                    'Web App',
+                    null,
+                    $lead->created_at,
+                    $lead->status
+                );
         });
 
         $meta = MetaLead::query()->get()->map(function (MetaLead $lead) {
-            return $this->normalizeRow(
-                self::SOURCE_META,
-                $lead->id,
-                $lead->full_name,
-                $lead->email,
-                $lead->phone,
-                null,
-                'Meta',
-                $lead->created_time,
-                $lead->status
-            );
+                return $this->normalizeRow(
+                    self::SOURCE_META,
+                    $lead->id,
+                    $lead->full_name,
+                    $lead->email,
+                    $lead->phone,
+                    null,
+                    'Meta',
+                    null,
+                    $lead->created_time,
+                    $lead->status
+                );
         });
 
         $google = GoogleLead::query()->get()->map(function (GoogleLead $lead) {
-            return $this->normalizeRow(
-                self::SOURCE_GOOGLE,
-                $lead->id,
-                $lead->full_name,
-                $lead->email,
-                $lead->phone,
-                $lead->company,
-                'Google',
-                $lead->created_at ?? $lead->lead_submit_time,
-                $lead->status
-            );
+                return $this->normalizeRow(
+                    self::SOURCE_GOOGLE,
+                    $lead->id,
+                    $lead->full_name,
+                    $lead->email,
+                    $lead->phone,
+                    $lead->company,
+                    'Google',
+                    null,
+                    $lead->created_at ?? $lead->lead_submit_time,
+                    $lead->status
+                );
         });
 
         $contactForm = ContactForm::query()
@@ -738,6 +742,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     $contact->contact ?? null,
                     null,
                     'Contact Form',
+                    null,
                     $contact->created_at ?? null,
                     null
                 );
@@ -780,6 +785,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     $lead->phone,
                     $lead->company,
                     $lead->source ?: 'Leads',
+                    $lead->lead_value,
                     $lead->created_at,
                     $lead->status
                 );
@@ -833,6 +839,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         ?string $number,
         ?string $company,
         ?string $source,
+        mixed $leadValue,
         mixed $createdAt,
         ?string $status = null
     ): array {
@@ -846,6 +853,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'number' => $number ?: '-',
             'company' => $company ?: '-',
             'source' => $source ?: '-',
+            'lead_value' => $leadValue,
             'assigned_to' => $this->resolveAssignedTo($sourceType, $id),
             'created_at' => $date?->format('d M Y h:i A') ?: '-',
             'created_at_ts' => $date?->timestamp ?: 0,
@@ -927,4 +935,3 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         };
     }
 }
-

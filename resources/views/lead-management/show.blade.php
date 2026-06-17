@@ -116,6 +116,13 @@
                                 {{ $leadModel->description ?: 'No description added yet.' }}
                             </div>
                         </div>
+                        
+                        <div class="lead-section mb-3">
+                            <div class="lead-section-title">Lead Value</div>
+                            <div class="lead-section-body">
+                                {{ $leadModel->lead_value ?: '0' }}
+                            </div>
+                        </div>
 
                         <div class="lead-section">
                             <div class="lead-section-title">Tags</div>

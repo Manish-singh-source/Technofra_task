@@ -17,6 +17,13 @@ class ClientRenewalController extends Controller
 {
     private const AVAILABLE_TABS = ['all', 'upcoming', 'active', 'inactive', 'pending', 'expired'];
 
+    private const PLAN_TYPES = [
+        'monthly',
+        'yearly',
+        'quarterly',
+        'half_year',
+    ];
+
     private function canViewAll($user): bool
     {
         return $user && ($user->hasRole('admin') || $user->hasRole('super_admin2') || $user->hasRole('super_admin'));
@@ -36,6 +43,13 @@ class ClientRenewalController extends Controller
     public function apiFormOptions()
     {
         return ApiResponse::success([
+            'plan_types' => array_map(
+                fn (string $planType) => [
+                    'value' => $planType,
+                    'label' => ucwords(str_replace('_', ' ', $planType)),
+                ],
+                self::PLAN_TYPES
+            ),
             'clients' => User::with('companies:id,user_id,client_type,company_name,industry,website')
                 ->where('role', 'client')
                 ->select('id', 'first_name', 'last_name')
@@ -107,6 +121,7 @@ class ClientRenewalController extends Controller
                     'company_name' => optional($service->client?->businessDetail)->company_name,
                     'vendor_name' => $service->vendor?->name,
                     'service_name' => $service->service_name,
+                    'plan_type' => $service->plan_type,
                     'remark' => $service->remark_text,
                     'start_date' => optional($service->start_date)->toDateString(),
                     'end_date' => optional($service->end_date)->toDateString(),
@@ -171,6 +186,7 @@ class ClientRenewalController extends Controller
                 'vendor_email' => $service->vendor->email ?? null,
                 'service_name' => $service->service_name,
                 'service_details' => $service->service_details,
+                'plan_type' => $service->plan_type,
                 'remark' => $service->remark_text,
                 'start_date' => $service->start_date?->toDateString(),
                 'end_date' => $service->end_date?->toDateString(),
@@ -192,6 +208,7 @@ class ClientRenewalController extends Controller
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
+            'plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
             'remark_text' => 'nullable|string|max:100',
             'remark_color' => 'nullable|in:yellow,red,green,blue,gray',
             'start_date' => 'required|date',
@@ -213,6 +230,7 @@ class ClientRenewalController extends Controller
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
+            'plan_type' => $request->plan_type,
             'remark_text' => $request->remark_text,
             'remark_color' => $request->remark_color,
             'start_date' => $request->start_date,
@@ -240,6 +258,7 @@ class ClientRenewalController extends Controller
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
+            'plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
             'remark_text' => 'nullable|string|max:100',
             'remark_color' => 'nullable|in:yellow,red,green,blue,gray',
             'start_date' => 'required|date',
@@ -261,6 +280,7 @@ class ClientRenewalController extends Controller
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
+            'plan_type' => $request->plan_type,
             'remark_text' => $request->remark_text,
             'remark_color' => $request->remark_color,
             'start_date' => $request->start_date,
