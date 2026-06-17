@@ -71,6 +71,21 @@
                             @enderror
                         </div>
 
+                        <div class="col-md-6">
+                            <label for="plan_type" class="form-label">Plan Type <span class="text-danger">*</span></label>
+                            <select class="form-select @error('plan_type') is-invalid @enderror" id="plan_type" name="plan_type" required>
+                                <option value="">Choose a plan type...</option>
+                                @foreach($planTypes as $planValue => $planLabel)
+                                    <option value="{{ $planValue }}" {{ old('plan_type', $service->plan_type) == $planValue ? 'selected' : '' }}>
+                                        {{ $planLabel }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('plan_type')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+                        </div>
+
                         <div class="col-md-12">
                             <label for="service_details" class="form-label">Service Details</label>
                             <textarea class="form-control ckeditor @error('service_details') is-invalid @enderror"

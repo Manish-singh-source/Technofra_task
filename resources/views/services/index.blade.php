@@ -176,6 +176,7 @@
                                     <th><input class="form-check-input" type="checkbox" id="select-all"></th>
                                     <th>Company Name</th>
                                     <th>Service Renewal</th>
+                                    <th>Plan Type</th>
                                     <th>Remark</th>
                                     <th>Start Date</th>
                                     <th>End Date</th>
@@ -195,6 +196,7 @@
                                         </td>
                                         <td>{{ $service->company?->company_name ?: ($service->client?->businessDetail?->company_name ?: 'N/A') }}</td>
                                         <td>{{ $service->service_name }}</td>
+                                        <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</td>
                                         <td>
                                             @if ($service->remark_text)
                                                 <span class="badge border"
@@ -310,18 +312,18 @@
                 return rowNode ? rowNode.dataset.tabGroup === activeTab : true;
             });
 
-            const dataTable = tableElement.DataTable({
-                pageLength: 10,
-                order: [],
-                columnDefs: [{
-                        orderable: false,
-                        targets: [0, 8]
-                    },
-                    {
-                        searchable: false,
-                        targets: [0, 8]
-                    }
-                ]
+                    const dataTable = tableElement.DataTable({
+                        pageLength: 10,
+                        order: [],
+                        columnDefs: [{
+                                orderable: false,
+                                targets: [0, 9]
+                            },
+                            {
+                                searchable: false,
+                                targets: [0, 9]
+                            }
+                        ]
 
             });
 

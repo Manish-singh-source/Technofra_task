@@ -22,6 +22,7 @@ class Service extends Model
         'vendor_id',
         'service_name',
         'service_details',
+        'plan_type',
         'remark_text',
         'remark_color',
         'start_date',

@@ -30,6 +30,16 @@ class ServiceController extends Controller
         return $query;
     }
 
+    private function planTypes(): array
+    {
+        return [
+            'monthly' => 'Monthly',
+            'yearly' => 'Yearly',
+            'quarterly' => 'Quarterly',
+            'half_year' => 'Half Year',
+        ];
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -120,7 +130,8 @@ class ServiceController extends Controller
                 ->value('id');
         }
         $selectedVendorId = $request->get('vendor_id');
-        return view('services.create', compact('clientCompanies', 'vendors', 'selectedCompanyId', 'selectedVendorId'));
+        $planTypes = $this->planTypes();
+        return view('services.create', compact('clientCompanies', 'vendors', 'selectedCompanyId', 'selectedVendorId', 'planTypes'));
     }
 
     /**
@@ -140,6 +151,7 @@ class ServiceController extends Controller
             'services.*.vendor_id' => 'required|exists:vendors,id',
             'services.*.service_name' => 'required|string|max:255',
             'services.*.service_details' => 'nullable|string',
+            'services.*.plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
             'services.*.remark_text' => 'nullable|string|max:100',
             'services.*.remark_color' => 'nullable|in:yellow,red,green,blue,gray|required_with:services.*.remark_text',
             'services.*.start_date' => 'required|date',
@@ -153,6 +165,8 @@ class ServiceController extends Controller
             'services.*.vendor_id.required' => 'Please select a vendor for each service.',
             'services.*.vendor_id.exists' => 'Selected vendor does not exist.',
             'services.*.service_name.required' => 'Service name is required.',
+            'services.*.plan_type.required' => 'Plan type is required.',
+            'services.*.plan_type.in' => 'Selected plan type is invalid.',
             'services.*.remark_color.required_with' => 'Please select a remark color when remark text is provided.',
             'services.*.start_date.required' => 'Start date is required.',
             'services.*.end_date.required' => 'End date is required.',
@@ -177,6 +191,7 @@ class ServiceController extends Controller
                 'vendor_id' => $serviceData['vendor_id'],
                 'service_name' => $serviceData['service_name'],
                 'service_details' => $serviceData['service_details'] ?? null,
+                'plan_type' => $serviceData['plan_type'],
                 'remark_text' => $serviceData['remark_text'] ?? null,
                 'remark_color' => $serviceData['remark_color'] ?? null,
                 'start_date' => $serviceData['start_date'],
@@ -220,7 +235,8 @@ class ServiceController extends Controller
             ->orderBy('company_name')
             ->get();
         $vendors = Vendor::orderBy('name')->where('status', '1')->get();
-        return view('services.edit', compact('service', 'clientCompanies', 'vendors'));
+        $planTypes = $this->planTypes();
+        return view('services.edit', compact('service', 'clientCompanies', 'vendors', 'planTypes'));
     }
 
     /**
@@ -243,6 +259,7 @@ class ServiceController extends Controller
             'vendor_id' => 'required|exists:vendors,id',
             'service_name' => 'required|string|max:255',
             'service_details' => 'nullable|string',
+            'plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
             'remark_text' => 'nullable|string|max:100',
             'remark_color' => 'nullable|in:yellow,red,green,blue,gray|required_with:remark_text',
             'start_date' => 'required|date',
@@ -254,6 +271,8 @@ class ServiceController extends Controller
             'client_business_detail_id.exists' => 'Selected company does not exist.',
             'vendor_id.required' => 'Please select a vendor.',
             'service_name.required' => 'Service name is required.',
+            'plan_type.required' => 'Plan type is required.',
+            'plan_type.in' => 'Selected plan type is invalid.',
             'remark_color.required_with' => 'Please select a remark color when remark text is provided.',
             'start_date.required' => 'Start date is required.',
             'end_date.required' => 'End date is required.',
@@ -284,6 +303,7 @@ class ServiceController extends Controller
             'vendor_id' => $request->vendor_id,
             'service_name' => $request->service_name,
             'service_details' => $request->service_details,
+            'plan_type' => $request->plan_type,
             'remark_text' => $request->remark_text,
             'remark_color' => $request->remark_color,
             'start_date' => $request->start_date,

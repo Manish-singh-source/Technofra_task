@@ -53,6 +53,10 @@
                                         <b>Service Name:</b>
                                         <p class="mb-0">{{ $service->service_name }}</p>
                                     </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <b>Plan Type:</b>
+                                        <p class="mb-0">{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</p>
+                                    </li>
                                     @if($service->service_details)
                                     <li class="list-group-item">
                                         <b>Service Details:</b>

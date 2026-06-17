@@ -78,6 +78,18 @@
                                                     value="{{ old('services.0.service_name') }}"
                                                     placeholder="Enter service name" required>
                                             </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">Plan Type <span class="text-danger">*</span></label>
+                                                <select class="form-select" name="services[0][plan_type]" required>
+                                                    <option value="">Choose a plan type...</option>
+                                                    @foreach ($planTypes as $planValue => $planLabel)
+                                                        <option value="{{ $planValue }}"
+                                                            {{ old('services.0.plan_type') == $planValue ? 'selected' : '' }}>
+                                                            {{ $planLabel }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
                                             <div class="col-md-12">
                                                 <label class="form-label">Service Details</label>
                                                 <textarea class="form-control ckeditor" name="services[0][service_details]" id="service_details_0"
@@ -162,6 +174,7 @@
                                                         <th>#</th>
                                                         <th>Vendor</th>
                                                         <th>Service Name</th>
+                                                        <th>Plan Type</th>
                                                         <th>Remark</th>
                                                         <th>Status</th>
                                                     </tr>
@@ -272,6 +285,10 @@
                     const serviceName = serviceNameInput && serviceNameInput.value.trim() ?
                         escapeHtml(serviceNameInput.value.trim()) :
                         'Untitled service';
+                    const planTypeSelect = row.querySelector('select[name*="[plan_type]"]');
+                    const planTypeText = planTypeSelect && planTypeSelect.selectedIndex > 0 ?
+                        escapeHtml(planTypeSelect.options[planTypeSelect.selectedIndex].text) :
+                        'N/A';
                     const remarkText = remarkTextInput ? remarkTextInput.value.trim() : '';
                     const remarkColor = remarkColorSelect ? remarkColorSelect.value : '';
                     const statusText = statusSelect && statusSelect.selectedIndex >= 0 ?
@@ -283,6 +300,7 @@
                     <td>${index + 1}</td>
                     <td>${escapeHtml(vendorText)}</td>
                     <td>${serviceName}</td>
+                    <td>${planTypeText}</td>
                     <td>${getRemarkBadge(remarkText, remarkColor)}</td>
                     <td>${statusText}</td>
                 </tr>
@@ -330,6 +348,15 @@
                     <label class="form-label">Service Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" name="services[${serviceIndex}][service_name]"
                            placeholder="Enter service name" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Plan Type <span class="text-danger">*</span></label>
+                    <select class="form-select" name="services[${serviceIndex}][plan_type]" required>
+                        <option value="">Choose a plan type...</option>
+                        @foreach ($planTypes as $planValue => $planLabel)
+                        <option value="{{ $planValue }}">{{ $planLabel }}</option>
+                        @endforeach
+                    </select>
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Service Details</label>
