@@ -45,6 +45,18 @@ class VendorServiceController extends Controller
         return $query;
     }
 
+    private function vendorServiceSortPriority(VendorService $service): int
+    {
+        return match ($service->effective_status) {
+            'expired' => 0,
+            'upcoming' => 1,
+            'active' => 2,
+            'inactive' => 3,
+            'pending' => 4,
+            default => 5,
+        };
+    }
+
     /**
      * Display a listing of the resource.
      *
@@ -85,14 +97,23 @@ class VendorServiceController extends Controller
             $query->where('billing_date', '<=', $request->to_date);
         }
 
-        $services = $query
-            ->orderByRaw(
-                'CASE WHEN end_date < ? THEN 0 WHEN end_date BETWEEN ? AND ? THEN 1 ELSE 2 END',
-                [$today, $today, $fiveDaysFromNow]
-            )
-            ->latest('updated_at')
-            ->orderBy('end_date')
-            ->get();
+        $services = $query->get()->sort(function ($left, $right) {
+            $leftPriority = $this->vendorServiceSortPriority($left);
+            $rightPriority = $this->vendorServiceSortPriority($right);
+
+            if ($leftPriority !== $rightPriority) {
+                return $leftPriority <=> $rightPriority;
+            }
+
+            $leftEnd = $left->end_date?->timestamp ?? PHP_INT_MAX;
+            $rightEnd = $right->end_date?->timestamp ?? PHP_INT_MAX;
+
+            if ($leftEnd !== $rightEnd) {
+                return $leftEnd <=> $rightEnd;
+            }
+
+            return ($right->updated_at?->timestamp ?? 0) <=> ($left->updated_at?->timestamp ?? 0);
+        })->values();
 
         $tabCounts = [
             'all' => $services->count(),

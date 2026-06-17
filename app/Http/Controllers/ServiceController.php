@@ -73,14 +73,14 @@ class ServiceController extends Controller
         $services = $query
             ->orderByRaw(
                 "CASE
-                    WHEN status = 'active' AND end_date BETWEEN ? AND ? THEN 0
-                    WHEN status = 'expired' OR (status = 'active' AND end_date < ?) THEN 1
+                    WHEN status = 'expired' OR (status = 'active' AND end_date < ?) THEN 0
+                    WHEN status = 'active' AND end_date BETWEEN ? AND ? THEN 1
                     WHEN status = 'active' THEN 2
                     WHEN status = 'inactive' THEN 3
                     WHEN status = 'pending' THEN 4
                     ELSE 5
                  END",
-                [$today, $fiveDaysFromNow, $today]
+                [$today, $today, $fiveDaysFromNow]
             )
             ->orderBy('end_date')
             ->latest('created_at')
