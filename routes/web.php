@@ -185,6 +185,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('services', ServiceController::class);
     Route::controller(ServiceController::class)->group(function () {
         Route::post('/services/delete-selected', 'deleteSelected')->name('delete.selected.service');
+        Route::post('/services/{service}/amc-visits/{detail}', 'updateAmcVisit')->name('services.amc-visits.update');
         Route::get('/servies', 'index')->name('servies');
     });
     // ============================= Renewals Section End ====================

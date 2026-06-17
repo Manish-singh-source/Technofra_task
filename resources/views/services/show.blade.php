@@ -100,6 +100,116 @@
                                         </p>
                                     </li>
                                 </ul>
+
+                                @if ($service->amcService)
+                                    <div class="card mt-4 border-warning">
+                                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-0">AMC Details</h6>
+                                                <small class="text-muted">Visits are generated automatically and start in pending state.</small>
+                                            </div>
+                                            <span class="badge bg-warning text-dark">AMC Enabled</span>
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="row g-3 mb-3">
+                                                <div class="col-md-3">
+                                                    <div class="border rounded p-3">
+                                                        <div class="text-muted small">Total Visits</div>
+                                                        <div class="fs-5 fw-semibold">{{ $service->amcService->total_visits }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="border rounded p-3">
+                                                        <div class="text-muted small">AMC Start Date</div>
+                                                        <div class="fs-6 fw-semibold">{{ $service->amcService->amc_start_date?->format('d M Y') }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="border rounded p-3">
+                                                        <div class="text-muted small">AMC End Date</div>
+                                                        <div class="fs-6 fw-semibold">{{ $service->amcService->amc_end_date?->format('d M Y') }}</div>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div class="border rounded p-3">
+                                                        <div class="text-muted small">Completed Visits</div>
+                                                        <div class="fs-5 fw-semibold">
+                                                            {{ $service->amcService->amcServiceDetails?->where('status', 'completed')->count() ?? 0 }}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="table-responsive">
+                                                <table class="table table-bordered align-middle">
+                                                    <thead class="table-light">
+                                                        <tr>
+                                                            <th>Visit</th>
+                                                            <th>Visit Date</th>
+                                                            <th>Status</th>
+                                                            <th>Details</th>
+                                                            <th>Action</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        @foreach ($service->amcService->amcServiceDetails as $amcDetail)
+                                                            <tr>
+                                                                <td>Visit {{ $amcDetail->visit_number }}</td>
+                                                                <td>{{ $amcDetail->visit_date?->format('d M Y') }}</td>
+                                                                <td>
+                                                                    <span class="badge {{ $amcDetail->status === 'completed' ? 'bg-success' : 'bg-warning text-dark' }}">
+                                                                        {{ ucfirst($amcDetail->status) }}
+                                                                    </span>
+                                                                </td>
+                                                                <td>{{ $amcDetail->details ?: 'N/A' }}</td>
+                                                                <td>
+                                                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#amcVisitModal-{{ $amcDetail->id }}">
+                                                                        Update
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        @endforeach
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            @foreach ($service->amcService->amcServiceDetails as $amcDetail)
+                                                <div class="modal fade" id="amcVisitModal-{{ $amcDetail->id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title">Update Visit {{ $amcDetail->visit_number }}</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <form method="POST" action="{{ route('services.amc-visits.update', ['service' => $service->id, 'detail' => $amcDetail->id]) }}">
+                                                                @csrf
+                                                                <div class="modal-body">
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Status</label>
+                                                                        <select name="status" class="form-select" required>
+                                                                            <option value="pending" {{ $amcDetail->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                                                            <option value="completed" {{ $amcDetail->status === 'completed' ? 'selected' : '' }}>Completed</option>
+                                                                        </select>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label">Details</label>
+                                                                        <textarea name="details" class="form-control" rows="4" placeholder="Add visit remarks...">{{ old('details', $amcDetail->details) }}</textarea>
+                                                                    </div>
+                                                                    <div class="alert alert-info mb-0">
+                                                                        <strong>Visit date:</strong> {{ $amcDetail->visit_date?->format('d M Y') }}
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>

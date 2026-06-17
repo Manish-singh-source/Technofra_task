@@ -67,6 +67,11 @@ class Service extends Model
         return $this->belongsTo(Vendor::class);
     }
 
+    public function amcService()
+    {
+        return $this->hasOne(AmcService::class);
+    }
+
     /**
      * Get the stored status badge color.
      */

@@ -91,6 +91,44 @@
                                                 </select>
                                             </div>
                                             <div class="col-md-12">
+                                                <div class="form-check form-switch mt-2">
+                                                    <input class="form-check-input amc-toggle" type="checkbox"
+                                                        id="service_amc_0" name="services[0][is_amc]" value="1"
+                                                        {{ old('services.0.is_amc') ? 'checked' : '' }}>
+                                                    <label class="form-check-label fw-semibold" for="service_amc_0">
+                                                        AMC Service
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12 amc-fields {{ old('services.0.is_amc') ? '' : 'd-none' }}">
+                                                <div class="border rounded p-3 bg-light">
+                                                    <div class="row g-3">
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">AMC Total Visits</label>
+                                                            <input type="number" min="1" class="form-control amc-total-visits"
+                                                                name="services[0][amc_total_visits]" placeholder="Example: 4"
+                                                                value="{{ old('services.0.amc_total_visits') }}">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">AMC Start Date</label>
+                                                            <input type="date" class="form-control amc-start-date"
+                                                                name="services[0][amc_start_date]"
+                                                                value="{{ old('services.0.amc_start_date') }}">
+                                                        </div>
+                                                        <div class="col-md-4">
+                                                            <label class="form-label">AMC End Date</label>
+                                                            <input type="date" class="form-control amc-end-date"
+                                                                name="services[0][amc_end_date]"
+                                                                value="{{ old('services.0.amc_end_date') }}">
+                                                        </div>
+                                                        <div class="col-12">
+                                                            <small class="text-muted d-block mb-2">Visit schedule is generated automatically and all visits are created in pending state.</small>
+                                                            <div class="amc-schedule-preview list-group"></div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-12">
                                                 <label class="form-label">Service Details</label>
                                                 <textarea class="form-control ckeditor" name="services[0][service_details]" id="service_details_0"
                                                     placeholder="Enter detailed description of the service..." rows="4">{{ old('services.0.service_details') }}</textarea>
@@ -175,6 +213,8 @@
                                                         <th>Vendor</th>
                                                         <th>Service Name</th>
                                                         <th>Plan Type</th>
+                                                        <th>AMC</th>
+                                                        <th>Visits</th>
                                                         <th>Remark</th>
                                                         <th>Status</th>
                                                     </tr>
@@ -269,6 +309,110 @@
                 return `<span class="badge" style="${getRemarkStyle(color)}">${escapeHtml(text)}</span>`;
             }
 
+            function getAmcSchedule(startDateValue, endDateValue, totalVisits) {
+                if (!startDateValue || !endDateValue || !totalVisits || totalVisits < 1) {
+                    return [];
+                }
+
+                const parseDateInput = (value) => {
+                    const [year, month, day] = value.split('-').map(Number);
+                    return new Date(year, month - 1, day);
+                };
+
+                const formatDateInput = (date) => {
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const day = String(date.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                };
+
+                const startDate = parseDateInput(startDateValue);
+                const endDate = parseDateInput(endDateValue);
+
+                if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+                    return [];
+                }
+
+                if (startDate.getTime() >= endDate.getTime()) {
+                    return [endDateValue];
+                }
+
+                if (totalVisits === 1) {
+                    return [endDateValue];
+                }
+
+                const dayMs = 24 * 60 * 60 * 1000;
+                const diffDays = Math.max(Math.round((endDate - startDate) / dayMs), 0);
+                const dates = [];
+
+                for (let i = 0; i < totalVisits; i++) {
+                    const offsetDays = Math.round((diffDays * (i + 1)) / totalVisits);
+                    const visitDate = new Date(startDate);
+                    visitDate.setDate(startDate.getDate() + offsetDays);
+
+                    if (visitDate > endDate) {
+                        visitDate.setTime(endDate.getTime());
+                    }
+
+                    dates.push(formatDateInput(visitDate));
+                }
+
+                return dates;
+            }
+
+            function formatDisplayDate(dateValue) {
+                if (!dateValue) {
+                    return '';
+                }
+
+                const [year, month, day] = dateValue.split('-').map(Number);
+                const date = new Date(year, month - 1, day);
+                if (Number.isNaN(date.getTime())) {
+                    return dateValue;
+                }
+
+                return date.toLocaleDateString('en-GB', {
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric'
+                });
+            }
+
+            function renderAmcPreview(row) {
+                const amcFields = row.querySelector('.amc-fields');
+                const preview = row.querySelector('.amc-schedule-preview');
+                const startDateInput = row.querySelector('.amc-start-date');
+                const endDateInput = row.querySelector('.amc-end-date');
+                const visitsInput = row.querySelector('.amc-total-visits');
+                const toggle = row.querySelector('.amc-toggle');
+
+                if (!amcFields || !preview || !toggle) {
+                    return;
+                }
+
+                if (!toggle.checked) {
+                    amcFields.classList.add('d-none');
+                    preview.innerHTML = '';
+                    return;
+                }
+
+                amcFields.classList.remove('d-none');
+                const totalVisits = parseInt(visitsInput?.value || '0', 10);
+                const dates = getAmcSchedule(startDateInput?.value, endDateInput?.value, totalVisits);
+
+                if (!dates.length) {
+                    preview.innerHTML = '<div class="list-group-item text-muted">Fill AMC visits and dates to generate schedule.</div>';
+                    return;
+                }
+
+                preview.innerHTML = dates.map((dateValue, index) => `
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Visit ${index + 1}</span>
+                        <span class="fw-semibold">${formatDisplayDate(dateValue)}</span>
+                    </div>
+                `).join('');
+            }
+
             function renderPreviewTable() {
                 const rows = Array.from(document.querySelectorAll('.service-row'));
 
@@ -278,6 +422,8 @@
                     const remarkTextInput = row.querySelector('input[name*="[remark_text]"]');
                     const remarkColorSelect = row.querySelector('select[name*="[remark_color]"]');
                     const statusSelect = row.querySelector('select[name*="[status]"]');
+                    const amcToggle = row.querySelector('.amc-toggle');
+                    const amcVisits = row.querySelector('.amc-total-visits');
 
                     const vendorText = vendorSelect && vendorSelect.selectedIndex > 0 ?
                         vendorSelect.options[vendorSelect.selectedIndex].text :
@@ -294,6 +440,8 @@
                     const statusText = statusSelect && statusSelect.selectedIndex >= 0 ?
                         escapeHtml(statusSelect.options[statusSelect.selectedIndex].text) :
                         'N/A';
+                    const amcText = amcToggle && amcToggle.checked ? 'Yes' : 'No';
+                    const amcVisitsText = amcToggle && amcToggle.checked ? (amcVisits?.value || 'N/A') : 'N/A';
 
                     return `
                 <tr>
@@ -301,6 +449,8 @@
                     <td>${escapeHtml(vendorText)}</td>
                     <td>${serviceName}</td>
                     <td>${planTypeText}</td>
+                    <td>${amcText}</td>
+                    <td>${escapeHtml(String(amcVisitsText))}</td>
                     <td>${getRemarkBadge(remarkText, remarkColor)}</td>
                     <td>${statusText}</td>
                 </tr>
@@ -326,7 +476,29 @@
                 });
             }
 
+            function attachAmcHandlers(row) {
+                const toggle = row.querySelector('.amc-toggle');
+                const amcInputs = row.querySelectorAll('.amc-total-visits, .amc-start-date, .amc-end-date');
+
+                if (!toggle) {
+                    return;
+                }
+
+                const onChange = () => {
+                    renderAmcPreview(row);
+                    renderPreviewTable();
+                };
+
+                toggle.addEventListener('change', onChange);
+                amcInputs.forEach((input) => {
+                    input.addEventListener('input', onChange);
+                    input.addEventListener('change', onChange);
+                });
+            }
+
             initializeEditor(document.getElementById('service_details_0'));
+            attachAmcHandlers(document.querySelector('.service-row'));
+            renderAmcPreview(document.querySelector('.service-row'));
             renderPreviewTable();
 
             servicesContainer.addEventListener('input', renderPreviewTable);
@@ -357,6 +529,40 @@
                         <option value="{{ $planValue }}">{{ $planLabel }}</option>
                         @endforeach
                     </select>
+                </div>
+                <div class="col-md-12">
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input amc-toggle" type="checkbox"
+                            id="service_amc_${serviceIndex}" name="services[${serviceIndex}][is_amc]" value="1">
+                        <label class="form-check-label fw-semibold" for="service_amc_${serviceIndex}">
+                            AMC Service
+                        </label>
+                    </div>
+                </div>
+                <div class="col-md-12 amc-fields d-none">
+                    <div class="border rounded p-3 bg-light">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label">AMC Total Visits</label>
+                                <input type="number" min="1" class="form-control amc-total-visits"
+                                       name="services[${serviceIndex}][amc_total_visits]" placeholder="Example: 4">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">AMC Start Date</label>
+                                <input type="date" class="form-control amc-start-date"
+                                       name="services[${serviceIndex}][amc_start_date]">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">AMC End Date</label>
+                                <input type="date" class="form-control amc-end-date"
+                                       name="services[${serviceIndex}][amc_end_date]">
+                            </div>
+                            <div class="col-12">
+                                <small class="text-muted d-block mb-2">Visit schedule is generated automatically and all visits are created in pending state.</small>
+                                <div class="amc-schedule-preview list-group"></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-12">
                     <label class="form-label">Service Details</label>
@@ -410,6 +616,7 @@
 
                 servicesContainer.appendChild(newServiceRow);
                 initializeEditor(newServiceRow.querySelector('.ckeditor'));
+                attachAmcHandlers(newServiceRow);
                 attachRemoveHandler(newServiceRow);
                 serviceIndex++;
                 renderPreviewTable();

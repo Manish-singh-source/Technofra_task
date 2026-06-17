@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\RenewalStatusHelper;
+use App\Models\AmcService;
+use App\Models\AmcServiceDetail;
 use App\Models\ClientBusinessDetail;
 use App\Models\Service;
 use App\Models\User;
 use App\Models\Vendor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
@@ -152,6 +156,10 @@ class ServiceController extends Controller
             'services.*.service_name' => 'required|string|max:255',
             'services.*.service_details' => 'nullable|string',
             'services.*.plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
+            'services.*.is_amc' => 'nullable|boolean',
+            'services.*.amc_total_visits' => 'nullable|integer|min:1|required_if:services.*.is_amc,1',
+            'services.*.amc_start_date' => 'nullable|date|required_if:services.*.is_amc,1',
+            'services.*.amc_end_date' => 'nullable|date|after_or_equal:services.*.amc_start_date|required_if:services.*.is_amc,1',
             'services.*.remark_text' => 'nullable|string|max:100',
             'services.*.remark_color' => 'nullable|in:yellow,red,green,blue,gray|required_with:services.*.remark_text',
             'services.*.start_date' => 'required|date',
@@ -167,6 +175,10 @@ class ServiceController extends Controller
             'services.*.service_name.required' => 'Service name is required.',
             'services.*.plan_type.required' => 'Plan type is required.',
             'services.*.plan_type.in' => 'Selected plan type is invalid.',
+            'services.*.amc_total_visits.required_if' => 'AMC total visits are required when AMC is enabled.',
+            'services.*.amc_start_date.required_if' => 'AMC start date is required when AMC is enabled.',
+            'services.*.amc_end_date.required_if' => 'AMC end date is required when AMC is enabled.',
+            'services.*.amc_end_date.after_or_equal' => 'AMC end date must be after or equal to AMC start date.',
             'services.*.remark_color.required_with' => 'Please select a remark color when remark text is provided.',
             'services.*.start_date.required' => 'Start date is required.',
             'services.*.end_date.required' => 'End date is required.',
@@ -184,22 +196,28 @@ class ServiceController extends Controller
 
         $clientCompany = ClientBusinessDetail::findOrFail($request->client_business_detail_id);
 
-        foreach ($request->services as $serviceData) {
-            Service::create([
-                'client_id' => $clientCompany->user_id,
-                'client_business_detail_id' => $clientCompany->id,
-                'vendor_id' => $serviceData['vendor_id'],
-                'service_name' => $serviceData['service_name'],
-                'service_details' => $serviceData['service_details'] ?? null,
-                'plan_type' => $serviceData['plan_type'],
-                'remark_text' => $serviceData['remark_text'] ?? null,
-                'remark_color' => $serviceData['remark_color'] ?? null,
-                'start_date' => $serviceData['start_date'],
-                'end_date' => $serviceData['end_date'],
-                'billing_date' => $serviceData['billing_date'],
-                'status' => $serviceData['status'],
-            ]);
-        }
+        DB::transaction(function () use ($request, $clientCompany) {
+            foreach ($request->services as $index => $serviceData) {
+                $service = Service::create([
+                    'client_id' => $clientCompany->user_id,
+                    'client_business_detail_id' => $clientCompany->id,
+                    'vendor_id' => $serviceData['vendor_id'],
+                    'service_name' => $serviceData['service_name'],
+                    'service_details' => $serviceData['service_details'] ?? null,
+                    'plan_type' => $serviceData['plan_type'],
+                    'remark_text' => $serviceData['remark_text'] ?? null,
+                    'remark_color' => $serviceData['remark_color'] ?? null,
+                    'start_date' => $serviceData['start_date'],
+                    'end_date' => $serviceData['end_date'],
+                    'billing_date' => $serviceData['billing_date'],
+                    'status' => $serviceData['status'],
+                ]);
+
+                if ($request->boolean("services.{$index}.is_amc")) {
+                    $this->createAmcPackage($service, $serviceData);
+                }
+            }
+        });
 
         return redirect()->route('services.index')
             ->with('success', 'Services created successfully!');
@@ -214,8 +232,34 @@ class ServiceController extends Controller
     public function show($id)
     {
         $user = auth()->user();
-        $service = $this->scopedQuery($user)->with(['company', 'client', 'vendor'])->findOrFail($id);
+        $service = $this->scopedQuery($user)->with(['company', 'client', 'vendor', 'amcService.amcServiceDetails'])->findOrFail($id);
         return view('services.show', compact('service'));
+    }
+
+    public function updateAmcVisit(Request $request, $serviceId, $detailId): RedirectResponse
+    {
+        $user = auth()->user();
+        $service = $this->scopedQuery($user)->with('amcService.amcServiceDetails')->findOrFail($serviceId);
+        $amcDetail = AmcServiceDetail::query()
+            ->whereHas('amcService', fn ($query) => $query->where('service_id', $service->id))
+            ->findOrFail($detailId);
+
+        $validator = Validator::make($request->all(), [
+            'status' => 'required|in:pending,completed',
+            'details' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput();
+        }
+
+        $amcDetail->update([
+            'status' => $request->status,
+            'details' => $request->details,
+            'completed_at' => $request->status === 'completed' ? now() : null,
+        ]);
+
+        return redirect()->back()->with('success', 'AMC visit updated successfully.');
     }
 
     /**
@@ -330,5 +374,65 @@ class ServiceController extends Controller
 
         return redirect()->route('services.index')
             ->with('success', 'Service deleted successfully!');
+    }
+
+    private function createAmcPackage(Service $service, array $serviceData): void
+    {
+        $totalVisits = (int) ($serviceData['amc_total_visits'] ?? 0);
+        $amcStartDate = Carbon::parse($serviceData['amc_start_date']);
+        $amcEndDate = Carbon::parse($serviceData['amc_end_date']);
+
+        if ($totalVisits < 1) {
+            return;
+        }
+
+        $amcService = AmcService::create([
+            'service_id' => $service->id,
+            'total_visits' => $totalVisits,
+            'amc_start_date' => $amcStartDate->toDateString(),
+            'amc_end_date' => $amcEndDate->toDateString(),
+        ]);
+
+        $visitDates = $this->buildAmcVisitDates($amcStartDate, $amcEndDate, $totalVisits);
+
+        foreach ($visitDates as $index => $visitDate) {
+            AmcServiceDetail::create([
+                'amc_service_id' => $amcService->id,
+                'visit_number' => $index + 1,
+                'visit_date' => $visitDate->toDateString(),
+                'status' => 'pending',
+                'details' => null,
+            ]);
+        }
+    }
+
+    /**
+     * @return array<int, Carbon>
+     */
+    private function buildAmcVisitDates(Carbon $startDate, Carbon $endDate, int $totalVisits): array
+    {
+        if ($totalVisits < 1) {
+            return [];
+        }
+
+        if ($startDate->greaterThanOrEqualTo($endDate) || $totalVisits === 1) {
+            return [$endDate->copy()];
+        }
+
+        $daysDiff = max($startDate->diffInDays($endDate), 0);
+        $dates = [];
+
+        for ($index = 0; $index < $totalVisits; $index++) {
+            $offsetDays = (int) round(($daysDiff * ($index + 1)) / $totalVisits);
+            $visitDate = $startDate->copy()->addDays($offsetDays);
+
+            if ($visitDate->gt($endDate)) {
+                $visitDate = $endDate->copy();
+            }
+
+            $dates[] = $visitDate;
+        }
+
+        return $dates;
     }
 }
