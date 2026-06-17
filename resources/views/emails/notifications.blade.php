@@ -273,7 +273,7 @@
                                                 </td>
                                                 <td
                                                     style="padding:12px 16px; border-bottom:1px solid #e5e7eb !important; font-size:14px; color:#475569 !important; background-color:#ffffff !important;">
-                                                    <a href="{{ url('/client') }}"
+                                                    <a href="{{ url('/services') }}"
                                                         style="color:#2563eb !important; text-decoration:underline;">
                                                         Open Client Renewals
                                                     </a>
@@ -552,7 +552,7 @@
                             </div>
 
                             <div style="font-size:15px; line-height:1.9; color:#475569 !important;">
-                                <a href="{{ url('/client') }}"
+                                <a href="{{ url('/services') }}"
                                     style="color:#2563eb !important; text-decoration:none;">
                                     Open Client Renewals
                                 </a>
