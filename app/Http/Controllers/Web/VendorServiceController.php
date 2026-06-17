@@ -15,6 +15,16 @@ class VendorServiceController extends Controller
 {
     public function __construct(private VendorServiceManagementService $vendorServiceManagementService) {}
 
+    private function planTypes(): array
+    {
+        return [
+            'monthly' => 'Monthly',
+            'yearly' => 'Yearly',
+            'quarterly' => 'Quarterly',
+            'half_year' => 'Half Year',
+        ];
+    }
+
     public function index(Request $request)
     {
         $filters = VendorServiceFilterData::fromArray($request->all());
@@ -34,8 +44,9 @@ class VendorServiceController extends Controller
             ->orderBy('name')
             ->get();
         $selectedVendorId = $request->get('vendor_id');
+        $planTypes = $this->planTypes();
 
-        return view('vendor-services.create', compact('vendors', 'selectedVendorId'));
+        return view('vendor-services.create', compact('vendors', 'selectedVendorId', 'planTypes'));
     }
 
     public function store(StoreVendorServiceRequest $request)
@@ -65,8 +76,9 @@ class VendorServiceController extends Controller
             ->scopedVendorsQuery(auth()->user())
             ->orderBy('name')
             ->get();
+        $planTypes = $this->planTypes();
 
-        return view('vendor-services.edit', compact('service', 'vendors'));
+        return view('vendor-services.edit', compact('service', 'vendors', 'planTypes'));
     }
 
     public function update(UpdateVendorServiceRequest $request, int $id)

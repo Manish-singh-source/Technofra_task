@@ -182,7 +182,7 @@
                                             <span class="text-muted">No remark</span>
                                         @endif
                                     </td>
-                                    <td>{{ ucfirst($service->plan_type) }}</td>
+                                    <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</td>
                                     <td>{{ $service->start_date->format('d M Y') }}</td>
                                     <td>
                                         <div>{{ $service->end_date->format('d M Y') }}</div>

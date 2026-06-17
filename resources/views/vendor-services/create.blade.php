@@ -86,15 +86,15 @@
 												<option value="gray">Gray</option>
 											</select>
 										</div>
-										<div class="col-md-6">
-											<label class="form-label">Plan Type <span class="text-danger">*</span></label>
-											<select class="form-select" name="services[0][plan_type]" required>
-												<option value="">Choose plan type...</option>
-												<option value="yearly">Yearly</option>
-												<option value="quarterly">Quarterly</option>
-												<option value="monthly">Monthly</option>
-											</select>
-										</div>
+											<div class="col-md-6">
+												<label class="form-label">Plan Type <span class="text-danger">*</span></label>
+												<select class="form-select" name="services[0][plan_type]" required>
+													<option value="">Choose plan type...</option>
+													@foreach($planTypes as $planValue => $planLabel)
+														<option value="{{ $planValue }}">{{ $planLabel }}</option>
+													@endforeach
+												</select>
+											</div>
 										<div class="col-md-3">
 											<label class="form-label">Start Date <span class="text-danger">*</span></label>
 											<input type="date" class="form-control" name="services[0][start_date]" required>
@@ -209,15 +209,15 @@ document.addEventListener('DOMContentLoaded', function() {
                         <option value="gray">Gray</option>
                     </select>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label">Plan Type <span class="text-danger">*</span></label>
-                    <select class="form-select" name="services[${serviceIndex}][plan_type]" required>
-                        <option value="">Choose plan type...</option>
-                        <option value="yearly">Yearly</option>
-                        <option value="quarterly">Quarterly</option>
-                        <option value="monthly">Monthly</option>
-                    </select>
-                </div>
+	                <div class="col-md-6">
+	                    <label class="form-label">Plan Type <span class="text-danger">*</span></label>
+	                    <select class="form-select" name="services[${serviceIndex}][plan_type]" required>
+	                        <option value="">Choose plan type...</option>
+	                        @foreach($planTypes as $planValue => $planLabel)
+	                        <option value="{{ $planValue }}">{{ $planLabel }}</option>
+	                        @endforeach
+	                    </select>
+	                </div>
                 <div class="col-md-3">
                     <label class="form-label">Start Date <span class="text-danger">*</span></label>
                     <input type="date" class="form-control" name="services[${serviceIndex}][start_date]" required>

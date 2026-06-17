@@ -20,7 +20,7 @@ class StoreVendorServiceRequest extends FormRequest
             'services.*.service_details' => 'nullable|string',
             'services.*.remark_text' => 'nullable|string|max:100',
             'services.*.remark_color' => 'nullable|in:yellow,red,green,blue,gray',
-            'services.*.plan_type' => 'required|in:monthly,yearly,quarterly',
+            'services.*.plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
             'services.*.start_date' => 'required|date',
             'services.*.end_date' => 'required|date|after_or_equal:services.*.start_date',
             'services.*.billing_date' => 'nullable|date',
@@ -28,4 +28,3 @@ class StoreVendorServiceRequest extends FormRequest
         ];
     }
 }
-

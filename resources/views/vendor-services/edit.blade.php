@@ -67,17 +67,19 @@
 							@enderror
 						</div>
 
-						<div class="col-md-6">
-							<label for="plan_type" class="form-label">Plan Type <span class="text-danger">*</span></label>
-							<select class="form-select @error('plan_type') is-invalid @enderror" id="plan_type" name="plan_type" required>
-								<option value="">Choose plan type...</option>
-								<option value="yearly" {{ old('plan_type', $service->plan_type) == 'yearly' ? 'selected' : '' }}>Yearly</option>
-								<option value="quarterly" {{ old('plan_type', $service->plan_type) == 'quarterly' ? 'selected' : '' }}>Quarterly</option>
-								<option value="monthly" {{ old('plan_type', $service->plan_type) == 'monthly' ? 'selected' : '' }}>Monthly</option>
-							</select>
-							@error('plan_type')
-								<div class="invalid-feedback">{{ $message }}</div>
-							@enderror
+							<div class="col-md-6">
+								<label for="plan_type" class="form-label">Plan Type <span class="text-danger">*</span></label>
+								<select class="form-select @error('plan_type') is-invalid @enderror" id="plan_type" name="plan_type" required>
+									<option value="">Choose plan type...</option>
+									@foreach($planTypes as $planValue => $planLabel)
+										<option value="{{ $planValue }}" {{ old('plan_type', $service->plan_type) == $planValue ? 'selected' : '' }}>
+											{{ $planLabel }}
+										</option>
+									@endforeach
+								</select>
+								@error('plan_type')
+									<div class="invalid-feedback">{{ $message }}</div>
+								@enderror
 						</div>
 
 						<div class="col-md-6">

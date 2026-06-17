@@ -19,7 +19,7 @@ class StoreVendorRenewalRequest extends FormRequest
             'service_details' => 'nullable|string',
             'remark_text' => 'nullable|string|max:100',
             'remark_color' => 'nullable|in:yellow,red,green,blue,gray',
-            'plan_type' => 'required|in:monthly,yearly,quarterly',
+            'plan_type' => 'required|in:monthly,yearly,quarterly,half_year',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'billing_date' => 'required|date',
@@ -27,4 +27,3 @@ class StoreVendorRenewalRequest extends FormRequest
         ];
     }
 }
-
