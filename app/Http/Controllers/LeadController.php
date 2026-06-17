@@ -156,7 +156,7 @@ class LeadController extends Controller
         }
 
 
-        return redirect()->route('leads')->with('success', 'Lead updated successfully!');
+        return redirect()->route('lead-management.index')->with('success', 'Lead updated successfully!');
     }
 
     /**
