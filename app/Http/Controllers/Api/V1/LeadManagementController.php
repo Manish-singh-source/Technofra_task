@@ -67,6 +67,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
         $search = trim((string) $request->query('search', ''));
         $statusFilter = trim((string) $request->query('status', ''));
+        $sourceFilter = trim((string) $request->query('source', ''));
         $sourceLabels = [
             self::SOURCE_LEAD => 'Leads',
             self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
@@ -102,18 +103,22 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         }
 
         $merged = $filteredBySearch
+            ->when($sourceFilter !== '', function (Collection $items) use ($sourceFilter) {
+                return $items->filter(fn (array $row) => (string) ($row['source_type'] ?? '') === $sourceFilter);
+            })
             ->when($statusFilter !== '', function (Collection $items) use ($statusFilter) {
                 return $items->filter(fn (array $row) => (string) ($row['status'] ?? '') === $statusFilter);
             })
             ->sortByDesc('created_at_ts')
             ->values();
 
-        $perPage = max($merged->count(), 1);
+        $perPage = max((int) $request->query('per_page', 10), 1);
+        $page = max((int) $request->query('page', 1), 1);
         $paginated = new LengthAwarePaginator(
-            $merged->forPage(1, $perPage)->values(),
+            $merged->forPage($page, $perPage)->values(),
             $merged->count(),
             $perPage,
-            1,
+            $page,
             [
                 'path' => $request->url(),
                 'query' => $request->query(),
@@ -124,7 +129,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
         return ApiResponse::success([
             'leads' => $paginated,
-            'lead_items' => LeadSummaryResource::collection(collect($paginated->items())),
+            // 'lead_items' => LeadSummaryResource::collection(collect($paginated->items())),
             'pagination' => [
                 'total' => $paginated->total(),
                 'per_page' => $paginated->perPage(),
@@ -134,7 +139,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'staff' => $staff,
             'filters' => [
                 'search' => $search,
-                'source' => '',
+                'source' => $sourceFilter,
                 'status' => $statusFilter,
             ],
             'sources' => $sourceLabels,
