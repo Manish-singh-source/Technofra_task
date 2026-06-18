@@ -16,11 +16,15 @@ class AmcServiceDetail extends Model
         'status',
         'details',
         'completed_at',
+        'before_visit_reminder_sent_at',
+        'same_day_reminder_sent_at',
     ];
 
     protected $casts = [
         'visit_date' => 'date',
         'completed_at' => 'datetime',
+        'before_visit_reminder_sent_at' => 'datetime',
+        'same_day_reminder_sent_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];

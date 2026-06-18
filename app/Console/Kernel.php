@@ -31,6 +31,7 @@ class Kernel extends ConsoleKernel
         }
 
         $schedule->command('notifications:send-daily')->dailyAt($dailyNotificationTime);
+        $schedule->command('amc:send-visit-reminders')->dailyAt('06:00');
         $schedule->command('project-management:send-notifications --days='.((int) config('project_management.notifications.milestone_deadline_days', 2)))
             ->dailyAt('09:00')
             ->withoutOverlapping();
