@@ -119,8 +119,8 @@
                                             </div>
                                         </div>
                                         <div class="table-responsive">
-                                            <table class="table table-striped table-bordered mb-0" id="client-renewals-table"
-                                                style="width:100%">
+                                            <table class="table table-striped table-bordered align-middle mb-0"
+                                                id="client-renewals-table" style="width:100%">
                                                 <thead class="table-light">
                                                     <tr>
                                                         <th>Company Name</th>
@@ -255,8 +255,8 @@
                                             </div>
                                         </div>
                                         <div class="table-responsive">
-                                            <table class="table table-striped table-bordered mb-0" id="vendor-renewals-table"
-                                                style="width:100%">
+                                            <table class="table table-striped table-bordered align-middle mb-0"
+                                                id="vendor-renewals-table" style="width:100%">
                                                 <thead class="table-light">
                                                     <tr>
                                                         <th>Vendor Name</th>
@@ -354,6 +354,36 @@
                             </div>
                         </div>
                     </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const initDashboardTable = (selector) => {
+                                if (!window.jQuery || !$.fn.DataTable) {
+                                    return;
+                                }
+
+                                const $table = $(selector);
+                                if (!$table.length || $.fn.DataTable.isDataTable($table)) {
+                                    return;
+                                }
+
+                                $table.DataTable({
+                                    order: [],
+                                    lengthChange: false,
+                                    searching: false,
+                                    info: false,
+                                    paging: false,
+                                    autoWidth: false,
+                                    columnDefs: [
+                                        { orderable: false, targets: [8] },
+                                        { searchable: false, targets: [8] }
+                                    ]
+                                });
+                            };
+
+                            initDashboardTable('#client-renewals-table');
+                            initDashboardTable('#vendor-renewals-table');
+                        });
+                    </script>
                 @endcan
 
                 @can('view_projects')
