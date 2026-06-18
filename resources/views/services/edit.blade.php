@@ -26,6 +26,16 @@
         <div id="stepper1" class="bs-stepper">
             <div class="card">
                 <div class="card-body p-4">
+                    @php
+                        $serviceAmc = $service->amcService;
+                        $isAmcEnabled = (int) old('is_amc', $serviceAmc ? 1 : 0) === 1;
+                        $amcTotalVisitsValue = old('amc_total_visits', $serviceAmc?->total_visits);
+                        $amcStartDateValue = old('amc_start_date', optional($serviceAmc?->amc_start_date)->format('Y-m-d'));
+                        $amcEndDateValue = old('amc_end_date', optional($serviceAmc?->amc_end_date)->format('Y-m-d'));
+                        $amcCompletedVisits = $serviceAmc ? $serviceAmc->amcServiceDetails->where('status', 'completed')->count() : 0;
+                        $amcPendingVisits = $serviceAmc ? $serviceAmc->amcServiceDetails->where('status', 'pending')->count() : 0;
+                    @endphp
+
                     <h5 class="mb-4">Edit Service</h5>
                     <form class="row g-3" method="POST" action="{{ route('services.update', $service->id) }}">
                         @csrf
@@ -162,6 +172,63 @@
                         </div>
 
                         <div class="col-md-12">
+                            <div class="card border shadow-none mb-0">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <h6 class="mb-0">AMC Settings</h6>
+                                        <small class="text-muted">Completed visits stay locked. Only pending visits are recalculated.</small>
+                                    </div>
+                                    @if($serviceAmc)
+                                        <span class="badge bg-info text-dark">AMC Exists</span>
+                                    @endif
+                                </div>
+                                <div class="card-body">
+                                    @if($serviceAmc)
+                                        <div class="alert alert-warning mb-3">
+                                            <strong>Current AMC:</strong>
+                                            Total {{ $serviceAmc->total_visits }} visits,
+                                            {{ $amcCompletedVisits }} completed,
+                                            {{ $amcPendingVisits }} pending.
+                                            Turning AMC off will keep this history intact and stop future resync.
+                                        </div>
+                                    @endif
+
+                                    <input type="hidden" name="is_amc" value="0">
+                                    <div class="form-check form-switch mb-3">
+                                        <input class="form-check-input" type="checkbox" id="service_is_amc" name="is_amc" value="1" {{ $isAmcEnabled ? 'checked' : '' }}>
+                                        <label class="form-check-label fw-semibold" for="service_is_amc">AMC Service</label>
+                                    </div>
+
+                                    <div id="amcFields" class="{{ $isAmcEnabled ? '' : 'd-none' }}">
+                                        <div class="row g-3">
+                                            <div class="col-md-4">
+                                                <label for="amc_total_visits" class="form-label">AMC Total Visits</label>
+                                                <input type="number" min="1" class="form-control @error('amc_total_visits') is-invalid @enderror" id="amc_total_visits" name="amc_total_visits" value="{{ $amcTotalVisitsValue }}" placeholder="Example: 4">
+                                                @error('amc_total_visits')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="amc_start_date" class="form-label">AMC Start Date</label>
+                                                <input type="date" class="form-control @error('amc_start_date') is-invalid @enderror" id="amc_start_date" name="amc_start_date" value="{{ $amcStartDateValue }}">
+                                                @error('amc_start_date')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="amc_end_date" class="form-label">AMC End Date</label>
+                                                <input type="date" class="form-control @error('amc_end_date') is-invalid @enderror" id="amc_end_date" name="amc_end_date" value="{{ $amcEndDateValue }}">
+                                                @error('amc_end_date')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
                             <div class="d-md-flex d-grid align-items-center gap-3">
                                 <button type="submit" class="btn btn-primary px-4">Update Service</button>
                                 <a href="{{ route('services.index') }}" class="btn btn-light px-4">Cancel</a>
@@ -195,7 +262,19 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error initializing CKEditor:', error);
-            });
+                });
+    }
+
+    const amcToggle = document.getElementById('service_is_amc');
+    const amcFields = document.getElementById('amcFields');
+
+    if (amcToggle && amcFields) {
+        const toggleAmcFields = () => {
+            amcFields.classList.toggle('d-none', !amcToggle.checked);
+        };
+
+        amcToggle.addEventListener('change', toggleAmcFields);
+        toggleAmcFields();
     }
 });
 </script>

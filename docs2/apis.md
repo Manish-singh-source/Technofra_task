@@ -428,6 +428,10 @@ curl -X POST "$BASE_URL/client-renewals/1/amc-visits/1" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"status":"completed","details":"Site visit completed and checked all service points."}'
 
+# AMC sync behavior
+# Completed AMC visits stay unchanged when updating the client renewal.
+# Only pending AMC visits are regenerated when AMC dates or total visits change.
+
 # Delete client renewal
 curl -X DELETE "$BASE_URL/client-renewals/1" \
   -H "Accept: application/json" \

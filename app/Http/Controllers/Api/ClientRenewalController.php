@@ -15,6 +15,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class ClientRenewalController extends Controller
 {
@@ -427,7 +428,7 @@ class ClientRenewalController extends Controller
         $amcStartDate = Carbon::parse($amcData['amc_start_date']);
         $amcEndDate = Carbon::parse($amcData['amc_end_date']);
 
-        $amcService = $service->amcService()->first();
+        $amcService = $service->amcService()->with('amcServiceDetails')->first();
 
         if (! $amcService) {
             $amcService = AmcService::create([
@@ -436,15 +437,65 @@ class ClientRenewalController extends Controller
                 'amc_start_date' => $amcStartDate->toDateString(),
                 'amc_end_date' => $amcEndDate->toDateString(),
             ]);
-        } else {
-            $amcService->update([
-                'total_visits' => $totalVisits,
-                'amc_start_date' => $amcStartDate->toDateString(),
-                'amc_end_date' => $amcEndDate->toDateString(),
-            ]);
-            $amcService->amcServiceDetails()->delete();
+
+            $this->createAmcDetails($amcService, $amcStartDate, $amcEndDate, $totalVisits);
+
+            return;
         }
 
+        $completedDetails = $amcService->amcServiceDetails->where('status', 'completed')->values();
+        $completedVisitNumbers = $completedDetails
+            ->pluck('visit_number')
+            ->map(fn ($visitNumber) => (int) $visitNumber)
+            ->values();
+
+        $highestCompletedVisitNumber = (int) ($completedVisitNumbers->max() ?? 0);
+        if ($totalVisits < $highestCompletedVisitNumber) {
+            throw ValidationException::withMessages([
+                'amc_total_visits' => sprintf(
+                    'AMC total visits cannot be less than the highest completed visit number (%d).',
+                    $highestCompletedVisitNumber
+                ),
+            ]);
+        }
+
+        $amcService->update([
+            'total_visits' => $totalVisits,
+            'amc_start_date' => $amcStartDate->toDateString(),
+            'amc_end_date' => $amcEndDate->toDateString(),
+        ]);
+
+        if ($completedDetails->isEmpty()) {
+            $amcService->amcServiceDetails()->delete();
+            $this->createAmcDetails($amcService, $amcStartDate, $amcEndDate, $totalVisits);
+
+            return;
+        }
+
+        $amcService->amcServiceDetails()
+            ->where('status', 'pending')
+            ->delete();
+
+        $completedVisitLookup = $completedVisitNumbers->flip();
+        foreach ($this->buildAmcVisitDates($amcStartDate, $amcEndDate, $totalVisits) as $index => $visitDate) {
+            $visitNumber = $index + 1;
+
+            if ($completedVisitLookup->has($visitNumber)) {
+                continue;
+            }
+
+            AmcServiceDetail::create([
+                'amc_service_id' => $amcService->id,
+                'visit_number' => $visitNumber,
+                'visit_date' => $visitDate->toDateString(),
+                'status' => 'pending',
+                'details' => null,
+            ]);
+        }
+    }
+
+    private function createAmcDetails(AmcService $amcService, Carbon $amcStartDate, Carbon $amcEndDate, int $totalVisits): void
+    {
         foreach ($this->buildAmcVisitDates($amcStartDate, $amcEndDate, $totalVisits) as $index => $visitDate) {
             AmcServiceDetail::create([
                 'amc_service_id' => $amcService->id,
