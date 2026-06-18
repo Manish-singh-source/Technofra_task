@@ -70,7 +70,7 @@
                                 <div class="card-body">
                                     <div class="d-flex align-items-center">
                                         <div>
-                                            <p class="mb-0 text-secondary">Overdue Renewals</p>
+                                            <p class="mb-0 text-secondary">Expired Renewals</p>
                                             <h4 class="my-1 text-danger">{{ $overdueRenewals ?? 0 }}</h4>
                                             <p class="mb-0 font-13">Already expired</p>
                                         </div>
@@ -83,18 +83,17 @@
                         </div>
                     </div>
                     <!--end row-->
-                    <!-- Critical Renewals Table (Overdue + Upcoming) -->
+                <!-- Critical Renewals Table (Upcoming + Expired) -->
                     <div class="card radius-10 mt-4">
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center gap-3">
                                 <div>
                                     <h6 class="mb-0">Upcoming Renewals</h6>
-                                    <p class="mb-0 text-muted font-13">Split view of overdue renewals and items expiring within the
-                                        next 5 days</p>
+                                    <p class="mb-0 text-muted font-13">Split view of upcoming renewals and expired items</p>
                                 </div>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <span class="badge bg-danger">
-                                        <p class="mb-0 p-2">{{ $overdueRenewals ?? 0 }} Total Overdue</p>
+                                        <p class="mb-0 p-2">{{ $overdueRenewals ?? 0 }} Total Expired</p>
                                     </span>
                                 </div>
                             </div>
@@ -107,13 +106,12 @@
                                             <div class="d-flex flex-wrap align-items-center gap-2">
                                                 <div>
                                                     <h6 class="mb-1">Client Renewals</h6>
-                                                    <p class="mb-0 text-muted font-13">Client services overdue or expiring in the
-                                                        next 5 days</p>
+                                                    <p class="mb-0 text-muted font-13">Client services that are upcoming or expired</p>
                                                 </div>
                                                 <div class="ms-auto d-flex align-items-center gap-2">
                                                     <span class="badge bg-warning text-dark">{{ $clientRenewalsDueThisWeek ?? 0 }}
                                                         This Week</span>
-                                                    <span class="badge bg-danger">{{ $clientOverdueRenewals ?? 0 }} Overdue</span>
+                                                    <span class="badge bg-danger">{{ $clientExpiredRenewals ?? 0 }} Expired</span>
                                                     <a href="{{ route('services.index') }}" class="btn btn-primary btn-sm">
                                                         <i class="bx bx-list-ul"></i> View All
                                                     </a>
@@ -125,14 +123,14 @@
                                                 style="width:100%">
                                                 <thead class="table-light">
                                                     <tr>
-                                                        <th>Priority</th>
-                                                        <th>Service ID</th>
-                                                        <th>Client Name</th>
-                                                        <th>Vendor Name</th>
-                                                        <th>Service Name</th>
-                                                        <th>Expiry Date</th>
-                                                        <th>Status</th>
+                                                        <th>Company Name</th>
+                                                        <th>Service Renewal</th>
+                                                        <th>Plan Type</th>
+                                                        <th>Remark</th>
+                                                        <th>Start Date</th>
+                                                        <th>End Date</th>
                                                         <th>Billing Date</th>
+                                                        <th>Status</th>
                                                         <th>Actions</th>
                                                     </tr>
                                                 </thead>
@@ -142,62 +140,53 @@
                                                             $today = \Carbon\Carbon::today();
                                                             $daysLeft = $today->diffInDays($service->end_date, false);
                                                             $isOverdue = $service->end_date < $today;
-
-                                                            if ($isOverdue) {
-                                                                $urgencyClass = 'text-danger';
-                                                                $priorityBadge = 'bg-danger';
-                                                                $priorityText = 'OVERDUE';
-                                                                $statusText = abs($daysLeft) . ' days overdue';
-                                                            } else {
-                                                                $urgencyClass =
-                                                                    $daysLeft <= 1
-                                                                        ? 'text-danger'
-                                                                        : ($daysLeft <= 3
-                                                                            ? 'text-warning'
-                                                                            : 'text-info');
-                                                                $priorityBadge =
-                                                                    $daysLeft <= 1
-                                                                        ? 'bg-danger'
-                                                                        : ($daysLeft <= 3
-                                                                            ? 'bg-warning'
-                                                                            : 'bg-info');
-                                                                $priorityText =
-                                                                    $daysLeft <= 1
-                                                                        ? 'URGENT'
-                                                                        : ($daysLeft <= 3
-                                                                            ? 'HIGH'
-                                                                            : 'MEDIUM');
-                                                                $statusText =
-                                                                    $daysLeft == 0
-                                                                        ? 'Today'
-                                                                        : ($daysLeft == 1
-                                                                            ? 'Tomorrow'
-                                                                            : $daysLeft . ' days left');
-                                                            }
+                                                            $urgencyClass =
+                                                                $daysLeft <= 1
+                                                                    ? 'text-danger'
+                                                                    : ($daysLeft <= 3 ? 'text-warning' : 'text-info');
+                                                            $statusBadgeClass = $service->effective_status === 'expired'
+                                                                ? 'bg-danger'
+                                                                : 'bg-' . $service->effective_status_badge;
                                                         @endphp
                                                         <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
-                                                            <td><span
-                                                                    class="badge {{ $priorityBadge }} font-11">{{ $priorityText }}</span>
-                                                            </td>
-                                                            <td>
-                                                                <h6 class="mb-0 font-14">#{{ $service->id }}</h6>
-                                                            </td>
-                                                            <td>{{ $service->client->cname ?? 'N/A' }}</td>
-                                                            <td>{{ $service->vendor->name ?? 'N/A' }}</td>
+                                                            <td>{{ $service->company?->company_name ?: ($service->client?->businessDetail?->company_name ?: 'N/A') }}</td>
                                                             <td>{{ $service->service_name }}</td>
-                                                            <td class="{{ $urgencyClass }}">
-                                                                <strong>{{ $service->end_date->format('d M Y') }}</strong><br>
-                                                                <small class="{{ $urgencyClass }}">{{ $statusText }}</small>
-                                                            </td>
+                                                            <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</td>
                                                             <td>
-                                                                @if ($isOverdue)
-                                                                    <span class="badge bg-danger">Expired</span>
+                                                                @if ($service->remark_text)
+                                                                    <span class="badge border"
+                                                                        style="{{ $service->remark_badge_style }}">{{ $service->remark_text }}</span>
                                                                 @else
-                                                                    <span
-                                                                        class="badge bg-{{ $service->status_badge }}">{{ ucfirst($service->status) }}</span>
+                                                                    <span class="text-muted">N/A</span>
                                                                 @endif
                                                             </td>
-                                                            <td>{{ $service->billing_date->format('d M Y') }}</td>
+                                                            <td>{{ $service->start_date->format('d M Y') }}</td>
+                                                            <td class="{{ $urgencyClass }}">
+                                                                <div><strong>{{ $service->end_date->format('d M Y') }}</strong></div>
+                                                                <small class="{{ $urgencyClass }}">
+                                                                    @if ($daysLeft < 0)
+                                                                        {{ abs($daysLeft) }} days overdue
+                                                                    @elseif($daysLeft == 0)
+                                                                        Expires today
+                                                                    @elseif($daysLeft == 1)
+                                                                        Expires tomorrow
+                                                                    @else
+                                                                        {{ $daysLeft }} days left
+                                                                    @endif
+                                                                </small>
+                                                            </td>
+                                                            <td>
+                                                                @if ($service->billing_date)
+                                                                    {{ $service->billing_date->format('d M Y') }}
+                                                                @else
+                                                                    N/A
+                                                                @endif
+                                                            </td>
+                                                            <td>
+                                                                <span class="badge {{ $statusBadgeClass }}">
+                                                                    {{ $service->status_label }}
+                                                                </span>
+                                                            </td>
                                                             <td>
                                                                 <div class="d-flex order-actions">
                                                                     <a href="{{ route('services.show', $service->id) }}"
@@ -219,11 +208,13 @@
                                                                             <i class='bx bxl-whatsapp'></i>
                                                                         </button>
                                                                     </form>
+                                                                    {{-- 
                                                                     @if ($isOverdue)
                                                                         <a href="{{ route('services.edit', $service->id) }}"
                                                                             class="ms-2 text-success" title="Renew Service"><i
                                                                                 class='bx bx-refresh'></i></a>
-                                                                    @endif
+                                                                    @endif 
+                                                                    --}}
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -233,9 +224,8 @@
                                                                 <div class="d-flex flex-column align-items-center">
                                                                     <i class='bx bx-calendar-check'
                                                                         style="font-size: 48px; color: #28a745;"></i>
-                                                                    <h6 class="mt-2 text-success">No critical client renewals</h6>
-                                                                    <p class="text-muted mb-0">No overdue client services and
-                                                                        nothing expiring in the next 5 days</p>
+                                                                    <h6 class="mt-2 text-success">No upcoming or expired client renewals</h6>
+                                                                    <p class="text-muted mb-0">No client services are expiring soon or already expired</p>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -251,13 +241,12 @@
                                             <div class="d-flex flex-wrap align-items-center gap-2">
                                                 <div>
                                                     <h6 class="mb-1">Vendor Renewals</h6>
-                                                    <p class="mb-0 text-muted font-13">Vendor services overdue or expiring in the
-                                                        next 5 days</p>
+                                                    <p class="mb-0 text-muted font-13">Vendor services that are upcoming or expired</p>
                                                 </div>
                                                 <div class="ms-auto d-flex align-items-center gap-2">
                                                     <span class="badge bg-warning text-dark">{{ $vendorRenewalsDueThisWeek ?? 0 }}
                                                         This Week</span>
-                                                    <span class="badge bg-danger">{{ $vendorOverdueRenewals ?? 0 }} Overdue</span>
+                                                    <span class="badge bg-danger">{{ $vendorExpiredRenewals ?? 0 }} Expired</span>
                                                     <a href="{{ route('vendor-services.index') }}"
                                                         class="btn btn-primary btn-sm">
                                                         <i class="bx bx-list-ul"></i> View All
@@ -270,14 +259,14 @@
                                                 style="width:100%">
                                                 <thead class="table-light">
                                                     <tr>
-                                                        <th>Priority</th>
-                                                        <th>Service ID</th>
                                                         <th>Vendor Name</th>
-                                                        <th>Service Name</th>
+                                                        <th>Service Renewal</th>
+                                                        <th>Remark</th>
                                                         <th>Plan Type</th>
-                                                        <th>Expiry Date</th>
-                                                        <th>Status</th>
+                                                        <th>Start Date</th>
+                                                        <th>End Date</th>
                                                         <th>Billing Date</th>
+                                                        <th>Status</th>
                                                         <th>Actions</th>
                                                     </tr>
                                                 </thead>
@@ -287,64 +276,47 @@
                                                             $today = \Carbon\Carbon::today();
                                                             $daysLeft = $today->diffInDays($service->end_date, false);
                                                             $isOverdue = $service->end_date < $today;
-
-                                                            if ($isOverdue) {
-                                                                $urgencyClass = 'text-danger';
-                                                                $priorityBadge = 'bg-danger';
-                                                                $priorityText = 'OVERDUE';
-                                                                $statusText = abs($daysLeft) . ' days overdue';
-                                                            } else {
-                                                                $urgencyClass =
-                                                                    $daysLeft <= 1
-                                                                        ? 'text-danger'
-                                                                        : ($daysLeft <= 3
-                                                                            ? 'text-warning'
-                                                                            : 'text-info');
-                                                                $priorityBadge =
-                                                                    $daysLeft <= 1
-                                                                        ? 'bg-danger'
-                                                                        : ($daysLeft <= 3
-                                                                            ? 'bg-warning'
-                                                                            : 'bg-info');
-                                                                $priorityText =
-                                                                    $daysLeft <= 1
-                                                                        ? 'URGENT'
-                                                                        : ($daysLeft <= 3
-                                                                            ? 'HIGH'
-                                                                            : 'MEDIUM');
-                                                                $statusText =
-                                                                    $daysLeft == 0
-                                                                        ? 'Today'
-                                                                        : ($daysLeft == 1
-                                                                            ? 'Tomorrow'
-                                                                            : $daysLeft . ' days left');
-                                                            }
+                                                            $urgencyClass =
+                                                                $daysLeft <= 1
+                                                                    ? 'text-danger'
+                                                                    : ($daysLeft <= 3 ? 'text-warning' : 'text-info');
+                                                            $statusBadgeClass = $service->effective_status === 'expired'
+                                                                ? 'bg-danger'
+                                                                : 'bg-' . $service->effective_status_badge;
                                                         @endphp
                                                         <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
-                                                            <td><span
-                                                                    class="badge {{ $priorityBadge }} font-11">{{ $priorityText }}</span>
-                                                            </td>
-                                                            <td>
-                                                                <h6 class="mb-0 font-14">#{{ $service->id }}</h6>
-                                                            </td>
                                                             <td>{{ $service->vendor->name ?? 'N/A' }}</td>
                                                             <td>{{ $service->service_name }}</td>
-                                                            <td>{{ $service->plan_type ? ucfirst($service->plan_type) : 'N/A' }}
-                                                            </td>
-                                                            <td class="{{ $urgencyClass }}">
-                                                                <strong>{{ $service->end_date->format('d M Y') }}</strong><br>
-                                                                <small class="{{ $urgencyClass }}">{{ $statusText }}</small>
-                                                            </td>
                                                             <td>
-                                                                @if ($isOverdue)
-                                                                    <span class="badge bg-danger">Expired</span>
+                                                                @if ($service->remark_text)
+                                                                    <span class="badge border"
+                                                                        style="{{ $service->remark_badge_style }}">{{ $service->remark_text }}</span>
                                                                 @else
-                                                                    <span
-                                                                        class="badge bg-{{ $service->status_badge }}">{{ ucfirst($service->status) }}</span>
+                                                                    <span class="text-muted">N/A</span>
                                                                 @endif
                                                             </td>
-                                                            <td>{{ $service->billing_date ? $service->billing_date->format('d M Y') : 'N/A' }}
+                                                            <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</td>
+                                                            <td>{{ $service->start_date->format('d M Y') }}</td>
+                                                            <td class="{{ $urgencyClass }}">
+                                                                <div><strong>{{ $service->end_date->format('d M Y') }}</strong></div>
+                                                                <small class="{{ $urgencyClass }}">
+                                                                    @if ($daysLeft < 0)
+                                                                        {{ abs($daysLeft) }} days overdue
+                                                                    @elseif($daysLeft == 0)
+                                                                        Expires today
+                                                                    @elseif($daysLeft == 1)
+                                                                        Expires tomorrow
+                                                                    @else
+                                                                        {{ $daysLeft }} days left
+                                                                    @endif
+                                                                </small>
                                                             </td>
+                                                            <td>
+                                                                <span class="badge {{ $statusBadgeClass }}">
+                                                                    {{ $service->status_label }}
+                                                                </span>
+                                                            </td>
+                                                            <td>{{ $service->billing_date ? $service->billing_date->format('d M Y') : 'N/A' }}</td>
                                                             <td>
                                                                 <div class="d-flex order-actions">
                                                                     <a href="{{ route('vendor-services.show', $service->id) }}"
@@ -352,11 +324,13 @@
                                                                     <a href="{{ route('vendor-services.edit', $service->id) }}"
                                                                         class="ms-2" title="Edit"><i
                                                                             class='bx bxs-edit'></i></a>
+                                                                    {{-- 
                                                                     @if ($isOverdue)
                                                                         <a href="{{ route('vendor-services.edit', $service->id) }}"
                                                                             class="ms-2 text-success" title="Renew Service"><i
                                                                                 class='bx bx-refresh'></i></a>
-                                                                    @endif
+                                                                    @endif 
+                                                                    --}}
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -366,9 +340,8 @@
                                                                 <div class="d-flex flex-column align-items-center">
                                                                     <i class='bx bx-calendar-check'
                                                                         style="font-size: 48px; color: #28a745;"></i>
-                                                                    <h6 class="mt-2 text-success">No critical vendor renewals</h6>
-                                                                    <p class="text-muted mb-0">No overdue vendor services and
-                                                                        nothing expiring in the next 5 days</p>
+                                                                    <h6 class="mt-2 text-success">No upcoming or expired vendor renewals</h6>
+                                                                    <p class="text-muted mb-0">No vendor services are expiring soon or already expired</p>
                                                                 </div>
                                                             </td>
                                                         </tr>

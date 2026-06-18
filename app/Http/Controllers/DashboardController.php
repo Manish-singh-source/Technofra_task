@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Helpers\RenewalStatusHelper;
 use App\Models\ClientIssue;
 use App\Models\Lead;
 use App\Models\Project;
@@ -24,6 +25,9 @@ class DashboardController extends Controller
      */
     public function index()
     {
+        RenewalStatusHelper::markExpiredClientRenewals();
+        RenewalStatusHelper::markExpiredVendorRenewals();
+
         $today = Carbon::today();
         $weekFromNow = $today->copy()->addWeek();
         $fiveDaysFromNow = $today->copy()->addDays(5);
@@ -31,6 +35,8 @@ class DashboardController extends Controller
         $projectBaseQuery = $this->dashboardProjectQuery();
         $leadBaseQuery = $this->dashboardLeadQuery();
         $clientIssueBaseQuery = $this->dashboardClientIssueQuery();
+        $clientRenewalBaseQuery = $this->dashboardClientRenewalQuery();
+        $vendorRenewalBaseQuery = $this->dashboardVendorRenewalQuery();
 
         $totalProjects = (clone $projectBaseQuery)->count();
         $totalTasks = (clone $taskBaseQuery)->count();
@@ -213,19 +219,27 @@ class DashboardController extends Controller
             $teamCountMap
         ));
 
-        $clientRenewalsDueThisWeek = Service::whereNotNull('client_id')->whereBetween('end_date', [$today, $weekFromNow])->count();
-        $vendorRenewalsDueThisWeek = VendorService::whereBetween('end_date', [$today, $weekFromNow])->count();
+        $clientRenewalsDueThisWeek = (clone $clientRenewalBaseQuery)
+            ->whereBetween('end_date', [$today, $weekFromNow])
+            ->count();
+        $vendorRenewalsDueThisWeek = (clone $vendorRenewalBaseQuery)
+            ->whereBetween('end_date', [$today, $weekFromNow])
+            ->count();
         $renewalsDueThisWeek = $clientRenewalsDueThisWeek + $vendorRenewalsDueThisWeek;
 
-        $clientOverdueRenewals = Service::whereNotNull('client_id')->where('end_date', '<', $today)->count();
-        $vendorOverdueRenewals = VendorService::where('end_date', '<', $today)->count();
-        $overdueRenewals = $clientOverdueRenewals + $vendorOverdueRenewals;
+        $clientExpiredRenewals = (clone $clientRenewalBaseQuery)
+            ->where('status', 'expired')
+            ->count();
+        $vendorExpiredRenewals = (clone $vendorRenewalBaseQuery)
+            ->where('status', 'expired')
+            ->count();
+        $overdueRenewals = $clientExpiredRenewals + $vendorExpiredRenewals;
 
-        $totalRenewals = Service::whereNotNull('client_id')->count() + VendorService::count();
+        $totalRenewals = (clone $clientRenewalBaseQuery)->count() + (clone $vendorRenewalBaseQuery)->count();
 
         $clientCriticalRenewals = $this->orderCriticalRenewals(
             $this->applyCriticalRenewalWindow(
-                Service::with(['client', 'vendor'])->whereNotNull('client_id'),
+                $clientRenewalBaseQuery->with(['client', 'vendor']),
                 $today,
                 $fiveDaysFromNow
             ),
@@ -234,7 +248,7 @@ class DashboardController extends Controller
 
         $vendorCriticalRenewals = $this->orderCriticalRenewals(
             $this->applyCriticalRenewalWindow(
-                VendorService::with('vendor'),
+                $vendorRenewalBaseQuery->with('vendor'),
                 $today,
                 $fiveDaysFromNow
             ),
@@ -259,8 +273,8 @@ class DashboardController extends Controller
             'overdueRenewals',
             'clientRenewalsDueThisWeek',
             'vendorRenewalsDueThisWeek',
-            'clientOverdueRenewals',
-            'vendorOverdueRenewals',
+            'clientExpiredRenewals',
+            'vendorExpiredRenewals',
             'clientCriticalRenewals',
             'vendorCriticalRenewals',
             'supportTickets',
@@ -286,8 +300,11 @@ class DashboardController extends Controller
     private function applyCriticalRenewalWindow(Builder $query, Carbon $today, Carbon $windowEnd): Builder
     {
         return $query->where(function (Builder $query) use ($today, $windowEnd) {
-            $query->where('end_date', '<', $today)
-                ->orWhereBetween('end_date', [$today, $windowEnd]);
+            $query->where('status', 'expired')
+                ->orWhere(function (Builder $query) use ($today, $windowEnd) {
+                    $query->where('status', 'active')
+                        ->whereBetween('end_date', [$today, $windowEnd]);
+                });
         });
     }
 
@@ -353,6 +370,60 @@ class DashboardController extends Controller
         }
 
         return (int) $user->id;
+    }
+
+    private function canViewAllRenewals(): bool
+    {
+        $user = auth()->user();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->hasAnyRole(['super-admin', 'super_admin', 'admin', 'super_admin2'])) {
+            return true;
+        }
+
+        $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
+
+        return in_array($rawRole, ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
+    }
+
+    private function dashboardClientRenewalQuery(): Builder
+    {
+        $query = Service::query()->whereNotNull('client_id');
+
+        if ($this->canViewAllRenewals()) {
+            return $query;
+        }
+
+        $userId = optional(auth()->user())->id;
+
+        if (! $userId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where('client_id', $userId);
+    }
+
+    private function dashboardVendorRenewalQuery(): Builder
+    {
+        $query = VendorService::query();
+
+        if ($this->canViewAllRenewals()) {
+            return $query;
+        }
+
+        $userId = optional(auth()->user())->id;
+
+        if (! $userId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->whereIn('vendor_id', Service::query()
+            ->whereNotNull('vendor_id')
+            ->where('client_id', $userId)
+            ->select('vendor_id'));
     }
 
     private function dashboardProjectQuery(): Builder
