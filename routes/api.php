@@ -198,6 +198,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/{id}', 'show');
                 Route::post('/', 'store');
                 Route::put('/{id}', 'update');
+                Route::post('/{id}/amc-visits/{detail}', 'updateAmcVisit');
                 Route::delete('/{id}', 'destroy');
             });
         });

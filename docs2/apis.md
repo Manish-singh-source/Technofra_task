@@ -412,14 +412,21 @@ curl -X POST "$BASE_URL/client-renewals" \
   -H "Accept: application/json" \
   -H "$JSON_HEADER" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"client_id":1,"client_business_detail_id":1,"vendor_id":1,"service_name":"Website","service_details":"Renewal service","plan_type":"half_year","start_date":"2026-06-01","end_date":"2026-11-30","billing_date":"2026-06-01","status":"active"}'
+  -d '{"client_id":1,"client_business_detail_id":1,"vendor_id":1,"service_name":"Website","service_details":"Renewal service","plan_type":"half_year","is_amc":1,"amc_total_visits":4,"amc_start_date":"2026-06-01","amc_end_date":"2027-05-31","start_date":"2026-06-01","end_date":"2026-11-30","billing_date":"2026-06-01","status":"active"}'
 
 # Update client renewal
 curl -X PUT "$BASE_URL/client-renewals/1" \
   -H "Accept: application/json" \
   -H "$JSON_HEADER" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"client_id":1,"client_business_detail_id":1,"vendor_id":1,"service_name":"Website","service_details":"Renewal service","plan_type":"half_year","start_date":"2026-06-01","end_date":"2026-11-30","billing_date":"2026-06-01","status":"active"}'
+  -d '{"client_id":1,"client_business_detail_id":1,"vendor_id":1,"service_name":"Website","service_details":"Renewal service","plan_type":"half_year","is_amc":1,"amc_total_visits":4,"amc_start_date":"2026-06-01","amc_end_date":"2027-05-31","start_date":"2026-06-01","end_date":"2026-11-30","billing_date":"2026-06-01","status":"active"}'
+
+# Update client renewal AMC visit
+curl -X POST "$BASE_URL/client-renewals/1/amc-visits/1" \
+  -H "Accept: application/json" \
+  -H "$JSON_HEADER" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"status":"completed","details":"Site visit completed and checked all service points."}'
 
 # Delete client renewal
 curl -X DELETE "$BASE_URL/client-renewals/1" \
