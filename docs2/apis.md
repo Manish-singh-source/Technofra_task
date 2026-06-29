@@ -1176,14 +1176,21 @@ curl -X POST "$BASE_URL/settings/company" \
   -d '{"company_name":"Technofra"}'
 
 # Email settings
-curl -X GET "$BASE_URL/settings/email" \
-  -H "Accept: application/json" \
-  -H "Authorization: Bearer $TOKEN"
-curl -X POST "$BASE_URL/settings/email" \
+
+# Privacy policy
+curl -X GET "$BASE_URL/settings/privacy-policy" \
+  -H "Accept: application/json"
+
+# Terms and conditions
+curl -X GET "$BASE_URL/settings/terms-and-conditions" \
+  -H "Accept: application/json"
+
+# Update legal content (admin)
+curl -X PUT "$BASE_URL/settings/legal" \
   -H "Accept: application/json" \
   -H "$JSON_HEADER" \
   -H "Authorization: Bearer $TOKEN" \
-  -d '{"mail_host":"smtp.example.com"}'
+  -d '{"privacy_policy_content":"# Privacy Policy\n\nUpdated content here.","terms_conditions_content":"# Terms and Conditions\n\nUpdated content here."}'
 
 # Renewal settings
 curl -X GET "$BASE_URL/settings/renewal" \

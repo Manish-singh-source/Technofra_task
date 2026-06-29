@@ -50,6 +50,11 @@ Route::prefix('/v1')->group(function () {
     // Password Reset Routes
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+    Route::controller(App\Http\Controllers\Api\SettingController::class)->prefix('settings')->group(function () {
+        Route::get('/privacy-policy', 'privacyPolicy');
+        Route::get('/terms-and-conditions', 'termsAndConditions');
+    });
 });
 
 // Protected API routes (require authentication)
@@ -76,6 +81,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::controller(DashboardController::class)->group(function () {
             Route::get('/dashboard', 'index');
             Route::get('/quick-stats', 'quickStats');
+        });
+
+        Route::prefix('settings')->controller(ApiSettingController::class)->group(function () {
+            Route::put('/legal', 'updateLegal');
+            Route::patch('/legal', 'updateLegal');
         });
 
         // Permission API routes

@@ -27,6 +27,9 @@
             $availableTabs[] = 'notification';
         }
         if (auth()->user()->hasPermissionTo('view_general_settings')) {
+            $availableTabs[] = 'legal';
+        }
+        if (auth()->user()->hasPermissionTo('view_general_settings')) {
             $availableTabs[] = 'teams';
         }
         if (auth()->user()->hasPermissionTo('view_general_settings')) {
@@ -119,6 +122,15 @@
                                         type="button" role="tab" aria-controls="notification"
                                         aria-selected="{{ $activeSettingsTab === 'notification' ? 'true' : 'false' }}">
                                         <i class="bx bx-message-rounded-dots me-2"></i> Notifications
+                                    </button>
+                                @endif
+                                @if (auth()->user()->hasPermissionTo('view_general_settings'))
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'legal' ? 'active' : '' }}"
+                                        id="legal-tab" data-bs-toggle="pill" data-bs-target="#legal" type="button"
+                                        role="tab" aria-controls="legal"
+                                        aria-selected="{{ $activeSettingsTab === 'legal' ? 'true' : 'false' }}">
+                                        <i class="bx bx-file me-2"></i> Legal Pages
                                     </button>
                                 @endif
                                 @if (auth()->user()->hasPermissionTo('view_general_settings'))
@@ -875,6 +887,39 @@
                                 </div>           
                                 @endcan
 
+                                @can('view_general_settings')
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'legal' ? 'show active' : '' }}"
+                                    id="legal" role="tabpanel">
+                                    <h5 class="card-title">Legal Pages</h5>
+                                    <hr />
+                                    <form action="{{ route('settings.update.legal') }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="row g-3">
+                                            <div class="col-12">
+                                                <label for="privacy_policy_content" class="form-label">Privacy Policy Content</label>
+                                                <textarea class="form-control legal-editor" id="privacy_policy_content" name="privacy_policy_content" rows="14" required>{{ old('privacy_policy_content', $settings['privacy_policy_content'] ?? '') }}</textarea>
+                                                @error('privacy_policy_content')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="terms_conditions_content" class="form-label">Terms and Conditions Content</label>
+                                                <textarea class="form-control legal-editor" id="terms_conditions_content" name="terms_conditions_content" rows="14" required>{{ old('terms_conditions_content', $settings['terms_conditions_content'] ?? '') }}</textarea>
+                                                @error('terms_conditions_content')
+                                                    <div class="text-danger">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <div class="d-grid">
+                                                    <button type="submit" class="btn btn-primary">Save Legal Content</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                @endcan
+
                                 <!-- TAB 4: TEAMS -->
                                 @can('teams_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'teams' ? 'show active' : '' }}"
@@ -1161,6 +1206,24 @@
 @endsection
 
 @push('scripts')
+    <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
+    <script>
+        $(document).ready(function() {
+            document.querySelectorAll('.legal-editor').forEach(function(textarea) {
+                ClassicEditor.create(textarea, {
+                    toolbar: [
+                        'heading', '|',
+                        'bold', 'italic', 'link', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'blockQuote', 'insertTable', '|',
+                        'undo', 'redo'
+                    ]
+                }).catch(function(error) {
+                    console.error('Error initializing CKEditor:', error);
+                });
+            });
+        });
+    </script>
     <script>
         $(document).ready(function() {
             $(document).on('change', '.notification-sync', function() {

@@ -14,10 +14,109 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Validator;
 
 class SettingController extends Controller
 {
+    public function privacyPolicy(): JsonResponse
+    {
+        $policyPath = base_path('docs2/privacy-policy.md');
+
+        if (File::exists($policyPath)) {
+            $markdown = File::get($policyPath);
+
+            return ApiResponse::success([
+                'title' => 'Privacy Policy',
+                'format' => 'markdown',
+                'content' => $markdown,
+                'updated_at' => File::lastModified($policyPath) ? date('Y-m-d H:i:s', File::lastModified($policyPath)) : null,
+                'source' => 'docs2/privacy-policy.md',
+            ], 'Privacy policy fetched successfully.');
+        }
+
+        return ApiResponse::success([
+            'title' => Setting::get('privacy_policy_title', 'Privacy Policy'),
+            'format' => 'markdown',
+            'content' => Setting::get('privacy_policy_content', ''),
+            'updated_at' => Setting::get('privacy_policy_updated_at'),
+            'source' => 'settings',
+        ], 'Privacy policy fetched successfully.');
+    }
+
+    public function termsAndConditions(): JsonResponse
+    {
+        $termsPath = base_path('docs2/terms-and-conditions.md');
+
+        if (File::exists($termsPath)) {
+            $markdown = File::get($termsPath);
+
+            return ApiResponse::success([
+                'title' => 'Terms and Conditions',
+                'format' => 'markdown',
+                'content' => $markdown,
+                'updated_at' => File::lastModified($termsPath) ? date('Y-m-d H:i:s', File::lastModified($termsPath)) : null,
+                'source' => 'docs2/terms-and-conditions.md',
+            ], 'Terms and conditions fetched successfully.');
+        }
+
+        return ApiResponse::success([
+            'title' => Setting::get('terms_conditions_title', 'Terms and Conditions'),
+            'format' => 'markdown',
+            'content' => Setting::get('terms_conditions_content', ''),
+            'updated_at' => Setting::get('terms_conditions_updated_at'),
+            'source' => 'settings',
+        ], 'Terms and conditions fetched successfully.');
+    }
+
+    public function updateLegal(Request $request): JsonResponse
+    {
+        $validator = Validator::make($request->all(), [
+            'privacy_policy_content' => 'sometimes|required|string',
+            'terms_conditions_content' => 'sometimes|required|string',
+        ]);
+
+        $validator->after(function ($validator) use ($request) {
+            if (! $request->hasAny(['privacy_policy_content', 'terms_conditions_content'])) {
+                $validator->errors()->add('settings', 'Please provide privacy policy content or terms content to update.');
+            }
+        });
+
+        if ($validator->fails()) {
+            return ApiResponse::error('Validation error.', $validator->errors(), 422);
+        }
+
+        DB::beginTransaction();
+
+        try {
+            if ($request->has('privacy_policy_content')) {
+                $privacyContent = (string) $request->input('privacy_policy_content');
+                File::put(base_path('docs2/privacy-policy.md'), $privacyContent);
+                Setting::set('privacy_policy_content', $privacyContent, 'textarea');
+                Setting::set('privacy_policy_updated_at', now()->toDateTimeString(), 'text');
+            }
+
+            if ($request->has('terms_conditions_content')) {
+                $termsContent = (string) $request->input('terms_conditions_content');
+                File::put(base_path('docs2/terms-and-conditions.md'), $termsContent);
+                Setting::set('terms_conditions_content', $termsContent, 'textarea');
+                Setting::set('terms_conditions_updated_at', now()->toDateTimeString(), 'text');
+            }
+
+            DB::commit();
+
+            return ApiResponse::success([
+                'privacy_policy' => $this->privacyPolicy()->getData(true)['data'] ?? null,
+                'terms_and_conditions' => $this->termsAndConditions()->getData(true)['data'] ?? null,
+            ], 'Legal content updated successfully.');
+        } catch (\Throwable $exception) {
+            DB::rollBack();
+
+            return ApiResponse::error('Failed to update legal content.', [
+                'server' => [$exception->getMessage()],
+            ], 500);
+        }
+    }
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();

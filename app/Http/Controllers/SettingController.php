@@ -9,6 +9,7 @@ use App\Models\Tag;
 use App\Models\Team;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -406,6 +407,48 @@ class SettingController extends Controller
     /**
      * Update team settings.
      */
+    public function updateLegal(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'privacy_policy_content' => 'required|string',
+            'terms_conditions_content' => 'required|string',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('active_settings_tab', 'legal');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $privacyContent = (string) $request->privacy_policy_content;
+            $termsContent = (string) $request->terms_conditions_content;
+
+            File::put(base_path('docs2/privacy-policy.md'), $privacyContent);
+            File::put(base_path('docs2/terms-and-conditions.md'), $termsContent);
+
+            Setting::set('privacy_policy_content', $privacyContent, 'textarea');
+            Setting::set('privacy_policy_updated_at', now()->toDateTimeString(), 'text');
+            Setting::set('terms_conditions_content', $termsContent, 'textarea');
+            Setting::set('terms_conditions_updated_at', now()->toDateTimeString(), 'text');
+
+            DB::commit();
+
+            return redirect()->route('settings')
+                ->with('success', 'Privacy policy and terms content updated successfully.')
+                ->with('active_settings_tab', 'legal');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->with('error', 'Failed to update legal content: '.$e->getMessage())
+                ->withInput()
+                ->with('active_settings_tab', 'legal');
+        }
+    }
     public function updateTeams(Request $request)
     {
         $validator = Validator::make($request->all(), [
@@ -744,6 +787,14 @@ class SettingController extends Controller
         return $values;
     }
 
+    private function readMarkdownDocument(string $path, string $fallback = ''): string
+    {
+        if (File::exists($path)) {
+            return File::get($path);
+        }
+
+        return $fallback;
+    }
     private function updateEnvironmentFile(array $updates): void
     {
         $path = base_path('.env');

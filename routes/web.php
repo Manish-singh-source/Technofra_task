@@ -119,6 +119,7 @@ Route::middleware('auth')->group(function () {
             Route::put('/company', 'updateCompany')->name('settings.update.company');
             Route::put('/email', 'updateEmail')->name('settings.update.email');
             Route::put('/renewal', 'updateRenewal')->name('settings.update.renewal');
+            Route::put('/legal', 'updateLegal')->name('settings.update.legal');
             Route::put('/teams', 'updateTeams')->name('settings.update.teams');
             Route::put('/departments', 'updateDepartments')->name('settings.update.departments');
             Route::post('/test-email', 'sendTestEmail')->name('settings.test.email');
