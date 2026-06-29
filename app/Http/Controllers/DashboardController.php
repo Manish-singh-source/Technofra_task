@@ -15,6 +15,10 @@ use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpWord\IOFactory;
+use PhpOffice\PhpWord\PhpWord;
+use PhpOffice\PhpWord\Settings;
+use PhpOffice\PhpWord\Shared\Text;
 
 class DashboardController extends Controller
 {
@@ -296,6 +300,131 @@ class DashboardController extends Controller
             'hasCriticalNotifications'
         ));
     }
+
+    /**
+     * Download a Word document containing today's operations summary.
+     */
+    public function downloadOperationsSummary()
+    {
+        $today = Carbon::today();
+        $weekFromNow = $today->copy()->addWeek();
+        $documentDate = $today->format('d M Y');
+
+        $releaseTasks = $this->dashboardTaskQuery()
+            ->whereDate('deadline', $today)
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->with('project')
+            ->orderBy('priority')
+            ->orderBy('deadline')
+            ->get();
+
+
+        $vendorFollowUps = $this->dashboardVendorRenewalQuery()
+            ->with('vendor')
+            ->where(function (Builder $query) use ($today, $weekFromNow) {
+                $query->whereIn('status', ['pending', 'inactive', 'expired'])
+                    ->orWhereBetween('end_date', [$today, $weekFromNow]);
+            })
+            ->orderBy('end_date')
+            ->get();
+
+        $clientGoLives = $this->dashboardProjectQuery()
+            ->whereNotNull('deployment_date')
+            ->whereBetween('deployment_date', [$today, $weekFromNow])
+            ->whereNotIn('status', ['completed', 'cancelled'])
+            ->with(['customerUser', 'manager'])
+            ->orderBy('deployment_date')
+            ->get();
+
+        $pendingRenewals = $this->dashboardClientRenewalQuery()
+            ->with(['company', 'vendor'])
+            ->where(function (Builder $query) use ($today, $weekFromNow) {
+                $query->where('status', 'expired')
+                    ->orWhereBetween('end_date', [$today, $weekFromNow]);
+            })
+            ->orderBy('end_date')
+            ->get();
+
+        Settings::setOutputEscapingEnabled(true);
+        $phpWord = new PhpWord();
+        $phpWord->setDefaultFontName('Arial');
+        $section = $phpWord->addSection();
+
+        $section->addText('Daily Operations Summary');
+        $section->addText('Date: ' . $documentDate);
+        $section->addTextBreak(1);
+
+        $this->addSummarySection($section, '1. Work Scheduled for Release Today', $releaseTasks->map(function (Task $task) {
+            return [
+                'title' => $task->title,
+                'meta' => trim(collect([
+                    $task->project?->project_name ? 'Project: ' . $task->project->project_name : null,
+                    $task->priority ? 'Priority: ' . ucfirst($task->priority) : null,
+                    $task->deadline ? 'Deadline: ' . $task->deadline->format('d M Y') : null,
+                ])->filter()->implode(' | ')),
+                'status' => ucfirst(str_replace('_', ' ', (string) $task->status)),
+            ];
+        })->all());
+
+        $this->addSummarySection($section, '2. Vendor Tasks That Need Follow Up', $vendorFollowUps->map(function (VendorService $service) {
+            return [
+                'title' => $service->service_name,
+                'meta' => trim(collect([
+                    $service->vendor?->name ? 'Vendor: ' . $service->vendor->name : null,
+                    $service->plan_type ? 'Plan: ' . ucwords(str_replace('_', ' ', $service->plan_type)) : null,
+                    $service->end_date ? 'End Date: ' . $service->end_date->format('d M Y') : null,
+                ])->filter()->implode(' | ')),
+                'status' => ucfirst(str_replace('_', ' ', (string) $service->effective_status)),
+            ];
+        })->all());
+
+        $this->addSummarySection($section, '3. Client Projects / Releases Going Live', $clientGoLives->map(function (Project $project) {
+            return [
+                'title' => $project->project_name,
+                'meta' => trim(collect([
+                    $project->customerUser?->name ? 'Client: ' . $project->customerUser->name : null,
+                    $project->manager?->name ? 'Manager: ' . $project->manager->name : null,
+                    $project->deployment_date ? 'Go-live: ' . $project->deployment_date->format('d M Y') : null,
+                ])->filter()->implode(' | ')),
+                'status' => ucfirst(str_replace('_', ' ', (string) $project->status)),
+            ];
+        })->all());
+
+        $this->addSummarySection($section, '4. Pending Renewals', $pendingRenewals->map(function (Service $service) {
+            $companyName = $service->company?->company_name ?: ($service->client?->name ?? null);
+
+            return [
+                'title' => $service->service_name,
+                'meta' => trim(collect([
+                    $companyName ? 'Company: ' . $companyName : null,
+                    $service->vendor?->name ? 'Vendor: ' . $service->vendor->name : null,
+                    $service->end_date ? 'End Date: ' . $service->end_date->format('d M Y') : null,
+                ])->filter()->implode(' | ')),
+                'status' => ucfirst(str_replace('_', ' ', (string) $service->effective_status)),
+            ];
+        })->all());
+
+        $fileName = 'daily-operations-summary-' . $today->format('Y-m-d') . '.docx';
+        $tempBase = tempnam(sys_get_temp_dir(), 'ops-summary-');
+
+        if ($tempBase === false) {
+            abort(500, 'Unable to prepare the summary document.');
+        }
+
+        $tempDocx = $tempBase . '.docx';
+        @rename($tempBase, $tempDocx);
+
+        $writer = IOFactory::createWriter($phpWord, 'Word2007');
+        $writer->save($tempDocx);
+
+        return response()->download($tempDocx, $fileName)->deleteFileAfterSend(true);
+    }
+
+    /**
+     * Render a section in the operations summary document.
+     *
+     * @param array<int, array{title:string,meta:string,status:string}> $items
+     */
 
     private function applyCriticalRenewalWindow(Builder $query, Carbon $today, Carbon $windowEnd): Builder
     {

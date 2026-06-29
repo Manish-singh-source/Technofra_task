@@ -10,21 +10,36 @@
                 </div>
             @endif
 
+
+
             @canany(['view_dashboard', 'view_dashboard_welcome'])
                 <div class="row mb-3">
-                    <div class="col-12">
-                        <div class="card">
+                    <div class="col-12 col-lg-12">
+                        <div class="card h-100">
                             <div class="card-body">
                                 <h5 class="card-title">Welcome, {{ Auth::user()->name }}!</h5>
-                                <p class="card-text">You are successfully logged in to the Technofra Renewal Master dashboard.
+                                <p class="card-text mb-0">You are successfully logged in to the Technofra Renewal Master dashboard.
                                 </p>
                             </div>
                         </div>
                     </div>
+                    {{-- 
+                    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body d-flex flex-column justify-content-between">
+                                <div>
+                                    <h6 class="mb-2">Daily Operations Summary</h6>
+                                    <p class="text-muted mb-3">Download a Word document with today's releases, vendor follow-ups, live projects, and renewals.</p>
+                                </div>
+                                <a href="{{ route('dashboard.operations-summary.download') }}" class="btn btn-primary w-100">
+                                    <i class="bx bx-download"></i> Download DOCX
+                                </a>
+                            </div>
+                        </div>
+                    </div> 
+                    --}}
                 </div>
-            @endcan
-
-
+            @endcanany
             @can('view_dashboard')
                 <!-- Summary Cards -->
 

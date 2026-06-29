@@ -1,6 +1,6 @@
 create a single flowchart diagram using the following details then after that give me codex prompt that will edit my existing project which is half done with following details but not completely done. so give me prompt that will check and correct all these modules for me. also check following details and improve if something is missing from me.
 
-Module: Projects
+**Module: Projects**
 
 1. admin can create, update, delete and view projects.
 2. also assigned team leader can view, update project details.
@@ -44,3 +44,4 @@ Tasks Tracking: based on start_date & due_date.
 2. if start_date <= today then status will be in_progress
 3. if due_date <= today then status will be overdue
 4. complete status will be manual edit.
+

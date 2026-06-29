@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard route (protected by auth middleware) - also serves as index
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::get('/dashboard/operations-summary/download', [DashboardController::class, 'downloadOperationsSummary'])->name('dashboard.operations-summary.download');
     Route::get('/user-profile', [AuthController::class, 'profile'])->name('user-profile');
     Route::put('/user-profile', [AuthController::class, 'updateProfile'])->name('user-profile.update');
 
