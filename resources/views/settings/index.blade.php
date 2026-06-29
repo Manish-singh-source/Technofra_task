@@ -1209,6 +1209,8 @@
     <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
     <script>
         $(document).ready(function() {
+            const legalEditors = [];
+
             document.querySelectorAll('.legal-editor').forEach(function(textarea) {
                 ClassicEditor.create(textarea, {
                     toolbar: [
@@ -1218,287 +1220,22 @@
                         'blockQuote', 'insertTable', '|',
                         'undo', 'redo'
                     ]
+                }).then(function(editor) {
+                    legalEditors.push(editor);
                 }).catch(function(error) {
                     console.error('Error initializing CKEditor:', error);
                 });
             });
-        });
-    </script>
-    <script>
-        $(document).ready(function() {
-            $(document).on('change', '.notification-sync', function() {
-                const group = $(this).data('sync-group');
-                if (!group) {
-                    return;
-                }
 
-                const isChecked = $(this).is(':checked');
-                $(`.notification-sync[data-sync-group="${group}"]`)
-                    .prop('checked', isChecked);
-            });
-
-            // Toggle password visibility
-            $('.toggle-password').on('click', function() {
-                const input = $(this).siblings('input');
-                const icon = $(this).find('i');
-                if (input.attr('type') === 'password') {
-                    input.attr('type', 'text');
-                    icon.removeClass('bx-show').addClass('bx-hide');
-                } else {
-                    input.attr('type', 'password');
-                    icon.removeClass('bx-hide').addClass('bx-show');
-                }
-            });
-
-            // Color picker sync
-            $('#tagColor').on('input', function() {
-                $('#tagColorText').val($(this).val());
-            });
-            $('#tagColorText').on('input', function() {
-                $('#tagColor').val($(this).val());
-            });
-            $('#editTagColor').on('input', function() {
-                $('#editTagColorText').val($(this).val());
-            });
-            $('#editTagColorText').on('input', function() {
-                $('#editTagColor').val($(this).val());
-            });
-
-            $('#add-team-row').on('click', function() {
-                const nextIndex = Date.now();
-                $('#teams-rows').append(`
-            <div class="team-row border rounded p-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-4">
-                        <label class="form-label mb-1">Team Name</label>
-                        <input type="text" class="form-control" name="teams[${nextIndex}][name]" placeholder="Enter team name" required>
-                    </div>
-                    <div class="col-md-5">
-                        <label class="form-label mb-1">Description</label>
-                        <input type="text" class="form-control" name="teams[${nextIndex}][description]" placeholder="Enter team description">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label mb-1">Icon</label>
-                        <input type="file" class="form-control" name="teams[${nextIndex}][icon]" accept="image/*">
-                        <input type="hidden" name="teams[${nextIndex}][existing_icon_path]" value="">
-                    </div>
-                    <div class="col-md-1 d-grid">
-                        <button type="button" class="btn btn-outline-danger remove-team-row">
-                            <i class="bx bx-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `);
-            });
-
-            $(document).on('click', '.remove-team-row', function() {
-                const rows = $('#teams-rows .team-row');
-                if (rows.length <= 1) {
-                    rows.find('input[type=\"text\"]').val('');
-                    rows.find('input[type=\"file\"]').val('');
-                    rows.find('input[type=\"hidden\"]').val('');
-                    return;
-                }
-                $(this).closest('.team-row').remove();
-            });
-
-
-            $("#add-department-row").on("click", function() {
-                const nextIndex = Date.now();
-                $("#departments-rows").append(`
-            <div class="department-row border rounded p-3">
-                <div class="row g-2 align-items-end">
-                    <div class="col-md-11">
-                        <label class="form-label mb-1">Department Name</label>
-                        <input type="text" class="form-control" name="departments[${nextIndex}][name]" placeholder="Enter department name" required>
-                    </div>
-                    <div class="col-md-1 d-grid">
-                        <button type="button" class="btn btn-outline-danger remove-department-row">
-                            <i class="bx bx-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `);
-            });
-
-            $(document).on("click", ".remove-department-row", function() {
-                const rows = $("#departments-rows .department-row");
-                if (rows.length <= 1) {
-                    rows.find("input[type=\"text\"]").val("");
-                    return;
-                }
-                $(this).closest(".department-row").remove();
-            });
-            // Add Tag Form Submit
-            $('#addTagForm').on('submit', function(e) {
-                e.preventDefault();
-                const btn = $('#saveTagBtn');
-                const spinner = btn.find('.spinner-border');
-
-                spinner.removeClass('d-none');
-                btn.prop('disabled', true);
-
-                $.ajax({
-                    url: '{{ route('tags.store') }}',
-                    method: 'POST',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        if (response.success) {
-                            $('#addTagModal').modal('hide');
-                            $('#addTagForm')[0].reset();
-                            $('#tagColor').val('#3498db');
-                            $('#tagColorText').val('#3498db');
-
-                            // Reload page or update table
-                            location.reload();
-                        } else {
-                            alert(response.message || 'Failed to create tag');
-                        }
-                    },
-                    error: function(xhr) {
-                        if (xhr.status === 422) {
-                            const errors = xhr.responseJSON.errors;
-                            $('#tagName').addClass('is-invalid');
-                            $('#tagNameError').text(errors.name ? errors.name[0] : '');
-                        } else {
-                            alert('Failed to create tag: ' + xhr.responseJSON.message);
-                        }
-                    },
-                    complete: function() {
-                        spinner.addClass('d-none');
-                        btn.prop('disabled', false);
-                    }
+            $("form[action=\"{{ route('settings.update.legal') }}\"]").on('submit', function() {
+                legalEditors.forEach(function(editor) {
+                    editor.updateSourceElement();
                 });
-            });
-
-            // Edit Tag - Open Modal
-            $('.edit-tag').on('click', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                const color = $(this).data('color');
-                const description = $(this).data('description');
-                const isActive = $(this).closest('tr').find('.badge.bg-success').length > 0;
-
-                $('#editTagId').val(id);
-                $('#editTagName').val(name);
-                $('#editTagColor').val(color);
-                $('#editTagColorText').val(color);
-                $('#editTagDescription').val(description || '');
-                $('#editTagActive').prop('checked', isActive);
-
-                $('#editTagModal').modal('show');
-            });
-
-            // Edit Tag Form Submit
-            $('#editTagForm').on('submit', function(e) {
-                e.preventDefault();
-                const btn = $('#updateTagBtn');
-                const spinner = btn.find('.spinner-border');
-                const id = $('#editTagId').val();
-
-                spinner.removeClass('d-none');
-                btn.prop('disabled', true);
-
-                $.ajax({
-                    url: '/tags/' + id,
-                    method: 'PUT',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        if (response.success) {
-                            $('#editTagModal').modal('hide');
-                            location.reload();
-                        } else {
-                            alert(response.message || 'Failed to update tag');
-                        }
-                    },
-                    error: function(xhr) {
-                        if (xhr.status === 422) {
-                            const errors = xhr.responseJSON.errors;
-                            $('#editTagName').addClass('is-invalid');
-                            $('#editTagNameError').text(errors.name ? errors.name[0] : '');
-                        } else {
-                            alert('Failed to update tag: ' + xhr.responseJSON.message);
-                        }
-                    },
-                    complete: function() {
-                        spinner.addClass('d-none');
-                        btn.prop('disabled', false);
-                    }
-                });
-            });
-
-            // Delete Tag - Open Modal
-            $('.delete-tag').on('click', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-
-                $('#deleteTagName').text(name);
-                $('#deleteTagForm').attr('action', '/tags/' + id);
-
-                $('#deleteTagModal').modal('show');
-            });
-
-            // Delete Tag Form Submit
-            $('#deleteTagForm').on('submit', function(e) {
-                e.preventDefault();
-                const btn = $('#deleteTagBtn');
-                const spinner = btn.find('.spinner-border');
-
-                spinner.removeClass('d-none');
-                btn.prop('disabled', true);
-
-                $.ajax({
-                    url: $(this).attr('action'),
-                    method: 'DELETE',
-                    data: $(this).serialize(),
-                    success: function(response) {
-                        if (response.success) {
-                            $('#deleteTagModal').modal('hide');
-                            location.reload();
-                        } else {
-                            alert(response.message || 'Failed to delete tag');
-                        }
-                    },
-                    error: function(xhr) {
-                        alert('Failed to delete tag: ' + xhr.responseJSON.message);
-                    },
-                    complete: function() {
-                        spinner.addClass('d-none');
-                        btn.prop('disabled', false);
-                    }
-                });
-            });
-
-            // Tag Search
-            $('#tagSearch').on('keyup', function() {
-                const query = $(this).val().toLowerCase();
-
-                $('#tagsTable tbody tr').each(function() {
-                    const name = $(this).find('td:first').text().toLowerCase();
-                    const slug = $(this).find('code').text().toLowerCase();
-
-                    if (name.includes(query) || slug.includes(query)) {
-                        $(this).show();
-                    } else {
-                        $(this).hide();
-                    }
-                });
-            });
-
-            // Clear form on modal close
-            $('#addTagModal').on('hidden.bs.modal', function() {
-                $('#addTagForm')[0].reset();
-                $('#tagName').removeClass('is-invalid');
-                $('#tagColor').val('#3498db');
-                $('#tagColorText').val('#3498db');
-            });
-
-            // Clear edit form errors on modal close
-            $('#editTagModal').on('hidden.bs.modal', function() {
-                $('#editTagName').removeClass('is-invalid');
             });
         });
     </script>
 @endpush
+
+
+
+
