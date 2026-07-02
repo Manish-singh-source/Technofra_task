@@ -20,6 +20,7 @@ use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TodoController;
+use App\Http\Controllers\LegalController;
 use App\Http\Controllers\Web\ClientController as WebClientController;
 use App\Http\Controllers\Web\LeadManagementController;
 use App\Http\Controllers\Web\VendorController;
@@ -37,6 +38,12 @@ use Illuminate\Support\Facades\Route;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+// Public legal pages
+Route::controller(LegalController::class)->group(function () {
+    Route::get('/privacy-policy', 'privacyPolicy')->name('privacy-policy');
+    Route::get('/terms-and-conditions', 'termsAndConditions')->name('terms-and-conditions');
+});
 
 // Authentication Routes
 Route::controller(AuthController::class)->group(function () {
@@ -430,3 +437,4 @@ Route::middleware('auth')->group(function () {
         });
     });
 });
+

@@ -1208,8 +1208,9 @@
 @push('scripts')
     <script src="https://cdn.ckeditor.com/ckeditor5/39.0.1/classic/ckeditor.js"></script>
     <script>
-        $(document).ready(function() {
+        document.addEventListener('DOMContentLoaded', function() {
             const legalEditors = [];
+            const legalForm = document.querySelector('form[action="{{ route('settings.update.legal') }}"]');
 
             document.querySelectorAll('.legal-editor').forEach(function(textarea) {
                 ClassicEditor.create(textarea, {
@@ -1227,14 +1228,17 @@
                 });
             });
 
-            $("form[action=\"{{ route('settings.update.legal') }}\"]").on('submit', function() {
-                legalEditors.forEach(function(editor) {
-                    editor.updateSourceElement();
+            if (legalForm) {
+                legalForm.addEventListener('submit', function() {
+                    legalEditors.forEach(function(editor) {
+                        editor.updateSourceElement();
+                    });
                 });
-            });
+            }
         });
     </script>
 @endpush
+
 
 
 

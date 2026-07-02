@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Helpers\ApiResponse;
 use App\Http\Controllers\Controller;
+use App\Services\LegalContentService;
 use App\Mail\TestMail;
 use App\Models\Department;
 use App\Models\Setting;
@@ -19,54 +20,23 @@ use Illuminate\Support\Facades\Validator;
 
 class SettingController extends Controller
 {
+    public function __construct(private readonly LegalContentService $legalContentService)
+    {
+    }
     public function privacyPolicy(): JsonResponse
     {
-        $policyPath = base_path('docs2/privacy-policy.md');
-
-        if (File::exists($policyPath)) {
-            $markdown = File::get($policyPath);
-
-            return ApiResponse::success([
-                'title' => 'Privacy Policy',
-                'format' => 'markdown',
-                'content' => $markdown,
-                'updated_at' => File::lastModified($policyPath) ? date('Y-m-d H:i:s', File::lastModified($policyPath)) : null,
-                'source' => 'docs2/privacy-policy.md',
-            ], 'Privacy policy fetched successfully.');
-        }
-
-        return ApiResponse::success([
-            'title' => Setting::get('privacy_policy_title', 'Privacy Policy'),
-            'format' => 'markdown',
-            'content' => Setting::get('privacy_policy_content', ''),
-            'updated_at' => Setting::get('privacy_policy_updated_at'),
-            'source' => 'settings',
-        ], 'Privacy policy fetched successfully.');
+        return ApiResponse::success(
+            $this->legalContentService->privacyPolicy(),
+            'Privacy policy fetched successfully.'
+        );
     }
 
     public function termsAndConditions(): JsonResponse
     {
-        $termsPath = base_path('docs2/terms-and-conditions.md');
-
-        if (File::exists($termsPath)) {
-            $markdown = File::get($termsPath);
-
-            return ApiResponse::success([
-                'title' => 'Terms and Conditions',
-                'format' => 'markdown',
-                'content' => $markdown,
-                'updated_at' => File::lastModified($termsPath) ? date('Y-m-d H:i:s', File::lastModified($termsPath)) : null,
-                'source' => 'docs2/terms-and-conditions.md',
-            ], 'Terms and conditions fetched successfully.');
-        }
-
-        return ApiResponse::success([
-            'title' => Setting::get('terms_conditions_title', 'Terms and Conditions'),
-            'format' => 'markdown',
-            'content' => Setting::get('terms_conditions_content', ''),
-            'updated_at' => Setting::get('terms_conditions_updated_at'),
-            'source' => 'settings',
-        ], 'Terms and conditions fetched successfully.');
+        return ApiResponse::success(
+            $this->legalContentService->termsAndConditions(),
+            'Terms and conditions fetched successfully.'
+        );
     }
 
     public function updateLegal(Request $request): JsonResponse
@@ -1294,3 +1264,5 @@ class SettingController extends Controller
         return $user->can($permission);
     }
 }
+
+
