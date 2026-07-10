@@ -106,15 +106,17 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        $notificationChannels = $this->normalizeNotificationChannels($request);
+        $notificationChannels = null;
+        if ($request->has('notification_channels')) {
+            $notificationChannels = $this->normalizeNotificationChannels($request);
 
-        if (empty($notificationChannels)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please select at least one notification platform.'
-            ], 422);
+            if (empty($notificationChannels)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please select at least one notification platform.'
+                ], 422);
+            }
         }
-
         $emails = $this->normalizeDelimitedRecipients($request->email_recipients);
         foreach ($emails as $email) {
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -280,13 +282,16 @@ class CalendarEventController extends Controller
             ], 422);
         }
 
-        $notificationChannels = $this->normalizeNotificationChannels($request);
+        $notificationChannels = null;
+        if ($request->has('notification_channels')) {
+            $notificationChannels = $this->normalizeNotificationChannels($request);
 
-        if (empty($notificationChannels)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Please select at least one notification platform.'
-            ], 422);
+            if (empty($notificationChannels)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please select at least one notification platform.'
+                ], 422);
+            }
         }
 
         $emails = $this->normalizeDelimitedRecipients($request->email_recipients);
@@ -605,3 +610,5 @@ class CalendarEventController extends Controller
         ];
     }
 }
+
+
