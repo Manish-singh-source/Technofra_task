@@ -58,15 +58,36 @@ class MetaLeadUiController extends Controller
 
     public function sync(Request $request): RedirectResponse
     {
+        $redirectTo = $this->syncRedirectTarget($request);
+
         try {
             $count = app(MetaLeadService::class)->syncLeadsFromForm();
 
-            return redirect()->route('leads.index')
+            return redirect()->to($redirectTo)
                 ->with('success', "Synced {$count} leads from Meta.");
         } catch (\Throwable $e) {
-            return redirect()->back()
+            return redirect()->to($redirectTo)
                 ->with('error', 'Sync failed: '.$e->getMessage());
         }
+    }
+
+    private function syncRedirectTarget(Request $request): string
+    {
+        $returnTo = (string) $request->input('return_to', '');
+
+        if ($returnTo !== '') {
+            $appUrl = rtrim(url('/'), '/');
+
+            if ($returnTo === $appUrl || str_starts_with($returnTo, $appUrl.'/')) {
+                return $returnTo;
+            }
+
+            if (str_starts_with($returnTo, '/') && ! str_starts_with($returnTo, '//')) {
+                return $returnTo;
+            }
+        }
+
+        return route('leads.index');
     }
 
     public function destroy(MetaLead $lead): RedirectResponse

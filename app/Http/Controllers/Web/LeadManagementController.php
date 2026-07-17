@@ -67,6 +67,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
         $search = trim((string) $request->query('search', ''));
         $statusFilter = trim((string) $request->query('status', ''));
+        $sourceFilter = trim((string) $request->query('source', ''));
         $sourceLabels = [
             self::SOURCE_LEAD => 'Leads',
             self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
@@ -77,6 +78,9 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_INDIAMART => 'IndiaMart',
             self::SOURCE_JUSTDIAL => 'JustDial',
         ];
+        if (! array_key_exists($sourceFilter, $sourceLabels)) {
+            $sourceFilter = '';
+        }
 
         $filteredBySearch = $this->mergedLeads()
             ->when($search !== '', function (Collection $items) use ($search) {
@@ -132,7 +136,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'staff' => $staff,
             'filters' => [
                 'search' => $search,
-                'source' => '',
+                'source' => $sourceFilter,
                 'status' => $statusFilter,
             ],
             'sources' => $sourceLabels,

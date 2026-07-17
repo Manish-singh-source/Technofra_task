@@ -40,6 +40,14 @@
             'indiamart' => 'bx-store',
             'justdial' => 'bx-phone-call',
         ];
+        $metaSyncReturnTo = route(
+            'lead-management.index',
+            array_filter([
+                'source' => 'meta',
+                'search' => $filters['search'] ?? null,
+                'status' => $filters['status'] ?? null,
+            ], fn ($value) => filled($value)),
+        );
     @endphp
     <div class="page-wrapper">
         <div class="page-content">
@@ -73,6 +81,15 @@
                     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
                         <h5 class="mb-0">Lead Management</h5>
                         <div class="d-flex align-items-center gap-2">
+                            <form method="POST" action="{{ route('leads.sync') }}" id="metaSyncForm"
+                                class="{{ $activeSource === 'meta' ? '' : 'd-none' }}"
+                                onsubmit="return confirm('Sync latest leads from Meta? This may take a few seconds.')">
+                                @csrf
+                                <input type="hidden" name="return_to" value="{{ $metaSyncReturnTo }}">
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    <i class="bx bx-refresh me-1"></i> Sync Now
+                                </button>
+                            </form>
                             <a href="{{ route('lead-management.performance') }}" class="btn btn-outline-dark btn-sm">
                                 <i class='bx bx-line-chart me-1'></i> Performance
                             </a>
@@ -394,6 +411,8 @@
 
             const sourceFilterButtons = document.querySelectorAll('.source-filter-btn');
             const sourceColumnIndex = 7;
+            const metaSyncForm = document.getElementById('metaSyncForm');
+            let metaAutoSyncSubmitted = false;
 
             function escapeRegex(value) {
                 return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -435,21 +454,37 @@
                 });
             }
 
+            function setMetaSyncFormVisibility(sourceKey) {
+                if (!metaSyncForm) return;
+
+                metaSyncForm.classList.toggle('d-none', sourceKey !== 'meta');
+            }
+
+            function applySourceFilter(sourceKey) {
+                if (!dataTableInstance) return;
+
+                if (sourceKey === '') {
+                    dataTableInstance.column(sourceColumnIndex).search('').draw();
+                } else {
+                    dataTableInstance
+                        .column(sourceColumnIndex)
+                        .search(`^${escapeRegex(sourceKey)}$`, true, false)
+                        .draw();
+                }
+            }
+
             sourceFilterButtons.forEach((button) => {
                 button.addEventListener('click', function() {
-                    if (!dataTableInstance) return;
-
                     const sourceKey = (this.dataset.sourceKey || '').trim();
-                    if (sourceKey === '') {
-                        dataTableInstance.column(sourceColumnIndex).search('').draw();
-                    } else {
-                        dataTableInstance
-                            .column(sourceColumnIndex)
-                            .search(`^${escapeRegex(sourceKey)}$`, true, false)
-                            .draw();
-                    }
 
+                    applySourceFilter(sourceKey);
                     updateSourceFilterButtonState(this);
+                    setMetaSyncFormVisibility(sourceKey);
+
+                    if (sourceKey === 'meta' && metaSyncForm && !metaAutoSyncSubmitted) {
+                        metaAutoSyncSubmitted = true;
+                        metaSyncForm.submit();
+                    }
                 });
             });
 
@@ -459,7 +494,11 @@
                 Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey === '');
 
             if (initialActiveButton) {
+                const initialSourceKey = (initialActiveButton.dataset.sourceKey || '').trim();
+
+                applySourceFilter(initialSourceKey);
                 updateSourceFilterButtonState(initialActiveButton);
+                setMetaSyncFormVisibility(initialSourceKey);
             }
 
             const bulkAssignModal = new bootstrap.Modal(document.getElementById('bulkAssignModal'));
