@@ -112,23 +112,25 @@ class MetaLeadService
             return null;
         }
 
-        $fieldData = $data['field_data'] ?? [];
+        $fieldData = $data['field_data'] ?? $data['fieldData'] ?? [];
         $mappedFields = $this->mapFieldData($fieldData);
+        $attributes = [
+            'form_id' => $data['form_id'] ?? null,
+            'page_id' => $data['page_id'] ?? config('meta.page_id'),
+            'ad_id' => $data['ad_id'] ?? null,
+            'field_data' => $fieldData,
+            'created_time' => isset($data['created_time']) ? Carbon::parse($data['created_time']) : null,
+        ];
+
+        foreach (['full_name', 'email', 'phone', 'city', 'state'] as $column) {
+            if (array_key_exists($column, $mappedFields)) {
+                $attributes[$column] = $mappedFields[$column];
+            }
+        }
 
         return MetaLead::updateOrCreate(
             ['lead_id' => $leadId],
-            [
-                'form_id' => $data['form_id'] ?? null,
-                'page_id' => $data['page_id'] ?? null,
-                'ad_id' => $data['ad_id'] ?? null,
-                'full_name' => $mappedFields['full_name'] ?? null,
-                'email' => $mappedFields['email'] ?? null,
-                'phone' => $mappedFields['phone'] ?? null,
-                'city' => $mappedFields['city'] ?? null,
-                'state' => $mappedFields['state'] ?? null,
-                'field_data' => $fieldData,
-                'created_time' => isset($data['created_time']) ? Carbon::parse($data['created_time']) : null,
-            ]
+            $attributes
         );
     }
 
@@ -148,19 +150,29 @@ class MetaLeadService
                 continue;
             }
 
-            if ($name === 'full_name') {
+            $normalizedName = $this->normalizeFieldName((string) $name);
+
+            if (in_array($normalizedName, ['full_name', 'fullname', 'name'], true)) {
                 $mapped['full_name'] = $value;
-            } elseif ($name === 'email') {
+            } elseif (in_array($normalizedName, ['email', 'email_address'], true)) {
                 $mapped['email'] = $value;
-            } elseif ($name === 'phone_number') {
+            } elseif (in_array($normalizedName, ['phone', 'phone_number', 'mobile', 'mobile_number', 'contact_number'], true)) {
                 $mapped['phone'] = $value;
-            } elseif ($name === 'city') {
+            } elseif (in_array($normalizedName, ['city', 'town', 'current_city'], true)) {
                 $mapped['city'] = $value;
-            } elseif ($name === 'state') {
+            } elseif (in_array($normalizedName, ['state', 'province', 'region'], true)) {
                 $mapped['state'] = $value;
             }
         }
 
         return $mapped;
+    }
+
+    private function normalizeFieldName(string $name): string
+    {
+        $name = strtolower(trim($name));
+        $name = preg_replace('/[^a-z0-9]+/', '_', $name) ?? $name;
+
+        return trim($name, '_');
     }
 }
