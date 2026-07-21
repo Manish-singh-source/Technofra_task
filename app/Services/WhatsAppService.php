@@ -30,27 +30,61 @@ class WhatsAppService
     /**
      * Send WhatsApp template message via K3 API.
      */
-    public function sendTemplateMessage($to, $templateName, array $templateParameters = [], $languageCode = null)
+    public function sendTemplateMessage($to, $templateName, array $templateParameters = [], $languageCode = null, array $headerMedia = [])
+    {
+        return (bool) ($this->sendTemplateMessageWithResult($to, $templateName, $templateParameters, $languageCode, $headerMedia)['successful'] ?? false);
+    }
+
+    /**
+     * Send WhatsApp template message via K3 API and return provider details.
+     */
+    public function sendTemplateMessageWithResult($to, $templateName, array $templateParameters = [], $languageCode = null, array $headerMedia = []): array
     {
         try {
             if (empty($this->baseUrl) || empty($this->businessId) || empty($this->apiKey)) {
                 Log::error('K3 WhatsApp configuration missing in .env file');
-                return false;
+
+                return [
+                    'successful' => false,
+                    'error_message' => 'K3 WhatsApp configuration missing in .env file',
+                ];
             }
 
             $to = $this->formatPhoneNumber($to);
-            if (!$to) {
+            if (! $to) {
                 Log::error('Invalid WhatsApp phone number format');
-                return false;
+
+                return [
+                    'successful' => false,
+                    'error_message' => 'Invalid WhatsApp phone number format',
+                ];
             }
 
             if (empty($templateName)) {
                 Log::error('K3 template name is required');
-                return false;
+
+                return [
+                    'successful' => false,
+                    'phone' => $to,
+                    'error_message' => 'K3 template name is required',
+                ];
             }
 
             $components = [];
-            if (!empty($templateParameters)) {
+            if (! empty($headerMedia['type']) && ! empty($headerMedia['link'])) {
+                $mediaType = strtolower((string) $headerMedia['type']);
+                $components[] = [
+                    'type' => 'header',
+                    'parameters' => [[
+                        'type' => $mediaType,
+                        $mediaType => [
+                            'link' => (string) $headerMedia['link'],
+                        ],
+                    ]],
+                ];
+            }
+
+            if (! empty($templateParameters)) {
                 $components[] = [
                     'type' => 'body',
                     'parameters' => array_map(function ($value) {
@@ -83,16 +117,35 @@ class WhatsAppService
                 'Content-Type' => 'application/json',
             ])->post($url, $payload);
 
+            $providerResponse = $response->json() ?? ['body' => $response->body()];
+
             if ($response->successful()) {
                 Log::info("K3 WhatsApp template sent successfully to: {$to}");
-                return true;
+
+                return [
+                    'successful' => true,
+                    'phone' => $to,
+                    'provider_status_code' => $response->status(),
+                    'provider_response' => $providerResponse,
+                ];
             }
 
             Log::error("Failed to send K3 WhatsApp template to {$to}: " . $response->body());
-            return false;
+
+            return [
+                'successful' => false,
+                'phone' => $to,
+                'provider_status_code' => $response->status(),
+                'provider_response' => $providerResponse,
+                'error_message' => $response->body(),
+            ];
         } catch (Exception $e) {
-            Log::error("K3 WhatsApp send error: " . $e->getMessage());
-            return false;
+            Log::error('K3 WhatsApp send error: ' . $e->getMessage());
+
+            return [
+                'successful' => false,
+                'error_message' => $e->getMessage(),
+            ];
         }
     }
 
@@ -116,6 +169,11 @@ class WhatsAppService
      * Format phone number in international format without plus.
      */
     protected function formatPhoneNumber($phone)
+    {
+        return $this->normalizePhoneNumber($phone);
+    }
+
+    public function normalizePhoneNumber($phone)
     {
         $phone = preg_replace('/\D+/', '', (string) $phone);
         if (empty($phone)) {

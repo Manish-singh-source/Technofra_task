@@ -2,7 +2,9 @@
 
 namespace App\Services;
 
+use App\Jobs\SendMetaLeadWelcomeWhatsappJob;
 use App\Models\MetaLead;
+use App\Models\MetaLeadWhatsappMessageLog;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -128,10 +130,16 @@ class MetaLeadService
             }
         }
 
-        return MetaLead::updateOrCreate(
+        $lead = MetaLead::updateOrCreate(
             ['lead_id' => $leadId],
             $attributes
         );
+
+        if ($lead->wasRecentlyCreated) {
+            $this->queueWelcomeWhatsapp($lead);
+        }
+
+        return $lead;
     }
 
     /**
@@ -166,6 +174,48 @@ class MetaLeadService
         }
 
         return $mapped;
+    }
+
+    private function queueWelcomeWhatsapp(MetaLead $lead): void
+    {
+        $templateName = (string) config('services.k3_whatsapp.meta_lead_welcome_template');
+        $templateParameters = [
+            $lead->full_name ?: 'there',
+        ];
+
+        if (blank($lead->phone)) {
+            $log = MetaLeadWhatsappMessageLog::create([
+                'meta_lead_id' => $lead->id,
+                'phone' => null,
+                'template_name' => $templateName ?: null,
+                'template_parameters' => $templateParameters,
+                'status' => MetaLeadWhatsappMessageLog::STATUS_SKIPPED,
+                'error_message' => 'Meta lead phone number is missing.',
+                'failed_at' => now(),
+            ]);
+
+            $lead->forceFill([
+                'welcome_whatsapp_status' => MetaLead::WELCOME_WHATSAPP_SKIPPED,
+                'welcome_whatsapp_last_log_id' => $log->id,
+            ])->save();
+
+            return;
+        }
+
+        $log = MetaLeadWhatsappMessageLog::create([
+            'meta_lead_id' => $lead->id,
+            'phone' => $lead->phone,
+            'template_name' => $templateName ?: null,
+            'template_parameters' => $templateParameters,
+            'status' => MetaLeadWhatsappMessageLog::STATUS_QUEUED,
+        ]);
+
+        $lead->forceFill([
+            'welcome_whatsapp_status' => MetaLead::WELCOME_WHATSAPP_QUEUED,
+            'welcome_whatsapp_last_log_id' => $log->id,
+        ])->save();
+
+        SendMetaLeadWelcomeWhatsappJob::dispatch($lead->id, $log->id);
     }
 
     private function normalizeFieldName(string $name): string
