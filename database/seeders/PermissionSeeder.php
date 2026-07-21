@@ -57,6 +57,8 @@ class PermissionSeeder extends Seeder
             'view_company_information',
             'view_email_settings',
             'view_reports',
+            'view_leads_management',
+            'manage_meta_credentials',
             'export_data',
             'import_data',
             'send_notifications',

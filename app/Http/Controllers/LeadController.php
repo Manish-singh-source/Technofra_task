@@ -28,7 +28,7 @@ class LeadController extends Controller
      */
     public function index()
     {
-        $leads = Lead::all();
+        $leads = $this->visibleLeadQuery()->get();
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -86,7 +86,7 @@ class LeadController extends Controller
      */
     public function edit($id)
     {
-        $lead = Lead::findOrFail($id);
+        $lead = $this->findVisibleLeadOrFail((int) $id);
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -99,7 +99,7 @@ class LeadController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $lead = Lead::findOrFail($id);
+        $lead = $this->findVisibleLeadOrFail((int) $id);
 
         $validator = $this->validateLeadData($request);
 
@@ -108,7 +108,10 @@ class LeadController extends Controller
         }
 
         DB::transaction(function () use ($lead, $request) {
-            $lead->update($this->buildLeadPayload($request));
+            $payload = $this->buildLeadPayload($request);
+            unset($payload['created_by']);
+
+            $lead->update($payload);
             $this->syncAssignedLeads($lead, $request->assigned ?? []);
         });
 
@@ -164,7 +167,7 @@ class LeadController extends Controller
      */
     public function show($id)
     {
-        $lead = Lead::findOrFail($id);
+        $lead = $this->findVisibleLeadOrFail((int) $id);
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -178,7 +181,7 @@ class LeadController extends Controller
      */
     public function destroy($id)
     {
-        $lead = Lead::findOrFail($id);
+        $lead = $this->findVisibleLeadOrFail((int) $id);
         $lead->delete();
 
         return redirect()->route('leads')->with('success', 'Lead deleted successfully!');
@@ -189,7 +192,7 @@ class LeadController extends Controller
      */
     public function toggleStatus(Request $request)
     {
-        $lead = Lead::findOrFail($request->id);
+        $lead = $this->findVisibleLeadOrFail((int) $request->id);
         $lead->status = $request->status;
         $lead->save();
 
@@ -202,7 +205,7 @@ class LeadController extends Controller
     public function deleteSelected(Request $request)
     {
         $leadIds = $request->ids;
-        Lead::whereIn('id', $leadIds)->delete();
+        $this->visibleLeadQuery()->whereIn('id', $leadIds)->delete();
 
         return response()->json(['success' => true, 'message' => 'Selected leads deleted successfully!']);
     }
@@ -212,10 +215,43 @@ class LeadController extends Controller
      */
     public function export()
     {
-        return Excel::download(new LeadsExport, 'leads_' . date('Y-m-d') . '.xlsx');
+        return Excel::download(new LeadsExport((int) auth()->id()), 'leads_' . date('Y-m-d') . '.xlsx');
     }
 
 
+    private function visibleLeadQuery()
+    {
+        $query = Lead::query();
+        $userId = (int) (auth()->id() ?? 0);
+
+        if ($this->isStaffUser()) {
+            return $query->whereExists(function ($subQuery) use ($userId) {
+                $subQuery->selectRaw('1')
+                    ->from('assigned_leads')
+                    ->where('assigned_leads.lead_model', 'lead')
+                    ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                    ->where(function ($jsonQuery) use ($userId) {
+                        $jsonQuery
+                            ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                            ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                    });
+            });
+        }
+
+        return $query->where('created_by', $userId);
+    }
+
+    private function findVisibleLeadOrFail(int $id): Lead
+    {
+        return $this->visibleLeadQuery()->where('id', $id)->firstOrFail();
+    }
+
+    private function isStaffUser(): bool
+    {
+        $role = strtolower((string) (auth()->user()?->getRawOriginal('role') ?? auth()->user()?->role ?? ''));
+
+        return $role === 'staff';
+    }
     private function validateLeadData(Request $request)
     {
         return Validator::make($request->all(), [
@@ -262,6 +298,7 @@ class LeadController extends Controller
             'tags' => $request->tags ?? [],
             'description' => $request->description,
             'status' => $request->status ?? 'new',
+            'created_by' => auth()->id(),
         ];
     }
 

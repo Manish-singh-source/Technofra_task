@@ -10,19 +10,22 @@ use Maatwebsite\Excel\Concerns\WithMapping;
 
 class LeadsExport implements FromCollection, WithHeadings, WithMapping
 {
+    public function __construct(private readonly ?int $userId = null)
+    {
+    }
+
     /**
      * @return \Illuminate\Support\Collection
      */
     public function collection()
     {
-        $leads = Lead::all();
+        $leads = $this->visibleLeadQuery()->get();
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
             ->keyBy('id');
 
-        // Add assigned staff names to each lead
         $leads->transform(function ($lead) use ($staff) {
             $assignedNames = [];
             if ($lead->assigned) {
@@ -96,5 +99,29 @@ class LeadsExport implements FromCollection, WithHeadings, WithMapping
             $lead->created_at,
             $lead->updated_at,
         ];
+    }
+
+    private function visibleLeadQuery()
+    {
+        $query = Lead::query();
+        $userId = (int) ($this->userId ?? 0);
+        $user = $userId > 0 ? User::query()->find($userId) : null;
+        $role = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+
+        if ($role === 'staff') {
+            return $query->whereExists(function ($subQuery) use ($userId) {
+                $subQuery->selectRaw('1')
+                    ->from('assigned_leads')
+                    ->where('assigned_leads.lead_model', 'lead')
+                    ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                    ->where(function ($jsonQuery) use ($userId) {
+                        $jsonQuery
+                            ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                            ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                    });
+            });
+        }
+
+        return $query->where('created_by', $userId);
     }
 }

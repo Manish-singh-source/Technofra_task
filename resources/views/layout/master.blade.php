@@ -423,7 +423,7 @@
                         </ul>
                     </li>
                 @endcan
-                @can('manage_settings')
+                @canany(['manage_settings', 'manage_meta_credentials'])
                     <li>
                         <a href="{{ route('settings') }}">
                             <div class="parent-icon"><i class="bx bx-cog"></i>
@@ -431,7 +431,7 @@
                             <div class="menu-title">Settings</div>
                         </a>
                     </li>
-                @endcan
+                @endcanany
 
 
 

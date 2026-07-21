@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Setting;
 use App\Models\Tag;
 use App\Models\Team;
+use App\Services\MetaLeadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -23,6 +24,7 @@ class SettingController extends Controller
     {
         $settings = Setting::getAllSettings();
         $settings = array_merge($this->getMailSettingsFromEnvironment(), $settings);
+        $metaSettings = array_merge($this->defaultMetaSettings(), Setting::getAllForUser((int) auth()->id(), 'meta'));
 
         if (empty($settings['mail_from_name'])) {
             $settings['mail_from_name'] = $this->getMailSettingsFromEnvironment()['mail_from_name'] ?? ($settings['company_name'] ?? config('app.name'));
@@ -52,7 +54,7 @@ class SettingController extends Controller
             ->values()
             ->all();
 
-        return view('settings.index', compact('settings', 'teams', 'departments'));
+        return view('settings.index', compact('settings', 'metaSettings', 'teams', 'departments'));
     }
 
     /**
@@ -370,6 +372,49 @@ class SettingController extends Controller
         }
     }
 
+    public function updateMeta(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'FACEBOOK_APP_ID' => 'nullable|string|max:255',
+            'FACEBOOK_APP_SECRET' => 'nullable|string|max:1000',
+            'FACEBOOK_PAGE_ID' => 'nullable|string|max:255',
+            'FACEBOOK_PAGE_ACCESS_TOKEN' => 'nullable|string|max:2000',
+            'FACEBOOK_WEBHOOK_VERIFY_TOKEN' => 'nullable|string|max:1000',
+            'FACEBOOK_FORM_ID' => 'nullable|string|max:255',
+            'FACEBOOK_GRAPH_API_VERSION' => 'nullable|string|max:50',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput()
+                ->with('active_settings_tab', 'meta');
+        }
+
+        $userId = (int) auth()->id();
+        $validated = $validator->validated();
+        $validated['FACEBOOK_GRAPH_API_VERSION'] = trim((string) ($validated['FACEBOOK_GRAPH_API_VERSION'] ?? '')) ?: 'v25.0';
+
+        DB::beginTransaction();
+        try {
+            foreach (MetaLeadService::CREDENTIAL_KEYS as $key) {
+                Setting::setForUser($userId, $key, $validated[$key] ?? '', 'text', 'meta');
+            }
+
+            DB::commit();
+
+            return redirect()->route('settings')
+                ->with('success', 'Meta credentials updated successfully.')
+                ->with('active_settings_tab', 'meta');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return redirect()->back()
+                ->with('error', 'Failed to update Meta credentials: '.$e->getMessage())
+                ->withInput()
+                ->with('active_settings_tab', 'meta');
+        }
+    }
     /**
      * Send test email.
      */
@@ -720,6 +765,18 @@ class SettingController extends Controller
         }
     }
 
+    private function defaultMetaSettings(): array
+    {
+        return [
+            'FACEBOOK_APP_ID' => '',
+            'FACEBOOK_APP_SECRET' => '',
+            'FACEBOOK_PAGE_ID' => '',
+            'FACEBOOK_PAGE_ACCESS_TOKEN' => '',
+            'FACEBOOK_WEBHOOK_VERIFY_TOKEN' => '',
+            'FACEBOOK_FORM_ID' => '',
+            'FACEBOOK_GRAPH_API_VERSION' => 'v25.0',
+        ];
+    }
     private function getMailSettingsFromEnvironment(): array
     {
         $envValues = $this->readEnvironmentFile();

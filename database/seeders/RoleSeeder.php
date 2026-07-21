@@ -47,6 +47,7 @@ class RoleSeeder extends Seeder
             'create_leads',
             'edit_leads',
             'delete_leads',
+            'view_leads_management',
             
             // Dashboard
             'view_dashboard',
@@ -94,6 +95,7 @@ class RoleSeeder extends Seeder
             'view_general_settings',
             'view_company_information',
             'view_email_settings',
+            'manage_meta_credentials',
         ];
 
         // Create permissions if they don't exist
@@ -124,6 +126,7 @@ class RoleSeeder extends Seeder
                 'create_leads',
                 'edit_leads',
                 'delete_leads',
+            'view_leads_management',
                 'view_dashboard',
                 'view_dashboard_welcome',
                 'view_calendar',
@@ -155,6 +158,8 @@ class RoleSeeder extends Seeder
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
+                'manage_meta_credentials',
+                'view_leads_management',
             ],
             'admin' => [
                 'view_users',
@@ -199,6 +204,8 @@ class RoleSeeder extends Seeder
                 'view_general_settings',
                 'view_company_information',
                 'view_email_settings',
+                'manage_meta_credentials',
+                'view_leads_management',
             ],
             'manager' => [
                 'view_projects',
@@ -236,6 +243,9 @@ class RoleSeeder extends Seeder
                 'view_renewals',
                 'view_projects',
                 'view_client',
+                'view_leads',
+                'view_leads_management',
+                'manage_meta_credentials',
             ],
             'staff' => [
                 'view_projects',

@@ -5,20 +5,41 @@ namespace App\Services;
 use App\Jobs\SendMetaLeadWelcomeWhatsappJob;
 use App\Models\MetaLead;
 use App\Models\MetaLeadWhatsappMessageLog;
+use App\Models\Setting;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class MetaLeadService
 {
+    public const CREDENTIAL_KEYS = [
+        'FACEBOOK_APP_ID',
+        'FACEBOOK_APP_SECRET',
+        'FACEBOOK_PAGE_ID',
+        'FACEBOOK_PAGE_ACCESS_TOKEN',
+        'FACEBOOK_WEBHOOK_VERIFY_TOKEN',
+        'FACEBOOK_FORM_ID',
+        'FACEBOOK_GRAPH_API_VERSION',
+    ];
+
     /**
      * Fetch a lead from Meta by leadgen ID and store it locally.
      */
-    public function fetchAndStoreLead(string $leadgenId): ?MetaLead
+    public function fetchAndStoreLead(string $leadgenId, ?array $credentials = null, ?int $userId = null): ?MetaLead
     {
         try {
-            $token = (string) config('meta.page_access_token');
-            $version = (string) config('meta.graph_api_version', 'v20.0');
+            $credentials = $this->normalizeCredentials($credentials ?: $this->globalCredentials());
+            $token = (string) ($credentials['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? '');
+            $version = (string) ($credentials['FACEBOOK_GRAPH_API_VERSION'] ?? 'v20.0');
+
+            if ($token === '') {
+                Log::error('Meta page access token is missing for lead fetch', [
+                    'leadgen_id' => $leadgenId,
+                    'user_id' => $userId,
+                ]);
+
+                return null;
+            }
 
             $response = Http::get("https://graph.facebook.com/{$version}/{$leadgenId}", [
                 'fields' => 'id,created_time,field_data,form_id,page_id,ad_id',
@@ -30,6 +51,7 @@ class MetaLeadService
                     'leadgen_id' => $leadgenId,
                     'status' => $response->status(),
                     'response' => $response->json(),
+                    'user_id' => $userId,
                 ]);
 
                 return null;
@@ -37,11 +59,12 @@ class MetaLeadService
 
             $data = $response->json();
 
-            return $this->storeLeadData($data);
+            return $this->storeLeadData($data, $userId);
         } catch (\Throwable $e) {
             Log::error('Exception while fetching Meta lead', [
                 'leadgen_id' => $leadgenId,
                 'message' => $e->getMessage(),
+                'user_id' => $userId,
             ]);
 
             return null;
@@ -51,20 +74,30 @@ class MetaLeadService
     /**
      * Sync leads from a lead form and return the count of synced leads.
      */
-    public function syncLeadsFromForm(string $formId = null): int
+    public function syncLeadsFromForm(string $formId = null, ?array $credentials = null, ?int $userId = null): int
     {
         $syncedCount = 0;
-        $formId = $formId ?: (string) config('meta.form_id');
+        $credentials = $this->normalizeCredentials($credentials ?: $this->globalCredentials());
+        $formId = $formId ?: (string) ($credentials['FACEBOOK_FORM_ID'] ?? '');
 
         if (empty($formId)) {
-            Log::error('Meta form ID is missing for lead sync');
+            Log::error('Meta form ID is missing for lead sync', ['user_id' => $userId]);
 
             return 0;
         }
 
         try {
-            $token = (string) config('meta.page_access_token');
-            $version = (string) config('meta.graph_api_version', 'v20.0');
+            $token = (string) ($credentials['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? '');
+            $version = (string) ($credentials['FACEBOOK_GRAPH_API_VERSION'] ?? 'v20.0');
+
+            if ($token === '') {
+                Log::error('Meta page access token is missing for lead sync', [
+                    'form_id' => $formId,
+                    'user_id' => $userId,
+                ]);
+
+                return 0;
+            }
 
             $nextUrl = "https://graph.facebook.com/{$version}/{$formId}/leads?fields=id,created_time,field_data,form_id,page_id,ad_id&access_token={$token}";
 
@@ -76,6 +109,7 @@ class MetaLeadService
                         'form_id' => $formId,
                         'status' => $response->status(),
                         'response' => $response->json(),
+                        'user_id' => $userId,
                     ]);
 
                     break;
@@ -85,7 +119,7 @@ class MetaLeadService
                 $leads = $payload['data'] ?? [];
 
                 foreach ($leads as $leadData) {
-                    $stored = $this->storeLeadData($leadData);
+                    $stored = $this->storeLeadData($leadData, $userId);
                     if ($stored) {
                         $syncedCount++;
                     }
@@ -97,16 +131,41 @@ class MetaLeadService
             Log::error('Exception while syncing Meta leads from form', [
                 'form_id' => $formId,
                 'message' => $e->getMessage(),
+                'user_id' => $userId,
             ]);
         }
 
         return $syncedCount;
     }
 
+    public function credentialsForUser(int $userId): array
+    {
+        $settings = Setting::getAllForUser($userId, 'meta');
+        $credentials = [];
+
+        foreach (self::CREDENTIAL_KEYS as $key) {
+            $credentials[$key] = (string) ($settings[$key] ?? '');
+        }
+
+        if ($credentials['FACEBOOK_GRAPH_API_VERSION'] === '') {
+            $credentials['FACEBOOK_GRAPH_API_VERSION'] = 'v25.0';
+        }
+
+        return $credentials;
+    }
+
+    public function hasRequiredCredentials(array $credentials): bool
+    {
+        $credentials = $this->normalizeCredentials($credentials);
+
+        return (string) ($credentials['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? '') !== ''
+            && (string) ($credentials['FACEBOOK_FORM_ID'] ?? '') !== '';
+    }
+
     /**
      * Normalize and persist a Meta lead payload.
      */
-    protected function storeLeadData(array $data): ?MetaLead
+    protected function storeLeadData(array $data, ?int $userId = null): ?MetaLead
     {
         $leadId = $data['id'] ?? null;
 
@@ -135,11 +194,57 @@ class MetaLeadService
             $attributes
         );
 
+        if ($userId) {
+            $this->attachLeadToUser($lead, $userId);
+        }
+
         if ($lead->wasRecentlyCreated) {
             $this->queueWelcomeWhatsapp($lead);
         }
 
         return $lead;
+    }
+
+    protected function attachLeadToUser(MetaLead $lead, int $userId): void
+    {
+        $lead->users()->syncWithoutDetaching([
+            $userId => [
+                'page_id' => $lead->page_id,
+                'form_id' => $lead->form_id,
+            ],
+        ]);
+    }
+
+    protected function globalCredentials(): array
+    {
+        return [
+            'FACEBOOK_APP_ID' => config('meta.app_id'),
+            'FACEBOOK_APP_SECRET' => config('meta.app_secret'),
+            'FACEBOOK_PAGE_ID' => config('meta.page_id'),
+            'FACEBOOK_PAGE_ACCESS_TOKEN' => config('meta.page_access_token'),
+            'FACEBOOK_WEBHOOK_VERIFY_TOKEN' => config('meta.webhook_verify_token'),
+            'FACEBOOK_FORM_ID' => config('meta.form_id'),
+            'FACEBOOK_GRAPH_API_VERSION' => config('meta.graph_api_version', 'v20.0'),
+        ];
+    }
+
+    protected function normalizeCredentials(array $credentials): array
+    {
+        $normalized = [];
+
+        foreach (self::CREDENTIAL_KEYS as $key) {
+            $value = $credentials[$key] ?? '';
+            if (is_array($value)) {
+                $value = reset($value) ?: '';
+            }
+            $normalized[$key] = trim((string) $value);
+        }
+
+        if ($normalized['FACEBOOK_GRAPH_API_VERSION'] === '') {
+            $normalized['FACEBOOK_GRAPH_API_VERSION'] = 'v20.0';
+        }
+
+        return $normalized;
     }
 
     /**

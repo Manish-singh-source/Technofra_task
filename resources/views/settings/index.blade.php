@@ -26,6 +26,9 @@
         if (auth()->user()->hasPermissionTo('view_email_settings')) {
             $availableTabs[] = 'notification';
         }
+        if (auth()->user()->hasPermissionTo('manage_meta_credentials')) {
+            $availableTabs[] = 'meta';
+        }
         if (auth()->user()->hasPermissionTo('view_general_settings')) {
             $availableTabs[] = 'legal';
         }
@@ -124,6 +127,15 @@
                                         <i class="bx bx-message-rounded-dots me-2"></i> Notifications
                                     </button>
                                 @endif
+                                @can('manage_meta_credentials')
+                                    <button
+                                        class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'meta' ? 'active' : '' }}"
+                                        id="meta-tab" data-bs-toggle="pill" data-bs-target="#meta" type="button"
+                                        role="tab" aria-controls="meta"
+                                        aria-selected="{{ $activeSettingsTab === 'meta' ? 'true' : 'false' }}">
+                                        <i class="bx bxl-facebook me-2"></i> Meta Credentials
+                                    </button>
+                                @endcan
                                 @if (auth()->user()->hasPermissionTo('view_general_settings'))
                                     <button
                                         class="nav-link text-start py-3 px-3 mb-2 {{ $activeSettingsTab === 'legal' ? 'active' : '' }}"
@@ -1018,8 +1030,66 @@
                                 </div>           
                                 @endcan
 
+                                @can('manage_meta_credentials')
+                                <div class="tab-pane fade {{ $activeSettingsTab === 'meta' ? 'show active' : '' }}"
+                                    id="meta" role="tabpanel">
+                                    <h5 class="card-title">Meta Credentials</h5>
+                                    <hr />
+                                    <form action="{{ route('settings.update.meta') }}" method="POST">
+                                        @csrf
+                                        @method('PUT')
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label for="FACEBOOK_APP_ID" class="form-label">Facebook App ID</label>
+                                                <input type="text" class="form-control" id="FACEBOOK_APP_ID" name="FACEBOOK_APP_ID"
+                                                    value="{{ old('FACEBOOK_APP_ID', $metaSettings['FACEBOOK_APP_ID'] ?? '') }}">
+                                                @error('FACEBOOK_APP_ID')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="FACEBOOK_APP_SECRET" class="form-label">Facebook App Secret</label>
+                                                <input type="password" class="form-control" id="FACEBOOK_APP_SECRET" name="FACEBOOK_APP_SECRET"
+                                                    value="{{ old('FACEBOOK_APP_SECRET', $metaSettings['FACEBOOK_APP_SECRET'] ?? '') }}" autocomplete="new-password">
+                                                @error('FACEBOOK_APP_SECRET')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="FACEBOOK_PAGE_ID" class="form-label">Facebook Page ID</label>
+                                                <input type="text" class="form-control" id="FACEBOOK_PAGE_ID" name="FACEBOOK_PAGE_ID"
+                                                    value="{{ old('FACEBOOK_PAGE_ID', $metaSettings['FACEBOOK_PAGE_ID'] ?? '') }}">
+                                                @error('FACEBOOK_PAGE_ID')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label for="FACEBOOK_FORM_ID" class="form-label">Facebook Form ID</label>
+                                                <input type="text" class="form-control" id="FACEBOOK_FORM_ID" name="FACEBOOK_FORM_ID"
+                                                    value="{{ old('FACEBOOK_FORM_ID', $metaSettings['FACEBOOK_FORM_ID'] ?? '') }}">
+                                                @error('FACEBOOK_FORM_ID')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <label for="FACEBOOK_PAGE_ACCESS_TOKEN" class="form-label">Facebook Page Access Token</label>
+                                                <input type="password" class="form-control" id="FACEBOOK_PAGE_ACCESS_TOKEN" name="FACEBOOK_PAGE_ACCESS_TOKEN"
+                                                    value="{{ old('FACEBOOK_PAGE_ACCESS_TOKEN', $metaSettings['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? '') }}" autocomplete="new-password">
+                                                @error('FACEBOOK_PAGE_ACCESS_TOKEN')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-md-8">
+                                                <label for="FACEBOOK_WEBHOOK_VERIFY_TOKEN" class="form-label">Facebook Webhook Verify Token</label>
+                                                <input type="text" class="form-control" id="FACEBOOK_WEBHOOK_VERIFY_TOKEN" name="FACEBOOK_WEBHOOK_VERIFY_TOKEN"
+                                                    value="{{ old('FACEBOOK_WEBHOOK_VERIFY_TOKEN', $metaSettings['FACEBOOK_WEBHOOK_VERIFY_TOKEN'] ?? '') }}">
+                                                @error('FACEBOOK_WEBHOOK_VERIFY_TOKEN')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-md-4">
+                                                <label for="FACEBOOK_GRAPH_API_VERSION" class="form-label">Graph API Version</label>
+                                                <input type="text" class="form-control" id="FACEBOOK_GRAPH_API_VERSION" name="FACEBOOK_GRAPH_API_VERSION"
+                                                    value="{{ old('FACEBOOK_GRAPH_API_VERSION', $metaSettings['FACEBOOK_GRAPH_API_VERSION'] ?? 'v25.0') }}">
+                                                @error('FACEBOOK_GRAPH_API_VERSION')<div class="text-danger">{{ $message }}</div>@enderror
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-primary">Save Meta Credentials</button>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                @endcan
                                 <!-- TAB 5: DEPARTMENTS -->
-                                @can('department_settings')
+                                @can('manage_meta_credentials')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'departments' ? 'show active' : '' }}"
                                     id="departments" role="tabpanel">
                                     <h5 class="card-title">Department Settings</h5>

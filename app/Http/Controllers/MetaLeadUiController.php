@@ -14,7 +14,7 @@ class MetaLeadUiController extends Controller
 
     public function index(Request $request): View
     {
-        $query = MetaLead::query();
+        $query = $this->scopedMetaLeadQuery();
 
         if ($request->filled('search')) {
             $search = $request->string('search')->toString();
@@ -41,7 +41,8 @@ class MetaLeadUiController extends Controller
             ->paginate(20)
             ->withQueryString();
 
-        $formIds = MetaLead::select('form_id')
+        $formIds = $this->scopedMetaLeadQuery()
+            ->select('form_id')
             ->distinct()
             ->whereNotNull('form_id')
             ->pluck('form_id');
@@ -53,6 +54,8 @@ class MetaLeadUiController extends Controller
 
     public function show(MetaLead $lead): View
     {
+        abort_unless($this->canAccessMetaLead($lead), 404);
+
         return view('leads.show', compact('lead'));
     }
 
@@ -61,7 +64,15 @@ class MetaLeadUiController extends Controller
         $redirectTo = $this->syncRedirectTarget($request);
 
         try {
-            $count = app(MetaLeadService::class)->syncLeadsFromForm();
+            $service = app(MetaLeadService::class);
+            $credentials = $service->credentialsForUser((int) auth()->id());
+
+            if (! $service->hasRequiredCredentials($credentials)) {
+                return redirect()->to($redirectTo)
+                    ->with('error', 'Please save Meta Page Access Token and Form ID before syncing.');
+            }
+
+            $count = $service->syncLeadsFromForm(null, $credentials, (int) auth()->id());
 
             return redirect()->to($redirectTo)
                 ->with('success', "Synced {$count} leads from Meta.");
@@ -92,13 +103,53 @@ class MetaLeadUiController extends Controller
 
     public function destroy(MetaLead $lead): RedirectResponse
     {
+        abort_unless($this->canAccessMetaLead($lead), 404);
+
         $lead->delete();
 
         return redirect()->route('leads.index')->with('success', 'Lead deleted.');
     }
 
+    private function scopedMetaLeadQuery()
+    {
+        $query = MetaLead::query();
+        $user = auth()->user();
+        $userId = (int) ($user?->id ?? 0);
+
+        if ($this->isStaffUser()) {
+            return $query->whereExists(function ($subQuery) use ($userId) {
+                $subQuery->selectRaw('1')
+                    ->from('assigned_leads')
+                    ->where('assigned_leads.lead_model', 'meta')
+                    ->whereColumn('assigned_leads.lead_id', 'meta_leads.id')
+                    ->where(function ($jsonQuery) use ($userId) {
+                        $jsonQuery
+                            ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                            ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                    });
+            });
+        }
+
+        return $query->whereHas('users', fn ($userQuery) => $userQuery->where('users.id', $userId));
+    }
+
+    private function canAccessMetaLead(MetaLead $lead): bool
+    {
+        return $this->scopedMetaLeadQuery()
+            ->where('meta_leads.id', $lead->id)
+            ->exists();
+    }
+
+    private function isStaffUser(): bool
+    {
+        $role = strtolower((string) (auth()->user()?->getRawOriginal('role') ?? auth()->user()?->role ?? ''));
+
+        return $role === 'staff';
+    }
     public function updateStatus(Request $request, MetaLead $lead): RedirectResponse
     {
+        abort_unless($this->canAccessMetaLead($lead), 404);
+
         $validated = $request->validate([
             'status' => ['required', 'in:'.implode(',', self::STATUSES)],
         ]);

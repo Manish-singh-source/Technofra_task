@@ -314,6 +314,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     {
         abort_unless(auth()->user()?->can('delete_leads'), 403);
 
+        $this->findNormalizedLeadOrFail($source, $id);
+
         $this->deleteBySource($source, $id);
 
         return redirect()
@@ -535,6 +537,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         // abort_unless(auth()->user()?->can('edit_leads'), 403);
 
         $validated = $request->validated();
+        $this->findNormalizedLeadOrFail($source, $id);
 
         $lead = match ($source) {
             self::SOURCE_LEAD => Lead::findOrFail($id),
@@ -763,7 +766,9 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->concat($webapp)
             ->concat($meta)
             ->concat($google)
-            ->concat($contactForm);
+            ->concat($contactForm)
+            ->filter(fn (array $row) => $this->canAccessNormalizedRow($row))
+            ->values();
     }
 
     private function buildContactKeysFromRows(Collection $rows): array
@@ -899,6 +904,78 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->all();
     }
 
+    private function canAccessNormalizedRow(array $row): bool
+    {
+        $sourceType = (string) ($row['source_type'] ?? '');
+        $sourceId = (int) ($row['source_id'] ?? 0);
+        $userId = (int) (auth()->id() ?? 0);
+
+        if ($sourceId <= 0 || $userId <= 0) {
+            return false;
+        }
+
+        if ($this->isStaffUser()) {
+            return $this->hasAssignedLeadAccess($sourceType, $sourceId, $userId);
+        }
+
+        if ($sourceType === self::SOURCE_LEAD) {
+            return Lead::query()
+                ->where('id', $sourceId)
+                ->where('created_by', $userId)
+                ->exists();
+        }
+
+        if ($sourceType === self::SOURCE_META) {
+            return DB::table('meta_lead_user')
+                ->where('user_id', $userId)
+                ->where('meta_lead_id', $sourceId)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    private function visiblePipelineLeadQuery()
+    {
+        $query = Lead::query();
+        $userId = (int) (auth()->id() ?? 0);
+
+        if ($this->isStaffUser()) {
+            return $query->whereExists(function ($subQuery) use ($userId) {
+                $subQuery->selectRaw('1')
+                    ->from('assigned_leads')
+                    ->where('assigned_leads.lead_model', self::SOURCE_LEAD)
+                    ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                    ->where(function ($jsonQuery) use ($userId) {
+                        $jsonQuery
+                            ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                            ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                    });
+            });
+        }
+
+        return $query->where('created_by', $userId);
+    }
+
+    private function hasAssignedLeadAccess(string $sourceType, int $sourceId, int $userId): bool
+    {
+        return AssignedLead::query()
+            ->where('lead_model', $sourceType)
+            ->where('lead_id', $sourceId)
+            ->where(function ($jsonQuery) use ($userId) {
+                $jsonQuery
+                    ->whereRaw('JSON_CONTAINS(staff_ids, ?, "$")', [(string) $userId])
+                    ->orWhereRaw('JSON_CONTAINS(staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+            })
+            ->exists();
+    }
+
+    private function isStaffUser(): bool
+    {
+        $role = strtolower((string) (auth()->user()?->getRawOriginal('role') ?? auth()->user()?->role ?? ''));
+
+        return $role === 'staff';
+    }
     private function deleteBySource(string $source, int $id): void
     {
         match ($source) {

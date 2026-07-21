@@ -60,4 +60,11 @@ class MetaLead extends Model
     {
         return $this->belongsTo(MetaLeadWhatsappMessageLog::class, 'welcome_whatsapp_last_log_id');
     }
+
+    public function users()
+    {
+        return $this->belongsToMany(User::class, 'meta_lead_user')
+            ->withPivot(['page_id', 'form_id'])
+            ->withTimestamps();
+    }
 }

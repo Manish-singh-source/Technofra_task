@@ -10,9 +10,11 @@ class Setting extends Model
     use HasFactory;
 
     protected $fillable = [
+        'user_id',
         'key',
         'value',
         'type',
+        'group',
     ];
 
     protected $casts = [
@@ -20,31 +22,68 @@ class Setting extends Model
     ];
 
     /**
-     * Get a setting value by key.
+     * Get a global setting value by key.
      */
     public static function get($key, $default = null)
     {
-        $setting = self::where('key', $key)->first();
+        $setting = self::query()
+            ->whereNull('user_id')
+            ->where('key', $key)
+            ->first();
+
         return $setting ? $setting->value : $default;
     }
 
     /**
-     * Set a setting value.
+     * Set a global setting value.
      */
     public static function set($key, $value, $type = 'text')
     {
         return self::updateOrCreate(
-            ['key' => $key],
+            ['user_id' => null, 'key' => $key],
             ['value' => $value, 'type' => $type]
         );
     }
 
+    public static function getForUser(int $userId, string $key, $default = null)
+    {
+        $setting = self::query()
+            ->where('user_id', $userId)
+            ->where('key', $key)
+            ->first();
+
+        return $setting ? $setting->value : $default;
+    }
+
+    public static function setForUser(int $userId, string $key, $value, string $type = 'text', string $group = 'meta')
+    {
+        return self::updateOrCreate(
+            ['user_id' => $userId, 'key' => $key],
+            ['value' => $value, 'type' => $type, 'group' => $group]
+        );
+    }
+
+    public static function getAllForUser(int $userId, ?string $group = null): array
+    {
+        $settings = self::query()
+            ->where('user_id', $userId)
+            ->when($group, fn ($query) => $query->where('group', $group))
+            ->get();
+
+        $result = [];
+        foreach ($settings as $setting) {
+            $result[$setting->key] = $setting->value;
+        }
+
+        return $result;
+    }
+
     /**
-     * Get all settings as key-value pairs.
+     * Get all global settings as key-value pairs.
      */
     public static function getAllSettings()
     {
-        $settings = self::all();
+        $settings = self::query()->whereNull('user_id')->get();
         $result = [];
         foreach ($settings as $setting) {
             $result[$setting->key] = $setting->value;
@@ -127,8 +166,6 @@ class Setting extends Model
      */
     public static function getByGroup($group)
     {
-        return self::where('group', $group)->get();
+        return self::whereNull('user_id')->where('group', $group)->get();
     }
-
 }
-
