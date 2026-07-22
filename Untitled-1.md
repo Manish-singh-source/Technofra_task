@@ -25,7 +25,8 @@ Module: Tasks
 9. if not approved then rework will be added.
 10. if approved then task will be closed.
 
-Project Tracking: based on start_date & end_date.
+Project Tracking: based on start_date 
+& end_date.
 
 1. on create if start_date > today then status will be not_started
 2. if start_date <= today then status will be in_progress
@@ -860,4 +861,6 @@ Leads will be shown like following:
 
 
 
-https://www.facebook.com/v25.0/dialog/oauth?client_id=1653544955958673&redirect_uri={your-callback-url}&scope=pages_show_list,pages_read_engagement,leads_retrieval,pages_manage_metadata&state={random-csrf-token}
+https://www.facebook.com/v25.0/dialog/oauth?client_id=1653544955958673&redirect_uri=https://mycrm.technofra.com/meta/callback&scope=pages_show_list,pages_read_engagement,leads_retrieval,pages_manage_metadata
+
+

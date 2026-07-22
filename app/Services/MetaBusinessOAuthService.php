@@ -71,7 +71,7 @@ class MetaBusinessOAuthService
     public function discoverPagesAndForms(string $longLivedUserToken): array
     {
         $response = Http::asJson()->get($this->graphUrl('/me/accounts'), [
-            'fields' => 'id,name,access_token,tasks,perms',
+            'fields' => 'id,name,access_token,tasks',
             'access_token' => $longLivedUserToken,
         ]);
 
