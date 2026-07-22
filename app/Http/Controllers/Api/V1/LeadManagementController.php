@@ -63,7 +63,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function index(Request $request): JsonResponse
     {
-        abort_unless(auth()->user()?->can('view_leads'), 403);
+        abort_unless($this->canViewLeadManagement(), 403);
 
         $search = trim((string) $request->query('search', ''));
         $statusFilter = trim((string) $request->query('status', ''));
@@ -150,7 +150,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function show(string $source, int $id): JsonResponse
     {
-        abort_unless(auth()->user()?->can('view_leads'), 403);
+        abort_unless($this->canViewLeadManagement(), 403);
 
         $lead = $this->findNormalizedLeadOrFail($source, $id);
         $leadModel = $this->resolveLeadEntityForPipeline($lead)->load('statusUpdatedBy');
@@ -172,7 +172,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function listAssignments(string $source, int $id): JsonResponse
     {
-        abort_unless(auth()->user()?->can('view_leads'), 403);
+        abort_unless($this->canViewLeadManagement(), 403);
 
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
         $leadModel = $this->resolveLeadEntityForPipeline($normalized);
@@ -188,7 +188,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function assign(AssignLeadRequest $request, string $source, int $id): JsonResponse
     {
-        abort_unless(auth()->user()?->can('edit_leads'), 403);
+        abort_unless($this->canManageLeadAssignments(), 403);
 
         $validated = $request->validated();
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
@@ -245,7 +245,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function bulkAssign(BulkAssignLeadRequest $request): JsonResponse
     {
-        abort_unless(auth()->user()?->can('edit_leads'), 403);
+        abort_unless($this->canManageLeadAssignments(), 403);
 
         $validated = $request->validated();
 
@@ -580,7 +580,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function performanceStats(): JsonResponse
     {
-        abort_unless(auth()->user()?->can('view_leads'), 403);
+        abort_unless($this->canViewLeadManagement(), 403);
 
         $totalLeads = Lead::query()->count();
         $convertedLeads = Lead::query()->whereIn('status', ['converted', 'won'])->count();
@@ -613,6 +613,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     {
         abort_unless(auth()->user()?->can('delete_leads'), 403);
 
+        $this->findNormalizedLeadOrFail($source, $id);
         $this->deleteBySource($source, $id);
 
         return ApiResponse::success(['source' => $source, 'id' => $id], 'Lead deleted successfully.');
@@ -700,7 +701,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 );
         });
 
-        $meta = MetaLead::query()->get()->map(function (MetaLead $lead) {
+        $meta = $this->visibleMetaLeadQuery()->get()->map(function (MetaLead $lead) {
                 return $this->normalizeRow(
                     self::SOURCE_META,
                     $lead->id,
@@ -796,7 +797,9 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 );
             });
 
-        return $leads->concat($digital)->concat($webapp)->concat($meta)->concat($google)->concat($contactForm);
+        return $leads->concat($digital)->concat($webapp)->concat($meta)->concat($google)->concat($contactForm)
+            ->filter(fn (array $row) => $this->canAccessNormalizedRow($row))
+            ->values();
     }
 
     private function buildContactKeysFromRows(Collection $rows): array
@@ -925,6 +928,133 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->unique()
             ->values()
             ->all();
+    }
+
+    private function canAccessNormalizedRow(array $row): bool
+    {
+        $sourceType = (string) ($row['source_type'] ?? '');
+        $sourceId = (int) ($row['source_id'] ?? 0);
+        $userId = (int) (auth()->id() ?? 0);
+
+        if ($sourceId <= 0 || $userId <= 0) {
+            return false;
+        }
+
+        if ($sourceType === self::SOURCE_META) {
+            return $this->canAccessMetaLeadRow($sourceId, $userId);
+        }
+
+        if ($this->hasAdminLevelLeadAccess()) {
+            return true;
+        }
+
+        if ($this->isStaffUser()) {
+            return $this->hasAssignedLeadAccess($sourceType, $sourceId, $userId);
+        }
+
+        if ($this->isClientUser()) {
+            return false;
+        }
+
+        if ($sourceType === self::SOURCE_LEAD) {
+            return Lead::query()
+                ->where('id', $sourceId)
+                ->where('created_by', $userId)
+                ->exists();
+        }
+
+        return false;
+    }
+
+    private function visibleMetaLeadQuery()
+    {
+        $userId = (int) (auth()->id() ?? 0);
+        $query = MetaLead::query();
+
+        if ($this->isStaffUser() && ! $this->hasAdminLevelLeadAccess()) {
+            return $query->whereExists(function ($subQuery) use ($userId) {
+                $subQuery->selectRaw('1')
+                    ->from('assigned_leads')
+                    ->where('assigned_leads.lead_model', self::SOURCE_META)
+                    ->whereColumn('assigned_leads.lead_id', 'meta_leads.id')
+                    ->where(function ($jsonQuery) use ($userId) {
+                        $jsonQuery
+                            ->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                            ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                    });
+            });
+        }
+
+        return $query->whereHas('users', fn ($userQuery) => $userQuery->where('users.id', $userId));
+    }
+
+    private function canAccessMetaLeadRow(int $sourceId, int $userId): bool
+    {
+        if ($this->isStaffUser() && ! $this->hasAdminLevelLeadAccess()) {
+            return $this->hasAssignedLeadAccess(self::SOURCE_META, $sourceId, $userId);
+        }
+
+        return $this->hasMetaLeadPivotAccess($sourceId, $userId);
+    }
+
+    private function hasMetaLeadPivotAccess(int $sourceId, int $userId): bool
+    {
+        return DB::table('meta_lead_user')
+            ->where('user_id', $userId)
+            ->where('meta_lead_id', $sourceId)
+            ->exists();
+    }
+
+    private function hasAssignedLeadAccess(string $sourceType, int $sourceId, int $userId): bool
+    {
+        return AssignedLead::query()
+            ->where('lead_model', $sourceType)
+            ->where('lead_id', $sourceId)
+            ->where(function ($jsonQuery) use ($userId) {
+                $jsonQuery
+                    ->whereRaw('JSON_CONTAINS(staff_ids, ?, "$")', [(string) $userId])
+                    ->orWhereRaw('JSON_CONTAINS(staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+            })
+            ->exists();
+    }
+
+    private function isStaffUser(): bool
+    {
+        $role = strtolower((string) (auth()->user()?->getRawOriginal('role') ?? auth()->user()?->role ?? ''));
+
+        return $role === 'staff';
+    }
+
+    private function isClientUser(): bool
+    {
+        $role = strtolower((string) (auth()->user()?->getRawOriginal('role') ?? auth()->user()?->role ?? ''));
+
+        return $role === 'client';
+    }
+
+    private function canViewLeadManagement(): bool
+    {
+        return $this->hasAdminLevelLeadAccess()
+            || (bool) auth()->user()?->can('view_leads_management');
+    }
+
+    private function canManageLeadAssignments(): bool
+    {
+        return $this->hasAdminLevelLeadAccess()
+            || (! $this->isStaffUser() && ! $this->isClientUser() && (bool) auth()->user()?->can('edit_leads'));
+    }
+
+    private function hasAdminLevelLeadAccess(): bool
+    {
+        $user = auth()->user();
+        $role = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+        $adminRoles = ['admin', 'super-admin', 'super_admin', 'super_admin2'];
+
+        if (in_array($role, $adminRoles, true)) {
+            return true;
+        }
+
+        return method_exists($user, 'hasAnyRole') && $user->hasAnyRole($adminRoles);
     }
 
     private function deleteBySource(string $source, int $id): void

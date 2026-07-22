@@ -127,6 +127,10 @@ Route::middleware('auth')->group(function () {
             Route::put('/email', 'updateEmail')->name('settings.update.email');
             Route::put('/renewal', 'updateRenewal')->name('settings.update.renewal');
             Route::put('/meta', 'updateMeta')->name('settings.update.meta');
+            Route::get('/meta/connect', 'connectMetaBusiness')->name('settings.meta.connect');
+            Route::get('/meta/callback', 'handleMetaBusinessCallback')->name('settings.meta.callback');
+            Route::get('/meta/select', 'selectMetaBusinessAsset')->name('settings.meta.select');
+            Route::post('/meta/select', 'storeMetaBusinessAsset')->name('settings.meta.select.store');
             Route::put('/legal', 'updateLegal')->name('settings.update.legal');
             Route::put('/teams', 'updateTeams')->name('settings.update.teams');
             Route::put('/departments', 'updateDepartments')->name('settings.update.departments');

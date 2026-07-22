@@ -7,6 +7,7 @@ use App\Models\Department;
 use App\Models\Setting;
 use App\Models\Tag;
 use App\Models\Team;
+use App\Services\MetaBusinessOAuthService;
 use App\Services\MetaLeadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class SettingController extends Controller
 {
@@ -374,6 +376,8 @@ class SettingController extends Controller
 
     public function updateMeta(Request $request)
     {
+        abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
+
         $validator = Validator::make($request->all(), [
             'FACEBOOK_APP_ID' => 'nullable|string|max:255',
             'FACEBOOK_APP_SECRET' => 'nullable|string|max:1000',
@@ -414,6 +418,129 @@ class SettingController extends Controller
                 ->withInput()
                 ->with('active_settings_tab', 'meta');
         }
+    }
+
+    public function connectMetaBusiness(MetaBusinessOAuthService $metaOAuth)
+    {
+        abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
+
+        if (! $metaOAuth->hasGlobalAppCredentials()) {
+            return redirect()->route('settings')
+                ->with('error', 'Facebook Business Connect is not configured. Add FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to the CRM environment first.')
+                ->with('active_settings_tab', 'meta');
+        }
+
+        $state = Str::random(40);
+        session([
+            'meta_oauth_state' => $state,
+        ]);
+        session()->forget('meta_oauth_discovery');
+
+        return redirect()->away($metaOAuth->authorizationUrl(route('settings.meta.callback'), $state));
+    }
+
+    public function handleMetaBusinessCallback(Request $request, MetaBusinessOAuthService $metaOAuth)
+    {
+        abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
+
+        $expectedState = (string) session('meta_oauth_state', '');
+        $actualState = (string) $request->query('state', '');
+
+        if ($expectedState === '' || $actualState === '' || ! hash_equals($expectedState, $actualState)) {
+            abort(403, 'Invalid Facebook OAuth state.');
+        }
+
+        if ($request->filled('error')) {
+            return redirect()->route('settings')
+                ->with('error', 'Facebook connection was cancelled or failed: '.$request->query('error_description', $request->query('error')))
+                ->with('active_settings_tab', 'meta');
+        }
+
+        $code = (string) $request->query('code', '');
+        if ($code === '') {
+            return redirect()->route('settings')
+                ->with('error', 'Facebook did not return an authorization code.')
+                ->with('active_settings_tab', 'meta');
+        }
+
+        try {
+            $shortLivedToken = $metaOAuth->exchangeCodeForShortLivedToken($code, route('settings.meta.callback'));
+            $longLivedToken = $metaOAuth->exchangeForLongLivedUserToken($shortLivedToken);
+            $pages = $metaOAuth->discoverPagesAndForms($longLivedToken);
+        } catch (\Throwable $e) {
+            return redirect()->route('settings')
+                ->with('error', 'Unable to connect Facebook Business: '.$e->getMessage())
+                ->with('active_settings_tab', 'meta');
+        }
+
+        if (! $this->hasDiscoveredLeadForms($pages)) {
+            return redirect()->route('settings')
+                ->with('error', 'No Facebook lead forms were found for this account. Make sure the account can manage a page with lead forms.')
+                ->with('active_settings_tab', 'meta');
+        }
+
+        session(['meta_oauth_discovery' => $pages]);
+
+        return redirect()->route('settings.meta.select');
+    }
+
+    public function selectMetaBusinessAsset()
+    {
+        abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
+
+        $pages = session('meta_oauth_discovery', []);
+        if (! $this->hasDiscoveredLeadForms($pages)) {
+            return redirect()->route('settings')
+                ->with('error', 'No pending Facebook page/form selection was found. Please connect Facebook Business again.')
+                ->with('active_settings_tab', 'meta');
+        }
+
+        return view('settings.meta-select', compact('pages'));
+    }
+
+    public function storeMetaBusinessAsset(Request $request, MetaBusinessOAuthService $metaOAuth)
+    {
+        abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
+
+        $validated = $request->validate([
+            'selected_asset' => 'required|string|max:600',
+        ]);
+
+        [$pageId, $formId] = array_pad(explode('|', (string) $validated['selected_asset'], 2), 2, '');
+
+        $selection = $this->findDiscoveredMetaSelection(
+            session('meta_oauth_discovery', []),
+            $pageId,
+            $formId
+        );
+
+        if ($selection === null) {
+            return redirect()->route('settings.meta.select')
+                ->with('error', 'The selected Facebook page and form could not be found. Please choose again.');
+        }
+
+        $userId = (int) auth()->id();
+
+        DB::beginTransaction();
+        try {
+            Setting::setForUser($userId, 'FACEBOOK_PAGE_ID', $selection['page']['id'], 'text', 'meta');
+            Setting::setForUser($userId, 'FACEBOOK_PAGE_ACCESS_TOKEN', $selection['page']['access_token'], 'text', 'meta');
+            Setting::setForUser($userId, 'FACEBOOK_FORM_ID', $selection['form']['id'], 'text', 'meta');
+            Setting::setForUser($userId, 'FACEBOOK_GRAPH_API_VERSION', $metaOAuth->graphVersion(), 'text', 'meta');
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+
+            return redirect()->route('settings.meta.select')
+                ->with('error', 'Failed to save selected Facebook assets: '.$e->getMessage());
+        }
+
+        session()->forget(['meta_oauth_state', 'meta_oauth_discovery']);
+
+        return redirect()->route('settings')
+            ->with('success', 'Facebook Business page and lead form connected successfully.')
+            ->with('active_settings_tab', 'meta');
     }
     /**
      * Send test email.
@@ -765,6 +892,36 @@ class SettingController extends Controller
         }
     }
 
+    private function hasDiscoveredLeadForms(array $pages): bool
+    {
+        foreach ($pages as $page) {
+            if (! empty($page['forms']) && is_array($page['forms'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function findDiscoveredMetaSelection(array $pages, string $pageId, string $formId): ?array
+    {
+        foreach ($pages as $page) {
+            if ((string) ($page['id'] ?? '') !== $pageId) {
+                continue;
+            }
+
+            foreach (($page['forms'] ?? []) as $form) {
+                if ((string) ($form['id'] ?? '') === $formId) {
+                    return [
+                        'page' => $page,
+                        'form' => $form,
+                    ];
+                }
+            }
+        }
+
+        return null;
+    }
     private function defaultMetaSettings(): array
     {
         return [
@@ -931,3 +1088,4 @@ class SettingController extends Controller
         ]);
     }
 }
+

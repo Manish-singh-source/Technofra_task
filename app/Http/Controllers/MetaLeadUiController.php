@@ -61,6 +61,8 @@ class MetaLeadUiController extends Controller
 
     public function sync(Request $request): RedirectResponse
     {
+        abort_unless($this->canViewLeadManagement(), 403);
+
         $redirectTo = $this->syncRedirectTarget($request);
 
         try {
@@ -116,7 +118,9 @@ class MetaLeadUiController extends Controller
         $user = auth()->user();
         $userId = (int) ($user?->id ?? 0);
 
-        if ($this->isStaffUser()) {
+        abort_unless($this->canViewLeadManagement(), 403);
+
+        if ($this->isStaffUser() && ! $this->hasAdminLevelLeadAccess()) {
             return $query->whereExists(function ($subQuery) use ($userId) {
                 $subQuery->selectRaw('1')
                     ->from('assigned_leads')
@@ -146,6 +150,26 @@ class MetaLeadUiController extends Controller
 
         return $role === 'staff';
     }
+
+    private function canViewLeadManagement(): bool
+    {
+        return $this->hasAdminLevelLeadAccess()
+            || (bool) auth()->user()?->can('view_leads_management');
+    }
+
+    private function hasAdminLevelLeadAccess(): bool
+    {
+        $user = auth()->user();
+        $role = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+        $adminRoles = ['admin', 'super-admin', 'super_admin', 'super_admin2'];
+
+        if (in_array($role, $adminRoles, true)) {
+            return true;
+        }
+
+        return method_exists($user, 'hasAnyRole') && $user->hasAnyRole($adminRoles);
+    }
+
     public function updateStatus(Request $request, MetaLead $lead): RedirectResponse
     {
         abort_unless($this->canAccessMetaLead($lead), 404);

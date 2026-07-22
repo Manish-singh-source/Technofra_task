@@ -98,11 +98,11 @@
                                     <i class='bx bxs-plus-square'></i> Add New Lead
                                 </a>
                             @endcan
-                            @can('edit_leads')
+                            @if ($canManageLeadAssignments ?? false)
                                 <button type="button" class="btn btn-primary btn-sm" id="openBulkAssignModalBtn">
                                     <i class='bx bxs-user-plus'></i> Bulk Assign
                                 </button>
-                            @endcan
+                            @endif
                         </div>
                     </div>
 
@@ -170,7 +170,7 @@
                             class="table table-striped table-bordered align-middle">
                             <thead class="table-light">
                                 <tr>
-                                    <th><input type="checkbox" id="selectAllLeads"></th>
+                                    <th>@if ($canManageLeadAssignments ?? false)<input type="checkbox" id="selectAllLeads">@endif</th>
                                     <th>Sr No</th>
                                     <th>Name</th>
                                     <th>Email</th>
@@ -188,11 +188,11 @@
                                 @forelse($leads as $lead)
                                     <tr>
                                         <td>
-                                            @can('edit_leads')
+                                            @if ($canManageLeadAssignments ?? false)
                                                 <input type="checkbox" class="lead-select-checkbox"
                                                     data-source="{{ $lead['source_type'] }}"
                                                     data-id="{{ $lead['source_id'] }}">
-                                            @endcan
+                                            @endif
                                         </td>
                                         <td>{{ ($leads->currentPage() - 1) * $leads->perPage() + $loop->iteration }}</td>
                                         <td>{{ $lead['name'] }}</td>
@@ -211,7 +211,7 @@
                                                 <a href="{{ route('lead-management.show', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}"
                                                     class="text-primary" title="View"><i class='bx bxs-show'></i></a>
 
-                                                @can('edit_leads')
+                                                @if ($canManageLeadAssignments ?? false)
                                                     <button type="button" class="text-warning border-0 bg-transparent ms-2"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
@@ -228,7 +228,7 @@
                                                         </button> --}}
                                                         <a href="{{ route('lead.edit', $lead['source_id']) }}" class="text-info border-0 bg-transparent ms-2"><i class='bx bxs-edit-alt'></i></a>
                                                     @endif
-                                                @endcan
+                                                @endif
 
                                                 @can('delete_leads')
                                                     <form method="POST"
@@ -259,7 +259,7 @@
         </div>
     </div>
 
-    @can('edit_leads')
+    @if ($canManageLeadAssignments ?? false)
         <div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog">
                 <div class="modal-content">
@@ -392,7 +392,7 @@
                 </div>
             </div>
         @endforeach
-    @endcan
+    @endif
 @endsection
 
 @push('scripts')
@@ -412,7 +412,6 @@
             const sourceFilterButtons = document.querySelectorAll('.source-filter-btn');
             const sourceColumnIndex = 7;
             const metaSyncForm = document.getElementById('metaSyncForm');
-            let metaAutoSyncSubmitted = false;
 
             function escapeRegex(value) {
                 return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -481,10 +480,6 @@
                     updateSourceFilterButtonState(this);
                     setMetaSyncFormVisibility(sourceKey);
 
-                    if (sourceKey === 'meta' && metaSyncForm && !metaAutoSyncSubmitted) {
-                        metaAutoSyncSubmitted = true;
-                        metaSyncForm.submit();
-                    }
                 });
             });
 
@@ -501,7 +496,8 @@
                 setMetaSyncFormVisibility(initialSourceKey);
             }
 
-            const bulkAssignModal = new bootstrap.Modal(document.getElementById('bulkAssignModal'));
+            const bulkAssignModalElement = document.getElementById('bulkAssignModal');
+            const bulkAssignModal = bulkAssignModalElement ? new bootstrap.Modal(bulkAssignModalElement) : null;
             const openBulkAssignModalBtn = document.getElementById('openBulkAssignModalBtn');
             const selectAllLeads = document.getElementById('selectAllLeads');
             const selectedLeadsCount = document.getElementById('selectedLeadsCount');
@@ -519,6 +515,7 @@
             }
 
             function setHiddenInputsForSelectedLeads() {
+                if (!bulkAssignHiddenInputs) return;
                 bulkAssignHiddenInputs.innerHTML = '';
                 selectedLeadCheckboxes().forEach((checkbox, index) => {
                     const sourceInput = document.createElement('input');
@@ -563,7 +560,9 @@
 
                     updateSelectedCount();
                     setHiddenInputsForSelectedLeads();
-                    bulkAssignModal.show();
+                    if (bulkAssignModal) {
+                        bulkAssignModal.show();
+                    }
                 });
             }
 

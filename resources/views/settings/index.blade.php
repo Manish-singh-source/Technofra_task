@@ -1035,6 +1035,25 @@
                                     id="meta" role="tabpanel">
                                     <h5 class="card-title">Meta Credentials</h5>
                                     <hr />
+                                    @php($facebookBusinessConnectReady = filled(config('meta.app_id')) && filled(config('meta.app_secret')))
+                                    <div class="border rounded p-3 mb-4">
+                                        <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+                                            <div>
+                                                <h6 class="mb-1">Connect with Facebook Business</h6>
+                                                <p class="text-muted mb-0">Use the CRM Meta app to connect your own Facebook account, then choose the page and lead form to sync.</p>
+                                            </div>
+                                            @if ($facebookBusinessConnectReady)
+                                                <a href="{{ route('settings.meta.connect') }}" class="btn btn-primary">
+                                                    <i class="bx bxl-facebook me-1"></i> Connect Facebook
+                                                </a>
+                                            @endif
+                                        </div>
+                                        @unless ($facebookBusinessConnectReady)
+                                            <div class="alert alert-warning mb-0 mt-3">
+                                                Global Facebook App ID and App Secret are missing. Add FACEBOOK_APP_ID and FACEBOOK_APP_SECRET in the CRM environment before using Facebook Business Connect.
+                                            </div>
+                                        @endunless
+                                    </div>
                                     <form action="{{ route('settings.update.meta') }}" method="POST">
                                         @csrf
                                         @method('PUT')
@@ -1089,7 +1108,7 @@
                                 </div>
                                 @endcan
                                 <!-- TAB 5: DEPARTMENTS -->
-                                @can('manage_meta_credentials')
+                                @can('department_settings')
                                 <div class="tab-pane fade {{ $activeSettingsTab === 'departments' ? 'show active' : '' }}"
                                     id="departments" role="tabpanel">
                                     <h5 class="card-title">Department Settings</h5>
@@ -1308,8 +1327,4 @@
         });
     </script>
 @endpush
-
-
-
-
 
