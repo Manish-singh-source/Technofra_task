@@ -18,6 +18,7 @@ use App\Models\AssignedLead;
 use App\Models\DigitalMarketingLead;
 use App\Models\GoogleLead;
 use App\Models\ContactForm;
+use App\Models\EnquiryForm;
 use App\Models\Lead;
 use App\Models\LeadConversion;
 use App\Models\LeadEscalation;
@@ -57,6 +58,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     private const SOURCE_META = 'meta';
     private const SOURCE_GOOGLE = 'google';
     private const SOURCE_CONTACTFORM = 'contactform';
+    private const SOURCE_ENQUIRYFORM = 'enquiryform';
     private const SOURCE_INDIAMART = 'indiamart';
     private const SOURCE_JUSTDIAL = 'justdial';
     private const SOURCE_PIPELINE = 'lead';
@@ -75,6 +77,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_META => 'Meta',
             self::SOURCE_GOOGLE => 'Google',
             self::SOURCE_CONTACTFORM => 'Contact Form',
+            self::SOURCE_ENQUIRYFORM => 'Enquiry Form',
             self::SOURCE_INDIAMART => 'IndiaMart',
             self::SOURCE_JUSTDIAL => 'JustDial',
         ];
@@ -340,6 +343,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_META => MetaLead::findOrFail($id),
             self::SOURCE_GOOGLE => GoogleLead::findOrFail($id),
             self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->firstOrFail(),
+            self::SOURCE_ENQUIRYFORM => EnquiryForm::findOrFail($id),
             default => abort(404),
         };
 
@@ -348,7 +352,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'source_id' => $id,
             'name' => $lead->name ?? $lead->full_name ?? null,
             'email' => $lead->email ?? null,
-            'number' => $lead->phone ?? null,
+            'number' => $lead->phone ?? $lead->contact ?? null,
             'company' => $lead->company ?? null,
             'source' => $source,
         ]);
@@ -750,7 +754,24 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     'Contact Form',
                     null,
                     $contact->created_at ?? null,
-                    null
+                    $contact->status ?? 'new'
+                );
+            });
+
+        $enquiryForm = EnquiryForm::query()
+            ->get()
+            ->map(function (EnquiryForm $enquiry) {
+                return $this->normalizeRow(
+                    self::SOURCE_ENQUIRYFORM,
+                    (int) $enquiry->id,
+                    $enquiry->name ?? null,
+                    $enquiry->email ?? null,
+                    $enquiry->contact ?? null,
+                    $enquiry->company ?? null,
+                    'Enquiry Form',
+                    null,
+                    $enquiry->created_at ?? null,
+                    $enquiry->status ?? 'new'
                 );
             });
 
@@ -759,6 +780,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $metaContactKeys = $this->buildContactKeysFromRows($meta);
         $googleContactKeys = $this->buildContactKeysFromRows($google);
         $contactFormContactKeys = $this->buildContactKeysFromRows($contactForm);
+        $enquiryFormContactKeys = $this->buildContactKeysFromRows($enquiryForm);
 
         $leads = Lead::query()->get()
             ->reject(function (Lead $lead) use (
@@ -766,7 +788,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 $webappContactKeys,
                 $metaContactKeys,
                 $googleContactKeys,
-                $contactFormContactKeys
+                $contactFormContactKeys,
+                $enquiryFormContactKeys
             ) {
                 $source = trim((string) ($lead->source ?? ''));
                 $emailKey = $this->normalizeContact((string) ($lead->email ?? ''));
@@ -778,6 +801,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     'Meta' => $this->hasAnyContactMatch($emailKey, $phoneKey, $metaContactKeys),
                     'Google' => $this->hasAnyContactMatch($emailKey, $phoneKey, $googleContactKeys),
                     'Contact Form' => $this->hasAnyContactMatch($emailKey, $phoneKey, $contactFormContactKeys),
+                    'Enquiry Form' => $this->hasAnyContactMatch($emailKey, $phoneKey, $enquiryFormContactKeys),
                     default => false,
                 };
             })
@@ -797,7 +821,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 );
             });
 
-        return $leads->concat($digital)->concat($webapp)->concat($meta)->concat($google)->concat($contactForm)
+        return $leads->concat($digital)->concat($webapp)->concat($meta)->concat($google)->concat($contactForm)->concat($enquiryForm)
             ->filter(fn (array $row) => $this->canAccessNormalizedRow($row))
             ->values();
     }
@@ -1066,6 +1090,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_META => MetaLead::findOrFail($id)->delete(),
             self::SOURCE_GOOGLE => GoogleLead::findOrFail($id)->delete(),
             self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->delete(),
+            self::SOURCE_ENQUIRYFORM => EnquiryForm::findOrFail($id)->delete(),
             default => abort(404),
         };
     }

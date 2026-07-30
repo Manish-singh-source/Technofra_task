@@ -50,6 +50,15 @@
         if (!is_array($departmentRows) || count($departmentRows) === 0) {
             $departmentRows = [['name' => '']];
         }
+        $metaFormRows = old('FACEBOOK_FORM_ID');
+        if (!is_array($metaFormRows)) {
+            $savedMetaFormIds = (string) ($metaSettings['FACEBOOK_FORM_ID'] ?? '');
+            $metaFormRows = preg_split('/[\r\n,]+/', $savedMetaFormIds) ?: [];
+        }
+        $metaFormRows = array_values(array_filter(array_map('trim', $metaFormRows), fn($formId) => $formId !== ''));
+        if (count($metaFormRows) === 0) {
+            $metaFormRows = [''];
+        }
     @endphp
     <!--start page wrapper -->
     <div class="page-wrapper">
@@ -1036,6 +1045,7 @@
                                     <h5 class="card-title">Meta Credentials</h5>
                                     <hr />
                                     @php($facebookBusinessConnectReady = filled(config('meta.app_id')) && filled(config('meta.app_secret')))
+                                    @php($isClientMetaUser = auth()->user()?->isCustomer() || auth()->user()?->hasRole('client'))
                                     <div class="border rounded p-3 mb-4">
                                         <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
                                             <div>
@@ -1058,18 +1068,20 @@
                                         @csrf
                                         @method('PUT')
                                         <div class="row g-3">
-                                            <div class="col-md-6">
-                                                <label for="FACEBOOK_APP_ID" class="form-label">Facebook App ID</label>
-                                                <input type="text" class="form-control" id="FACEBOOK_APP_ID" name="FACEBOOK_APP_ID"
-                                                    value="{{ old('FACEBOOK_APP_ID', $metaSettings['FACEBOOK_APP_ID'] ?? '') }}">
-                                                @error('FACEBOOK_APP_ID')<div class="text-danger">{{ $message }}</div>@enderror
-                                            </div>
-                                            <div class="col-md-6">
-                                                <label for="FACEBOOK_APP_SECRET" class="form-label">Facebook App Secret</label>
-                                                <input type="password" class="form-control" id="FACEBOOK_APP_SECRET" name="FACEBOOK_APP_SECRET"
-                                                    value="{{ old('FACEBOOK_APP_SECRET', $metaSettings['FACEBOOK_APP_SECRET'] ?? '') }}" autocomplete="new-password">
-                                                @error('FACEBOOK_APP_SECRET')<div class="text-danger">{{ $message }}</div>@enderror
-                                            </div>
+                                            @unless ($isClientMetaUser)
+                                                <div class="col-md-6">
+                                                    <label for="FACEBOOK_APP_ID" class="form-label">Facebook App ID</label>
+                                                    <input type="text" class="form-control" id="FACEBOOK_APP_ID" name="FACEBOOK_APP_ID"
+                                                        value="{{ old('FACEBOOK_APP_ID', $metaSettings['FACEBOOK_APP_ID'] ?? '') }}">
+                                                    @error('FACEBOOK_APP_ID')<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <label for="FACEBOOK_APP_SECRET" class="form-label">Facebook App Secret</label>
+                                                    <input type="password" class="form-control" id="FACEBOOK_APP_SECRET" name="FACEBOOK_APP_SECRET"
+                                                        value="{{ old('FACEBOOK_APP_SECRET', $metaSettings['FACEBOOK_APP_SECRET'] ?? '') }}" autocomplete="new-password">
+                                                    @error('FACEBOOK_APP_SECRET')<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
+                                            @endunless
                                             <div class="col-md-6">
                                                 <label for="FACEBOOK_PAGE_ID" class="form-label">Facebook Page ID</label>
                                                 <input type="text" class="form-control" id="FACEBOOK_PAGE_ID" name="FACEBOOK_PAGE_ID"
@@ -1077,10 +1089,24 @@
                                                 @error('FACEBOOK_PAGE_ID')<div class="text-danger">{{ $message }}</div>@enderror
                                             </div>
                                             <div class="col-md-6">
-                                                <label for="FACEBOOK_FORM_ID" class="form-label">Facebook Form ID</label>
-                                                <input type="text" class="form-control" id="FACEBOOK_FORM_ID" name="FACEBOOK_FORM_ID"
-                                                    value="{{ old('FACEBOOK_FORM_ID', $metaSettings['FACEBOOK_FORM_ID'] ?? '') }}">
+                                                <label class="form-label">Facebook Form IDs</label>
+                                                <div id="meta-form-id-rows" class="d-flex flex-column gap-2">
+                                                    @foreach ($metaFormRows as $metaFormIndex => $metaFormId)
+                                                        <div class="input-group meta-form-id-row">
+                                                            <input type="text" class="form-control" name="FACEBOOK_FORM_ID[]"
+                                                                value="{{ $metaFormId }}" placeholder="Enter Facebook Form ID">
+                                                            <button type="button" class="btn btn-outline-danger remove-meta-form-id" aria-label="Remove Facebook Form ID">
+                                                                <i class="bx bx-trash"></i>
+                                                            </button>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                                <button type="button" class="btn btn-light border btn-sm mt-2" id="add-meta-form-id">
+                                                    <i class="bx bx-plus"></i> Add Form ID
+                                                </button>
+                                                <small class="text-muted d-block mt-2">Sync will fetch leads from every Form ID listed here.</small>
                                                 @error('FACEBOOK_FORM_ID')<div class="text-danger">{{ $message }}</div>@enderror
+                                                @error('FACEBOOK_FORM_ID.*')<div class="text-danger">{{ $message }}</div>@enderror
                                             </div>
                                             <div class="col-12">
                                                 <label for="FACEBOOK_PAGE_ACCESS_TOKEN" class="form-label">Facebook Page Access Token</label>
@@ -1088,12 +1114,14 @@
                                                     value="{{ old('FACEBOOK_PAGE_ACCESS_TOKEN', $metaSettings['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? '') }}" autocomplete="new-password">
                                                 @error('FACEBOOK_PAGE_ACCESS_TOKEN')<div class="text-danger">{{ $message }}</div>@enderror
                                             </div>
-                                            <div class="col-md-8">
-                                                <label for="FACEBOOK_WEBHOOK_VERIFY_TOKEN" class="form-label">Facebook Webhook Verify Token</label>
-                                                <input type="text" class="form-control" id="FACEBOOK_WEBHOOK_VERIFY_TOKEN" name="FACEBOOK_WEBHOOK_VERIFY_TOKEN"
-                                                    value="{{ old('FACEBOOK_WEBHOOK_VERIFY_TOKEN', $metaSettings['FACEBOOK_WEBHOOK_VERIFY_TOKEN'] ?? '') }}">
-                                                @error('FACEBOOK_WEBHOOK_VERIFY_TOKEN')<div class="text-danger">{{ $message }}</div>@enderror
-                                            </div>
+                                            @unless ($isClientMetaUser)
+                                                <div class="col-md-8">
+                                                    <label for="FACEBOOK_WEBHOOK_VERIFY_TOKEN" class="form-label">Facebook Webhook Verify Token</label>
+                                                    <input type="text" class="form-control" id="FACEBOOK_WEBHOOK_VERIFY_TOKEN" name="FACEBOOK_WEBHOOK_VERIFY_TOKEN"
+                                                        value="{{ old('FACEBOOK_WEBHOOK_VERIFY_TOKEN', $metaSettings['FACEBOOK_WEBHOOK_VERIFY_TOKEN'] ?? '') }}">
+                                                    @error('FACEBOOK_WEBHOOK_VERIFY_TOKEN')<div class="text-danger">{{ $message }}</div>@enderror
+                                                </div>
+                                            @endunless
                                             <div class="col-md-4">
                                                 <label for="FACEBOOK_GRAPH_API_VERSION" class="form-label">Graph API Version</label>
                                                 <input type="text" class="form-control" id="FACEBOOK_GRAPH_API_VERSION" name="FACEBOOK_GRAPH_API_VERSION"
@@ -1323,6 +1351,47 @@
                         editor.updateSourceElement();
                     });
                 });
+            }
+
+            const metaFormRows = document.getElementById('meta-form-id-rows');
+            const addMetaFormButton = document.getElementById('add-meta-form-id');
+
+            function refreshMetaFormRemoveButtons() {
+                if (!metaFormRows) {
+                    return;
+                }
+
+                const rows = metaFormRows.querySelectorAll('.meta-form-id-row');
+                rows.forEach(function(row) {
+                    const removeButton = row.querySelector('.remove-meta-form-id');
+                    if (removeButton) {
+                        removeButton.disabled = rows.length === 1;
+                    }
+                });
+            }
+
+            if (addMetaFormButton && metaFormRows) {
+                addMetaFormButton.addEventListener('click', function() {
+                    const row = document.createElement('div');
+                    row.className = 'input-group meta-form-id-row';
+                    row.innerHTML = '<input type="text" class="form-control" name="FACEBOOK_FORM_ID[]" placeholder="Enter Facebook Form ID">' +
+                        '<button type="button" class="btn btn-outline-danger remove-meta-form-id" aria-label="Remove Facebook Form ID"><i class="bx bx-trash"></i></button>';
+                    metaFormRows.appendChild(row);
+                    row.querySelector('input').focus();
+                    refreshMetaFormRemoveButtons();
+                });
+
+                metaFormRows.addEventListener('click', function(event) {
+                    const removeButton = event.target.closest('.remove-meta-form-id');
+                    if (!removeButton || removeButton.disabled) {
+                        return;
+                    }
+
+                    removeButton.closest('.meta-form-id-row')?.remove();
+                    refreshMetaFormRemoveButtons();
+                });
+
+                refreshMetaFormRemoveButtons();
             }
         });
     </script>

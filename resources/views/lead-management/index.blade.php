@@ -29,6 +29,7 @@
             'google' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
             'indiamart' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
             'justdial' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
+            'enquiryform' => ['active' => 'btn-secondary', 'inactive' => 'btn-outline-secondary', 'badge' => 'bg-secondary'],
         ];
         $tabIcons = [
             'all' => 'bx-grid-alt',
@@ -39,6 +40,7 @@
             'google' => 'bxl-google',
             'indiamart' => 'bx-store',
             'justdial' => 'bx-phone-call',
+            'enquiryform' => 'bx-message-square-detail',
         ];
         $metaSyncReturnTo = route(
             'lead-management.index',
@@ -82,7 +84,7 @@
                         <h5 class="mb-0">Lead Management</h5>
                         <div class="d-flex align-items-center gap-2">
                             <form method="POST" action="{{ route('leads.sync') }}" id="metaSyncForm"
-                                class="{{ $activeSource === 'meta' ? '' : 'd-none' }}"
+                                class="{{ $activeSource === 'meta' ? '' : '' }}"
                                 onsubmit="return confirm('Sync latest leads from Meta? This may take a few seconds.')">
                                 @csrf
                                 <input type="hidden" name="return_to" value="{{ $metaSyncReturnTo }}">
@@ -459,6 +461,20 @@
                 metaSyncForm.classList.toggle('d-none', sourceKey !== 'meta');
             }
 
+            function submitMetaSyncForm() {
+                if (!metaSyncForm || metaSyncForm.dataset.autoSyncing === '1') return;
+
+                metaSyncForm.dataset.autoSyncing = '1';
+                const submitButton = metaSyncForm.querySelector('button[type="submit"]');
+
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i> Syncing...';
+                }
+
+                metaSyncForm.submit();
+            }
+
             function applySourceFilter(sourceKey) {
                 if (!dataTableInstance) return;
 
@@ -480,6 +496,9 @@
                     updateSourceFilterButtonState(this);
                     setMetaSyncFormVisibility(sourceKey);
 
+                    if (sourceKey === 'meta') {
+                        submitMetaSyncForm();
+                    }
                 });
             });
 

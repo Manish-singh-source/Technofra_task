@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\MetaLeadService;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
 
 class SyncMetaLeads extends Command
 {
@@ -29,7 +30,17 @@ class SyncMetaLeads extends Command
     public function handle(MetaLeadService $metaLeadService)
     {
         $formId = $this->option('form_id');
+
+        Log::info('Meta lead console sync started.', [
+            'form_id' => $formId,
+        ]);
+
         $count = $metaLeadService->syncLeadsFromForm($formId);
+
+        Log::info('Meta lead console sync completed.', [
+            'form_id' => $formId,
+            'synced_count' => $count,
+        ]);
 
         $this->info("Synced {$count} Meta lead(s).");
 

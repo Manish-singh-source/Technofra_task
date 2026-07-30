@@ -16,6 +16,7 @@ use App\Models\AssignedLead;
 use App\Models\DigitalMarketingLead;
 use App\Models\GoogleLead;
 use App\Models\ContactForm;
+use App\Models\EnquiryForm;
 use App\Models\Lead;
 use App\Models\LeadConversion;
 use App\Models\LeadEscalation;
@@ -57,6 +58,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     private const SOURCE_META = 'meta';
     private const SOURCE_GOOGLE = 'google';
     private const SOURCE_CONTACTFORM = 'contactform';
+    private const SOURCE_ENQUIRYFORM = 'enquiryform';
     private const SOURCE_INDIAMART = 'indiamart';
     private const SOURCE_JUSTDIAL = 'justdial';
     private const SOURCE_PIPELINE = 'lead';
@@ -75,6 +77,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_META => 'Meta',
             self::SOURCE_GOOGLE => 'Google',
             self::SOURCE_CONTACTFORM => 'Contact Form',
+            self::SOURCE_ENQUIRYFORM => 'Enquiry Form',
             self::SOURCE_INDIAMART => 'IndiaMart',
             self::SOURCE_JUSTDIAL => 'JustDial',
         ];
@@ -153,6 +156,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     {
         abort_unless($this->canViewLeadManagement(), 403);
         $lead = $this->findNormalizedLeadOrFail($source, $id);
+        $sourceRecord = $this->resolveSourceRecord($lead['source_type'], (int) $lead['source_id']);
         $leadModel = $this->resolveLeadEntityForPipeline($lead)->load('statusUpdatedBy');
 
         $timeline = $leadModel->activities()->latest()->limit(100)->get();
@@ -174,7 +178,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'statusHistory',
             'staff',
             'leadModel',
-            'statusOptions'
+            'statusOptions',
+            'sourceRecord'
         ));
     }
 
@@ -549,6 +554,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_META => MetaLead::findOrFail($id),
             self::SOURCE_GOOGLE => GoogleLead::findOrFail($id),
             self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->firstOrFail(),
+            self::SOURCE_ENQUIRYFORM => EnquiryForm::findOrFail($id),
             default => abort(404),
         };
 
@@ -590,6 +596,19 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         return redirect()->route('lead-management.index')->with('success', 'Lead status updated successfully.');
     }
 
+    private function resolveSourceRecord(string $source, int $id): ?Model
+    {
+        return match ($source) {
+            self::SOURCE_LEAD => Lead::find($id),
+            self::SOURCE_DIGITAL_MARKETING => DigitalMarketingLead::find($id),
+            self::SOURCE_WEBAPP => WebappLead::find($id),
+            self::SOURCE_META => MetaLead::find($id),
+            self::SOURCE_GOOGLE => GoogleLead::find($id),
+            self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->first(),
+            self::SOURCE_ENQUIRYFORM => EnquiryForm::find($id),
+            default => null,
+        };
+    }
     private function resolveLeadEntityForPipeline(array $normalized): Lead
     {
         if ($normalized['source_type'] === self::SOURCE_LEAD) {
@@ -720,6 +739,22 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 );
             });
 
+        $enquiryForm = EnquiryForm::query()
+            ->get()
+            ->map(function (EnquiryForm $enquiry) {
+                return $this->normalizeRow(
+                    self::SOURCE_ENQUIRYFORM,
+                    (int) $enquiry->id,
+                    $enquiry->name ?? null,
+                    $enquiry->email ?? null,
+                    $enquiry->contact ?? null,
+                    $enquiry->company ?? null,
+                    'Enquiry Form',
+                    $enquiry->created_at ?? null,
+                    $enquiry->status ?? 'new'
+                );
+            });
+
         // Staff assignment for non-Lead sources creates helper rows in `leads`.
         // Exclude those mirror rows from the listing so entries don't appear doubled.
         $digitalContactKeys = $this->buildContactKeysFromRows($digital);
@@ -727,6 +762,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $metaContactKeys = $this->buildContactKeysFromRows($meta);
         $googleContactKeys = $this->buildContactKeysFromRows($google);
         $contactFormContactKeys = $this->buildContactKeysFromRows($contactForm);
+        $enquiryFormContactKeys = $this->buildContactKeysFromRows($enquiryForm);
 
         $leads = Lead::query()->get()
             ->reject(function (Lead $lead) use (
@@ -734,7 +770,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 $webappContactKeys,
                 $metaContactKeys,
                 $googleContactKeys,
-                $contactFormContactKeys
+                $contactFormContactKeys,
+                $enquiryFormContactKeys
             ) {
                 $source = trim((string) ($lead->source ?? ''));
                 $emailKey = $this->normalizeContact((string) ($lead->email ?? ''));
@@ -746,6 +783,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     'Meta' => $this->hasAnyContactMatch($emailKey, $phoneKey, $metaContactKeys),
                     'Google' => $this->hasAnyContactMatch($emailKey, $phoneKey, $googleContactKeys),
                     'Contact Form' => $this->hasAnyContactMatch($emailKey, $phoneKey, $contactFormContactKeys),
+                    'Enquiry Form' => $this->hasAnyContactMatch($emailKey, $phoneKey, $enquiryFormContactKeys),
                     default => false,
                 };
             })
@@ -770,6 +808,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->concat($meta)
             ->concat($google)
             ->concat($contactForm)
+            ->concat($enquiryForm)
             ->filter(fn (array $row) => $this->canAccessNormalizedRow($row))
             ->values();
     }
@@ -1073,6 +1112,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             self::SOURCE_META => MetaLead::findOrFail($id)->delete(),
             self::SOURCE_GOOGLE => GoogleLead::findOrFail($id)->delete(),
             self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->delete(),
+            self::SOURCE_ENQUIRYFORM => EnquiryForm::findOrFail($id)->delete(),
             default => abort(404),
         };
     }

@@ -6,6 +6,7 @@ use App\Models\MetaLead;
 use App\Services\MetaLeadService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class MetaLeadUiController extends Controller
@@ -66,19 +67,41 @@ class MetaLeadUiController extends Controller
         $redirectTo = $this->syncRedirectTarget($request);
 
         try {
+            Log::info('Meta lead UI sync requested.', [
+                'user_id' => auth()->id(),
+                'redirect_to' => $redirectTo,
+            ]);
+
             $service = app(MetaLeadService::class);
             $credentials = $service->credentialsForUser((int) auth()->id());
 
             if (! $service->hasRequiredCredentials($credentials)) {
+                Log::warning('Meta lead UI sync blocked because credentials are incomplete.', [
+                    'user_id' => auth()->id(),
+                    'has_page_access_token' => filled($credentials['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? ''),
+                    'has_form_id' => filled($credentials['FACEBOOK_FORM_ID'] ?? ''),
+                ]);
+
                 return redirect()->to($redirectTo)
                     ->with('error', 'Please save Meta Page Access Token and Form ID before syncing.');
             }
 
             $count = $service->syncLeadsFromForm(null, $credentials, (int) auth()->id());
 
+            Log::info('Meta lead UI sync completed.', [
+                'user_id' => auth()->id(),
+                'synced_count' => $count,
+            ]);
+
             return redirect()->to($redirectTo)
                 ->with('success', "Synced {$count} leads from Meta.");
         } catch (\Throwable $e) {
+            Log::error('Meta lead UI sync failed.', [
+                'user_id' => auth()->id(),
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
             return redirect()->to($redirectTo)
                 ->with('error', 'Sync failed: '.$e->getMessage());
         }

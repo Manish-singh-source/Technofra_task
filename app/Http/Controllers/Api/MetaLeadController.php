@@ -7,6 +7,7 @@ use App\Models\MetaLead;
 use App\Services\MetaLeadService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class MetaLeadController extends Controller
 {
@@ -69,7 +70,18 @@ class MetaLeadController extends Controller
     {
         try {
             $formId = $request->input('form_id');
+            Log::info('Meta lead API sync requested.', [
+                'user_id' => auth()->id(),
+                'form_id' => $formId,
+            ]);
+
             $count = $metaLeadService->syncLeadsFromForm($formId);
+
+            Log::info('Meta lead API sync completed.', [
+                'user_id' => auth()->id(),
+                'form_id' => $formId,
+                'synced_count' => $count,
+            ]);
 
             return response()->json([
                 'success' => true,
@@ -77,6 +89,13 @@ class MetaLeadController extends Controller
                 'synced_count' => $count,
             ]);
         } catch (\Throwable $e) {
+            Log::error('Meta lead API sync failed.', [
+                'user_id' => auth()->id(),
+                'form_id' => $request->input('form_id'),
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Sync failed: '.$e->getMessage(),

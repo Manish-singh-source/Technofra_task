@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 class MetaBusinessOAuthService
@@ -32,6 +33,11 @@ class MetaBusinessOAuthService
 
     public function exchangeCodeForShortLivedToken(string $code, string $redirectUri): string
     {
+        Log::info('Meta OAuth short-lived token exchange started.', [
+            'graph_version' => $this->graphVersion(),
+            'redirect_uri' => $redirectUri,
+        ]);
+
         $response = Http::asJson()->get($this->graphUrl('/oauth/access_token'), [
             'client_id' => $this->appId(),
             'redirect_uri' => $redirectUri,
@@ -46,11 +52,20 @@ class MetaBusinessOAuthService
             throw new RuntimeException('Facebook did not return a short-lived user token.');
         }
 
+        Log::info('Meta OAuth short-lived token exchange completed.', [
+            'graph_version' => $this->graphVersion(),
+            'status' => $response->status(),
+        ]);
+
         return $token;
     }
 
     public function exchangeForLongLivedUserToken(string $shortLivedToken): string
     {
+        Log::info('Meta OAuth long-lived token exchange started.', [
+            'graph_version' => $this->graphVersion(),
+        ]);
+
         $response = Http::asJson()->get($this->graphUrl('/oauth/access_token'), [
             'grant_type' => 'fb_exchange_token',
             'client_id' => $this->appId(),
@@ -65,11 +80,21 @@ class MetaBusinessOAuthService
             throw new RuntimeException('Facebook did not return a long-lived user token.');
         }
 
+        Log::info('Meta OAuth long-lived token exchange completed.', [
+            'graph_version' => $this->graphVersion(),
+            'status' => $response->status(),
+        ]);
+
         return $token;
     }
 
     public function discoverPagesAndForms(string $longLivedUserToken): array
     {
+        Log::info('Meta page discovery started.', [
+            'graph_version' => $this->graphVersion(),
+            'fields' => 'id,name,access_token,tasks',
+        ]);
+
         $response = Http::asJson()->get($this->graphUrl('/me/accounts'), [
             'fields' => 'id,name,access_token,tasks',
             'access_token' => $longLivedUserToken,
@@ -96,6 +121,13 @@ class MetaBusinessOAuthService
             ];
         }
 
+        Log::info('Meta page discovery completed.', [
+            'graph_version' => $this->graphVersion(),
+            'status' => $response->status(),
+            'page_count' => count($pages),
+            'form_count' => collect($pages)->sum(fn ($page) => count($page['forms'] ?? [])),
+        ]);
+
         return $pages;
     }
 
@@ -108,6 +140,11 @@ class MetaBusinessOAuthService
 
     private function discoverLeadForms(string $pageId, string $pageAccessToken): array
     {
+        Log::info('Meta lead form discovery started.', [
+            'graph_version' => $this->graphVersion(),
+            'page_id' => $pageId,
+        ]);
+
         $response = Http::asJson()->get($this->graphUrl('/'.$pageId.'/leadgen_forms'), [
             'fields' => 'id,name,status,leads_count',
             'access_token' => $pageAccessToken,
@@ -115,7 +152,7 @@ class MetaBusinessOAuthService
 
         $payload = $this->jsonOrFail($response->json(), 'Unable to discover Facebook lead forms for page '.$pageId.'.');
 
-        return collect($payload['data'] ?? [])
+        $forms = collect($payload['data'] ?? [])
             ->map(fn ($form) => [
                 'id' => (string) ($form['id'] ?? ''),
                 'name' => (string) ($form['name'] ?? 'Lead Form'),
@@ -125,6 +162,15 @@ class MetaBusinessOAuthService
             ->filter(fn ($form) => $form['id'] !== '')
             ->values()
             ->all();
+
+        Log::info('Meta lead form discovery completed.', [
+            'graph_version' => $this->graphVersion(),
+            'page_id' => $pageId,
+            'status' => $response->status(),
+            'form_count' => count($forms),
+        ]);
+
+        return $forms;
     }
 
     private function graphUrl(string $path): string
@@ -146,6 +192,12 @@ class MetaBusinessOAuthService
     {
         if (! is_array($payload) || isset($payload['error'])) {
             $detail = is_array($payload) ? (string) data_get($payload, 'error.message', '') : '';
+            Log::error('Meta Graph API response error.', [
+                'message' => trim($message),
+                'error_message' => $detail,
+                'error_code' => is_array($payload) ? data_get($payload, 'error.code') : null,
+                'error_type' => is_array($payload) ? data_get($payload, 'error.type') : null,
+            ]);
 
             throw new RuntimeException(trim($message.' '.$detail));
         }

@@ -222,6 +222,9 @@
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#reminders" type="button">Reminders</button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#assignments" type="button">Assignments</button></li>
                     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#statuses" type="button">Status History</button></li>
+                    @if (($lead['source_type'] ?? '') === 'enquiryform' && !empty($sourceRecord))
+                        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#enquiry-form" type="button">Enquiry Form</button></li>
+                    @endif
                 </ul>
 
                 <div class="tab-content">
@@ -321,6 +324,43 @@
                             <p class="text-muted mb-0">No status history yet.</p>
                         @endforelse
                     </div>
+
+                    @if (($lead['source_type'] ?? '') === 'enquiryform' && !empty($sourceRecord))
+                        <div class="tab-pane fade" id="enquiry-form">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="lead-info-tile h-100">
+                                        <div class="lead-info-label">Designation</div>
+                                        <div class="lead-info-value">{{ $sourceRecord->designation ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="lead-info-tile h-100">
+                                        <div class="lead-info-label">Delivery Time</div>
+                                        <div class="lead-info-value">{{ $sourceRecord->delivery_time ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="lead-info-tile h-100">
+                                        <div class="lead-info-label">Nature Of Project</div>
+                                        <div class="lead-info-value">{{ $sourceRecord->nature_of_project ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="lead-info-tile h-100">
+                                        <div class="lead-info-label">Source Page</div>
+                                        <div class="lead-info-value">{{ $sourceRecord->source_page ?: '-' }}</div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="lead-section">
+                                        <div class="lead-section-title">Enquiry Message</div>
+                                        <div class="lead-section-body">{{ $sourceRecord->message ?: '-' }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
                 </div>
             </div>
         </div>

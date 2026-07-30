@@ -12,6 +12,7 @@ use App\Services\MetaLeadService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -384,7 +385,8 @@ class SettingController extends Controller
             'FACEBOOK_PAGE_ID' => 'nullable|string|max:255',
             'FACEBOOK_PAGE_ACCESS_TOKEN' => 'nullable|string|max:2000',
             'FACEBOOK_WEBHOOK_VERIFY_TOKEN' => 'nullable|string|max:1000',
-            'FACEBOOK_FORM_ID' => 'nullable|string|max:255',
+            'FACEBOOK_FORM_ID' => 'nullable|array',
+            'FACEBOOK_FORM_ID.*' => 'nullable|string|max:255',
             'FACEBOOK_GRAPH_API_VERSION' => 'nullable|string|max:50',
         ]);
 
@@ -397,21 +399,53 @@ class SettingController extends Controller
 
         $userId = (int) auth()->id();
         $validated = $validator->validated();
+        $validated['FACEBOOK_FORM_ID'] = implode(',', array_values(array_unique(array_filter(array_map(
+            fn ($formId) => trim((string) $formId),
+            $validated['FACEBOOK_FORM_ID'] ?? []
+        )))));
         $validated['FACEBOOK_GRAPH_API_VERSION'] = trim((string) ($validated['FACEBOOK_GRAPH_API_VERSION'] ?? '')) ?: 'v25.0';
+        $keysToSave = MetaLeadService::CREDENTIAL_KEYS;
+
+        if (auth()->user()?->isCustomer() || auth()->user()?->hasRole('client')) {
+            $keysToSave = [
+                'FACEBOOK_PAGE_ID',
+                'FACEBOOK_PAGE_ACCESS_TOKEN',
+                'FACEBOOK_FORM_ID',
+                'FACEBOOK_GRAPH_API_VERSION',
+            ];
+        }
 
         DB::beginTransaction();
         try {
-            foreach (MetaLeadService::CREDENTIAL_KEYS as $key) {
+            foreach ($keysToSave as $key) {
                 Setting::setForUser($userId, $key, $validated[$key] ?? '', 'text', 'meta');
             }
 
             DB::commit();
+
+            Log::info('Meta credentials updated.', [
+                'user_id' => $userId,
+                'has_app_id' => filled($validated['FACEBOOK_APP_ID'] ?? ''),
+                'has_app_secret' => filled($validated['FACEBOOK_APP_SECRET'] ?? ''),
+                'has_page_id' => filled($validated['FACEBOOK_PAGE_ID'] ?? ''),
+                'has_page_access_token' => filled($validated['FACEBOOK_PAGE_ACCESS_TOKEN'] ?? ''),
+                'has_webhook_verify_token' => filled($validated['FACEBOOK_WEBHOOK_VERIFY_TOKEN'] ?? ''),
+                'has_form_id' => filled($validated['FACEBOOK_FORM_ID'] ?? ''),
+                'graph_api_version' => $validated['FACEBOOK_GRAPH_API_VERSION'] ?? null,
+                'saved_keys' => $keysToSave,
+            ]);
 
             return redirect()->route('settings')
                 ->with('success', 'Meta credentials updated successfully.')
                 ->with('active_settings_tab', 'meta');
         } catch (\Throwable $e) {
             DB::rollBack();
+
+            Log::error('Meta credentials update failed.', [
+                'user_id' => $userId,
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
 
             return redirect()->back()
                 ->with('error', 'Failed to update Meta credentials: '.$e->getMessage())
@@ -425,6 +459,12 @@ class SettingController extends Controller
         abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
 
         if (! $metaOAuth->hasGlobalAppCredentials()) {
+            Log::warning('Meta Business connect blocked because global app credentials are missing.', [
+                'user_id' => auth()->id(),
+                'has_app_id' => filled(config('meta.app_id')),
+                'has_app_secret' => filled(config('meta.app_secret')),
+            ]);
+
             return redirect()->route('settings')
                 ->with('error', 'Facebook Business Connect is not configured. Add FACEBOOK_APP_ID and FACEBOOK_APP_SECRET to the CRM environment first.')
                 ->with('active_settings_tab', 'meta');
@@ -435,6 +475,11 @@ class SettingController extends Controller
             'meta_oauth_state' => $state,
         ]);
         session()->forget('meta_oauth_discovery');
+
+        Log::info('Meta Business connect started.', [
+            'user_id' => auth()->id(),
+            'graph_version' => $metaOAuth->graphVersion(),
+        ]);
 
         return redirect()->away($metaOAuth->authorizationUrl(route('settings.meta.callback'), $state));
     }
@@ -447,10 +492,22 @@ class SettingController extends Controller
         $actualState = (string) $request->query('state', '');
 
         if ($expectedState === '' || $actualState === '' || ! hash_equals($expectedState, $actualState)) {
+            Log::warning('Meta Business callback rejected because OAuth state is invalid.', [
+                'user_id' => auth()->id(),
+                'has_expected_state' => $expectedState !== '',
+                'has_actual_state' => $actualState !== '',
+            ]);
+
             abort(403, 'Invalid Facebook OAuth state.');
         }
 
         if ($request->filled('error')) {
+            Log::warning('Meta Business callback returned an OAuth error.', [
+                'user_id' => auth()->id(),
+                'error' => $request->query('error'),
+                'error_description' => $request->query('error_description'),
+            ]);
+
             return redirect()->route('settings')
                 ->with('error', 'Facebook connection was cancelled or failed: '.$request->query('error_description', $request->query('error')))
                 ->with('active_settings_tab', 'meta');
@@ -458,28 +515,53 @@ class SettingController extends Controller
 
         $code = (string) $request->query('code', '');
         if ($code === '') {
+            Log::warning('Meta Business callback missing authorization code.', [
+                'user_id' => auth()->id(),
+            ]);
+
             return redirect()->route('settings')
                 ->with('error', 'Facebook did not return an authorization code.')
                 ->with('active_settings_tab', 'meta');
         }
 
         try {
+            Log::info('Meta Business callback processing started.', [
+                'user_id' => auth()->id(),
+            ]);
+
             $shortLivedToken = $metaOAuth->exchangeCodeForShortLivedToken($code, route('settings.meta.callback'));
             $longLivedToken = $metaOAuth->exchangeForLongLivedUserToken($shortLivedToken);
             $pages = $metaOAuth->discoverPagesAndForms($longLivedToken);
         } catch (\Throwable $e) {
+            Log::error('Meta Business callback processing failed.', [
+                'user_id' => auth()->id(),
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
             return redirect()->route('settings')
                 ->with('error', 'Unable to connect Facebook Business: '.$e->getMessage())
                 ->with('active_settings_tab', 'meta');
         }
 
         if (! $this->hasDiscoveredLeadForms($pages)) {
+            Log::warning('Meta Business callback found no lead forms.', [
+                'user_id' => auth()->id(),
+                'page_count' => count($pages),
+            ]);
+
             return redirect()->route('settings')
                 ->with('error', 'No Facebook lead forms were found for this account. Make sure the account can manage a page with lead forms.')
                 ->with('active_settings_tab', 'meta');
         }
 
         session(['meta_oauth_discovery' => $pages]);
+
+        Log::info('Meta Business callback discovery completed.', [
+            'user_id' => auth()->id(),
+            'page_count' => count($pages),
+            'form_count' => collect($pages)->sum(fn ($page) => count($page['forms'] ?? [])),
+        ]);
 
         return redirect()->route('settings.meta.select');
     }
@@ -490,6 +572,10 @@ class SettingController extends Controller
 
         $pages = session('meta_oauth_discovery', []);
         if (! $this->hasDiscoveredLeadForms($pages)) {
+            Log::warning('Meta Business asset selection opened without pending discovery.', [
+                'user_id' => auth()->id(),
+            ]);
+
             return redirect()->route('settings')
                 ->with('error', 'No pending Facebook page/form selection was found. Please connect Facebook Business again.')
                 ->with('active_settings_tab', 'meta');
@@ -503,43 +589,105 @@ class SettingController extends Controller
         abort_unless(auth()->user()?->can('manage_meta_credentials'), 403);
 
         $validated = $request->validate([
-            'selected_asset' => 'required|string|max:600',
+            'selected_assets' => 'required|array|min:1',
+            'selected_assets.*' => 'required|string|max:600',
         ]);
 
-        [$pageId, $formId] = array_pad(explode('|', (string) $validated['selected_asset'], 2), 2, '');
+        $pages = session('meta_oauth_discovery', []);
+        $selectedAssets = collect($validated['selected_assets'])
+            ->map(function ($asset) {
+                [$pageId, $formId] = array_pad(explode('|', (string) $asset, 2), 2, '');
 
-        $selection = $this->findDiscoveredMetaSelection(
-            session('meta_oauth_discovery', []),
-            $pageId,
-            $formId
-        );
+                return [
+                    'page_id' => trim($pageId),
+                    'form_id' => trim($formId),
+                ];
+            })
+            ->filter(fn ($asset) => $asset['page_id'] !== '' && $asset['form_id'] !== '')
+            ->unique(fn ($asset) => $asset['page_id'].'|'.$asset['form_id'])
+            ->values();
 
-        if ($selection === null) {
+        if ($selectedAssets->isEmpty()) {
             return redirect()->route('settings.meta.select')
-                ->with('error', 'The selected Facebook page and form could not be found. Please choose again.');
+                ->withErrors(['selected_assets' => 'Please select at least one Facebook lead form.'])
+                ->withInput();
+        }
+
+        $pageIds = $selectedAssets->pluck('page_id')->unique()->values();
+        if ($pageIds->count() !== 1) {
+            return redirect()->route('settings.meta.select')
+                ->withErrors(['selected_assets' => 'Please select forms from only one Facebook page at a time.'])
+                ->withInput();
+        }
+
+        $pageId = (string) $pageIds->first();
+        $page = collect($pages)->first(fn ($page) => (string) ($page['id'] ?? '') === $pageId);
+
+        if (! is_array($page)) {
+            Log::warning('Meta Business selected page was not found in discovery session.', [
+                'user_id' => auth()->id(),
+                'page_id' => $pageId,
+            ]);
+
+            return redirect()->route('settings.meta.select')
+                ->with('error', 'The selected Facebook page could not be found. Please connect Facebook again.');
+        }
+
+        $availableForms = collect($page['forms'] ?? [])->keyBy(fn ($form) => (string) ($form['id'] ?? ''));
+        $formIds = $selectedAssets->pluck('form_id')->filter(fn ($formId) => $availableForms->has($formId))->values();
+
+        if ($formIds->count() !== $selectedAssets->count()) {
+            Log::warning('Meta Business selected forms were not found in discovery session.', [
+                'user_id' => auth()->id(),
+                'page_id' => $pageId,
+                'selected_form_ids' => $selectedAssets->pluck('form_id')->all(),
+                'matched_form_ids' => $formIds->all(),
+            ]);
+
+            return redirect()->route('settings.meta.select')
+                ->with('error', 'One or more selected Facebook forms could not be found. Please choose again.')
+                ->withInput();
         }
 
         $userId = (int) auth()->id();
+        $formIdList = $formIds->implode(',');
 
         DB::beginTransaction();
         try {
-            Setting::setForUser($userId, 'FACEBOOK_PAGE_ID', $selection['page']['id'], 'text', 'meta');
-            Setting::setForUser($userId, 'FACEBOOK_PAGE_ACCESS_TOKEN', $selection['page']['access_token'], 'text', 'meta');
-            Setting::setForUser($userId, 'FACEBOOK_FORM_ID', $selection['form']['id'], 'text', 'meta');
+            Setting::setForUser($userId, 'FACEBOOK_PAGE_ID', $page['id'], 'text', 'meta');
+            Setting::setForUser($userId, 'FACEBOOK_PAGE_ACCESS_TOKEN', $page['access_token'], 'text', 'meta');
+            Setting::setForUser($userId, 'FACEBOOK_FORM_ID', $formIdList, 'text', 'meta');
             Setting::setForUser($userId, 'FACEBOOK_GRAPH_API_VERSION', $metaOAuth->graphVersion(), 'text', 'meta');
 
             DB::commit();
+
+            Log::info('Meta Business selected assets saved.', [
+                'user_id' => $userId,
+                'page_id' => $page['id'],
+                'form_ids' => $formIds->all(),
+                'form_count' => $formIds->count(),
+                'graph_api_version' => $metaOAuth->graphVersion(),
+            ]);
         } catch (\Throwable $e) {
             DB::rollBack();
 
+            Log::error('Meta Business selected asset save failed.', [
+                'user_id' => $userId,
+                'page_id' => $page['id'] ?? null,
+                'form_ids' => $formIds->all(),
+                'message' => $e->getMessage(),
+                'exception' => get_class($e),
+            ]);
+
             return redirect()->route('settings.meta.select')
-                ->with('error', 'Failed to save selected Facebook assets: '.$e->getMessage());
+                ->with('error', 'Failed to save selected Facebook assets: '.$e->getMessage())
+                ->withInput();
         }
 
         session()->forget(['meta_oauth_state', 'meta_oauth_discovery']);
 
         return redirect()->route('settings')
-            ->with('success', 'Facebook Business page and lead form connected successfully.')
+            ->with('success', 'Facebook Business page and '.$formIds->count().' lead form(s) connected successfully.')
             ->with('active_settings_tab', 'meta');
     }
     /**

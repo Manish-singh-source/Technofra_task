@@ -864,3 +864,45 @@ Leads will be shown like following:
 https://www.facebook.com/v25.0/dialog/oauth?client_id=1653544955958673&redirect_uri=https://mycrm.technofra.com/meta/callback&scope=pages_show_list,pages_read_engagement,leads_retrieval,pages_manage_metadata
 
 
+
+[2026-07-22 16:00:05] production.ERROR: Call to undefined method App\Services\ProjectManagement\MilestoneProgressService::syncForAllMilestones() {"exception":"[object] (Error(code: 0): Call to undefined method App\\Services\\ProjectManagement\\MilestoneProgressService::syncForAllMilestones() at /home/u802703949/domains/mycrm.technofra.com/laravel_app/app/Console/Commands/SyncProjectMilestoneProgress.php:15)
+[stacktrace]
+#0 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): App\\Console\\Commands\\SyncProjectMilestoneProgress->handle()
+#1 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Container/Util.php(41): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#2 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(93): Illuminate\\Container\\Util::unwrapIfClosure()
+#3 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#4 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Container/Container.php(661): Illuminate\\Container\\BoundMethod::call()
+#5 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Console/Command.php(183): Illuminate\\Container\\Container->call()
+#6 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/symfony/console/Command/Command.php(326): Illuminate\\Console\\Command->execute()
+#7 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Console/Command.php(152): Symfony\\Component\\Console\\Command\\Command->run()
+#8 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/symfony/console/Application.php(1098): Illuminate\\Console\\Command->run()
+#9 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/symfony/console/Application.php(324): Symfony\\Component\\Console\\Application->doRunCommand()
+#10 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/symfony/console/Application.php(175): Symfony\\Component\\Console\\Application->doRun()
+#11 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Console/Application.php(102): Symfony\\Component\\Console\\Application->run()
+#12 /home/u802703949/domains/mycrm.technofra.com/laravel_app/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(155): Illuminate\\Console\\Application->run()
+#13 /home/u802703949/domains/mycrm.technofra.com/laravel_app/artisan(35): Illuminate\\Foundation\\Console\\Kernel->handle()
+#14 {main}
+"} 
+
+
+getting these errors after every hour. 
+
+
+
+check all these table columns and create a migration with
+
+
+resident_type enum(owner, tenant)
+wing nullable
+flat_number nullable
+full_name nullable
+phone nullable
+base_amount nullable
+coupon_price nullable
+coupon_quantity nullable
+is_sponsor nullable
+sponsor_amount nullable
+sponsor_description nullable
+payment_method enum(cash, online, already_paid) nullable
+payment_proof nullable
+grand_total nullable
