@@ -40,6 +40,9 @@
                                     <th>Email</th>
                                     <th>Phone</th>
                                     <th>Meeting Agenda</th>
+                                    <th>Meet Link</th>
+                                    <th>Google Event ID</th>
+                                    <th>Duration</th>
                                     <th>Booking Date</th>
                                     <th>Booking Time</th>
                                     <th>Booking DateTime</th>
@@ -55,6 +58,15 @@
                                         <td>{{ $bookCall->email }}</td>
                                         <td>{{ $bookCall->phone }}</td>
                                         <td>{{ $bookCall->meeting_agenda ?: 'N/A' }}</td>
+                                        <td>
+                                            @if ($bookCall->meet_link)
+                                                <a href="{{ $bookCall->meet_link }}" target="_blank" rel="noopener">Open Meet</a>
+                                            @else
+                                                N/A
+                                            @endif
+                                        </td>
+                                        <td>{{ $bookCall->google_event_id ?: 'N/A' }}</td>
+                                        <td>{{ $bookCall->meet_duration_minutes ? $bookCall->meet_duration_minutes . ' min' : 'N/A' }}</td>
                                         <td>{{ optional($bookCall->booking_date)->format('d M Y') }}</td>
                                         <td>{{ $bookCall->booking_time ? \Carbon\Carbon::parse($bookCall->booking_time)->format('h:i A') : 'N/A' }}</td>
                                         <td>{{ optional($bookCall->booking_datetime)->format('d M Y h:i A') }}</td>
@@ -74,7 +86,7 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="10" class="text-center py-4">
+                                        <td colspan="13" class="text-center py-4">
                                             <div class="d-flex flex-column align-items-center">
                                                 <i class='bx bx-calendar-x' style="font-size: 48px; color: #ccc;"></i>
                                                 <h6 class="mt-2 text-muted">No booked calls found</h6>
@@ -91,3 +103,4 @@
         </div>
     </div>
 @endsection
+
