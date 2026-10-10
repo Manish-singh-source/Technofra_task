@@ -1674,3 +1674,105 @@ jobs:
 
 php artisan optimize:clear
 php artisan permission:cache-reset
+
+
+
+{
+  "success": true,
+  "data": [
+    {
+      "id": "25",
+      "title": "meeting",
+      "description": null,
+      "event_date": "2026-10-09",
+      "event_time": "13:34",
+      "start": "2026-10-09T13:34:00",
+      "email_recipients": null,
+      "email_recipients_array": [],
+      "whatsapp_recipients": "[redacted]",
+      "whatsapp_recipients_array": ["[redacted]"],
+      "notification_channels": ["mail", "whatsapp"],
+      "notification_sent": false,
+      "notification_sent_at": null,
+      "reminder_10min_sent": false,
+      "reminder_10min_sent_at": null,
+      "event_time_notification_sent": false,
+      "event_time_notification_sent_at": null,
+      "status": true,
+      "created_by": 1,
+      "created_by_name": "Admin Team",
+      "created_at": "2026-10-10T07:03:56.000000Z",
+      "updated_at": "2026-10-10T07:03:56.000000Z",
+      "links": {
+        "web": {
+          "show": "http://localhost/Technofra_task/public/calendar/events/25",
+          "update": "http://localhost/Technofra_task/public/calendar/events/25",
+          "delete": "http://localhost/Technofra_task/public/calendar/events/25"
+        },
+        "api": {
+          "show": "http://localhost/Technofra_task/public/api/v1/calendar/events/25",
+          "update": "http://localhost/Technofra_task/public/api/v1/calendar/events/25",
+          "delete": "http://localhost/Technofra_task/public/api/v1/calendar/events/25"
+        }
+      },
+      "allDay": false,
+      "backgroundColor": "#64748b",
+      "borderColor": "#64748b",
+      "textColor": "#ffffff",
+      "extendedProps": {
+        "event_type": "appointment",
+        "event_type_label": "Appointment",
+        "description": null,
+        "url": null
+      }
+    },
+    {
+      "id": "renewal-client-8",
+      "title": "Sukanya - Website Maintenance",
+      "start": "2026-10-01",
+      "allDay": true,
+      "backgroundColor": "#bc7616",
+      "borderColor": "#bc7616",
+      "textColor": "#ffffff",
+      "description": "Client: Link Promotions",
+      "extendedProps": {
+        "event_type": "renewal",
+        "event_type_label": "Renewal",
+        "description": "Client: Link Promotions",
+        "url": "http://localhost/Technofra_task/public/services"
+      }
+    },
+    {
+      "id": "lead-remin der-23",
+      "title": "Reminder: Mayank - Website & Branding",
+      "start": "2026-10-16T10:00:00+05:30",
+      "allDay": false,
+      "backgroundColor": "#7954a5",
+      "borderColor": "#7954a5",
+      "textColor": "#ffffff",
+      "description": "Whatsapp",
+      "extendedProps": {
+        "event_type": "lead",
+        "event_type_label": "Lead Management",
+        "description": "Whatsapp",
+        "url": "http://localhost/Technofra_task/public/lead-management"
+      }
+    },
+    {
+      "id": "todo-60-2026-10-11",
+      "title": "Create TO do API",
+      "start": "2026-10-11T15:18:00+05:30",
+      "allDay": false,
+      "backgroundColor": "#29845b",
+      "borderColor": "#29845b",
+      "textColor": "#ffffff",
+      "description": "To-do reminder",
+      "extendedProps": {
+        "event_type": "todo",
+        "event_type_label": "To-do",
+        "description": "To-do reminder",
+        "url": "http://localhost/Technofra_task/public/to-do-list"
+      }
+    }
+  ]
+}

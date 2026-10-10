@@ -18,7 +18,8 @@
                         <div class="card h-100">
                             <div class="card-body">
                                 <h5 class="card-title">Welcome, {{ Auth::user()->name }}!</h5>
-                                <p class="card-text mb-0">You are successfully logged in to the Technofra Renewal Master dashboard.
+                                <p class="card-text mb-0">You are successfully logged in to the Technofra Renewal Master
+                                    dashboard.
                                 </p>
                             </div>
                         </div>
@@ -98,7 +99,7 @@
                         </div>
                     </div>
                     <!--end row-->
-                <!-- Critical Renewals Table (Upcoming + Expired) -->
+                    <!-- Critical Renewals Table (Upcoming + Expired) -->
                     <div class="card radius-10 mt-4">
                         <div class="card-header">
                             <div class="d-flex flex-wrap align-items-center gap-3">
@@ -121,7 +122,8 @@
                                             <div class="d-flex flex-wrap align-items-center gap-2">
                                                 <div>
                                                     <h6 class="mb-1">Client Renewals</h6>
-                                                    <p class="mb-0 text-muted font-13">Client services that are upcoming or expired</p>
+                                                    <p class="mb-0 text-muted font-13">Client services that are upcoming or expired
+                                                    </p>
                                                 </div>
                                                 <div class="ms-auto d-flex align-items-center gap-2">
                                                     <span class="badge bg-warning text-dark">{{ $clientRenewalsDueThisWeek ?? 0 }}
@@ -158,15 +160,20 @@
                                                             $urgencyClass =
                                                                 $daysLeft <= 1
                                                                     ? 'text-danger'
-                                                                    : ($daysLeft <= 3 ? 'text-warning' : 'text-info');
-                                                            $statusBadgeClass = $service->effective_status === 'expired'
-                                                                ? 'bg-danger'
-                                                                : 'bg-' . $service->effective_status_badge;
+                                                                    : ($daysLeft <= 3
+                                                                        ? 'text-warning'
+                                                                        : 'text-info');
+                                                            $statusBadgeClass =
+                                                                $service->effective_status === 'expired'
+                                                                    ? 'bg-danger'
+                                                                    : 'bg-' . $service->effective_status_badge;
                                                         @endphp
                                                         <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
-                                                            <td>{{ $service->company?->company_name ?: ($service->client?->businessDetail?->company_name ?: 'N/A') }}</td>
+                                                            <td>{{ $service->company?->company_name ?: ($service->client?->businessDetail?->company_name ?: 'N/A') }}
+                                                            </td>
                                                             <td>{{ $service->service_name }}</td>
-                                                            <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</td>
+                                                            <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}
+                                                            </td>
                                                             <td>
                                                                 @if ($service->remark_text)
                                                                     <span class="badge border"
@@ -177,7 +184,8 @@
                                                             </td>
                                                             <td>{{ $service->start_date->format('d M Y') }}</td>
                                                             <td class="{{ $urgencyClass }}">
-                                                                <div><strong>{{ $service->end_date->format('d M Y') }}</strong></div>
+                                                                <div><strong>{{ $service->end_date->format('d M Y') }}</strong>
+                                                                </div>
                                                                 <small class="{{ $urgencyClass }}">
                                                                     @if ($daysLeft < 0)
                                                                         {{ abs($daysLeft) }} days overdue
@@ -239,8 +247,10 @@
                                                                 <div class="d-flex flex-column align-items-center">
                                                                     <i class='bx bx-calendar-check'
                                                                         style="font-size: 48px; color: #28a745;"></i>
-                                                                    <h6 class="mt-2 text-success">No upcoming or expired client renewals</h6>
-                                                                    <p class="text-muted mb-0">No client services are expiring soon or already expired</p>
+                                                                    <h6 class="mt-2 text-success">No upcoming or expired client
+                                                                        renewals</h6>
+                                                                    <p class="text-muted mb-0">No client services are expiring soon
+                                                                        or already expired</p>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -256,7 +266,8 @@
                                             <div class="d-flex flex-wrap align-items-center gap-2">
                                                 <div>
                                                     <h6 class="mb-1">Vendor Renewals</h6>
-                                                    <p class="mb-0 text-muted font-13">Vendor services that are upcoming or expired</p>
+                                                    <p class="mb-0 text-muted font-13">Vendor services that are upcoming or expired
+                                                    </p>
                                                 </div>
                                                 <div class="ms-auto d-flex align-items-center gap-2">
                                                     <span class="badge bg-warning text-dark">{{ $vendorRenewalsDueThisWeek ?? 0 }}
@@ -294,10 +305,13 @@
                                                             $urgencyClass =
                                                                 $daysLeft <= 1
                                                                     ? 'text-danger'
-                                                                    : ($daysLeft <= 3 ? 'text-warning' : 'text-info');
-                                                            $statusBadgeClass = $service->effective_status === 'expired'
-                                                                ? 'bg-danger'
-                                                                : 'bg-' . $service->effective_status_badge;
+                                                                    : ($daysLeft <= 3
+                                                                        ? 'text-warning'
+                                                                        : 'text-info');
+                                                            $statusBadgeClass =
+                                                                $service->effective_status === 'expired'
+                                                                    ? 'bg-danger'
+                                                                    : 'bg-' . $service->effective_status_badge;
                                                         @endphp
                                                         <tr class="{{ $isOverdue ? 'table-danger' : '' }}">
                                                             <td>{{ $service->vendor->name ?? 'N/A' }}</td>
@@ -310,10 +324,12 @@
                                                                     <span class="text-muted">N/A</span>
                                                                 @endif
                                                             </td>
-                                                            <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}</td>
+                                                            <td>{{ $service->plan_type ? ucwords(str_replace('_', ' ', $service->plan_type)) : 'N/A' }}
+                                                            </td>
                                                             <td>{{ $service->start_date->format('d M Y') }}</td>
                                                             <td class="{{ $urgencyClass }}">
-                                                                <div><strong>{{ $service->end_date->format('d M Y') }}</strong></div>
+                                                                <div><strong>{{ $service->end_date->format('d M Y') }}</strong>
+                                                                </div>
                                                                 <small class="{{ $urgencyClass }}">
                                                                     @if ($daysLeft < 0)
                                                                         {{ abs($daysLeft) }} days overdue
@@ -331,7 +347,8 @@
                                                                     {{ $service->status_label }}
                                                                 </span>
                                                             </td>
-                                                            <td>{{ $service->billing_date ? $service->billing_date->format('d M Y') : 'N/A' }}</td>
+                                                            <td>{{ $service->billing_date ? $service->billing_date->format('d M Y') : 'N/A' }}
+                                                            </td>
                                                             <td>
                                                                 <div class="d-flex order-actions">
                                                                     <a href="{{ route('vendor-services.show', $service->id) }}"
@@ -355,8 +372,10 @@
                                                                 <div class="d-flex flex-column align-items-center">
                                                                     <i class='bx bx-calendar-check'
                                                                         style="font-size: 48px; color: #28a745;"></i>
-                                                                    <h6 class="mt-2 text-success">No upcoming or expired vendor renewals</h6>
-                                                                    <p class="text-muted mb-0">No vendor services are expiring soon or already expired</p>
+                                                                    <h6 class="mt-2 text-success">No upcoming or expired vendor
+                                                                        renewals</h6>
+                                                                    <p class="text-muted mb-0">No vendor services are expiring soon
+                                                                        or already expired</p>
                                                                 </div>
                                                             </td>
                                                         </tr>
@@ -388,9 +407,14 @@
                                     info: false,
                                     paging: false,
                                     autoWidth: false,
-                                    columnDefs: [
-                                        { orderable: false, targets: [8] },
-                                        { searchable: false, targets: [8] }
+                                    columnDefs: [{
+                                            orderable: false,
+                                            targets: [8]
+                                        },
+                                        {
+                                            searchable: false,
+                                            targets: [8]
+                                        }
                                     ]
                                 });
                             };
@@ -683,31 +707,37 @@
 
             @canany(['view_calendar'])
                 <!-- Calendar Widget -->
-                <div class="row mt-4">
-                    <div class="col-12">
+                <div class="row mt-4 justify-content-center">
+                    <div class="col-12 col-xl-11 col-xxl-10">
                         <div class="card radius-10">
                             <div class="card-header appointment-header">
-                                <div class="d-flex align-items-center">
-                                    <div>
-                                        <h6 class="mb-0">Calendar Appointments</h6>
-                                        <p class="mb-0 text-muted font-13">Create meetings and auto-send WhatsApp message on
-                                            selected time</p>
-                                    </div>
-                                    <div class="ms-auto">
-                                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal"
-                                            data-bs-target="#addEventModal">
-                                            <i class="bx bx-plus"></i> Add Appointments
-                                        </button>
-                                    </div>
-                                </div>
-                                <div class="appointment-meta mt-3">
-                                    <span class="badge bg-light text-dark border">Exact event-time alert</span>
-                                    <span class="badge bg-light text-dark border">K3 WhatsApp template based</span>
-                                    <span class="badge bg-light text-dark border">30-minute slot protection</span>
-                                </div>
+                                <h6 class="mb-0">Calendar Appointments</h6>
+                                <p class="mb-0 text-muted font-13">Plan meetings and appointments</p>
                             </div>
                             <div class="card-body">
-                                <div id="calendar"></div>
+                                <div class="calendar-dashboard-layout">
+                                    <div id="calendar"></div>
+                                    <aside class="calendar-upcoming" aria-label="Upcoming appointments">
+                                        <button type="button" class="btn btn-primary calendar-add-event"
+                                            data-bs-toggle="modal" data-bs-target="#addEventModal">
+                                            <i class="bx bx-plus me-1"></i> Add New Event
+                                        </button>
+                                        <h6 class="calendar-upcoming-title">You are going to</h6>
+                                        <p id="calendarSelectedDate" class="calendar-selected-date"></p>
+                                        <div class="calendar-event-legend" aria-label="Calendar event categories">
+                                            <span><i class="calendar-category-dot appointment"></i>Appointments</span>
+                                            <span><i class="calendar-category-dot task"></i>Tasks</span>
+                                            <span><i class="calendar-category-dot renewal"></i>Renewals</span>
+                                            <span><i class="calendar-category-dot lead"></i>Lead Management</span>
+                                            <span><i class="calendar-category-dot todo"></i>To-do</span>
+                                        </div>
+                                        <div id="calendarUpcomingList" class="calendar-upcoming-list" aria-live="polite">
+                                            <p class="calendar-upcoming-empty">Loading appointments...</p>
+                                        </div>
+                                        <button type="button" id="calendarUpcomingMore"
+                                            class="btn btn-light calendar-upcoming-more" hidden>See More</button>
+                                    </aside>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -780,38 +810,50 @@
                                 <div class="row g-2 notification-channel-group">
                                     <div class="col-12 col-md-6 col-lg-3">
                                         <div class="form-check">
-                                            <input class="form-check-input notification-channel notification-channel-all" type="checkbox" id="notification_channel_all" name="notification_channels[]" value="all" checked>
-                                            <label class="form-check-label" for="notification_channel_all">All platforms</label>
+                                            <input class="form-check-input notification-channel notification-channel-all"
+                                                type="checkbox" id="notification_channel_all" name="notification_channels[]"
+                                                value="all" checked>
+                                            <label class="form-check-label" for="notification_channel_all">All
+                                                platforms</label>
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6 col-lg-3">
                                         <div class="form-check">
-                                            <input class="form-check-input notification-channel notification-channel-item" type="checkbox" id="notification_channel_mail" name="notification_channels[]" value="mail" checked>
+                                            <input class="form-check-input notification-channel notification-channel-item"
+                                                type="checkbox" id="notification_channel_mail" name="notification_channels[]"
+                                                value="mail" checked>
                                             <label class="form-check-label" for="notification_channel_mail">Mail</label>
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6 col-lg-3">
                                         <div class="form-check">
-                                            <input class="form-check-input notification-channel notification-channel-item" type="checkbox" id="notification_channel_whatsapp" name="notification_channels[]" value="whatsapp" checked>
-                                            <label class="form-check-label" for="notification_channel_whatsapp">WhatsApp</label>
+                                            <input class="form-check-input notification-channel notification-channel-item"
+                                                type="checkbox" id="notification_channel_whatsapp"
+                                                name="notification_channels[]" value="whatsapp" checked>
+                                            <label class="form-check-label"
+                                                for="notification_channel_whatsapp">WhatsApp</label>
                                         </div>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Choose email delivery, WhatsApp, or both. App and web notifications are sent automatically.</small>
+                                <small class="form-text text-muted">Choose email delivery, WhatsApp, or both. App and web
+                                    notifications are sent automatically.</small>
                                 <div class="invalid-feedback d-block" id="notification_channels_error"></div>
                             </div>
                             <div class="mb-3">
                                 <label for="email_recipients" class="form-label">Email Recipients (Optional)</label>
                                 <input type="text" class="form-control" id="email_recipients" name="email_recipients"
                                     placeholder="email1@example.com, email2@example.com">
-                                <small class="form-text text-muted">Comma-separated emails for direct delivery. Admin and creator accounts are also notified on the selected channels.</small>
+                                <small class="form-text text-muted">Comma-separated emails for direct delivery. Admin and
+                                    creator accounts are also notified on the selected channels.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers, Optional)</label>
+                                <label for="whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers,
+                                    Optional)</label>
                                 <input type="text" class="form-control" id="whatsapp_recipients"
                                     name="whatsapp_recipients" placeholder="919876543210, 919876543211">
-                                <small class="form-text text-muted">Use international format. Multiple numbers comma separated.</small>
+                                <small class="form-text text-muted">Use international format. Multiple numbers comma
+                                    separated.</small>
                                 <div class="invalid-feedback"></div>
                             </div>
                         </form>
@@ -871,24 +913,36 @@
                                 <div class="row g-2 notification-channel-group">
                                     <div class="col-12 col-md-6 col-lg-3">
                                         <div class="form-check">
-                                            <input class="form-check-input edit-notification-channel edit-notification-channel-all" type="checkbox" id="edit_notification_channel_all" name="notification_channels[]" value="all" checked>
-                                            <label class="form-check-label" for="edit_notification_channel_all">All platforms</label>
+                                            <input
+                                                class="form-check-input edit-notification-channel edit-notification-channel-all"
+                                                type="checkbox" id="edit_notification_channel_all"
+                                                name="notification_channels[]" value="all" checked>
+                                            <label class="form-check-label" for="edit_notification_channel_all">All
+                                                platforms</label>
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6 col-lg-3">
                                         <div class="form-check">
-                                            <input class="form-check-input edit-notification-channel edit-notification-channel-item" type="checkbox" id="edit_notification_channel_mail" name="notification_channels[]" value="mail" checked>
+                                            <input
+                                                class="form-check-input edit-notification-channel edit-notification-channel-item"
+                                                type="checkbox" id="edit_notification_channel_mail"
+                                                name="notification_channels[]" value="mail" checked>
                                             <label class="form-check-label" for="edit_notification_channel_mail">Mail</label>
                                         </div>
                                     </div>
                                     <div class="col-12 col-md-6 col-lg-3">
                                         <div class="form-check">
-                                            <input class="form-check-input edit-notification-channel edit-notification-channel-item" type="checkbox" id="edit_notification_channel_whatsapp" name="notification_channels[]" value="whatsapp" checked>
-                                            <label class="form-check-label" for="edit_notification_channel_whatsapp">WhatsApp</label>
+                                            <input
+                                                class="form-check-input edit-notification-channel edit-notification-channel-item"
+                                                type="checkbox" id="edit_notification_channel_whatsapp"
+                                                name="notification_channels[]" value="whatsapp" checked>
+                                            <label class="form-check-label"
+                                                for="edit_notification_channel_whatsapp">WhatsApp</label>
                                         </div>
                                     </div>
                                 </div>
-                                <small class="form-text text-muted">Choose email delivery, WhatsApp, or both. App and web notifications are sent automatically.</small>
+                                <small class="form-text text-muted">Choose email delivery, WhatsApp, or both. App and web
+                                    notifications are sent automatically.</small>
                                 <div class="invalid-feedback d-block" id="edit_notification_channels_error"></div>
                             </div>
                             <div class="mb-3">
@@ -899,7 +953,8 @@
                                 <div class="invalid-feedback"></div>
                             </div>
                             <div class="mb-3">
-                                <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers, Optional)</label>
+                                <label for="edit_whatsapp_recipients" class="form-label">WhatsApp Recipients (Phone Numbers,
+                                    Optional)</label>
                                 <input type="text" class="form-control" id="edit_whatsapp_recipients"
                                     name="whatsapp_recipients" placeholder="919876543210, 919876543211">
                                 <small class="form-text text-muted">International format. Multiple numbers comma
@@ -929,28 +984,235 @@
         <link href='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.css' rel='stylesheet' />
         <style>
             #calendar {
-                max-width: 100%;
-                margin: 0 auto;
+                min-width: 0;
+            }
+
+            #calendar .fc-toolbar-title {
+                color: #263b53;
+                font-size: 1.1rem;
+                font-weight: 600;
+            }
+
+            #calendar .fc .fc-button {
+                border-radius: 6px;
+                box-shadow: none;
+                text-transform: capitalize;
+            }
+
+            .calendar-dashboard-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 255px;
+                gap: 1.25rem;
+                align-items: stretch;
+            }
+
+            .calendar-upcoming {
+                min-width: 0;
+                padding-left: 1.25rem;
+                border-left: 1px solid #e8edf2;
+                display: flex;
+                flex-direction: column;
+            }
+
+            .calendar-add-event {
+                min-height: 42px;
+                margin-bottom: 1.25rem;
+                border-radius: 6px;
+            }
+
+            .calendar-upcoming-title {
+                margin: 0 0 0.4rem;
+                color: #25374a;
+                font-size: 0.95rem;
+                font-weight: 600;
+            }
+
+            .calendar-selected-date {
+                margin: 0 0 0.4rem;
+                color: #7b8794;
+                font-size: 0.75rem;
+            }
+
+            .calendar-event-legend {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.4rem 0.65rem;
+                margin: 0.25rem 0 0.35rem;
+            }
+
+            .calendar-event-legend span {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.3rem;
+                color: #6d7885;
+                font-size: 0.68rem;
+            }
+
+            .calendar-category-dot {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+            }
+
+            .calendar-category-dot.task {
+                background: #167d9a;
+            }
+
+            .calendar-category-dot.appointment {
+                background: #64748b;
+            }
+
+            .calendar-category-dot.renewal {
+                background: #bc7616;
+            }
+
+            .calendar-category-dot.lead {
+                background: #7954a5;
+            }
+
+            .calendar-category-dot.todo {
+                background: #29845b;
+            }
+
+            .calendar-event-kind {
+                display: inline-block;
+                margin-top: 0.25rem;
+                padding: 0.12rem 0.38rem;
+                border-radius: 999px;
+                font-size: 0.62rem;
+                line-height: 1.35;
+            }
+
+            #calendar .calendar-category-marker {
+                display: block;
+                width: 12px;
+                height: 12px;
+                min-height: 12px;
+                margin: 2px;
+                border-radius: 3px;
+            }
+
+            #calendar .fc-daygrid-event {
+                display: none !important;
+            }
+
+            #calendar .fc-daygrid-day-frame {
+                position: relative;
+                padding-bottom: 18px;
+            }
+
+            #calendar .calendar-day-markers {
+                display: flex;
+                position: absolute;
+                right: 4px;
+                bottom: 4px;
+                left: 4px;
+                height: 10px;
+                align-items: center;
+                justify-content: center;
+                gap: 3px;
+                overflow: hidden;
+                pointer-events: none;
+            }
+
+            #calendar .calendar-day-marker {
+                display: block;
+                flex: 0 0 8px;
+                width: 8px;
+                height: 8px;
+                border-radius: 2px;
+            }
+
+            .calendar-upcoming-list {
+                max-height: 460px;
+                overflow-y: auto;
+            }
+
+            .calendar-upcoming-item {
+                display: flex;
+                width: 100%;
+                gap: 0.65rem;
+                align-items: flex-start;
+                padding: 0.9rem 0;
+                border: 0;
+                border-bottom: 1px solid #edf0f3;
+                background: transparent;
+                text-align: left;
+                color: inherit;
+            }
+
+            .calendar-upcoming-item:hover {
+                background: #f8fafc;
+            }
+
+            .calendar-event-mark {
+                display: inline-flex;
+                flex: 0 0 34px;
+                width: 34px;
+                height: 34px;
+                align-items: center;
+                justify-content: center;
+                border-radius: 50%;
+                font-size: 0.75rem;
+                font-weight: 700;
+            }
+
+            .calendar-event-copy {
+                min-width: 0;
+            }
+
+            .calendar-event-name {
+                display: block;
+                overflow-wrap: anywhere;
+                color: #263b53;
+                font-size: 0.84rem;
+                font-weight: 600;
+            }
+
+            .calendar-event-time,
+            .calendar-event-description {
+                display: block;
+                margin-top: 0.2rem;
+                color: #7b8794;
+                font-size: 0.72rem;
+                line-height: 1.4;
+            }
+
+            .calendar-event-description {
+                overflow: hidden;
+                display: -webkit-box;
+                -webkit-box-orient: vertical;
+                -webkit-line-clamp: 2;
+            }
+
+            .calendar-upcoming-empty {
+                padding: 1rem 0;
+                color: #7b8794;
+                font-size: 0.82rem;
+            }
+
+            .calendar-upcoming-more {
+                align-self: center;
+                margin-top: 0.75rem;
+                padding-inline: 1.5rem;
+                color: #35475a;
+                background: #edf3f9;
+                border: 0;
             }
 
             .appointment-header {
-                background: linear-gradient(135deg, #f7fbff 0%, #eef5ff 100%);
-                border-bottom: 1px solid #dde8fb;
+                padding: 1.1rem 1.25rem;
+                background: #fff;
+                border-bottom: 1px solid #e8edf2;
             }
 
-            .appointment-meta {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
+            #calendar .fc .fc-daygrid-day-top {
+                padding: 4px 6px;
             }
 
-            .appointment-tip {
-                border: 1px solid #d8e7ff;
-                background: #f2f7ff;
-                color: #173d75;
-                border-radius: 8px;
-                padding: 10px 12px;
-                font-size: 0.875rem;
+            #calendar .fc .fc-day-today {
+                background-color: #f0f7ff;
             }
 
             .fc-event {
@@ -961,9 +1223,43 @@
                 background-color: #f8f9fa;
             }
 
+            @media (max-width: 991.98px) {
+                .calendar-dashboard-layout {
+                    grid-template-columns: minmax(0, 1fr);
+                }
+
+                .calendar-upcoming {
+                    padding: 1.25rem 0 0;
+                    border-top: 1px solid #e8edf2;
+                    border-left: 0;
+                }
+
+                .calendar-upcoming-list {
+                    display: grid;
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                    column-gap: 1rem;
+                }
+            }
+
             @media (max-width: 768px) {
-                .appointment-meta .badge {
-                    font-size: 0.72rem;
+                #calendar .fc-toolbar-title {
+                    font-size: 1rem;
+                }
+
+                #calendar .fc-header-toolbar {
+                    flex-direction: column;
+                    gap: 0.65rem;
+                }
+
+                #calendar .fc-toolbar-chunk {
+                    display: flex;
+                    justify-content: center;
+                }
+            }
+
+            @media (max-width: 575.98px) {
+                .calendar-upcoming-list {
+                    grid-template-columns: minmax(0, 1fr);
                 }
             }
         </style>
@@ -978,6 +1274,223 @@
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 var calendarEl = document.getElementById('calendar');
+                var upcomingListEl = document.getElementById('calendarUpcomingList');
+                var upcomingMoreButton = document.getElementById('calendarUpcomingMore');
+                var selectedDateEl = document.getElementById('calendarSelectedDate');
+                var upcomingEvents = [];
+                var showAllUpcomingEvents = false;
+                var selectedCalendarDate = calendarDateKey(new Date());
+                var calendarEventStyles = {
+                    appointment: {
+                        label: 'Appointment',
+                        background: '#edf1f5',
+                        color: '#536171'
+                    },
+                    task: {
+                        label: 'Task',
+                        background: '#e5f3f6',
+                        color: '#12677e'
+                    },
+                    renewal: {
+                        label: 'Renewal',
+                        background: '#fff3df',
+                        color: '#965b0b'
+                    },
+                    lead: {
+                        label: 'Lead Management',
+                        background: '#f1eafb',
+                        color: '#684391'
+                    },
+                    todo: {
+                        label: 'To-do',
+                        background: '#e6f4eb',
+                        color: '#236c49'
+                    }
+                };
+
+                function openCalendarItem(event) {
+                    var eventType = event.extendedProps.event_type || 'appointment';
+
+                    if (eventType === 'appointment') {
+                        loadEventDetails(event.id);
+                        return;
+                    }
+
+                    var destination = event.extendedProps.url;
+                    if (destination) {
+                        window.location.href = destination;
+                    }
+                }
+
+                function calendarDateKey(date) {
+                    return date.getFullYear() + '-' +
+                        String(date.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(date.getDate()).padStart(2, '0');
+                }
+
+                function formatCalendarDate(dateKey) {
+                    return new Intl.DateTimeFormat(undefined, {
+                        weekday: 'long',
+                        month: 'long',
+                        day: 'numeric',
+                        year: 'numeric'
+                    }).format(new Date(dateKey + 'T12:00:00'));
+                }
+
+                function renderCalendarMarkers(events) {
+                    var markersByDate = new Map();
+
+                    events.forEach(function(event) {
+                        if (!event.start) return;
+
+                        var dateKey = calendarDateKey(event.start);
+                        var eventType = event.extendedProps.event_type || 'appointment';
+                        var dayMarkers = markersByDate.get(dateKey) || new Map();
+
+                        if (!dayMarkers.has(eventType)) {
+                            dayMarkers.set(eventType, {
+                                color: event.backgroundColor || '#64748b',
+                                label: event.extendedProps.event_type_label ||
+                                    (calendarEventStyles[eventType] || calendarEventStyles.appointment)
+                                    .label
+                            });
+                        }
+
+                        markersByDate.set(dateKey, dayMarkers);
+                    });
+
+                    document.querySelectorAll('#calendar .fc-daygrid-day').forEach(function(dayCell) {
+                        var frame = dayCell.querySelector('.fc-daygrid-day-frame');
+                        if (!frame) return;
+
+                        var markerRow = frame.querySelector('.calendar-day-markers');
+                        if (!markerRow) {
+                            markerRow = document.createElement('div');
+                            markerRow.className = 'calendar-day-markers';
+                            markerRow.setAttribute('aria-hidden', 'true');
+                            frame.appendChild(markerRow);
+                        }
+
+                        markerRow.replaceChildren();
+                        var dayMarkers = markersByDate.get(dayCell.dataset.date);
+                        if (!dayMarkers) return;
+
+                        dayMarkers.forEach(function(markerData) {
+                            var marker = document.createElement('span');
+                            marker.className = 'calendar-day-marker';
+                            marker.style.backgroundColor = markerData.color;
+                            marker.title = markerData.label;
+                            markerRow.appendChild(marker);
+                        });
+                    });
+                }
+
+                function renderUpcomingEvents(events) {
+                    if (!upcomingListEl) return;
+
+                    upcomingEvents = events
+                        .filter(function(event) {
+                            return event.start && calendarDateKey(event.start) === selectedCalendarDate;
+                        })
+                        .sort(function(first, second) {
+                            return first.start - second.start;
+                        });
+
+                    var visibleEvents = showAllUpcomingEvents ? upcomingEvents : upcomingEvents.slice(0, 4);
+                    upcomingListEl.replaceChildren();
+                    if (selectedDateEl) {
+                        selectedDateEl.textContent = formatCalendarDate(selectedCalendarDate);
+                    }
+
+                    if (visibleEvents.length === 0) {
+                        var emptyMessage = document.createElement('p');
+                        emptyMessage.className = 'calendar-upcoming-empty';
+                        emptyMessage.textContent = 'No scheduled items for this date.';
+                        upcomingListEl.appendChild(emptyMessage);
+                    }
+
+                    visibleEvents.forEach(function(event, index) {
+                        var eventType = event.extendedProps.event_type || 'appointment';
+                        var eventStyle = calendarEventStyles[eventType] || calendarEventStyles.appointment;
+                        var item = document.createElement('button');
+                        item.type = 'button';
+                        item.className = 'calendar-upcoming-item';
+                        item.setAttribute('aria-label', 'Open ' + eventStyle.label + ': ' + event.title);
+
+                        var mark = document.createElement('span');
+                        mark.className = 'calendar-event-mark';
+                        mark.style.backgroundColor = eventStyle.background;
+                        mark.style.color = eventStyle.color;
+                        mark.textContent = (event.title || 'E').trim().charAt(0).toUpperCase();
+
+                        var copy = document.createElement('span');
+                        copy.className = 'calendar-event-copy';
+
+                        var name = document.createElement('span');
+                        name.className = 'calendar-event-name';
+                        name.textContent = event.title || 'Untitled appointment';
+
+                        var time = document.createElement('span');
+                        time.className = 'calendar-event-time';
+                        var dateLabel = calendarDateKey(event.start) === calendarDateKey(new Date()) ?
+                            'Today' :
+                            new Intl.DateTimeFormat(undefined, {
+                                month: 'short',
+                                day: 'numeric'
+                            }).format(event.start);
+                        var timeLabel = new Intl.DateTimeFormat(undefined, {
+                            hour: 'numeric',
+                            minute: '2-digit'
+                        }).format(event.start);
+                        time.textContent = dateLabel + (event.allDay ? '' : ' at ' + timeLabel);
+
+                        var kind = document.createElement('span');
+                        kind.className = 'calendar-event-kind';
+                        kind.style.backgroundColor = eventStyle.background;
+                        kind.style.color = eventStyle.color;
+                        kind.textContent = event.extendedProps.event_type_label || eventStyle.label;
+
+                        copy.appendChild(name);
+                        copy.appendChild(time);
+                        copy.appendChild(kind);
+
+                        var description = event.extendedProps.description || event.extendedProps
+                            .event_description;
+                        if (description) {
+                            var descriptionText = document.createElement('span');
+                            descriptionText.className = 'calendar-event-description';
+                            descriptionText.textContent = description;
+                            copy.appendChild(descriptionText);
+                        }
+
+                        item.appendChild(mark);
+                        item.appendChild(copy);
+                        item.addEventListener('click', function() {
+                            openCalendarItem(event);
+                        });
+                        upcomingListEl.appendChild(item);
+                    });
+
+                    if (upcomingMoreButton) {
+                        upcomingMoreButton.hidden = upcomingEvents.length <= 4;
+                        upcomingMoreButton.textContent = showAllUpcomingEvents ? 'Show Less' : 'See More';
+                    }
+                }
+
+                if (upcomingMoreButton) {
+                    upcomingMoreButton.addEventListener('click', function() {
+                        showAllUpcomingEvents = !showAllUpcomingEvents;
+                        renderUpcomingEvents(calendar.getEvents());
+                    });
+                }
+
+                var addEventButton = document.querySelector('.calendar-add-event');
+                if (addEventButton) {
+                    addEventButton.addEventListener('click', function() {
+                        $('#event_date').val(selectedCalendarDate);
+                    });
+                }
+
                 var calendar = new FullCalendar.Calendar(calendarEl, {
                     initialView: 'dayGridMonth',
                     headerToolbar: {
@@ -985,29 +1498,50 @@
                         center: 'title',
                         right: 'dayGridMonth,timeGridWeek,timeGridDay'
                     },
+                    aspectRatio: 1.75,
+                    expandRows: true,
                     themeSystem: 'bootstrap5',
                     editable: false,
                     selectable: true,
                     selectMirror: true,
                     dayMaxEvents: true,
+                    eventsSet: function(events) {
+                        renderCalendarMarkers(events);
+                        renderUpcomingEvents(events);
+                    },
                     events: '{{ route('calendar.events') }}',
+                    eventContent: function(info) {
+                        var marker = document.createElement('span');
+                        marker.className = 'calendar-category-marker';
+                        marker.setAttribute('aria-hidden', 'true');
+                        marker.style.backgroundColor = info.event.backgroundColor || '#64748b';
+
+                        return {
+                            domNodes: [marker]
+                        };
+                    },
 
                     // When user clicks on a date
                     dateClick: function(info) {
+                        selectedCalendarDate = info.dateStr;
+                        showAllUpcomingEvents = false;
                         $('#event_date').val(info.dateStr);
-                        $('#addEventModal').modal('show');
+                        renderUpcomingEvents(calendar.getEvents());
                     },
 
                     // When user clicks on an event
                     eventClick: function(info) {
-                        var eventId = info.event.id;
-                        loadEventDetails(eventId);
+                        openCalendarItem(info.event);
                     },
 
                     eventDidMount: function(info) {
-                        // Add tooltip
+                        var eventType = info.event.extendedProps.event_type || 'appointment';
+                        var eventStyle = calendarEventStyles[eventType] || calendarEventStyles.appointment;
+                        var categoryLabel = info.event.extendedProps.event_type_label || eventStyle.label;
+
+                        info.el.setAttribute('aria-label', categoryLabel);
                         $(info.el).tooltip({
-                            title: info.event.title,
+                            title: categoryLabel,
                             placement: 'top',
                             trigger: 'hover',
                             container: 'body'
@@ -1019,7 +1553,8 @@
 
                 $(document).on('change', '.notification-channel, .edit-notification-channel', function() {
                     var isEdit = $(this).hasClass('edit-notification-channel');
-                    var isAll = $(this).hasClass(isEdit ? 'edit-notification-channel-all' : 'notification-channel-all');
+                    var isAll = $(this).hasClass(isEdit ? 'edit-notification-channel-all' :
+                        'notification-channel-all');
                     syncNotificationChannelGroup(isEdit, isAll);
                 });
 
@@ -1078,7 +1613,8 @@
                                     var errors = xhr.responseJSON.errors;
                                     $.each(errors, function(key, value) {
                                         if (key.indexOf('notification_channels') === 0) {
-                                            $('#notification_channels_error').text(value[0]);
+                                            $('#notification_channels_error').text(value[
+                                                0]);
                                             return;
                                         }
                                         var inputField = $('#event_' + key);
@@ -1195,7 +1731,8 @@
                                     var errors = xhr.responseJSON.errors;
                                     $.each(errors, function(key, value) {
                                         if (key.indexOf('notification_channels') === 0) {
-                                            $('#edit_notification_channels_error').text(value[0]);
+                                            $('#edit_notification_channels_error').text(
+                                                value[0]);
                                             return;
                                         }
                                         var inputField = $('#edit_event_' + key);

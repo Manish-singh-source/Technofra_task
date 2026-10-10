@@ -3,9 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\CalendarEvent;
+use App\Models\Lead;
+use App\Models\LeadFollowup;
+use App\Models\LeadReminder;
+use App\Models\Service;
+use App\Models\Task;
+use App\Models\Todo;
+use App\Models\VendorService;
 use App\Services\CalendarManagement\CalendarNotificationService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\{Auth, DB, Log, Validator};
+use Illuminate\Support\Facades\{Auth, DB, Gate, Log, Validator};
 use Carbon\Carbon;
 
 class CalendarEventController extends Controller
@@ -21,19 +28,9 @@ class CalendarEventController extends Controller
     public function apiIndex(Request $request)
     {
         try {
-            $events = $this->userEventsQuery()
-                ->when(!$request->boolean('include_inactive'), function ($query) {
-                    $query->active();
-                })
-                ->with('creator')
-                ->orderBy('event_date')
-                ->orderBy('event_time')
-                ->get()
-                ->map(fn (CalendarEvent $event) => $this->formatEventResource($event));
-
             return response()->json([
                 'success' => true,
-                'data' => $events,
+                'data' => $this->calendarFeedEvents($request, $request->boolean('include_inactive')),
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching calendar events for API: ' . $e->getMessage());
@@ -53,31 +50,362 @@ class CalendarEventController extends Controller
     public function getEvents(Request $request)
     {
         try {
-            $events = $this->userEventsQuery()
-                ->active()
-                ->with('creator')
-                ->get()
-                ->map(function ($event) {
-                    return [
-                        'id' => $event->id,
-                        'title' => $event->title,
-                        'start' => $event->event_date->format('Y-m-d') . 'T' . $event->event_time->format('H:i:s'),
-                        'description' => $event->description,
-                        'email_recipients' => $event->email_recipients,
-                        'backgroundColor' => $event->notification_sent ? '#28a745' : '#007bff',
-                        'borderColor' => $event->notification_sent ? '#28a745' : '#007bff',
-                        'extendedProps' => [
-                            'notification_sent' => $event->notification_sent,
-                            'created_by' => $event->creator->name ?? 'Unknown',
-                        ]
-                    ];
-                });
-
-            return response()->json($events);
+            return response()->json($this->calendarFeedEvents($request));
         } catch (\Exception $e) {
             Log::error('Error fetching calendar events: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error fetching events'], 500);
         }
+    }
+
+    private function calendarFeedEvents(Request $request, bool $includeInactiveAppointments = false)
+    {
+        $rangeStart = Carbon::parse($request->query('start', now()->startOfMonth()))->startOfDay();
+        $rangeEnd = Carbon::parse($request->query('end', now()->endOfMonth()->addDay()))->subSecond();
+
+        $appointments = $this->userEventsQuery()
+            ->when(! $includeInactiveAppointments, fn($query) => $query->active())
+            ->whereBetween('event_date', [$rangeStart, $rangeEnd])
+            ->with('creator')
+            ->get()
+            ->map(function (CalendarEvent $event) {
+                return array_merge(
+                    $this->formatEventResource($event),
+                    $this->calendarFeedItem(
+                        (string) $event->id,
+                        $event->title,
+                        $event->event_date->format('Y-m-d') . 'T' . $event->event_time->format('H:i:s'),
+                        'appointment',
+                        $event->description,
+                        null,
+                        false
+                    )
+                );
+            });
+
+        return $appointments
+            ->concat($this->taskCalendarEvents($rangeStart, $rangeEnd))
+            ->concat($this->renewalCalendarEvents($rangeStart, $rangeEnd))
+            ->concat($this->leadCalendarEvents($rangeStart, $rangeEnd))
+            ->concat($this->todoCalendarEvents($rangeStart, $rangeEnd))
+            ->values();
+    }
+
+    private function taskCalendarEvents(Carbon $rangeStart, Carbon $rangeEnd)
+    {
+        $userId = (int) Auth::id();
+
+        if ($userId === 0) {
+            return collect();
+        }
+
+        $tasks = Task::query()
+            ->with('project')
+            ->where(function ($builder) use ($userId) {
+                $builder->whereJsonContains('assignees', $userId)
+                    ->orWhereJsonContains('assignees', (string) $userId);
+            })
+            ->where(function ($builder) use ($rangeStart, $rangeEnd) {
+                $builder->whereBetween('deadline', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+                    ->orWhere(function ($builder) use ($rangeStart, $rangeEnd) {
+                        $builder->whereNull('deadline')
+                            ->whereBetween('start_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+                    });
+            })
+            ->get();
+
+        return $tasks->map(function (Task $task) {
+            $date = $task->deadline ?: $task->start_date;
+            $projectName = $task->project?->project_name;
+
+            return $this->calendarFeedItem(
+                'task-' . $task->id,
+                $task->title,
+                $date->toDateString(),
+                'task',
+                $projectName ? 'Project: ' . $projectName : 'Task deadline',
+                route('task-details', $task->id)
+            );
+        });
+    }
+
+    private function renewalCalendarEvents(Carbon $rangeStart, Carbon $rangeEnd)
+    {
+        $userId = (int) Auth::id();
+        $canViewAll = $this->hasAdminCalendarAccess();
+        $startDate = $rangeStart->toDateString();
+        $endDate = $rangeEnd->toDateString();
+
+        $services = Service::query()
+            ->whereNotNull('client_id')
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($query) use ($startDate, $endDate) {
+                        $query->whereNull('end_date')->whereBetween('billing_date', [$startDate, $endDate]);
+                    });
+            })
+            ->when(! $canViewAll, fn($query) => $query->where('client_id', $userId))
+            ->with('client')
+            ->get()
+            ->map(function (Service $service) {
+                $date = $service->end_date ?: $service->billing_date;
+                $clientName = $service->client?->name;
+
+                return $this->calendarFeedItem(
+                    'renewal-client-' . $service->id,
+                    $service->service_name ?: 'Client renewal',
+                    $date->toDateString(),
+                    'renewal',
+                    $clientName ? 'Client: ' . $clientName : 'Client renewal due',
+                    route('services.index')
+                );
+            });
+
+        $vendorServices = VendorService::query()
+            ->where(function ($query) use ($startDate, $endDate) {
+                $query->whereBetween('end_date', [$startDate, $endDate])
+                    ->orWhere(function ($query) use ($startDate, $endDate) {
+                        $query->whereNull('end_date')->whereBetween('billing_date', [$startDate, $endDate]);
+                    });
+            })
+            ->when(! $canViewAll, function ($query) use ($userId) {
+                $query->whereIn('vendor_id', Service::query()
+                    ->whereNotNull('vendor_id')
+                    ->where('client_id', $userId)
+                    ->select('vendor_id'));
+            })
+            ->with('vendor')
+            ->get()
+            ->map(function (VendorService $service) {
+                $date = $service->end_date ?: $service->billing_date;
+                $vendorName = $service->vendor?->name;
+
+                return $this->calendarFeedItem(
+                    'renewal-vendor-' . $service->id,
+                    $service->service_name ?: 'Vendor renewal',
+                    $date->toDateString(),
+                    'renewal',
+                    $vendorName ? 'Vendor: ' . $vendorName : 'Vendor renewal due',
+                    route('vendor-services.index')
+                );
+            });
+
+        return $services->concat($vendorServices);
+    }
+
+    private function leadCalendarEvents(Carbon $rangeStart, Carbon $rangeEnd)
+    {
+        $user = Auth::user();
+        $userId = (int) ($user?->id ?? 0);
+
+        if (! $user || ! $this->hasAdminCalendarAccess() && ! Gate::forUser($user)->allows('view_leads_management')) {
+            return collect();
+        }
+
+        $leads = Lead::query()
+            ->whereBetween('next_followup_at', [$rangeStart, $rangeEnd]);
+
+        if (! $this->hasAdminCalendarAccess()) {
+            $role = strtolower((string) data_get($user, 'role', ''));
+
+            if ($role === 'staff') {
+                $leads->whereExists(function ($query) use ($userId) {
+                    $query->selectRaw('1')
+                        ->from('assigned_leads')
+                        ->where('assigned_leads.lead_model', 'lead')
+                        ->whereColumn('assigned_leads.lead_id', 'leads.id')
+                        ->where(function ($staffIds) use ($userId) {
+                            $staffIds->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                                ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                        });
+                });
+            } else {
+                $leads->where('created_by', $userId);
+            }
+        }
+
+        $leadEvents = $leads->get()->map(function (Lead $lead) {
+            return $this->calendarFeedItem(
+                'lead-' . $lead->id,
+                'Follow-up: ' . ($lead->name ?: 'Lead'),
+                $lead->next_followup_at->toIso8601String(),
+                'lead',
+                'Scheduled lead follow-up',
+                route('lead-management.show', ['source' => 'lead', 'id' => $lead->id]),
+                false
+            );
+        });
+
+        $followups = LeadFollowup::query()
+            ->with('lead')
+            ->whereNotNull('next_followup_date')
+            ->whereBetween('next_followup_date', [$rangeStart, $rangeEnd]);
+
+        if (! $this->hasAdminCalendarAccess()) {
+            $role = strtolower((string) data_get($user, 'role', ''));
+
+            if ($role === 'staff') {
+                $followups->whereExists(function ($query) use ($userId) {
+                    $query->selectRaw('1')
+                        ->from('assigned_leads')
+                        ->whereColumn('assigned_leads.lead_model', 'lead_followups.source_type')
+                        ->whereColumn('assigned_leads.lead_id', 'lead_followups.source_id')
+                        ->where(function ($staffIds) use ($userId) {
+                            $staffIds->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                                ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                        });
+                });
+            } else {
+                $followups->where(function ($query) use ($userId) {
+                    $query->where('source_type', 'lead')
+                        ->whereExists(function ($leadQuery) use ($userId) {
+                            $leadQuery->selectRaw('1')
+                                ->from('leads')
+                                ->whereColumn('leads.id', 'lead_followups.source_id')
+                                ->where('leads.created_by', $userId);
+                        });
+                });
+            }
+        }
+
+        $followupEvents = $followups->get()->map(function (LeadFollowup $followup) {
+            $source = $followup->source_type ?: 'lead';
+            $sourceId = (int) ($followup->source_id ?: $followup->lead_id);
+            $leadName = $followup->lead?->name ?: 'Lead';
+
+            return $this->calendarFeedItem(
+                'lead-followup-' . $followup->id,
+                'Follow-up: ' . $leadName,
+                $followup->next_followup_date->toIso8601String(),
+                'lead',
+                $followup->followup_type ? ucfirst(str_replace('_', ' ', $followup->followup_type)) : 'Lead follow-up',
+                route('lead-management.show', ['source' => $source, 'id' => $sourceId]),
+                false
+            );
+        });
+
+        $reminders = LeadReminder::query()
+            ->with('lead')
+            ->where('status', 'pending')
+            ->whereBetween('remind_at', [$rangeStart, $rangeEnd]);
+
+        if (! $this->hasAdminCalendarAccess()) {
+            $role = strtolower((string) data_get($user, 'role', ''));
+            $reminders->where(function ($query) use ($userId, $role) {
+                $query->where('user_id', $userId);
+
+                if ($role === 'staff') {
+                    $query->orWhereExists(function ($assignmentQuery) use ($userId) {
+                        $assignmentQuery->selectRaw('1')
+                            ->from('assigned_leads')
+                            ->where('assigned_leads.lead_model', 'lead')
+                            ->whereColumn('assigned_leads.lead_id', 'lead_reminders.lead_id')
+                            ->where(function ($staffIds) use ($userId) {
+                                $staffIds->whereRaw('JSON_CONTAINS(assigned_leads.staff_ids, ?, "$")', [(string) $userId])
+                                    ->orWhereRaw('JSON_CONTAINS(assigned_leads.staff_ids, JSON_QUOTE(?), "$")', [(string) $userId]);
+                            });
+                    });
+                } else {
+                    $query->orWhereHas('lead', fn($leadQuery) => $leadQuery->where('created_by', $userId));
+                }
+            });
+        }
+
+        $reminderEvents = $reminders->get()->map(function (LeadReminder $reminder) {
+            return $this->calendarFeedItem(
+                'lead-reminder-' . $reminder->id,
+                'Reminder: ' . ($reminder->lead?->name ?: 'Lead'),
+                $reminder->remind_at->toIso8601String(),
+                'lead',
+                $reminder->reminder_type ? ucfirst(str_replace('_', ' ', $reminder->reminder_type)) : 'Lead reminder',
+                route('lead-management.index'),
+                false
+            );
+        });
+
+        return $leadEvents->concat($followupEvents)->concat($reminderEvents);
+    }
+
+    private function todoCalendarEvents(Carbon $rangeStart, Carbon $rangeEnd)
+    {
+        $events = collect();
+        $todos = Todo::ownedBy(Auth::id())
+            ->incomplete()
+            ->where(function ($query) use ($rangeEnd) {
+                $query->whereNull('starts_on')->orWhereDate('starts_on', '<=', $rangeEnd->toDateString());
+            })
+            ->where(function ($query) use ($rangeStart) {
+                $query->whereNull('ends_on')->orWhereDate('ends_on', '>=', $rangeStart->toDateString());
+            })
+            ->get();
+
+        foreach ($todos as $todo) {
+            $date = $rangeStart->copy()->startOfDay();
+            while ($date->lte($rangeEnd)) {
+                if ($todo->isOccurrenceDate($date)) {
+                    $time = $todo->task_time ?: '09:00:00';
+                    $start = Carbon::parse($date->toDateString() . ' ' . $time);
+                    $events->push($this->calendarFeedItem(
+                        'todo-' . $todo->id . '-' . $date->toDateString(),
+                        $todo->title,
+                        $start->toIso8601String(),
+                        'todo',
+                        $todo->description ?: 'To-do reminder',
+                        route('to-do-list'),
+                        false
+                    ));
+                }
+
+                $date->addDay();
+            }
+        }
+
+        return $events;
+    }
+
+    private function calendarFeedItem(string $id, string $title, string $start, string $type, ?string $description, ?string $url, bool $allDay = true): array
+    {
+        $colors = [
+            'appointment' => '#64748b',
+            'task' => '#167d9a',
+            'renewal' => '#bc7616',
+            'lead' => '#7954a5',
+            'todo' => '#29845b',
+        ];
+        $labels = [
+            'appointment' => 'Appointment',
+            'task' => 'Task',
+            'renewal' => 'Renewal',
+            'lead' => 'Lead Management',
+            'todo' => 'To-do',
+        ];
+        $color = $colors[$type] ?? '#64748b';
+
+        return [
+            'id' => $id,
+            'title' => $title,
+            'start' => $start,
+            'allDay' => $allDay,
+            'backgroundColor' => $color,
+            'borderColor' => $color,
+            'textColor' => '#ffffff',
+            'description' => $description,
+            'extendedProps' => [
+                'event_type' => $type,
+                'event_type_label' => $labels[$type] ?? 'Event',
+                'description' => $description,
+                'url' => $url,
+            ],
+        ];
+    }
+
+    private function hasAdminCalendarAccess(): bool
+    {
+        $user = Auth::user();
+        $role = strtolower((string) data_get($user, 'role', ''));
+        $roles = ['admin', 'super-admin', 'super_admin', 'super_admin2'];
+
+        return in_array($role, $roles, true)
+            || ($user && method_exists($user, 'hasAnyRole') && call_user_func([$user, 'hasAnyRole'], $roles));
     }
 
     /**
@@ -133,13 +461,13 @@ class CalendarEventController extends Controller
                 continue;
             }
 
-                $cleanPhone = preg_replace('/\D+/', '', $phone);
-                if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Invalid phone number: {$phone}"
-                    ], 422);
-                }
+            $cleanPhone = preg_replace('/\D+/', '', $phone);
+            if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Invalid phone number: {$phone}"
+                ], 422);
+            }
         }
 
         DB::beginTransaction();
@@ -310,13 +638,13 @@ class CalendarEventController extends Controller
                 continue;
             }
 
-                $cleanPhone = preg_replace('/\D+/', '', $phone);
-                if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => "Invalid phone number: {$phone}"
-                    ], 422);
-                }
+            $cleanPhone = preg_replace('/\D+/', '', $phone);
+            if (!preg_match('/^[1-9]\d{7,14}$/', $cleanPhone)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Invalid phone number: {$phone}"
+                ], 422);
+            }
         }
 
         DB::beginTransaction();
@@ -522,7 +850,7 @@ class CalendarEventController extends Controller
     private function normalizeNotificationChannels(Request $request): array
     {
         $channels = collect($request->input('notification_channels', []))
-            ->map(fn ($channel) => strtolower(trim((string) $channel)))
+            ->map(fn($channel) => strtolower(trim((string) $channel)))
             ->filter()
             ->unique()
             ->values();
@@ -537,8 +865,8 @@ class CalendarEventController extends Controller
     private function normalizeDelimitedRecipients(?string $value): array
     {
         return collect(explode(',', (string) $value))
-            ->map(fn ($recipient) => trim((string) $recipient))
-            ->filter(fn ($recipient) => $recipient !== '')
+            ->map(fn($recipient) => trim((string) $recipient))
+            ->filter(fn($recipient) => $recipient !== '')
             ->values()
             ->all();
     }
@@ -610,5 +938,3 @@ class CalendarEventController extends Controller
         ];
     }
 }
-
-
