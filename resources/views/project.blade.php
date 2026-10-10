@@ -32,7 +32,7 @@
                         </button>
                         @can('delete_projects')
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
-                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
+                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete Selected</a>
                         </div>
                         @endcan
                     </div>
@@ -173,17 +173,24 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                @can('create_projects')
-                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
-                                @endcan
+                                <div class="ms-auto d-flex gap-2">
+                                    @can('delete_projects')
+                                    <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 bulk-delete-btn">
+                                        <i class="bx bxs-trash"></i> Delete Selected
+                                    </button>
+                                    @endcan
+                                    @can('create_projects')
+                                    <a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                                class="bx bxs-plus-square"></i>Add New Project</a>
+                                    @endcan
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table id="projectsTable" class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
                                             @can('delete_projects')
-                                            <th><input class="form-check-input" type="checkbox" id="select-all"></th>
+                                            <th><input class="form-check-input select-all-projects" type="checkbox" id="select-all"></th>
                                             @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
@@ -282,15 +289,25 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                            @can('create_projects')
-                            <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
-                            @endcan
+                                <div class="ms-auto d-flex gap-2">
+                                    @can('delete_projects')
+                                    <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 bulk-delete-btn">
+                                        <i class="bx bxs-trash"></i> Delete Selected
+                                    </button>
+                                    @endcan
+                                    @can('create_projects')
+                                    <a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                                class="bx bxs-plus-square"></i>Add New Project</a>
+                                    @endcan
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            @can('delete_projects')
+                                            <th><input class="form-check-input select-all-projects" type="checkbox"></th>
+                                            @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
                                             <th>Tags</th>
@@ -304,6 +321,9 @@
                                     <tbody>
                                         @forelse($projects->where('status', 'not_started') as $project)
                                         <tr>
+                                            @can('delete_projects')
+                                            <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
+                                            @endcan
                                             <td>{{ $project->project_name }}</td>
                                             <td>{{ optional($project->customer)->name ?: optional($project->customer)->email ?: 'N/A' }}</td>
                                             <td>
@@ -355,7 +375,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No projects found</td>
+                                            <td colspan="{{ auth()->user() && auth()->user()->can('delete_projects') ? 9 : 8 }}" class="text-center">No projects found</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -370,15 +390,25 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                @can('create_projects')
-                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
-                                @endcan
+                                <div class="ms-auto d-flex gap-2">
+                                    @can('delete_projects')
+                                    <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 bulk-delete-btn">
+                                        <i class="bx bxs-trash"></i> Delete Selected
+                                    </button>
+                                    @endcan
+                                    @can('create_projects')
+                                    <a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                                class="bx bxs-plus-square"></i>Add New Project</a>
+                                    @endcan
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            @can('delete_projects')
+                                            <th><input class="form-check-input select-all-projects" type="checkbox"></th>
+                                            @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
                                             <th>Tags</th>
@@ -392,6 +422,9 @@
                                     <tbody>
                                         @forelse($projects->where('status', 'in_progress') as $project)
                                         <tr>
+                                            @can('delete_projects')
+                                            <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
+                                            @endcan
                                             <td>{{ $project->project_name }}</td>
                                             <td>{{ optional($project->customer)->name ?: optional($project->customer)->email ?: 'N/A' }}</td>
                                             <td>
@@ -404,16 +437,23 @@
                                             <td>{{ $project->start_date ? $project->start_date->format('Y-m-d') : 'N/A' }}</td>
                                             <td>{{ $project->deadline ? $project->deadline->format('Y-m-d') : 'N/A' }}</td>
                                             <td>
+                                                @php
+                                                    $members = is_array($project->members) ? $project->members : [];
+                                                @endphp
                                                 <div class="d-flex align-items-center">
-                                                    @if($project->members)
-                                                        @foreach(array_slice($project->members, 0, 2) as $memberId)
-                                                            @if(isset($staff[$memberId]))
-                                                                <img src="{{ $staff[$memberId]->profile_image ? (filter_var($staff[$memberId]->profile_image, FILTER_VALIDATE_URL) ? $staff[$memberId]->profile_image : asset($staff[$memberId]->profile_image)) : 'https://placehold.co/30x30' }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
-                                                            @endif
-                                                        @endforeach
-                                                        @if(count($project->members) > 2)
-                                                            <span>+{{ count($project->members) - 2 }}</span>
+                                                    @foreach(array_slice($members, 0, 2) as $memberId)
+                                                        @if(isset($staff[$memberId]))
+                                                            @php
+                                                                $profileImage = $staff[$memberId]->profile_image;
+                                                                $profileImageSrc = $profileImage
+                                                                    ? (filter_var($profileImage, FILTER_VALIDATE_URL) ? $profileImage : asset($profileImage))
+                                                                    : 'https://placehold.co/30x30';
+                                                            @endphp
+                                                            <img src="{{ $profileImageSrc }}" class="rounded-circle me-1" alt="Member" width="30" height="30" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $staff[$memberId]->first_name }} {{ $staff[$memberId]->last_name }}">
                                                         @endif
+                                                    @endforeach
+                                                    @if(count($members) > 2)
+                                                        <span>+{{ count($members) - 2 }}</span>
                                                     @endif
                                                 </div>
                                             </td>
@@ -436,7 +476,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No projects found</td>
+                                            <td colspan="{{ auth()->user() && auth()->user()->can('delete_projects') ? 9 : 8 }}" class="text-center">No projects found</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -451,15 +491,25 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                @can('create_projects')
-                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
-                                @endcan
+                                <div class="ms-auto d-flex gap-2">
+                                    @can('delete_projects')
+                                    <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 bulk-delete-btn">
+                                        <i class="bx bxs-trash"></i> Delete Selected
+                                    </button>
+                                    @endcan
+                                    @can('create_projects')
+                                    <a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                                class="bx bxs-plus-square"></i>Add New Project</a>
+                                    @endcan
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            @can('delete_projects')
+                                            <th><input class="form-check-input select-all-projects" type="checkbox"></th>
+                                            @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
                                             <th>Tags</th>
@@ -473,6 +523,9 @@
                                     <tbody>
                                         @forelse($projects->where('status', 'on_hold') as $project)
                                         <tr>
+                                            @can('delete_projects')
+                                            <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
+                                            @endcan
                                             <td>{{ $project->project_name }}</td>
                                             <td>{{ optional($project->customer)->name ?: optional($project->customer)->email ?: 'N/A' }}</td>
                                             <td>
@@ -539,7 +592,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No projects found</td>
+                                            <td colspan="{{ auth()->user() && auth()->user()->can('delete_projects') ? 9 : 8 }}" class="text-center">No projects found</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -554,15 +607,25 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                @can('create_projects')
-                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
-                                @endcan
+                                <div class="ms-auto d-flex gap-2">
+                                    @can('delete_projects')
+                                    <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 bulk-delete-btn">
+                                        <i class="bx bxs-trash"></i> Delete Selected
+                                    </button>
+                                    @endcan
+                                    @can('create_projects')
+                                    <a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                                class="bx bxs-plus-square"></i>Add New Project</a>
+                                    @endcan
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            @can('delete_projects')
+                                            <th><input class="form-check-input select-all-projects" type="checkbox"></th>
+                                            @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
                                             <th>Tags</th>
@@ -576,6 +639,9 @@
                                     <tbody>
                                         @forelse($projects->where('status', 'completed') as $project)
                                         <tr>
+                                            @can('delete_projects')
+                                            <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
+                                            @endcan
                                             <td>{{ $project->project_name }}</td>
                                             <td>{{ optional($project->customer)->name ?: optional($project->customer)->email ?: 'N/A' }}</td>
                                             <td>
@@ -620,7 +686,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No projects found</td>
+                                            <td colspan="{{ auth()->user() && auth()->user()->can('delete_projects') ? 9 : 8 }}" class="text-center">No projects found</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -635,15 +701,25 @@
                                         class="position-absolute top-50 product-show translate-middle-y"><i
                                             class="bx bx-search"></i></span>
                                 </div>
-                                @can('create_projects')
-                                <div class="ms-auto"><a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
-                                            class="bx bxs-plus-square"></i>Add New Project</a></div>
-                                @endcan
+                                <div class="ms-auto d-flex gap-2">
+                                    @can('delete_projects')
+                                    <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0 bulk-delete-btn">
+                                        <i class="bx bxs-trash"></i> Delete Selected
+                                    </button>
+                                    @endcan
+                                    @can('create_projects')
+                                    <a href="{{ route('add-project') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0"><i
+                                                class="bx bxs-plus-square"></i>Add New Project</a>
+                                    @endcan
+                                </div>
                             </div>
                             <div class="table-responsive">
                                 <table class="table mb-0">
                                     <thead class="table-light">
                                         <tr>
+                                            @can('delete_projects')
+                                            <th><input class="form-check-input select-all-projects" type="checkbox"></th>
+                                            @endcan
                                             <th>Project name</th>
                                             <th>Customer</th>
                                             <th>Tags</th>
@@ -657,6 +733,9 @@
                                     <tbody>
                                         @forelse($projects->where('status', 'cancelled') as $project)
                                         <tr>
+                                            @can('delete_projects')
+                                            <td><input class="form-check-input row-checkbox" type="checkbox" name="ids[]" value="{{ $project->id }}"></td>
+                                            @endcan
                                             <td>{{ $project->project_name }}</td>
                                             <td>{{ optional($project->customer)->name ?: optional($project->customer)->email ?: 'N/A' }}</td>
                                             <td>
@@ -723,7 +802,7 @@
                                         </tr>
                                         @empty
                                         <tr>
-                                            <td colspan="8" class="text-center">No projects found</td>
+                                            <td colspan="{{ auth()->user() && auth()->user()->can('delete_projects') ? 9 : 8 }}" class="text-center">No projects found</td>
                                         </tr>
                                         @endforelse
                                     </tbody>
@@ -753,7 +832,12 @@
                 $('#projectsTable').DataTable({
                     lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "All"]],
                     pageLength: 10,
-                    order: [[0, 'asc']],
+                    order: [],
+                    columnDefs: [
+                        @can('delete_projects')
+                        { orderable: false, targets: 0 }
+                        @endcan
+                    ],
                     language: {
                         search: "Search Projects:",
                         lengthMenu: "Show _MENU_ entries",
@@ -773,41 +857,54 @@
             }
         }
 
-        const selectAll = document.getElementById('select-all');
-        const checkboxes = document.querySelectorAll('.row-checkbox');
-        if (selectAll) {
-            selectAll.addEventListener('change', function() {
-                checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            });
-        }
+        $(document).on('change', '.select-all-projects, #select-all', function() {
+            const table = $(this).closest('table');
+            const isChecked = this.checked;
+            if (table.length && $.fn.DataTable && $.fn.DataTable.isDataTable(table)) {
+                const dt = table.DataTable();
+                $(dt.rows().nodes()).find('.row-checkbox').prop('checked', isChecked);
+            } else if (table.length) {
+                table.find('.row-checkbox').prop('checked', isChecked);
+            } else {
+                $('.row-checkbox').prop('checked', isChecked);
+            }
+        });
 
-        const deleteSelectedBtn = document.getElementById('delete-selected');
-        if (deleteSelectedBtn) {
-            deleteSelectedBtn.addEventListener('click', function() {
-                let selected = [];
-                document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-                    selected.push(cb.value);
+        function handleBulkDeleteProjects() {
+            let selected = new Set();
+            if ($('#projectsTable').length && $.fn.DataTable && $.fn.DataTable.isDataTable('#projectsTable')) {
+                let dt = $('#projectsTable').DataTable();
+                $(dt.rows().nodes()).find('.row-checkbox:checked').each(function() {
+                    selected.add($(this).val());
                 });
-
-                if (selected.length === 0) {
-                    alert('Please select at least one record.');
-                    return;
-                }
-
-                if (confirm('Are you sure you want to delete selected records?')) {
-                    let form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '{{ route('delete.selected.project') }}';
-                    form.innerHTML = `
-                        @csrf
-                        <input type="hidden" name="_method" value="DELETE">
-                        <input type="hidden" name="ids" value="${selected.join(',')}">
-                    `;
-                    document.body.appendChild(form);
-                    form.submit();
-                }
+            }
+            document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+                selected.add(cb.value);
             });
+
+            let selectedArray = Array.from(selected).filter(Boolean);
+            if (selectedArray.length === 0) {
+                alert('Please select at least one project.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete selected projects?')) {
+                let form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '{{ route('delete.selected.project') }}';
+                form.innerHTML = `
+                    @csrf
+                    <input type="hidden" name="_method" value="DELETE">
+                    <input type="hidden" name="ids" value="${selectedArray.join(',')}">
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
         }
+
+        $(document).on('click', '.bulk-delete-btn, #delete-selected', function() {
+            handleBulkDeleteProjects();
+        });
     });
 </script>
 @endsection

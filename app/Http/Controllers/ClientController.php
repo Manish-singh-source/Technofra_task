@@ -211,6 +211,9 @@ class ClientController extends Controller
             ->values();
 
         if ($ids->isEmpty()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No clients selected for deletion.'], 400);
+            }
             return redirect()->route('client')->with('error', 'No clients selected for deletion.');
         }
 
@@ -230,11 +233,17 @@ class ClientController extends Controller
 
             DB::commit();
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Selected clients deleted successfully.']);
+            }
             return redirect()->route('client')->with('success', 'Selected clients deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error deleting selected clients: ' . $e->getMessage());
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete selected clients: ' . $e->getMessage()], 500);
+            }
             return redirect()->route('client')->with('error', 'Failed to delete selected clients: ' . $e->getMessage());
         }
     }

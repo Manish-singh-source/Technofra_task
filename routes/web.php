@@ -146,7 +146,7 @@ Route::middleware('auth')->group(function () {
     Route::controller(StaffController::class)->group(function () {
         Route::get('/staff', 'index')->name('staff');
         Route::delete('/staff/delete/{id}', 'destroy')->name('staff.destroy');
-        Route::delete('/staff/delete-selected', 'deleteSelected')->name('delete.selected.staff');
+        Route::match(['post', 'delete'], '/staff/delete-selected', 'deleteSelected')->name('delete.selected.staff');
         Route::post('/staff/restore/{id}', 'restore')->name('staff.restore');
         Route::delete('/staff/force-delete/{id}', 'forceDelete')->name('staff.force-delete');
         Route::get('/add-staff', 'create')->name('add-staff');
@@ -185,7 +185,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/clients', 'index')->name('client');
         Route::get('/clients/create', 'create')->name('client.create');
         Route::post('/clients', 'store')->name('client.store');
-        Route::delete('/clients/delete-selected', 'deleteSelected')->name('delete.selected.client');
+        Route::match(['post', 'delete'], '/clients/delete-selected', 'deleteSelected')->name('delete.selected.client');
         Route::get('/clients/{client}', 'show')->name('client.view');
         Route::get('/clients/{client}/edit', 'edit')->name('client.edit');
         Route::put('/clients/{client}', 'update')->name('client.update');
@@ -223,7 +223,7 @@ Route::middleware('auth')->group(function () {
         Route::put('/project/{projectId}/issues/{issueId}', 'updateIssue')->name('project.issues.update');
         Route::delete('/project/{projectId}/issues/{issueId}', 'destroyIssue')->name('project.issues.destroy');
         Route::delete('/project/delete/{id}', 'destroy')->name('project.destroy');
-        Route::delete('/project/delete-selected', 'deleteSelected')->name('delete.selected.project');
+        Route::match(['post', 'delete'], '/project/delete-selected', 'deleteSelected')->name('delete.selected.project');
 
         // Project File Routes
         Route::post('/project/{projectId}/upload-file', 'uploadFile')->name('project.upload-file');
@@ -250,7 +250,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/edit-task/{id}', 'edit')->name('edit-task');
         Route::put('/edit-task/{id}', 'update')->name('edit-task.update');
         Route::delete('/task/delete/{id}', 'destroy')->name('task.destroy');
-        Route::delete('/task/delete-selected', 'deleteSelected')->name('delete.selected.task');
+        Route::match(['post', 'delete'], '/task/delete-selected', 'deleteSelected')->name('delete.selected.task');
     });
 
     // Client issue routes
@@ -280,6 +280,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/{source}/{id}/view', 'show')->name('show');
         Route::post('/{source}/{id}/assign', 'assign')->name('assign');
         Route::post('/bulk-assign', 'bulkAssign')->name('bulk-assign');
+        Route::delete('/delete-selected', 'deleteSelected')->name('bulk-delete');
         Route::patch('/{source}/{id}/status', 'updateStatus')->name('status');
         Route::post('/{source}/{id}/followup', 'addFollowup')->name('followup');
         Route::get('/{source}/{id}/followups', 'followupHistory')->name('followups');
@@ -442,4 +443,3 @@ Route::middleware('auth')->group(function () {
         });
     });
 });
-

@@ -33,7 +33,7 @@
                         </button>
                         @can('delete_tasks')
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
-                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
+                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete Selected</a>
                         </div>
                         @endcan
                     </div>
@@ -131,6 +131,11 @@
                                     </a></li>
                                 </ul>
                             </div>
+                            @can('delete_tasks')
+                            <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0" id="bulk-delete-btn">
+                                <i class="bx bxs-trash"></i> Delete Selected
+                            </button>
+                            @endcan
                             @can('create_tasks')
                             <a href="{{ route('add-task') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Task
@@ -278,6 +283,9 @@
                     lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
                     pageLength: 10,
                     order: [[1, 'desc']],
+                    columnDefs: [
+                        { orderable: false, targets: 0 }
+                    ],
                     language: {
                         search: 'Search Tasks:',
                         lengthMenu: 'Show _MENU_ entries',
@@ -292,45 +300,61 @@
                 });
             });
 
-            document.querySelectorAll('.select-all-tab').forEach(function(selectAll) {
-                selectAll.addEventListener('change', function() {
-                    const table = selectAll.closest('table');
-                    if (!table) {
-                        return;
-                    }
-
-                    table.querySelectorAll('.row-checkbox').forEach(function(checkbox) {
-                        checkbox.checked = selectAll.checked;
-                    });
-                });
+            $(document).on('change', '.select-all-tab', function() {
+                const table = $(this).closest('table');
+                if (!table.length) {
+                    return;
+                }
+                const isChecked = this.checked;
+                if ($.fn.DataTable.isDataTable(table)) {
+                    const dt = table.DataTable();
+                    $(dt.rows().nodes()).find('.row-checkbox').prop('checked', isChecked);
+                } else {
+                    table.find('.row-checkbox').prop('checked', isChecked);
+                }
             });
 
-            const deleteSelectedBtn = document.getElementById('delete-selected');
-            if (deleteSelectedBtn) {
-                deleteSelectedBtn.addEventListener('click', function() {
-                    let selected = [];
-                    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-                        selected.push(cb.value);
-                    });
-
-                    if (selected.length === 0) {
-                        alert('Please select at least one record.');
-                        return;
-                    }
-
-                    if (confirm('Are you sure you want to delete selected records?')) {
-                        let form = document.createElement('form');
-                        form.method = 'POST';
-                        form.action = '{{ route('delete.selected.task') }}';
-                        form.innerHTML = `
-                            @csrf
-                            <input type="hidden" name="_method" value="DELETE">
-                            <input type="hidden" name="ids" value="${selected.join(',')}">
-                        `;
-                        document.body.appendChild(form);
-                        form.submit();
+            function handleBulkDeleteTasks() {
+                let selected = new Set();
+                $('.tasks-status-table').each(function() {
+                    if ($.fn.DataTable.isDataTable(this)) {
+                        let dt = $(this).DataTable();
+                        $(dt.rows().nodes()).find('.row-checkbox:checked').each(function() {
+                            selected.add($(this).val());
+                        });
                     }
                 });
+                document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+                    selected.add(cb.value);
+                });
+
+                let selectedArray = Array.from(selected).filter(Boolean);
+                if (selectedArray.length === 0) {
+                    alert('Please select at least one task.');
+                    return;
+                }
+
+                if (confirm('Are you sure you want to delete selected tasks?')) {
+                    let form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = '{{ route('delete.selected.task') }}';
+                    form.innerHTML = `
+                        @csrf
+                        <input type="hidden" name="_method" value="DELETE">
+                        <input type="hidden" name="ids" value="${selectedArray.join(',')}">
+                    `;
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            }
+
+            const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', handleBulkDeleteTasks);
+            }
+            const deleteSelectedBtn = document.getElementById('delete-selected');
+            if (deleteSelectedBtn) {
+                deleteSelectedBtn.addEventListener('click', handleBulkDeleteTasks);
             }
         });
     </script>

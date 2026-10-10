@@ -541,9 +541,15 @@ class TaskController extends Controller
 
     public function deleteSelected(Request $request)
     {
-        $ids = array_filter(explode(',', (string) $request->ids));
+        $ids = collect(is_array($request->ids) ? $request->ids : explode(',', (string) $request->ids))
+            ->map(fn($id) => (int) trim((string) $id))
+            ->filter()
+            ->values();
 
-        if (empty($ids)) {
+        if ($ids->isEmpty()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No tasks selected for deletion.'], 400);
+            }
             return redirect()->route('task')->with('error', 'No tasks selected for deletion.');
         }
 
@@ -563,8 +569,14 @@ class TaskController extends Controller
                 }
             }
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Selected tasks deleted successfully.']);
+            }
             return redirect()->route('task')->with('success', 'Selected tasks deleted successfully.');
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete selected tasks: ' . $e->getMessage()], 500);
+            }
             return redirect()->route('task')->with('error', 'Failed to delete selected tasks: ' . $e->getMessage());
         }
     }

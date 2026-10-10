@@ -604,12 +604,15 @@ class StaffController extends Controller
      */
     public function deleteSelected(Request $request)
     {
-        $ids = collect(explode(',', (string) $request->ids))
-            ->map(fn($id) => (int) trim($id))
+        $ids = collect(is_array($request->ids) ? $request->ids : explode(',', (string) $request->ids))
+            ->map(fn($id) => (int) trim((string) $id))
             ->filter()
             ->values();
 
         if ($ids->isEmpty()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No staff selected for deletion.'], 400);
+            }
             return redirect()->route('staff')->with('error', 'No staff selected for deletion.');
         }
 
@@ -624,10 +627,16 @@ class StaffController extends Controller
 
             DB::commit();
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Selected staff members deleted successfully.']);
+            }
             return redirect()->route('staff')->with('success', 'Selected staff members deleted successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete selected staff: ' . $e->getMessage()], 500);
+            }
             return redirect()->route('staff')->with('error', 'Failed to delete selected staff: ' . $e->getMessage());
         }
     }

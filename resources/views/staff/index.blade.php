@@ -25,7 +25,7 @@
                             data-bs-toggle="dropdown"> <span class="visually-hidden">Toggle Dropdown</span>
                         </button>
                         <div class="dropdown-menu dropdown-menu-right dropdown-menu-lg-end">
-                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete All</a>
+                            <a class="dropdown-item cursor-pointer" id="delete-selected">Delete Selected</a>
                         </div>
                     </div>
                 </div>
@@ -35,7 +35,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
-                        <div class="ms-auto">
+                        <div class="ms-auto d-flex gap-2">
+                            <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0" id="bulk-delete-btn">
+                                <i class="bx bxs-trash"></i> Delete Selected
+                            </button>
                             <a href="{{ route('add-staff') }}" class="btn btn-primary radius-30 mt-2 mt-lg-0">
                                 <i class="bx bxs-plus-square"></i>Add New Staff
                             </a>
@@ -113,25 +116,63 @@
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            function getSelectedStaffIds() {
+                let selected = [];
+                if (window.jQuery && $.fn.DataTable && $.fn.DataTable.isDataTable('#example')) {
+                    let table = $('#example').DataTable();
+                    $(table.rows().nodes()).find('.row-checkbox:checked').each(function() {
+                        selected.push($(this).val());
+                    });
+                } else {
+                    document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
+                        selected.push(cb.value);
+                    });
+                }
+                return selected;
+            }
+
             // Select All functionality
             const selectAll = document.getElementById('select-all');
-            const checkboxes = document.querySelectorAll('.row-checkbox');
-            selectAll.addEventListener('change', function() {
-                checkboxes.forEach(cb => cb.checked = selectAll.checked);
-            });
-
-            // Delete Selected functionality
-            document.getElementById('delete-selected').addEventListener('click', function() {
-                let selected = [];
-                document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
-                    selected.push(cb.value);
+            if (selectAll) {
+                selectAll.addEventListener('change', function() {
+                    const isChecked = this.checked;
+                    if (window.jQuery && $.fn.DataTable && $.fn.DataTable.isDataTable('#example')) {
+                        let table = $('#example').DataTable();
+                        $(table.rows().nodes()).find('.row-checkbox').prop('checked', isChecked);
+                    } else {
+                        document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
+                    }
                 });
+            }
+
+            if (window.jQuery) {
+                $('#example').on('change', '.row-checkbox', function() {
+                    let total = 0;
+                    let checked = 0;
+                    if ($.fn.DataTable && $.fn.DataTable.isDataTable('#example')) {
+                        let table = $('#example').DataTable();
+                        let allCbs = $(table.rows().nodes()).find('.row-checkbox');
+                        total = allCbs.length;
+                        checked = allCbs.filter(':checked').length;
+                    } else {
+                        let allCbs = $('.row-checkbox');
+                        total = allCbs.length;
+                        checked = allCbs.filter(':checked').length;
+                    }
+                    if (selectAll) {
+                        selectAll.checked = total > 0 && checked === total;
+                        selectAll.indeterminate = checked > 0 && checked < total;
+                    }
+                });
+            }
+
+            function handleBulkDelete() {
+                let selected = getSelectedStaffIds();
                 if (selected.length === 0) {
-                    alert('Please select at least one record.');
+                    alert('Please select at least one staff member.');
                     return;
                 }
-                if (confirm('Are you sure you want to delete selected records?')) {
-                    // Create a form and submit
+                if (confirm('Are you sure you want to delete selected staff members?')) {
                     let form = document.createElement('form');
                     form.method = 'POST';
                     form.action = '{{ route('delete.selected.staff') }}';
@@ -143,7 +184,16 @@
                     document.body.appendChild(form);
                     form.submit();
                 }
-            });
+            }
+
+            const deleteSelected = document.getElementById('delete-selected');
+            if (deleteSelected) {
+                deleteSelected.addEventListener('click', handleBulkDelete);
+            }
+            const bulkDeleteBtn = document.getElementById('bulk-delete-btn');
+            if (bulkDeleteBtn) {
+                bulkDeleteBtn.addEventListener('click', handleBulkDelete);
+            }
         });
     </script>
     <!--end page wrapper -->

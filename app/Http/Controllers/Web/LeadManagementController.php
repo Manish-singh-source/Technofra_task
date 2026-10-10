@@ -38,6 +38,7 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class LeadManagementController extends \App\Http\Controllers\Controller
@@ -47,9 +48,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         private readonly LeadStatusService $leadStatusService,
         private readonly LeadClientConversionService $leadClientConversionService,
         private readonly UpdateLeadStatusAction $updateLeadStatusAction
-    )
-    {
-    }
+    ) {}
 
     private const STATUSES = ['new', 'attempted_contact', 'contacted', 'qualified', 'demo_scheduled', 'proposal_sent', 'negotiation', 'converted', 'lost', 'junk'];
     private const SOURCE_LEAD = 'lead';
@@ -110,10 +109,10 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
         $merged = $filteredBySearch
             ->when($sourceFilter !== '', function (Collection $items) use ($sourceFilter) {
-                return $items->filter(fn (array $row) => (string) ($row['source_type'] ?? '') === $sourceFilter);
+                return $items->filter(fn(array $row) => (string) ($row['source_type'] ?? '') === $sourceFilter);
             })
             ->when($statusFilter !== '', function (Collection $items) use ($statusFilter) {
-                return $items->filter(fn (array $row) => (string) ($row['status'] ?? '') === $statusFilter);
+                return $items->filter(fn(array $row) => (string) ($row['status'] ?? '') === $statusFilter);
             })
             ->sortByDesc('created_at_ts')
             ->values();
@@ -196,14 +195,14 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->first();
 
         $existingStaffIds = collect($existingAssignment?->staff_ids ?? [])
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn ($value) => $value > 0)
+            ->map(fn($value) => (int) $value)
+            ->filter(fn($value) => $value > 0)
             ->unique()
             ->values();
 
         $assigned = $existingStaffIds
-            ->map(fn ($value) => (int) $value)
-            ->merge(collect($validated['assigned_user_ids'])->map(fn ($value) => (int) $value))
+            ->map(fn($value) => (int) $value)
+            ->merge(collect($validated['assigned_user_ids'])->map(fn($value) => (int) $value))
             ->unique()
             ->values()
             ->all();
@@ -251,7 +250,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $validated = $request->validated();
 
         $selectedStaffIds = collect($validated['assigned_user_ids'])
-            ->map(fn ($value) => (int) $value)
+            ->map(fn($value) => (int) $value)
             ->unique()
             ->values();
         $assignedCount = 0;
@@ -269,15 +268,15 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 ->first();
 
             $assigned = collect($existingAssignment?->staff_ids ?? [])
-                ->map(fn ($value) => (int) $value)
+                ->map(fn($value) => (int) $value)
                 ->merge($selectedStaffIds)
                 ->unique()
                 ->values()
                 ->all();
 
             $existingStaffIds = collect($existingAssignment?->staff_ids ?? [])
-                ->map(fn ($value) => (int) $value)
-                ->filter(fn ($value) => $value > 0)
+                ->map(fn($value) => (int) $value)
+                ->filter(fn($value) => $value > 0)
                 ->unique()
                 ->values();
 
@@ -316,7 +315,48 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
         return redirect()
             ->route('lead-management.index')
-            ->with('success', $assignedCount.' lead(s) assigned successfully.');
+            ->with('success', $assignedCount . ' lead(s) assigned successfully.');
+    }
+
+    public function deleteSelected(Request $request): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('delete_leads'), 403);
+
+        $validated = $request->validate([
+            'selected_leads' => ['required', 'array', 'min:1'],
+            'selected_leads.*.source' => [
+                'required',
+                'string',
+                Rule::in([
+                    self::SOURCE_LEAD,
+                    self::SOURCE_DIGITAL_MARKETING,
+                    self::SOURCE_WEBAPP,
+                    self::SOURCE_META,
+                    self::SOURCE_GOOGLE,
+                    self::SOURCE_CONTACTFORM,
+                    self::SOURCE_ENQUIRYFORM,
+                ]),
+            ],
+            'selected_leads.*.id' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $selectedLeads = collect($validated['selected_leads'])
+            ->unique(fn(array $lead) => $lead['source'] . ':' . (int) $lead['id'])
+            ->values();
+
+        DB::transaction(function () use ($selectedLeads) {
+            foreach ($selectedLeads as $selectedLead) {
+                $source = (string) $selectedLead['source'];
+                $id = (int) $selectedLead['id'];
+
+                $this->findNormalizedLeadOrFail($source, $id);
+                $this->deleteBySource($source, $id);
+            }
+        });
+
+        return redirect()
+            ->route('lead-management.index')
+            ->with('success', $selectedLeads->count() . ' lead(s) deleted successfully.');
     }
 
     public function destroy(string $source, int $id): RedirectResponse
@@ -619,8 +659,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $phone = trim((string) ($normalized['number'] ?? ''));
 
         $existing = Lead::query()
-            ->when($email !== '' && $email !== '-', fn ($q) => $q->where('email', $email))
-            ->when($phone !== '' && $phone !== '-', fn ($q) => $q->orWhere('phone', $phone))
+            ->when($email !== '' && $email !== '-', fn($q) => $q->where('email', $email))
+            ->when($phone !== '' && $phone !== '-', fn($q) => $q->orWhere('phone', $phone))
             ->first();
 
         if ($existing) {
@@ -642,8 +682,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     private function syncPipelineAssignment(Lead $leadModel, array $staffIds): void
     {
         $staffIds = collect($staffIds)
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn ($value) => $value > 0)
+            ->map(fn($value) => (int) $value)
+            ->filter(fn($value) => $value > 0)
             ->unique()
             ->values()
             ->all();
@@ -809,7 +849,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->concat($google)
             ->concat($contactForm)
             ->concat($enquiryForm)
-            ->filter(fn (array $row) => $this->canAccessNormalizedRow($row))
+            ->filter(fn(array $row) => $this->canAccessNormalizedRow($row))
             ->values();
     }
 
@@ -817,14 +857,14 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     {
         $emails = $rows
             ->pluck('email')
-            ->map(fn ($value) => $this->normalizeContact((string) $value))
+            ->map(fn($value) => $this->normalizeContact((string) $value))
             ->filter()
             ->values()
             ->all();
 
         $phones = $rows
             ->pluck('number')
-            ->map(fn ($value) => $this->normalizeContact((string) $value))
+            ->map(fn($value) => $this->normalizeContact((string) $value))
             ->filter()
             ->values()
             ->all();
@@ -901,7 +941,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
-            ->map(fn (User $user) => trim(($user->first_name ?? '').' '.($user->last_name ?? '')))
+            ->map(fn(User $user) => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')))
             ->filter()
             ->values();
 
@@ -927,8 +967,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->first();
 
         $sourceStaffIds = collect($sourceAssigned?->staff_ids ?? [])
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn ($value) => $value > 0);
+            ->map(fn($value) => (int) $value)
+            ->filter(fn($value) => $value > 0);
 
         $pipelineAssigned = AssignedLead::query()
             ->where('lead_model', 'lead')
@@ -936,8 +976,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->first();
 
         $pipelineStaffIds = collect($pipelineAssigned?->staff_ids ?? [])
-            ->map(fn ($value) => (int) $value)
-            ->filter(fn ($value) => $value > 0);
+            ->map(fn($value) => (int) $value)
+            ->filter(fn($value) => $value > 0);
 
         return $sourceStaffIds
             ->merge($pipelineStaffIds)
@@ -1001,7 +1041,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             });
         }
 
-        return $query->whereHas('users', fn ($userQuery) => $userQuery->where('users.id', $userId));
+        return $query->whereHas('users', fn($userQuery) => $userQuery->where('users.id', $userId));
     }
 
     private function canAccessMetaLeadRow(int $sourceId, int $userId): bool

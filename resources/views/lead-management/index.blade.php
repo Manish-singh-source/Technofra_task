@@ -94,6 +94,7 @@
 @section('content')
     @php
         $activeSource = $filters['source'] ?? '';
+        $canSelectLeads = ($canManageLeadAssignments ?? false) || auth()->user()->can('delete_leads');
         $tabColorClasses = [
             'all' => ['active' => 'btn-dark', 'inactive' => 'btn-outline-dark', 'badge' => 'bg-dark'],
             'lead' => [
@@ -198,8 +199,22 @@
                                     <i class='bx bxs-user-plus'></i> Bulk Assign
                                 </button>
                             @endif
+                            @can('delete_leads')
+                                <button type="button" class="btn btn-danger btn-sm" id="deleteSelectedLeadsBtn" disabled>
+                                    <i class='bx bxs-trash'></i> Delete Selected
+                                </button>
+                            @endcan
                         </div>
                     </div>
+
+                    @can('delete_leads')
+                        <form method="POST" action="{{ route('lead-management.bulk-delete') }}" id="bulkDeleteLeadsForm"
+                            class="d-none">
+                            @csrf
+                            @method('DELETE')
+                            <div id="bulkDeleteLeadsHiddenInputs"></div>
+                        </form>
+                    @endcan
 
                     <div class="d-flex flex-wrap gap-2 mb-3">
                         @php($allTabStyle = $tabColorClasses['all'])
@@ -266,7 +281,7 @@
                             <thead class="table-light">
                                 <tr>
                                     <th class="lead-col-select">
-                                        @if ($canManageLeadAssignments ?? false)
+                                        @if ($canSelectLeads)
                                             <input type="checkbox" id="selectAllLeads">
                                         @endif
                                     </th>
@@ -287,7 +302,7 @@
                                 @forelse($leads as $lead)
                                     <tr>
                                         <td class="lead-col-select">
-                                            @if ($canManageLeadAssignments ?? false)
+                                            @if ($canSelectLeads)
                                                 <input type="checkbox" class="lead-select-checkbox"
                                                     data-source="{{ $lead['source_type'] }}"
                                                     data-id="{{ $lead['source_id'] }}">
@@ -628,33 +643,45 @@
             const selectedLeadsCount = document.getElementById('selectedLeadsCount');
             const bulkAssignHiddenInputs = document.getElementById('bulkAssignHiddenInputs');
             const bulkAssignForm = document.getElementById('bulkAssignForm');
+            const deleteSelectedLeadsBtn = document.getElementById('deleteSelectedLeadsBtn');
+            const bulkDeleteLeadsHiddenInputs = document.getElementById('bulkDeleteLeadsHiddenInputs');
+            const bulkDeleteLeadsForm = document.getElementById('bulkDeleteLeadsForm');
 
             function selectedLeadCheckboxes() {
                 return Array.from(document.querySelectorAll('.lead-select-checkbox:checked'));
             }
 
             function updateSelectedCount() {
+                const selectedCount = selectedLeadCheckboxes().length;
                 if (selectedLeadsCount) {
-                    selectedLeadsCount.textContent = selectedLeadCheckboxes().length;
+                    selectedLeadsCount.textContent = selectedCount;
+                }
+                if (deleteSelectedLeadsBtn) {
+                    deleteSelectedLeadsBtn.disabled = selectedCount === 0;
                 }
             }
 
-            function setHiddenInputsForSelectedLeads() {
-                if (!bulkAssignHiddenInputs) return;
-                bulkAssignHiddenInputs.innerHTML = '';
+            function populateSelectedLeadInputs(container) {
+                if (!container) return;
+                container.replaceChildren();
                 selectedLeadCheckboxes().forEach((checkbox, index) => {
                     const sourceInput = document.createElement('input');
                     sourceInput.type = 'hidden';
                     sourceInput.name = `selected_leads[${index}][source]`;
                     sourceInput.value = checkbox.dataset.source;
-                    bulkAssignHiddenInputs.appendChild(sourceInput);
+                    container.appendChild(sourceInput);
 
                     const idInput = document.createElement('input');
                     idInput.type = 'hidden';
                     idInput.name = `selected_leads[${index}][id]`;
                     idInput.value = checkbox.dataset.id;
-                    bulkAssignHiddenInputs.appendChild(idInput);
+                    container.appendChild(idInput);
                 });
+            }
+
+            function setHiddenInputsForSelectedLeads() {
+                populateSelectedLeadInputs(bulkAssignHiddenInputs);
+                populateSelectedLeadInputs(bulkDeleteLeadsHiddenInputs);
             }
 
             if (selectAllLeads) {
@@ -701,6 +728,19 @@
                         alert('Please select at least one staff member.');
                         event.preventDefault();
                     }
+                });
+            }
+
+            if (deleteSelectedLeadsBtn && bulkDeleteLeadsForm) {
+                deleteSelectedLeadsBtn.addEventListener('click', function() {
+                    const selectedCount = selectedLeadCheckboxes().length;
+                    if (selectedCount === 0) return;
+
+                    if (!confirm(`Delete ${selectedCount} selected lead(s)? This cannot be undone.`))
+                        return;
+
+                    setHiddenInputsForSelectedLeads();
+                    bulkDeleteLeadsForm.requestSubmit();
                 });
             }
 

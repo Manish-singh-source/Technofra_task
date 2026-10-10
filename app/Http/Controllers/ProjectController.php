@@ -1301,22 +1301,32 @@ class ProjectController extends Controller
 
     public function deleteSelected(Request $request)
     {
-        $ids = array_filter(explode(',', (string) $request->ids));
+        $ids = collect(is_array($request->ids) ? $request->ids : explode(',', (string) $request->ids))
+            ->map(fn($id) => (int) trim((string) $id))
+            ->filter()
+            ->values();
 
-        if (empty($ids)) {
+        if ($ids->isEmpty()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No projects selected for deletion.'], 400);
+            }
             return redirect()->route('project')->with('error', 'No projects selected for deletion.');
         }
 
         try {
-            foreach ($ids as $id) {
-                $project = Project::find($id);
-                if ($project) {
-                    $project->delete();
-                }
+            $projects = Project::whereIn('id', $ids)->get();
+            foreach ($projects as $project) {
+                $project->delete();
             }
 
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => true, 'message' => 'Selected projects deleted successfully.']);
+            }
             return redirect()->route('project')->with('success', 'Selected projects deleted successfully.');
         } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Failed to delete selected projects: '.$e->getMessage()], 500);
+            }
             return redirect()->route('project')->with('error', 'Failed to delete selected projects: '.$e->getMessage());
         }
     }
