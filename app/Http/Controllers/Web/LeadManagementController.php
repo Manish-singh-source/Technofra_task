@@ -107,10 +107,9 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 ->count();
         }
 
+        // Source tabs are filtered in the DataTable. Keep all searched rows
+        // available so switching tabs also works after a filtered URL reload.
         $merged = $filteredBySearch
-            ->when($sourceFilter !== '', function (Collection $items) use ($sourceFilter) {
-                return $items->filter(fn(array $row) => (string) ($row['source_type'] ?? '') === $sourceFilter);
-            })
             ->when($statusFilter !== '', function (Collection $items) use ($statusFilter) {
                 return $items->filter(fn(array $row) => (string) ($row['status'] ?? '') === $statusFilter);
             })

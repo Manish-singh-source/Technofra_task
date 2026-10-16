@@ -13,13 +13,43 @@
         #example.lead-management-table {
             width: 100% !important;
             min-width: 1300px;
-            table-layout: auto;
+            table-layout: fixed;
         }
 
         .lead-management-table th,
         .lead-management-table td {
             min-width: 0;
+            white-space: normal;
             overflow-wrap: anywhere;
+            word-break: break-word;
+            vertical-align: top;
+        }
+
+        .lead-management-table .lead-col-name {
+            width: 180px;
+            max-width: 180px;
+            white-space: normal;
+            overflow: hidden;
+        }
+
+        .lead-management-table .lead-name-text {
+            display: -webkit-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+
+        .lead-management-table .lead-col-source {
+            width: 120px;
+            max-width: 120px;
+        }
+
+        .lead-management-table .lead-col-status {
+            width: 110px;
+            max-width: 110px;
         }
 
         .lead-management-table .order-actions {
@@ -38,6 +68,7 @@
             text-align: center;
             vertical-align: middle;
             white-space: nowrap;
+            overflow: visible;
         }
 
         .lead-management-table .lead-action-control {
@@ -292,7 +323,7 @@
                                     <th class="lead-col-company">Company</th>
                                     <th class="lead-col-source">Source</th>
                                     <th class="d-none">Source Key</th>
-                                    <th>Status</th>
+                                    <th class="lead-col-status">Status</th>
                                     <th class="lead-col-assigned">Assigned To</th>
                                     <th class="lead-col-created">Created Date</th>
                                     <th class="lead-actions-cell">Actions</th>
@@ -310,13 +341,14 @@
                                         </td>
                                         <td class="lead-col-index">
                                             {{ ($leads->currentPage() - 1) * $leads->perPage() + $loop->iteration }}</td>
-                                        <td class="lead-col-name">{{ $lead['name'] }}</td>
+                                        <td class="lead-col-name"><span class="lead-name-text">{{ $lead['name'] }}</span>
+                                        </td>
                                         <td class="lead-col-email">{{ $lead['email'] }}</td>
                                         <td class="lead-col-number">{{ $lead['number'] }}</td>
                                         <td class="lead-col-company">{{ $lead['company'] }}</td>
                                         <td class="lead-col-source">{{ $lead['source'] }}</td>
                                         <td class="d-none">{{ $lead['source_type'] }}</td>
-                                        <td><span
+                                        <td class="lead-col-status"><span
                                                 class="badge bg-secondary rounded-pill text-uppercase">{{ $lead['status'] ?? 'new' }}</span>
                                         </td>
                                         <td class="lead-col-assigned">{{ $lead['assigned_to'] ?? '-' }}</td>
@@ -582,6 +614,19 @@
                 metaSyncForm.classList.toggle('d-none', sourceKey !== 'meta');
             }
 
+            function updateSourceUrl(sourceKey, replace = false) {
+                const url = new URL(window.location.href);
+
+                if (sourceKey) {
+                    url.searchParams.set('source', sourceKey);
+                } else {
+                    url.searchParams.delete('source');
+                }
+
+                const method = replace ? 'replaceState' : 'pushState';
+                window.history[method]({}, '', `${url.pathname}${url.search}${url.hash}`);
+            }
+
             function submitMetaSyncForm() {
                 if (!metaSyncForm || metaSyncForm.dataset.autoSyncing === '1') return;
 
@@ -613,6 +658,7 @@
                 button.addEventListener('click', function() {
                     const sourceKey = (this.dataset.sourceKey || '').trim();
 
+                    updateSourceUrl(sourceKey);
                     applySourceFilter(sourceKey);
                     updateSourceFilterButtonState(this);
                     setMetaSyncFormVisibility(sourceKey);
@@ -635,6 +681,19 @@
                 updateSourceFilterButtonState(initialActiveButton);
                 setMetaSyncFormVisibility(initialSourceKey);
             }
+
+            window.addEventListener('popstate', function() {
+                const sourceKey = new URL(window.location.href).searchParams.get('source') || '';
+                const activeButton = Array.from(sourceFilterButtons).find((button) =>
+                    button.dataset.sourceKey === sourceKey
+                ) || Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey === '');
+
+                if (!activeButton) return;
+
+                applySourceFilter(sourceKey);
+                updateSourceFilterButtonState(activeButton);
+                setMetaSyncFormVisibility(sourceKey);
+            });
 
             const bulkAssignModalElement = document.getElementById('bulkAssignModal');
             const bulkAssignModal = bulkAssignModalElement ? new bootstrap.Modal(bulkAssignModalElement) : null;
