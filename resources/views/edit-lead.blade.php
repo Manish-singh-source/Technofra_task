@@ -43,7 +43,9 @@
                                                 <option value="email_campaign" {{ $lead->source == 'email_campaign' ? 'selected' : '' }}>Email Campaign</option>
                                                 <option value="other" {{ $lead->source == 'other' ? 'selected' : '' }}>Other</option>
                                             </select> --}}
-                                            <input type="text" class="form-control @error('source') is-invalid @enderror" id="source" name="source" placeholder="Enter Source" value="{{ old('source', $lead->source) }}">
+                                            <input type="text" class="form-control @error('source') is-invalid @enderror"
+                                                id="source" name="source" placeholder="Enter Source"
+                                                value="{{ old('source', $lead->source) }}">
                                             @error('source')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -51,20 +53,23 @@
                                         <div class="col-6 mb-3">
                                             <label for="status" class="form-label">Status</label>
                                             <select class="form-select" id="status" name="status">
-                                                <option value="new" {{ $lead->status == 'new' ? 'selected' : '' }}>New</option>
-                                                <option value="contacted" {{ $lead->status == 'contacted' ? 'selected' : '' }}>Contacted</option>
-                                                <option value="qualified" {{ $lead->status == 'qualified' ? 'selected' : '' }}>Qualified</option>
-                                                <option value="converted" {{ $lead->status == 'converted' ? 'selected' : '' }}>Converted</option>
-                                                <option value="lost" {{ $lead->status == 'lost' ? 'selected' : '' }}>Lost</option>
+                                                @foreach (config('lead_statuses', []) as $statusOption)
+                                                    <option value="{{ $statusOption['slug'] }}"
+                                                        {{ old('status', $lead->status) === $statusOption['slug'] ? 'selected' : '' }}>
+                                                        {{ $statusOption['name'] }}
+                                                    </option>
+                                                @endforeach
                                             </select>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="assigned" class="form-label">Assigned (Multi-select)</label>
-                                            <select class="form-select" id="assigned" name="assigned[]" multiple data-placeholder="Select staff members">
-                                                @foreach($staff as $member)
-                                                    <option value="{{ $member->id }}" {{ in_array($member->id, old('assigned', $lead->assigned ?? [])) ? 'selected' : '' }}>
+                                            <select class="form-select" id="assigned" name="assigned[]" multiple
+                                                data-placeholder="Select staff members">
+                                                @foreach ($staff as $member)
+                                                    <option value="{{ $member->id }}"
+                                                        {{ in_array($member->id, old('assigned', $lead->assigned ?? [])) ? 'selected' : '' }}>
                                                         {{ $member->first_name }} {{ $member->last_name }}
                                                     </option>
                                                 @endforeach
@@ -75,13 +80,26 @@
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="tags" class="form-label">Tags (Multi-select)</label>
-                                            <select class="form-select" id="tags" name="tags[]" multiple data-placeholder="Select or add tags">
-                                                <option value="hot" {{ in_array('hot', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>Hot</option>
-                                                <option value="warm" {{ in_array('warm', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>Warm</option>
-                                                <option value="cold" {{ in_array('cold', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>Cold</option>
-                                                <option value="urgent" {{ in_array('urgent', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>Urgent</option>
-                                                <option value="follow-up" {{ in_array('follow-up', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>Follow-up</option>
-                                                <option value="nurture" {{ in_array('nurture', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>Nurture</option>
+                                            <select class="form-select" id="tags" name="tags[]" multiple
+                                                data-placeholder="Select or add tags">
+                                                <option value="hot"
+                                                    {{ in_array('hot', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>
+                                                    Hot</option>
+                                                <option value="warm"
+                                                    {{ in_array('warm', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>
+                                                    Warm</option>
+                                                <option value="cold"
+                                                    {{ in_array('cold', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>
+                                                    Cold</option>
+                                                <option value="urgent"
+                                                    {{ in_array('urgent', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>
+                                                    Urgent</option>
+                                                <option value="follow-up"
+                                                    {{ in_array('follow-up', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>
+                                                    Follow-up</option>
+                                                <option value="nurture"
+                                                    {{ in_array('nurture', old('tags', $lead->tags ?? [])) ? 'selected' : '' }}>
+                                                    Nurture</option>
                                             </select>
                                             @error('tags')
                                                 <div class="text-danger">{{ $message }}</div>
@@ -91,14 +109,18 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="name" class="form-label">Name</label>
-                                            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" placeholder="Enter name" value="{{ old('name', $lead->name) }}">
+                                            <input type="text" class="form-control @error('name') is-invalid @enderror"
+                                                id="name" name="name" placeholder="Enter name"
+                                                value="{{ old('name', $lead->name) }}">
                                             @error('name')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="email" class="form-label">Email Address</label>
-                                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="Enter email address" value="{{ old('email', $lead->email) }}">
+                                            <input type="email" class="form-control @error('email') is-invalid @enderror"
+                                                id="email" name="email" placeholder="Enter email address"
+                                                value="{{ old('email', $lead->email) }}">
                                             @error('email')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -107,14 +129,20 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="company" class="form-label">Company</label>
-                                            <input type="text" class="form-control @error('company') is-invalid @enderror" id="company" name="company" placeholder="Enter company" value="{{ old('company', $lead->company) }}">
+                                            <input type="text"
+                                                class="form-control @error('company') is-invalid @enderror" id="company"
+                                                name="company" placeholder="Enter company"
+                                                value="{{ old('company', $lead->company) }}">
                                             @error('company')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="position" class="form-label">Position</label>
-                                            <input type="text" class="form-control @error('position') is-invalid @enderror" id="position" name="position" placeholder="Enter position" value="{{ old('position', $lead->position) }}">
+                                            <input type="text"
+                                                class="form-control @error('position') is-invalid @enderror"
+                                                id="position" name="position" placeholder="Enter position"
+                                                value="{{ old('position', $lead->position) }}">
                                             @error('position')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -123,14 +151,20 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="phone" class="form-label">Phone</label>
-                                            <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" placeholder="Enter phone" value="{{ old('phone', $lead->phone) }}">
+                                            <input type="text"
+                                                class="form-control @error('phone') is-invalid @enderror" id="phone"
+                                                name="phone" placeholder="Enter phone"
+                                                value="{{ old('phone', $lead->phone) }}">
                                             @error('phone')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="website" class="form-label">Website</label>
-                                            <input type="url" class="form-control @error('website') is-invalid @enderror" id="website" name="website" placeholder="Enter website" value="{{ old('website', $lead->website) }}">
+                                            <input type="url"
+                                                class="form-control @error('website') is-invalid @enderror" id="website"
+                                                name="website" placeholder="Enter website"
+                                                value="{{ old('website', $lead->website) }}">
                                             @error('website')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -138,7 +172,9 @@
                                     </div>
                                     <div class="mb-3">
                                         <label for="address" class="form-label">Address</label>
-                                        <input type="text" class="form-control @error('address') is-invalid @enderror" id="address" name="address" placeholder="Enter address" value="{{ old('address', $lead->address) }}">
+                                        <input type="text" class="form-control @error('address') is-invalid @enderror"
+                                            id="address" name="address" placeholder="Enter address"
+                                            value="{{ old('address', $lead->address) }}">
                                         @error('address')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -146,14 +182,19 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="city" class="form-label">City</label>
-                                            <input type="text" class="form-control @error('city') is-invalid @enderror" id="city" name="city" placeholder="Enter city" value="{{ old('city', $lead->city) }}">
+                                            <input type="text" class="form-control @error('city') is-invalid @enderror"
+                                                id="city" name="city" placeholder="Enter city"
+                                                value="{{ old('city', $lead->city) }}">
                                             @error('city')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="state" class="form-label">State</label>
-                                            <input type="text" class="form-control @error('state') is-invalid @enderror" id="state" name="state" placeholder="Enter state" value="{{ old('state', $lead->state) }}">
+                                            <input type="text"
+                                                class="form-control @error('state') is-invalid @enderror" id="state"
+                                                name="state" placeholder="Enter state"
+                                                value="{{ old('state', $lead->state) }}">
                                             @error('state')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -162,16 +203,25 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="country" class="form-label">Country</label>
-                                            <select class="form-select @error('country') is-invalid @enderror" id="country" name="country">
+                                            <select class="form-select @error('country') is-invalid @enderror"
+                                                id="country" name="country">
                                                 <option value="">Select Country</option>
-                                                <option value="US" {{ $lead->country == 'US' ? 'selected' : '' }}>United States</option>
-                                                <option value="UK" {{ $lead->country == 'UK' ? 'selected' : '' }}>United Kingdom</option>
-                                                <option value="IN" {{ $lead->country == 'IN' ? 'selected' : '' }}>India</option>
-                                                <option value="CA" {{ $lead->country == 'CA' ? 'selected' : '' }}>Canada</option>
-                                                <option value="AU" {{ $lead->country == 'AU' ? 'selected' : '' }}>Australia</option>
-                                                <option value="DE" {{ $lead->country == 'DE' ? 'selected' : '' }}>Germany</option>
-                                                <option value="FR" {{ $lead->country == 'FR' ? 'selected' : '' }}>France</option>
-                                                <option value="other" {{ $lead->country == 'other' ? 'selected' : '' }}>Other</option>
+                                                <option value="US" {{ $lead->country == 'US' ? 'selected' : '' }}>
+                                                    United States</option>
+                                                <option value="UK" {{ $lead->country == 'UK' ? 'selected' : '' }}>
+                                                    United Kingdom</option>
+                                                <option value="IN" {{ $lead->country == 'IN' ? 'selected' : '' }}>
+                                                    India</option>
+                                                <option value="CA" {{ $lead->country == 'CA' ? 'selected' : '' }}>
+                                                    Canada</option>
+                                                <option value="AU" {{ $lead->country == 'AU' ? 'selected' : '' }}>
+                                                    Australia</option>
+                                                <option value="DE" {{ $lead->country == 'DE' ? 'selected' : '' }}>
+                                                    Germany</option>
+                                                <option value="FR" {{ $lead->country == 'FR' ? 'selected' : '' }}>
+                                                    France</option>
+                                                <option value="other" {{ $lead->country == 'other' ? 'selected' : '' }}>
+                                                    Other</option>
                                             </select>
                                             @error('country')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -179,7 +229,10 @@
                                         </div>
                                         <div class="col-6 mb-3">
                                             <label for="zipCode" class="form-label">Zip Code</label>
-                                            <input type="text" class="form-control @error('zipCode') is-invalid @enderror" id="zipCode" name="zipCode" placeholder="Enter zip code" value="{{ old('zipCode', $lead->zipCode) }}">
+                                            <input type="text"
+                                                class="form-control @error('zipCode') is-invalid @enderror"
+                                                id="zipCode" name="zipCode" placeholder="Enter zip code"
+                                                value="{{ old('zipCode', $lead->zipCode) }}">
                                             @error('zipCode')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -188,7 +241,10 @@
                                     <div class="row">
                                         <div class="col-6 mb-3">
                                             <label for="lead_value" class="form-label">Lead Value</label>
-                                            <input type="number" class="form-control @error('lead_value') is-invalid @enderror" id="lead_value" name="lead_value" placeholder="Enter lead value" value="{{ old('lead_value', $lead->lead_value) }}">
+                                            <input type="number"
+                                                class="form-control @error('lead_value') is-invalid @enderror"
+                                                id="lead_value" name="lead_value" placeholder="Enter lead value"
+                                                value="{{ old('lead_value', $lead->lead_value) }}">
                                             @error('lead_value')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
@@ -196,7 +252,8 @@
                                     </div>
                                     <div class="mb-3">
                                         <label for="description" class="form-label">Description</label>
-                                        <textarea class="form-control @error('description') is-invalid @enderror" id="description" name="description" rows="3" placeholder="Enter description">{{ old('description', $lead->description) }}</textarea>
+                                        <textarea class="form-control @error('description') is-invalid @enderror" id="description" name="description"
+                                            rows="3" placeholder="Enter description">{{ old('description', $lead->description) }}</textarea>
                                         @error('description')
                                             <div class="invalid-feedback">{{ $message }}</div>
                                         @enderror
@@ -208,33 +265,33 @@
                                     </div>
                                 </div>
                             </div>
-                        </div><!--end row-->
-                        </form>
-                    </div>
+                    </div><!--end row-->
+                    </form>
                 </div>
             </div>
-
-
         </div>
+
+
+    </div>
     </div>
     <!--end page wrapper -->
 @endsection
 
 @section('scripts')
-<script>
-    $(document).ready(function() {
-        // Initialize Select2 for assigned (multi-select staff)
-        $('#assigned').select2({
-            placeholder: "Select staff members",
-            allowClear: true
-        });
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 for assigned (multi-select staff)
+            $('#assigned').select2({
+                placeholder: "Select staff members",
+                allowClear: true
+            });
 
-        // Initialize Select2 for tags (multi-select with tags enabled)
-        $('#tags').select2({
-            placeholder: "Select or add tags",
-            tags: true,
-            allowClear: true
+            // Initialize Select2 for tags (multi-select with tags enabled)
+            $('#tags').select2({
+                placeholder: "Select or add tags",
+                tags: true,
+                allowClear: true
+            });
         });
-    });
-</script>
+    </script>
 @endsection

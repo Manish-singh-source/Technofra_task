@@ -3,11 +3,98 @@
 @push('styles')
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         referrerpolicy="no-referrer" />
+    <style>
+        .lead-management-table-wrap {
+            max-width: 100%;
+            overflow-x: auto;
+            overscroll-behavior-x: contain;
+        }
+
+        #example.lead-management-table {
+            width: 100% !important;
+            min-width: 1300px;
+            table-layout: auto;
+        }
+
+        .lead-management-table th,
+        .lead-management-table td {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        .lead-management-table .order-actions {
+            display: grid;
+            grid-template-columns: repeat(4, 30px);
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            width: max-content;
+            margin-inline: auto;
+        }
+
+        .lead-management-table .lead-actions-cell {
+            width: 150px;
+            min-width: 150px;
+            text-align: center;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .lead-management-table .lead-action-control {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 30px;
+            width: 30px;
+            height: 30px;
+            min-width: 30px;
+            margin: 0 !important;
+            padding: 0 !important;
+            line-height: 1;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .lead-management-table .lead-action-control i {
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .lead-management-table .lead-actions-form {
+            display: flex;
+            grid-column: 4;
+            margin: 0 !important;
+        }
+
+        .lead-management-table .lead-action-view {
+            grid-column: 1;
+        }
+
+        .lead-management-table .lead-action-assign {
+            grid-column: 2;
+        }
+
+        .lead-management-table .lead-action-edit {
+            grid-column: 3;
+        }
+
+        @media (max-width: 767.98px) {
+            .lead-management-table {
+                font-size: 0.8rem;
+            }
+
+            .lead-management-table th,
+            .lead-management-table td {
+                padding: 0.35rem 0.25rem;
+            }
+        }
+    </style>
 @endpush
 
 @section('content')
     @php
         $activeSource = $filters['source'] ?? '';
+        $canSelectLeads = ($canManageLeadAssignments ?? false) || auth()->user()->can('delete_leads');
         $tabColorClasses = [
             'all' => ['active' => 'btn-dark', 'inactive' => 'btn-outline-dark', 'badge' => 'bg-dark'],
             'lead' => [
@@ -29,7 +116,11 @@
             'google' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
             'indiamart' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
             'justdial' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
-            'enquiryform' => ['active' => 'btn-secondary', 'inactive' => 'btn-outline-secondary', 'badge' => 'bg-secondary'],
+            'enquiryform' => [
+                'active' => 'btn-secondary',
+                'inactive' => 'btn-outline-secondary',
+                'badge' => 'bg-secondary',
+            ],
         ];
         $tabIcons = [
             'all' => 'bx-grid-alt',
@@ -44,13 +135,15 @@
         ];
         $metaSyncReturnTo = route(
             'lead-management.index',
-            array_filter([
-                'source' => 'meta',
-                'search' => $filters['search'] ?? null,
-                'status' => $filters['status'] ?? null,
-            ], fn ($value) => filled($value)),
+            array_filter(
+                [
+                    'source' => 'meta',
+                    'search' => $filters['search'] ?? null,
+                    'status' => $filters['status'] ?? null,
+                ],
+                fn($value) => filled($value),
+            ),
         );
-        $canSelectLeads = ($canManageLeadAssignments ?? false) || auth()->user()->can('delete_leads');
     @endphp
     <div class="page-wrapper">
         <div class="page-content">
@@ -181,58 +274,65 @@
                         </div>
                     @endif
 
-                    <div class="table-responsive">
+                    <div class="table-responsive lead-management-table-wrap">
 
                         <table id="example" data-no-default-datatable="true"
-                            class="table table-striped table-bordered align-middle">
+                            class="table table-striped table-bordered align-middle lead-management-table">
                             <thead class="table-light">
                                 <tr>
-                                    <th>@if ($canSelectLeads)<input type="checkbox" id="selectAllLeads">@endif</th>
-                                    <th>Sr No</th>
-                                    <th>Name</th>
-                                    <th>Email</th>
-                                    <th>Number</th>
-                                    <th>Company</th>
-                                    <th>Source</th>
+                                    <th class="lead-col-select">
+                                        @if ($canSelectLeads)
+                                            <input type="checkbox" id="selectAllLeads">
+                                        @endif
+                                    </th>
+                                    <th class="lead-col-index">Sr No</th>
+                                    <th class="lead-col-name">Name</th>
+                                    <th class="lead-col-email">Email</th>
+                                    <th class="lead-col-number">Number</th>
+                                    <th class="lead-col-company">Company</th>
+                                    <th class="lead-col-source">Source</th>
                                     <th class="d-none">Source Key</th>
                                     <th>Status</th>
-                                    <th>Assigned To</th>
-                                    <th>Created Date</th>
-                                    <th>Actions</th>
+                                    <th class="lead-col-assigned">Assigned To</th>
+                                    <th class="lead-col-created">Created Date</th>
+                                    <th class="lead-actions-cell">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($leads as $lead)
                                     <tr>
-                                        <td>
+                                        <td class="lead-col-select">
                                             @if ($canSelectLeads)
                                                 <input type="checkbox" class="lead-select-checkbox"
                                                     data-source="{{ $lead['source_type'] }}"
                                                     data-id="{{ $lead['source_id'] }}">
                                             @endif
                                         </td>
-                                        <td>{{ ($leads->currentPage() - 1) * $leads->perPage() + $loop->iteration }}</td>
-                                        <td>{{ $lead['name'] }}</td>
-                                        <td>{{ $lead['email'] }}</td>
-                                        <td>{{ $lead['number'] }}</td>
-                                        <td>{{ $lead['company'] }}</td>
-                                        <td>{{ $lead['source'] }}</td>
+                                        <td class="lead-col-index">
+                                            {{ ($leads->currentPage() - 1) * $leads->perPage() + $loop->iteration }}</td>
+                                        <td class="lead-col-name">{{ $lead['name'] }}</td>
+                                        <td class="lead-col-email">{{ $lead['email'] }}</td>
+                                        <td class="lead-col-number">{{ $lead['number'] }}</td>
+                                        <td class="lead-col-company">{{ $lead['company'] }}</td>
+                                        <td class="lead-col-source">{{ $lead['source'] }}</td>
                                         <td class="d-none">{{ $lead['source_type'] }}</td>
                                         <td><span
                                                 class="badge bg-secondary rounded-pill text-uppercase">{{ $lead['status'] ?? 'new' }}</span>
                                         </td>
-                                        <td>{{ $lead['assigned_to'] ?? '-' }}</td>
-                                        <td>{{ $lead['created_at'] }}</td>
-                                        <td>
-                                            <div class="d-flex order-actions">
+                                        <td class="lead-col-assigned">{{ $lead['assigned_to'] ?? '-' }}</td>
+                                        <td class="lead-col-created">{{ $lead['created_at'] }}</td>
+                                        <td class="lead-actions-cell">
+                                            <div class="order-actions">
                                                 <a href="{{ route('lead-management.show', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}"
-                                                    class="text-primary" title="View"><i class='bx bxs-show'></i></a>
+                                                    class="text-primary lead-action-control lead-action-view"
+                                                    title="View"><i class='bx bxs-show'></i></a>
 
                                                 @if ($canManageLeadAssignments ?? false)
-                                                    <button type="button" class="text-warning border-0 bg-transparent ms-2"
+                                                    <button type="button"
+                                                        class="text-warning border-0 bg-transparent lead-action-control lead-action-assign"
                                                         data-bs-toggle="modal"
                                                         data-bs-target="#assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
-                                                        title="Assign" style="cursor: pointer;">
+                                                        title="Assign">
                                                         <i class='bx bxs-user-plus'></i>
                                                     </button>
 
@@ -243,19 +343,22 @@
                                                             title="Change Status" style="cursor: pointer;">
                                                             <i class='bx bxs-edit-alt'></i>
                                                         </button> --}}
-                                                        <a href="{{ route('lead.edit', $lead['source_id']) }}" class="text-info border-0 bg-transparent ms-2"><i class='bx bxs-edit-alt'></i></a>
+                                                        <a href="{{ route('lead.edit', $lead['source_id']) }}"
+                                                            class="text-info border-0 bg-transparent lead-action-control lead-action-edit"><i
+                                                                class='bx bxs-edit-alt'></i></a>
                                                     @endif
                                                 @endif
 
                                                 @can('delete_leads')
                                                     <form method="POST"
                                                         action="{{ route('lead-management.destroy', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}"
-                                                        class="d-inline ms-2"
+                                                        class="lead-actions-form lead-action-delete"
                                                         onsubmit="return confirm('Are you sure you want to delete this lead?')">
                                                         @csrf
                                                         @method('DELETE')
-                                                        <button type="submit" class="text-danger border-0 bg-transparent"
-                                                            title="Delete" style="cursor: pointer;">
+                                                        <button type="submit"
+                                                            class="text-danger border-0 bg-transparent lead-action-control"
+                                                            title="Delete">
                                                             <i class='bx bxs-trash'></i>
                                                         </button>
                                                     </form>
@@ -284,7 +387,8 @@
                         @csrf
                         <div class="modal-header">
                             <h5 class="modal-title">Bulk Assign Leads</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"
+                                aria-label="Close"></button>
                         </div>
                         <div class="modal-body">
                             <div class="mb-2 text-muted">
@@ -322,8 +426,8 @@
         </div>
 
         @foreach ($leads as $lead)
-            <div class="modal fade" id="assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}" tabindex="-1"
-                aria-hidden="true">
+            <div class="modal fade" id="assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
+                tabindex="-1" aria-hidden="true">
                 <div class="modal-dialog">
                     <div class="modal-content">
                         <form method="POST"
@@ -420,7 +524,9 @@
 
             if ($table.length && !$.fn.DataTable.isDataTable($table)) {
                 dataTableInstance = $table.DataTable({
-                    order: []
+                    order: [],
+                    autoWidth: false,
+                    scrollX: false
                 });
             } else if ($table.length) {
                 dataTableInstance = $table.DataTable();
