@@ -23,56 +23,60 @@ class RoleSeeder extends Seeder
             'create_users',
             'edit_users',
             'delete_users',
-            
+
             // Role Management
             'view_roles',
             'create_roles',
             'edit_roles',
             'delete_roles',
-            
+
             // Project Management
             'view_projects',
             'create_projects',
             'edit_projects',
             'delete_projects',
-            
+
             // Client Management
             'view_clients',
             'create_clients',
             'edit_clients',
             'delete_clients',
-            
+
             // Lead Management
             'view_leads',
             'create_leads',
             'edit_leads',
             'delete_leads',
             'view_leads_management',
-            
+
             // Dashboard
             'view_dashboard',
             'view_dashboard_welcome',
             'view_calendar',
             'view_renewals',
-            
+
             // Vendor Management
             'view_vendors',
             'create_vendors',
             'edit_vendors',
             'delete_vendors',
-            
+
             // Service Management
             'view_services',
             'create_services',
             'edit_services',
             'delete_services',
-            
+
             // Staff Management
             'view_staff',
             'create_staff',
             'edit_staff',
             'delete_staff',
-            
+
+            // Salary Management
+            'view_salary_management',
+            'upload_salary_management',
+
             // Task Management
             'view_tasks',
             'create_tasks',
@@ -84,13 +88,13 @@ class RoleSeeder extends Seeder
             'create_book_calls',
             'edit_book_calls',
             'delete_book_calls',
-            
+
             // Digital Marketing Leads
             'view_digital_marketing_leads',
             'create_digital_marketing_leads',
             'edit_digital_marketing_leads',
             'delete_digital_marketing_leads',
-            
+
             // Settings Management
             'view_general_settings',
             'view_company_information',
@@ -126,7 +130,7 @@ class RoleSeeder extends Seeder
                 'create_leads',
                 'edit_leads',
                 'delete_leads',
-            'view_leads_management',
+                'view_leads_management',
                 'view_dashboard',
                 'view_dashboard_welcome',
                 'view_calendar',
@@ -143,6 +147,8 @@ class RoleSeeder extends Seeder
                 'create_staff',
                 'edit_staff',
                 'delete_staff',
+                'view_salary_management',
+                'upload_salary_management',
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
@@ -190,6 +196,8 @@ class RoleSeeder extends Seeder
                 'view_staff',
                 'create_staff',
                 'edit_staff',
+                'view_salary_management',
+                'upload_salary_management',
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
@@ -224,6 +232,7 @@ class RoleSeeder extends Seeder
                 'view_vendors',
                 'view_services',
                 'view_staff',
+                'view_salary_management',
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
@@ -252,6 +261,7 @@ class RoleSeeder extends Seeder
                 'view_clients',
                 'view_leads',
                 'view_dashboard',
+                'view_salary_management',
                 'view_tasks',
                 'create_tasks',
                 'edit_tasks',
@@ -269,14 +279,10 @@ class RoleSeeder extends Seeder
         // Create roles and assign permissions
         foreach ($roles as $roleName => $rolePermissions) {
             $role = Role::firstOrCreate(['name' => $roleName], ['name' => $roleName]);
-            
+
             // Sync permissions (update operation - removes old permissions not in this list)
             $permissionIds = Permission::whereIn('name', $rolePermissions)->pluck('id')->toArray();
             $role->syncPermissions($permissionIds);
         }
     }
 }
-
-
-
-

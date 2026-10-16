@@ -14,6 +14,7 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PermissionController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RoleController;
+use App\Http\Controllers\SalaryManagementController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\StaffController;
@@ -77,6 +78,16 @@ Route::middleware('auth')->group(function () {
     // Dashboard route (protected by auth middleware) - also serves as index
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
     Route::get('/dashboard/operations-summary/download', [DashboardController::class, 'downloadOperationsSummary'])->name('dashboard.operations-summary.download');
+    Route::middleware('can:view_salary_management')->group(function () {
+        Route::get('/salary-management', [SalaryManagementController::class, 'index'])->name('salary-management.index');
+        Route::get('/salary-management/upload', [SalaryManagementController::class, 'index'])->name('salary-management.upload-form');
+        Route::post('/salary-management/upload', [SalaryManagementController::class, 'upload'])
+            ->middleware('can:upload_salary_management')
+            ->name('salary-management.upload');
+        Route::post('/salary-management/save', [SalaryManagementController::class, 'save'])
+            ->middleware('can:upload_salary_management')
+            ->name('salary-management.save');
+    });
     Route::get('/user-profile', [AuthController::class, 'profile'])->name('user-profile');
     Route::put('/user-profile', [AuthController::class, 'updateProfile'])->name('user-profile.update');
 

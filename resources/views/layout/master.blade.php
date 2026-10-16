@@ -227,29 +227,28 @@
                             <div class="menu-title">Renewal Master</div>
                         </a>
                         <ul>
-                             @can('view_services')
-                            <li>
-                                <a href="{{ route('services.index') }}">
-                                    <div class="parent-icon">
+                            @can('view_services')
+                                <li>
+                                    <a href="{{ route('services.index') }}">
+                                        <div class="parent-icon">
 
-                                    </div>
-                                    <div class="menu-title">Client Renewal</div>
-                                </a>
-                            </li>
-                             @endcan
+                                        </div>
+                                        <div class="menu-title">Client Renewal</div>
+                                    </a>
+                                </li>
+                            @endcan
 
 
-                              @can('view_vendors_services')
-                            <li>
-                                <a href="{{ route('vendor-services.index') }}">
-                                    <div class="parent-icon">
+                            @can('view_vendors_services')
+                                <li>
+                                    <a href="{{ route('vendor-services.index') }}">
+                                        <div class="parent-icon">
 
-                                    </div>
-                                    <div class="menu-title">Vendor Renewal</div>
-                                </a>
-                            </li>
-
-                             @endcan
+                                        </div>
+                                        <div class="menu-title">Vendor Renewal</div>
+                                    </a>
+                                </li>
+                            @endcan
                             {{-- 
                             <li>
                                 <a href="{{ route('client') }}">
@@ -260,16 +259,14 @@
                                 </a>
                             </li> --}}
                             @can('view_vendors')
-                               
-                            <li>
-                                <a href="{{ route('vendor1') }}">
-                                    <div class="parent-icon">
+                                <li>
+                                    <a href="{{ route('vendor1') }}">
+                                        <div class="parent-icon">
 
-                                    </div>
-                                    <div class="menu-title">Vendor</div>
-                                </a>
-                            </li>
- 
+                                        </div>
+                                        <div class="menu-title">Vendor</div>
+                                    </a>
+                                </li>
                             @endcan
                         </ul>
                     </li>
@@ -333,6 +330,14 @@
                         </a>
                     </li>
                 @endcan
+                @can('view_salary_management')
+                    <li>
+                        <a href="{{ route('salary-management.index') }}">
+                            <div class="parent-icon"><i class="bx bxs-user-detail"></i></div>
+                            <div class="menu-title">Staff &amp; Employee Master</div>
+                        </a>
+                    </li>
+                @endcan
                 @can('view_clients')
                     <li>
                         <a href="{{ route('client') }}">
@@ -367,7 +372,7 @@
                             </div>
                             <div class="menu-title">Career</div>
                         </a>
-                    </li> 
+                    </li>
                 @endcan
 
                 {{-- 
@@ -1486,7 +1491,7 @@
 
     @yield('scripts')
     @stack('scripts')
-    
+
     <script>
         'undefined' === typeof _trfq || (window._trfq = []);
         'undefined' === typeof _trfd && (window._trfd = []), _trfd.push({
