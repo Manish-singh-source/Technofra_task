@@ -12,7 +12,6 @@ use App\Models\UserAddress;
 use App\Services\LeadManagement\LeadMobileNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
@@ -20,6 +19,7 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class LeadController extends Controller
 {
+    private const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'];
     private const SOURCES = ['website', 'referral', 'social_media', 'cold_call', 'email_campaign', 'other'];
     private const TAGS = ['hot', 'warm', 'cold', 'urgent', 'follow-up', 'nurture'];
 
@@ -86,7 +86,7 @@ class LeadController extends Controller
      */
     public function edit($id)
     {
-        $lead = $this->findEditableLeadOrFail((int) $id);
+        $lead = $this->findVisibleLeadOrFail((int) $id);
         $staff = User::staffMembers()
             ->orderBy('first_name')
             ->orderBy('last_name')
@@ -99,7 +99,7 @@ class LeadController extends Controller
      */
     public function update(Request $request, $id)
     {
-        $lead = $this->findEditableLeadOrFail((int) $id);
+        $lead = $this->findVisibleLeadOrFail((int) $id);
 
         $validator = $this->validateLeadData($request);
 
@@ -246,28 +246,9 @@ class LeadController extends Controller
         return $this->visibleLeadQuery()->where('id', $id)->firstOrFail();
     }
 
-    private function findEditableLeadOrFail(int $id): Lead
-    {
-        $user = auth()->user();
-        $role = strtolower((string) data_get($user, 'role', ''));
-        $adminRoles = ['admin', 'super-admin', 'super_admin', 'super_admin2'];
-        $hasAdminAccess = in_array($role, $adminRoles, true)
-            || ($user && method_exists($user, 'hasAnyRole') && call_user_func([$user, 'hasAnyRole'], $adminRoles));
-        $canEditAllLeads = ! $this->isStaffUser()
-            && $role !== 'client'
-            && $user
-            && Gate::forUser($user)->allows('edit_leads');
-
-        if ($hasAdminAccess || $canEditAllLeads) {
-            return Lead::query()->findOrFail($id);
-        }
-
-        return $this->findVisibleLeadOrFail($id);
-    }
-
     private function isStaffUser(): bool
     {
-        $role = strtolower((string) data_get(auth()->user(), 'role', ''));
+        $role = strtolower((string) (auth()->user()?->getRawOriginal('role') ?? auth()->user()?->role ?? ''));
 
         return $role === 'staff';
     }
@@ -294,7 +275,7 @@ class LeadController extends Controller
             'tags' => 'nullable|array',
             'tags.*' => 'string',
             'description' => 'nullable|string',
-            'status' => ['nullable', Rule::in(collect(config('lead_statuses', []))->pluck('slug')->all())],
+            'status' => 'nullable|in:' . implode(',', self::STATUSES),
         ]);
     }
 
@@ -324,8 +305,8 @@ class LeadController extends Controller
     private function syncAssignedLeads(Lead $lead, array $staffIds): void
     {
         $staffIds = collect($staffIds)
-            ->map(fn($v) => (int) $v)
-            ->filter(fn($v) => $v > 0)
+            ->map(fn ($v) => (int) $v)
+            ->filter(fn ($v) => $v > 0)
             ->unique()
             ->values()
             ->all();
