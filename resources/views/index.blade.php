@@ -1,5 +1,160 @@
 @extends('/layout/master')
 @section('content')
+    <style>
+        .dashboard-kpi-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            overflow: hidden;
+            background: #fff;
+            border: 1px solid rgba(0, 140, 255, 0.12);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(32, 52, 72, 0.08);
+        }
+
+        .dashboard-kpi-item {
+            position: relative;
+            display: flex;
+            align-items: center;
+            min-width: 0;
+            min-height: 82px;
+            padding: 12px 16px;
+            isolation: isolate;
+        }
+
+        .dashboard-kpi-item:not(:last-child) {
+            border-right: 1px solid rgba(0, 140, 255, 0.1);
+        }
+
+        .dashboard-kpi-item:first-child {
+            z-index: 3;
+            color: #fff;
+            background: linear-gradient(135deg, #008cff 0%, #0d6efd 100%);
+        }
+
+        .dashboard-kpi-item:nth-child(2) {
+            z-index: 2;
+            background: #fff;
+        }
+
+        .dashboard-kpi-item:nth-child(3) {
+            z-index: 1;
+            background: #fff;
+        }
+
+        .dashboard-kpi-item:not(:first-child) {
+            overflow: hidden;
+            transition: box-shadow 220ms ease;
+        }
+
+        .dashboard-kpi-item:not(:first-child)::before {
+            content: '';
+            position: absolute;
+            z-index: 0;
+            inset: 0;
+            background: linear-gradient(135deg, #008cff 0%, #0d6efd 100%);
+            transform: scaleX(0);
+            transform-origin: left center;
+            transition: transform 260ms ease;
+        }
+
+        .dashboard-kpi-item:not(:first-child):hover {
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+        }
+
+        .dashboard-kpi-item:not(:first-child):hover::before {
+            transform: scaleX(1);
+        }
+
+        .dashboard-kpi-content {
+            position: relative;
+            z-index: 2;
+            min-width: 0;
+        }
+
+        .dashboard-kpi-title {
+            margin: 0 0 4px;
+            color: #172033;
+            font-size: clamp(16px, 1.5vw, 22px);
+            font-weight: 700;
+            line-height: 1.15;
+            white-space: nowrap;
+            transition: color 200ms ease;
+        }
+
+        .dashboard-kpi-value {
+            color: #008cff;
+            transition: color 200ms ease;
+        }
+
+        .dashboard-kpi-caption {
+            margin: 0;
+            color: #64748b;
+            font-size: clamp(11px, 1vw, 13px);
+            line-height: 1.3;
+            white-space: nowrap;
+            transition: color 200ms ease;
+        }
+
+        .dashboard-kpi-item:first-child .dashboard-kpi-title,
+        .dashboard-kpi-item:first-child .dashboard-kpi-value,
+        .dashboard-kpi-item:first-child .dashboard-kpi-caption {
+            color: #fff;
+        }
+
+        .dashboard-kpi-item:not(:first-child):hover .dashboard-kpi-title,
+        .dashboard-kpi-item:not(:first-child):hover .dashboard-kpi-value,
+        .dashboard-kpi-item:not(:first-child):hover .dashboard-kpi-caption {
+            color: #fff;
+        }
+
+        .dashboard-kpi-icon {
+            position: absolute;
+            z-index: 1;
+            right: 16px;
+            color: #008cff;
+            font-size: 72px;
+            line-height: 1;
+            opacity: 0.055;
+            transform: rotate(-8deg);
+            transition: color 200ms ease, opacity 200ms ease, transform 220ms ease;
+        }
+
+        .dashboard-kpi-item:first-child .dashboard-kpi-icon {
+            color: #fff;
+            opacity: 0.08;
+        }
+
+        .dashboard-kpi-item:not(:first-child):hover .dashboard-kpi-icon {
+            color: #fff;
+            opacity: 0.12;
+            transform: rotate(0deg) scale(1.06);
+        }
+
+        @media (max-width: 575.98px) {
+            .dashboard-kpi-item {
+                min-height: 68px;
+                padding: 8px;
+            }
+
+            .dashboard-kpi-title {
+                font-size: 11px;
+                line-height: 1.2;
+                white-space: normal;
+            }
+
+            .dashboard-kpi-caption {
+                margin-top: 4px;
+                font-size: 9px;
+                white-space: normal;
+            }
+
+            .dashboard-kpi-icon {
+                right: 4px;
+                font-size: 44px;
+            }
+        }
+    </style>
+
     <!--start page wrapper -->
     <div class="page-wrapper">
         <div class="page-content">
@@ -9,38 +164,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
-
-
-
-            @canany(['view_dashboard', 'view_dashboard_welcome'])
-                <div class="row mb-3">
-                    <div class="col-12 col-lg-12">
-                        <div class="card h-100">
-                            <div class="card-body">
-                                <h5 class="card-title">Welcome, {{ Auth::user()->name }}!</h5>
-                                <p class="card-text mb-0">You are successfully logged in to the Technofra Renewal Master
-                                    dashboard.
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    {{-- 
-                    <div class="col-12 col-lg-4 mt-3 mt-lg-0">
-                        <div class="card h-100 border-0 shadow-sm">
-                            <div class="card-body d-flex flex-column justify-content-between">
-                                <div>
-                                    <h6 class="mb-2">Daily Operations Summary</h6>
-                                    <p class="text-muted mb-3">Download a Word document with today's releases, vendor follow-ups, live projects, and renewals.</p>
-                                </div>
-                                <a href="{{ route('dashboard.operations-summary.download') }}" class="btn btn-primary w-100">
-                                    <i class="bx bx-download"></i> Download DOCX
-                                </a>
-                            </div>
-                        </div>
-                    </div> 
-                    --}}
-                </div>
-            @endcanany
             @can('view_dashboard')
                 <!-- Summary Cards -->
 
@@ -48,56 +171,74 @@
 
                 <!-- Renewal Statistics Cards -->
                 @can('view_renewals')
-                    <div class="row g-3">
-                        <div class="col-12 col-md-6 col-xl-4 d-flex">
-                            <div class="card radius-10 border-start border-0 border-4 border-info w-100 h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <p class="mb-0 text-secondary">Total Servies</p>
-                                            <h4 class="my-1 text-info">{{ $totalRenewals ?? 0 }}</h4>
-                                            <p class="mb-0 font-13">All services in system</p>
-                                        </div>
-                                        <div class="widgets-icons-2 rounded-circle bg-gradient-blues text-white ms-auto">
-                                            <i class='bx bx-list-ul'></i>
-                                        </div>
-                                    </div>
-                                </div>
+                    <div class="dashboard-kpi-strip">
+                        <div class="dashboard-kpi-item">
+                            <div class="dashboard-kpi-content">
+                                <h4 class="dashboard-kpi-title"><span class="dashboard-kpi-value">{{ $totalRenewals ?? 0 }}</span> Total Services</h4>
+                                <p class="dashboard-kpi-caption">All services in the system</p>
                             </div>
+                            <i class="bx bx-list-ul dashboard-kpi-icon" aria-hidden="true"></i>
                         </div>
-                        <div class="col-12 col-md-6 col-xl-4 d-flex">
-                            <div class="card radius-10 border-start border-0 border-4 border-warning w-100 h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <p class="mb-0 text-secondary">Renewals Due This Week</p>
-                                            <h4 class="my-1 text-warning">{{ $renewalsDueThisWeek ?? 0 }}</h4>
-                                            <p class="mb-0 font-13">Expiring within 7 days</p>
-                                        </div>
-                                        <div class="widgets-icons-2 rounded-circle bg-gradient-burning text-white ms-auto">
-                                            <i class='bx bx-time-five'></i>
-                                        </div>
-                                    </div>
-                                </div>
+                        <div class="dashboard-kpi-item">
+                            <div class="dashboard-kpi-content">
+                                <h4 class="dashboard-kpi-title"><span class="dashboard-kpi-value">{{ $renewalsDueThisWeek ?? 0 }}</span> Due This Week</h4>
+                                <p class="dashboard-kpi-caption">Renewals expiring within 7 days</p>
                             </div>
+                            <i class="bx bx-time-five dashboard-kpi-icon" aria-hidden="true"></i>
                         </div>
-                        <div class="col-12 col-md-6 col-xl-4 d-flex">
-                            <div class="card radius-10 border-start border-0 border-4 border-danger w-100 h-100">
-                                <div class="card-body">
-                                    <div class="d-flex align-items-center">
-                                        <div>
-                                            <p class="mb-0 text-secondary">Expired Renewals</p>
-                                            <h4 class="my-1 text-danger">{{ $overdueRenewals ?? 0 }}</h4>
-                                            <p class="mb-0 font-13">Already expired</p>
+                        <div class="dashboard-kpi-item">
+                            <div class="dashboard-kpi-content">
+                                <h4 class="dashboard-kpi-title"><span class="dashboard-kpi-value">{{ $overdueRenewals ?? 0 }}</span> Expired Renewals</h4>
+                                <p class="dashboard-kpi-caption">Services already expired</p>
+                            </div>
+                            <i class="bx bx-error dashboard-kpi-icon" aria-hidden="true"></i>
+                        </div>
+                    </div>
+                @endcan
+            @endcan
+
+            @canany(['view_calendar'])
+                <!-- Calendar Widget -->
+                <div class="row mt-4 justify-content-center">
+                    <div class="col-12 col-xl-11 col-xxl-10">
+                        <div class="card radius-10">
+                            <div class="card-header appointment-header">
+                                <h6 class="mb-0">Calendar Appointments</h6>
+                                <p class="mb-0 text-muted font-13">Plan meetings and appointments</p>
+                            </div>
+                            <div class="card-body">
+                                <div class="calendar-dashboard-layout">
+                                    <div id="calendar"></div>
+                                    <aside class="calendar-upcoming" aria-label="Upcoming appointments">
+                                        <button type="button" class="btn btn-primary calendar-add-event"
+                                            data-bs-toggle="modal" data-bs-target="#addEventModal">
+                                            <i class="bx bx-plus me-1"></i> Add New Event
+                                        </button>
+                                        <h6 class="calendar-upcoming-title">You are going to</h6>
+                                        <p id="calendarSelectedDate" class="calendar-selected-date"></p>
+                                        <div class="calendar-event-legend" aria-label="Calendar event categories">
+                                            <span><i class="calendar-category-dot appointment"></i>Appointments</span>
+                                            <span><i class="calendar-category-dot task"></i>Tasks</span>
+                                            <span><i class="calendar-category-dot renewal"></i>Renewals</span>
+                                            <span><i class="calendar-category-dot lead"></i>Lead Management</span>
+                                            <span><i class="calendar-category-dot todo"></i>To-do</span>
                                         </div>
-                                        <div class="widgets-icons-2 rounded-circle bg-gradient-bloody text-white ms-auto">
-                                            <i class='bx bx-error'></i>
+                                        <div id="calendarUpcomingList" class="calendar-upcoming-list" aria-live="polite">
+                                            <p class="calendar-upcoming-empty">Loading appointments...</p>
                                         </div>
-                                    </div>
+                                        <button type="button" id="calendarUpcomingMore"
+                                            class="btn btn-light calendar-upcoming-more" hidden>See More</button>
+                                    </aside>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+                <!--end calendar row-->
+            @endcan
+
+            @can('view_dashboard')
+                @can('view_renewals')
                     <!--end row-->
                     <!-- Critical Renewals Table (Upcoming + Expired) -->
                     <div class="card radius-10 mt-4">
@@ -703,52 +844,6 @@
                     @endcan
                 </div>
             @endcan
-
-
-            @canany(['view_calendar'])
-                <!-- Calendar Widget -->
-                <div class="row mt-4 justify-content-center">
-                    <div class="col-12 col-xl-11 col-xxl-10">
-                        <div class="card radius-10">
-                            <div class="card-header appointment-header">
-                                <h6 class="mb-0">Calendar Appointments</h6>
-                                <p class="mb-0 text-muted font-13">Plan meetings and appointments</p>
-                            </div>
-                            <div class="card-body">
-                                <div class="calendar-dashboard-layout">
-                                    <div id="calendar"></div>
-                                    <aside class="calendar-upcoming" aria-label="Upcoming appointments">
-                                        <button type="button" class="btn btn-primary calendar-add-event"
-                                            data-bs-toggle="modal" data-bs-target="#addEventModal">
-                                            <i class="bx bx-plus me-1"></i> Add New Event
-                                        </button>
-                                        <h6 class="calendar-upcoming-title">You are going to</h6>
-                                        <p id="calendarSelectedDate" class="calendar-selected-date"></p>
-                                        <div class="calendar-event-legend" aria-label="Calendar event categories">
-                                            <span><i class="calendar-category-dot appointment"></i>Appointments</span>
-                                            <span><i class="calendar-category-dot task"></i>Tasks</span>
-                                            <span><i class="calendar-category-dot renewal"></i>Renewals</span>
-                                            <span><i class="calendar-category-dot lead"></i>Lead Management</span>
-                                            <span><i class="calendar-category-dot todo"></i>To-do</span>
-                                        </div>
-                                        <div id="calendarUpcomingList" class="calendar-upcoming-list" aria-live="polite">
-                                            <p class="calendar-upcoming-empty">Loading appointments...</p>
-                                        </div>
-                                        <button type="button" id="calendarUpcomingMore"
-                                            class="btn btn-light calendar-upcoming-more" hidden>See More</button>
-                                    </aside>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <!--end calendar row-->
-            @endcan
-
-
-
-
-
 
 
         </div>
