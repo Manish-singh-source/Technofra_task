@@ -200,7 +200,7 @@
             @canany(['view_calendar'])
                 <!-- Calendar Widget -->
                 <div class="row mt-4 justify-content-center">
-                    <div class="col-12 col-xl-11 col-xxl-10">
+                    <div class="col-12">
                         <div class="card radius-10">
                             <div class="card-header appointment-header">
                                 <div>
@@ -1101,7 +1101,7 @@
 
             .calendar-dashboard-layout {
                 display: grid;
-                grid-template-columns: minmax(0, 1fr) 255px;
+                grid-template-columns: minmax(0, 1fr) 340px;
                 gap: 1.25rem;
                 align-items: stretch;
             }
