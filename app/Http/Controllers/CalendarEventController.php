@@ -12,12 +12,89 @@ use App\Models\Todo;
 use App\Models\VendorService;
 use App\Services\CalendarManagement\CalendarNotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\{Auth, DB, Gate, Log, Validator};
 use Carbon\Carbon;
 
 class CalendarEventController extends Controller
 {
     private const APPOINTMENT_BUFFER_MINUTES = 30;
+
+    public function index(Request $request)
+    {
+        $validated = $request->validate([
+            'type' => 'nullable|in:appointment,task,renewal,lead,todo',
+            'search' => 'nullable|string|max:100',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date|after_or_equal:start_date',
+            'per_page' => 'nullable|integer|in:10,20,50,100',
+        ]);
+
+        $startDate = isset($validated['start_date'])
+            ? Carbon::parse($validated['start_date'])->startOfDay()
+            : now()->startOfMonth();
+        $endDate = isset($validated['end_date'])
+            ? Carbon::parse($validated['end_date'])->endOfDay()
+            : now()->endOfMonth();
+
+        $feedRequest = clone $request;
+        $feedRequest->query->set('start', $startDate->toIso8601String());
+        $feedRequest->query->set('end', $endDate->copy()->addSecond()->toIso8601String());
+
+        $items = $this->calendarFeedEvents($feedRequest)
+            ->map(function (array $event) {
+                $start = Carbon::parse($event['start']);
+                $properties = $event['extendedProps'] ?? [];
+                $allDay = (bool) ($event['allDay'] ?? false);
+                $completionTime = $allDay ? $start->copy()->endOfDay() : $start;
+
+                return [
+                    'id' => $event['id'],
+                    'title' => $event['title'],
+                    'type' => $properties['event_type'] ?? 'appointment',
+                    'type_label' => $properties['event_type_label'] ?? 'Appointment',
+                    'description' => $properties['description'] ?? $event['description'] ?? null,
+                    'url' => $properties['url'] ?? null,
+                    'start' => $start,
+                    'all_day' => $allDay,
+                    'is_completed' => $completionTime->isPast(),
+                ];
+            })
+            ->sortBy('start')
+            ->values();
+
+        $categoryCounts = $items->countBy('type');
+        $search = trim((string) ($validated['search'] ?? ''));
+        $type = $validated['type'] ?? null;
+
+        $filteredItems = $items
+            ->when($type, fn($collection) => $collection->where('type', $type))
+            ->when($search !== '', function ($collection) use ($search) {
+                return $collection->filter(function (array $item) use ($search) {
+                    return mb_stripos($item['title'], $search) !== false
+                        || mb_stripos((string) $item['description'], $search) !== false
+                        || mb_stripos($item['type_label'], $search) !== false;
+                });
+            })
+            ->values();
+
+        $page = max(1, (int) $request->query('page', 1));
+        $perPage = (int) ($validated['per_page'] ?? 20);
+        $calendarItems = new LengthAwarePaginator(
+            $filteredItems->forPage($page, $perPage)->values(),
+            $filteredItems->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()]
+        );
+
+        return view('calendar.index', compact(
+            'calendarItems',
+            'categoryCounts',
+            'startDate',
+            'endDate'
+        ));
+    }
 
     /**
      * API: Get all calendar events for the authenticated user.

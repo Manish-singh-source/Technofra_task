@@ -445,6 +445,7 @@ Route::middleware('auth')->group(function () {
     // Calendar Event routes
     Route::controller(CalendarEventController::class)->group(function () {
         Route::prefix('calendar')->name('calendar.')->group(function () {
+            Route::get('/', 'index')->name('index');
             Route::get('/events', 'getEvents')->name('events');
             Route::post('/events', 'store')->name('store');
             Route::get('/events/{id}', 'show')->name('show');

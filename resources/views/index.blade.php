@@ -203,8 +203,13 @@
                     <div class="col-12 col-xl-11 col-xxl-10">
                         <div class="card radius-10">
                             <div class="card-header appointment-header">
-                                <h6 class="mb-0">Calendar Appointments</h6>
-                                <p class="mb-0 text-muted font-13">Plan meetings and appointments</p>
+                                <div>
+                                    <h6 class="mb-0">Calendar Appointments</h6>
+                                    <p class="mb-0 text-muted font-13">Plan meetings and appointments</p>
+                                </div>
+                                <a href="{{ route('calendar.index') }}" class="btn btn-outline-primary calendar-view-all">
+                                    <i class="bx bx-table me-1"></i> View Calendar List
+                                </a>
                             </div>
                             <div class="card-body">
                                 <div class="calendar-dashboard-layout">
@@ -1115,6 +1120,13 @@
                 border-radius: 6px;
             }
 
+            .calendar-view-all {
+                min-height: 36px;
+                border-radius: 6px;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
             .calendar-upcoming-title {
                 margin: 0 0 0.4rem;
                 color: #25374a;
@@ -1229,16 +1241,18 @@
                 width: 100%;
                 gap: 0.65rem;
                 align-items: flex-start;
-                padding: 0.9rem 0;
-                border: 0;
-                border-bottom: 1px solid #edf0f3;
-                background: transparent;
+                margin-bottom: 0.5rem;
+                padding: 0.75rem;
+                border: 1px solid transparent;
+                border-radius: 8px;
                 text-align: left;
                 color: inherit;
+                transition: filter 180ms ease, transform 180ms ease;
             }
 
             .calendar-upcoming-item:hover {
-                background: #f8fafc;
+                filter: brightness(0.97);
+                transform: translateY(-1px);
             }
 
             .calendar-event-mark {
@@ -1260,7 +1274,7 @@
             .calendar-event-name {
                 display: block;
                 overflow-wrap: anywhere;
-                color: #263b53;
+                color: inherit;
                 font-size: 0.84rem;
                 font-weight: 600;
             }
@@ -1269,7 +1283,8 @@
             .calendar-event-description {
                 display: block;
                 margin-top: 0.2rem;
-                color: #7b8794;
+                color: inherit;
+                opacity: 0.72;
                 font-size: 0.72rem;
                 line-height: 1.4;
             }
@@ -1297,9 +1312,20 @@
             }
 
             .appointment-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
                 padding: 1.1rem 1.25rem;
                 background: #fff;
                 border-bottom: 1px solid #e8edf2;
+            }
+
+            @media (max-width: 575.98px) {
+                .appointment-header {
+                    align-items: flex-start;
+                    flex-direction: column;
+                }
             }
 
             #calendar .fc .fc-daygrid-day-top {
@@ -1510,6 +1536,8 @@
                         var item = document.createElement('button');
                         item.type = 'button';
                         item.className = 'calendar-upcoming-item';
+                        item.style.backgroundColor = eventStyle.background;
+                        item.style.color = eventStyle.color;
                         item.setAttribute('aria-label', 'Open ' + eventStyle.label + ': ' + event.title);
 
                         var mark = document.createElement('span');
