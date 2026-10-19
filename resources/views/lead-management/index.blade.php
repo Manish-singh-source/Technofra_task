@@ -1,837 +1,299 @@
 @extends('layout.master')
 
 @push('styles')
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-        referrerpolicy="no-referrer" />
-    <style>
-        .lead-management-table-wrap {
-            max-width: 100%;
-            overflow-x: auto;
-            overscroll-behavior-x: contain;
-        }
-
-        #example.lead-management-table {
-            width: 100% !important;
-            min-width: 1300px;
-            table-layout: fixed;
-        }
-
-        .lead-management-table th,
-        .lead-management-table td {
-            min-width: 0;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            vertical-align: top;
-        }
-
-        .lead-management-table .lead-col-name {
-            width: 180px;
-            max-width: 180px;
-            white-space: normal;
-            overflow: hidden;
-        }
-
-        .lead-management-table .lead-name-text {
-            display: -webkit-box;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            -webkit-box-orient: vertical;
-            -webkit-line-clamp: 2;
-        }
-
-        .lead-management-table .lead-col-source {
-            width: 120px;
-            max-width: 120px;
-        }
-
-        .lead-management-table .lead-col-status {
-            width: 110px;
-            max-width: 110px;
-        }
-
-        .lead-management-table .order-actions {
-            display: grid;
-            grid-template-columns: repeat(4, 30px);
-            align-items: center;
-            justify-content: center;
-            gap: 0.25rem;
-            width: max-content;
-            margin-inline: auto;
-        }
-
-        .lead-management-table .lead-actions-cell {
-            width: 150px;
-            min-width: 150px;
-            text-align: center;
-            vertical-align: middle;
-            white-space: nowrap;
-            overflow: visible;
-        }
-
-        .lead-management-table .lead-action-control {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 30px;
-            width: 30px;
-            height: 30px;
-            min-width: 30px;
-            margin: 0 !important;
-            padding: 0 !important;
-            line-height: 1;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .lead-management-table .lead-action-control i {
-            font-size: 18px;
-            line-height: 1;
-        }
-
-        .lead-management-table .lead-actions-form {
-            display: flex;
-            grid-column: 4;
-            margin: 0 !important;
-        }
-
-        .lead-management-table .lead-action-view {
-            grid-column: 1;
-        }
-
-        .lead-management-table .lead-action-assign {
-            grid-column: 2;
-        }
-
-        .lead-management-table .lead-action-edit {
-            grid-column: 3;
-        }
-
-        @media (max-width: 767.98px) {
-            .lead-management-table {
-                font-size: 0.8rem;
-            }
-
-            .lead-management-table th,
-            .lead-management-table td {
-                padding: 0.35rem 0.25rem;
-            }
-        }
-    </style>
+<style>
+.lead-workspace { --lead-border:#e7ecf3; --lead-muted:#6b778c; }
+.lead-workspace .lead-heading { font-size:26px; font-weight:700; letter-spacing:-.7px; color:#18263d; }
+.lead-workspace .work-cards { display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px; }
+.lead-workspace .work-card { position:relative;overflow:hidden;background:linear-gradient(145deg,#fff 0%,#fbfcff 100%);border:1px solid var(--lead-border);border-radius:16px;padding:18px 18px 16px;text-decoration:none;color:#526078;transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+.lead-workspace .work-card::after { content:"";position:absolute;right:-24px;bottom:-30px;width:90px;height:90px;border-radius:50%;background:#edf2ff;opacity:.7; }
+.lead-workspace .work-card:hover { transform:translateY(-2px);border-color:#b9c7f7;box-shadow:0 8px 20px #23365312; }
+.lead-workspace .work-card.active { border-color:#4f6ef7;background:linear-gradient(145deg,#f7f9ff 0%,#eef2ff 100%);box-shadow:0 7px 18px #3956c51c; }
+.lead-workspace .work-card:nth-child(1) { --card-accent:#4161bc; }
+.lead-workspace .work-card:nth-child(2) { --card-accent:#d04b5d;background:linear-gradient(145deg,#fff 0%,#fff3f4 100%); }
+.lead-workspace .work-card:nth-child(3) { --card-accent:#bd7a18;background:linear-gradient(145deg,#fff 0%,#fff9ed 100%); }
+.lead-workspace .work-card:nth-child(4) { --card-accent:#7a55c7;background:linear-gradient(145deg,#fff 0%,#f7f2ff 100%); }
+.lead-workspace .work-card:nth-child(5) { --card-accent:#268354;background:linear-gradient(145deg,#fff 0%,#effaf4 100%); }
+.lead-workspace .work-card strong { color:var(--card-accent,#18263d); }
+.lead-workspace .work-card strong { position:relative;z-index:1;display:block;font-size:30px;line-height:1.2;color:#18263d;margin-top:8px;letter-spacing:-.5px; }
+.lead-workspace .work-card.danger strong { color:#cf3849; }
+.lead-workspace .work-card small { font-size:11px; }
+.lead-workspace .leads-panel { border:1px solid var(--lead-border);border-radius:18px;box-shadow:0 8px 28px #23365308;overflow:hidden; }
+.lead-workspace .source-tabs { display:flex;gap:9px;overflow-x:auto;padding:5px 2px 13px;border-bottom:1px solid #eef1f6;scrollbar-width:thin; }
+.lead-workspace .source-pill { flex-shrink:0;border:1px solid #e1e7f0;border-radius:10px;padding:9px 14px;color:#637189;text-decoration:none;font-size:12px;font-weight:600;background:#fff;transition:all .15s ease; }
+.lead-workspace .source-pill:hover { border-color:#aebdf3;color:#3559cf;background:#f8faff;transform:translateY(-1px); }
+.lead-workspace .source-pill.active { background:#243c69;color:#fff;border-color:#243c69;box-shadow:0 4px 10px #243c6930; }
+.lead-workspace .source-pill span { display:inline-flex;align-items:center;justify-content:center;min-width:22px;height:20px;padding:0 6px;margin-left:6px;border-radius:10px;background:#f0f3f8;color:#637189;font-size:10px; }
+.lead-workspace .source-pill.active span { background:#ffffff26;color:#fff; }
+.lead-workspace .source-pill:nth-child(2) { border-color:#c9d8ff;color:#4161bc;background:#f4f7ff; }
+.lead-workspace .source-pill:nth-child(3) { border-color:#c8ead8;color:#268354;background:#f2fbf6; }
+.lead-workspace .source-pill:nth-child(4) { border-color:#f2d7b0;color:#a86b13;background:#fff9ef; }
+.lead-workspace .source-pill:nth-child(5) { border-color:#e4d4f5;color:#7950b5;background:#faf6ff; }
+.lead-workspace .source-pill:nth-child(6) { border-color:#c6e7ef;color:#19758a;background:#f1fbfd; }
+.lead-workspace .source-pill.active { background:#243c69;color:#fff;border-color:#243c69; }
+.lead-workspace .work-toolbar { display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap; }
+.lead-workspace .table-responsive { border:1px solid var(--lead-border);border-radius:13px;background:#fff; }
+#leadWorklist { width:100%!important;min-width:1130px;table-layout:fixed;border-collapse:collapse!important;font-size:13px; }
+#leadWorklist th:nth-child(1),#leadWorklist td:nth-child(1) { width:40px; }
+#leadWorklist th:nth-child(2),#leadWorklist td:nth-child(2) { width:270px; }
+#leadWorklist th:nth-child(3),#leadWorklist td:nth-child(3) { width:135px; }
+#leadWorklist th:nth-child(4),#leadWorklist td:nth-child(4) { width:105px; }
+#leadWorklist th:nth-child(5),#leadWorklist td:nth-child(5) { width:165px; }
+#leadWorklist th:nth-child(6),#leadWorklist td:nth-child(6) { width:160px; }
+#leadWorklist th:nth-child(7),#leadWorklist td:nth-child(7) { width:190px; }
+#leadWorklist th:nth-child(8),#leadWorklist td:nth-child(8) { width:125px; }
+#leadWorklist thead th { background:#f5f7fb;color:#738097;font-size:10px;letter-spacing:.7px;text-transform:uppercase;border:0;border-bottom:1px solid var(--lead-border);padding:14px 12px;white-space:nowrap; }
+#leadWorklist td { padding:15px 12px;border:0;border-bottom:1px solid #edf0f5;vertical-align:middle;overflow:hidden; }
+#leadWorklist tr:last-child td { border-bottom:0; }
+#leadWorklist tbody tr:hover { background:#f9fbff; }
+#leadWorklist tbody tr.priority-high { background:linear-gradient(90deg,#fff8f8 0%,#fff 28%); }
+#leadWorklist tbody tr.priority-high td:first-child { border-left:3px solid #d84b5b; }
+#leadWorklist tbody tr.priority-medium td:first-child { border-left:3px solid #d49a2c; }
+#leadWorklist tbody tr.priority-low td:first-child { border-left:3px solid #70a3d8; }
+#leadWorklist .lead-identity { display:flex;gap:10px;align-items:center;min-width:0;width:100%; }
+#leadWorklist .lead-identity > div { min-width:0;flex:1; }
+#leadWorklist .lead-avatar { width:36px;height:36px;flex-shrink:0;display:grid;place-items:center;border-radius:11px;background:#edf2ff;color:#4161bc;font-weight:700;font-size:13px; }
+#leadWorklist .lead-title { color:#243653;font-weight:600;text-decoration:none;display:-webkit-box;overflow:hidden;overflow-wrap:anywhere;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2; }
+#leadWorklist .lead-sub { display:block;color:#7c8798;font-size:11px;margin-top:3px;overflow-wrap:anywhere; }
+#leadWorklist .priority-control { display:flex;align-items:center;gap:5px;margin-top:7px; }
+#leadWorklist .priority-control i { font-size:13px; }
+#leadWorklist .priority-select { border:0;background:transparent;padding:0;color:#697991;font-size:10px;font-weight:700;text-transform:uppercase;cursor:pointer; }
+#leadWorklist .priority-select.high { color:#c43f50; }
+#leadWorklist .priority-select.medium { color:#a36b14; }
+#leadWorklist .priority-select.low { color:#3976a8; }
+#leadWorklist .lead-contact a { color:#5d6d83;text-decoration:none;display:block;font-size:12px;max-width:210px;overflow-wrap:anywhere; }
+#leadWorklist .lead-contact a:hover { color:#3559cf; }
+#leadWorklist .lead-assignees { width:200px;min-width:160px;white-space:normal; }
+#leadWorklist .lead-assignee-names { display:block;max-width:180px;white-space:normal;overflow-wrap:anywhere;line-height:1.6; }
+#leadWorklist .state-pill { display:inline-flex;padding:5px 9px;border-radius:7px;background:#eef2f8;color:#51627e;font-size:11px;font-weight:600;white-space:nowrap; }
+#leadWorklist .state-pill.overdue,#leadWorklist .state-pill.lost { color:#bd3245;background:#fff0f1; }
+#leadWorklist .state-pill.today,#leadWorklist .state-pill.demo_scheduled { color:#936108;background:#fff7e4; }
+#leadWorklist .state-pill.converted,#leadWorklist .state-pill.qualified { color:#22734b;background:#eaf8f0; }
+#leadWorklist .state-pill.new,#leadWorklist .state-pill.upcoming { color:#375dc2;background:#edf2ff; }
+#leadWorklist .last-outcome { max-width:190px; }
+#leadWorklist .last-note { max-width:190px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+#leadWorklist .row-actions { display:flex;gap:6px;align-items:center;white-space:nowrap; }
+#leadWorklist .row-action { display:inline-flex;align-items:center;justify-content:center;border:1px solid #e4e9f1;background:#fff;border-radius:8px;min-width:30px;height:30px;color:#546988;text-decoration:none;padding:0 7px;font-size:12px;transition:all .15s ease; }
+#leadWorklist .row-action:nth-child(1) { color:#4161bc;border-color:#cbd8ff;background:#f5f7ff; }
+#leadWorklist .row-action:nth-child(2) { color:#238258;border-color:#c9ead8;background:#f3fbf6; }
+#leadWorklist .row-action:nth-child(3) { color:#7950b5;border-color:#e3d3f5;background:#faf6ff; }
+#leadWorklist .row-action:nth-child(4) { color:#b87518;border-color:#f1d7ad;background:#fffaf1; }
+#leadWorklist .row-action:hover { transform:translateY(-1px);filter:brightness(.94);box-shadow:0 3px 8px #23365318; }
+.lead-workspace .dataTables_filter { display:none; }
+.lead-workspace .dataTables_info,.lead-workspace .dataTables_length,.lead-workspace .dataTables_paginate { font-size:12px;margin-top:12px; }
+@media(max-width:991px) { .lead-workspace .work-cards {grid-template-columns:repeat(3,minmax(0,1fr));} }
+@media(max-width:575px) { .lead-workspace .work-cards {grid-template-columns:repeat(2,minmax(0,1fr));}.lead-workspace .lead-heading{font-size:22px;}.lead-workspace .work-card{padding:12px;} }
+</style>
 @endpush
 
 @section('content')
-    @php
-        $activeSource = $filters['source'] ?? '';
-        $canSelectLeads = ($canManageLeadAssignments ?? false) || auth()->user()->can('delete_leads');
-        $tabColorClasses = [
-            'all' => ['active' => 'btn-dark', 'inactive' => 'btn-outline-dark', 'badge' => 'bg-dark'],
-            'lead' => [
-                'active' => 'btn-warning text-dark',
-                'inactive' => 'btn-outline-warning',
-                'badge' => 'bg-warning text-dark',
-            ],
-            'digital_marketing' => [
-                'active' => 'btn-success',
-                'inactive' => 'btn-outline-success',
-                'badge' => 'bg-success',
-            ],
-            'webapp' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
-            'meta' => [
-                'active' => 'btn-info text-dark',
-                'inactive' => 'btn-outline-info',
-                'badge' => 'bg-info text-dark',
-            ],
-            'google' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
-            'indiamart' => ['active' => 'btn-danger', 'inactive' => 'btn-outline-danger', 'badge' => 'bg-danger'],
-            'justdial' => ['active' => 'btn-primary', 'inactive' => 'btn-outline-primary', 'badge' => 'bg-primary'],
-            'enquiryform' => [
-                'active' => 'btn-secondary',
-                'inactive' => 'btn-outline-secondary',
-                'badge' => 'bg-secondary',
-            ],
-        ];
-        $tabIcons = [
-            'all' => 'bx-grid-alt',
-            'lead' => 'bx-user',
-            'digital_marketing' => 'bx-line-chart',
-            'webapp' => 'bx-code-alt',
-            'meta' => 'fa-brands fa-meta',
-            'google' => 'bxl-google',
-            'indiamart' => 'bx-store',
-            'justdial' => 'bx-phone-call',
-            'enquiryform' => 'bx-message-square-detail',
-        ];
-        $metaSyncReturnTo = route(
-            'lead-management.index',
-            array_filter(
-                [
-                    'source' => 'meta',
-                    'search' => $filters['search'] ?? null,
-                    'status' => $filters['status'] ?? null,
-                ],
-                fn($value) => filled($value),
-            ),
-        );
-    @endphp
-    <div class="page-wrapper">
-        <div class="page-content">
-            @if (session('success'))
-                <div class="alert alert-success alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-            @if (session('error'))
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            @endif
-
-            <div class="page-breadcrumb d-none d-sm-flex align-items-center mb-3">
-                <div class="ps-3">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb mb-0 p-0">
-                            <li class="breadcrumb-item"><a href="{{ route('dashboard') }}"><i
-                                        class="bx bx-home-alt"></i></a></li>
-                            <li class="breadcrumb-item active" aria-current="page">Lead Management</li>
-                        </ol>
-                    </nav>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
-                        <h5 class="mb-0">Lead Management</h5>
-                        <div class="d-flex align-items-center gap-2">
-                            <form method="POST" action="{{ route('leads.sync') }}" id="metaSyncForm"
-                                class="{{ $activeSource === 'meta' ? '' : '' }}"
-                                onsubmit="return confirm('Sync latest leads from Meta? This may take a few seconds.')">
-                                @csrf
-                                <input type="hidden" name="return_to" value="{{ $metaSyncReturnTo }}">
-                                <button type="submit" class="btn btn-primary btn-sm">
-                                    <i class="bx bx-refresh me-1"></i> Sync Now
-                                </button>
-                            </form>
-                            <a href="{{ route('lead-management.performance') }}" class="btn btn-outline-dark btn-sm">
-                                <i class='bx bx-line-chart me-1'></i> Performance
-                            </a>
-                            @can('create_leads')
-                                <a href="{{ route('add-lead') }}" class="btn btn-primary btn-sm">
-                                    <i class='bx bxs-plus-square'></i> Add New Lead
-                                </a>
-                            @endcan
-                            @if ($canManageLeadAssignments ?? false)
-                                <button type="button" class="btn btn-primary btn-sm" id="openBulkAssignModalBtn">
-                                    <i class='bx bxs-user-plus'></i> Bulk Assign
-                                </button>
-                            @endif
-                            @can('delete_leads')
-                                <button type="button" class="btn btn-danger btn-sm" id="deleteSelectedLeadsBtn" disabled>
-                                    <i class='bx bxs-trash'></i> Delete Selected
-                                </button>
-                            @endcan
-                        </div>
-                    </div>
-
-                    @can('delete_leads')
-                        <form method="POST" action="{{ route('lead-management.bulk-delete') }}" id="bulkDeleteLeadsForm"
-                            class="d-none">
-                            @csrf
-                            @method('DELETE')
-                            <div id="bulkDeleteLeadsHiddenInputs"></div>
-                        </form>
-                    @endcan
-
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        @php($allTabStyle = $tabColorClasses['all'])
-                        <button type="button"
-                            class="btn source-filter-btn {{ $activeSource === '' ? $allTabStyle['active'] : $allTabStyle['inactive'] }}"
-                            data-source-key="" data-source-label="" data-active-class="{{ $allTabStyle['active'] }}"
-                            data-inactive-class="{{ $allTabStyle['inactive'] }}">
-                            <i
-                                class='{{ str_contains($tabIcons['all'] ?? '', 'fa-') ? $tabIcons['all'] ?? 'bx bx-grid-alt' : 'bx ' . ($tabIcons['all'] ?? 'bx-grid-alt') }} me-1'></i>
-                            All
-                            <span
-                                class="badge source-filter-badge {{ $activeSource === '' ? 'bg-white text-dark' : $allTabStyle['badge'] }} ms-1"
-                                data-active-badge-class="bg-white text-dark"
-                                data-inactive-badge-class="{{ $allTabStyle['badge'] }}">
-                                {{ $tabCounts['all'] ?? 0 }}
-                            </span>
-                        </button>
-
-                        @foreach ($sources as $key => $label)
-                            @php($tabStyle = $tabColorClasses[$key] ?? ['active' => 'btn-secondary', 'inactive' => 'btn-outline-secondary', 'badge' => 'bg-secondary'])
-                            <button type="button"
-                                class="btn source-filter-btn {{ $activeSource === $key ? $tabStyle['active'] : $tabStyle['inactive'] }}"
-                                data-source-key="{{ $key }}" data-source-label="{{ $label }}"
-                                data-active-class="{{ $tabStyle['active'] }}"
-                                data-inactive-class="{{ $tabStyle['inactive'] }}">
-                                <i
-                                    class='{{ str_contains($tabIcons[$key] ?? '', 'fa-') ? $tabIcons[$key] ?? 'bx bx-category' : 'bx ' . ($tabIcons[$key] ?? 'bx-category') }} me-1'></i>
-                                {{ $label }}
-                                <span
-                                    class="badge source-filter-badge {{ $activeSource === $key ? 'bg-white text-dark' : $tabStyle['badge'] }} ms-1"
-                                    data-active-badge-class="bg-white text-dark"
-                                    data-inactive-badge-class="{{ $tabStyle['badge'] }}">
-                                    {{ $tabCounts[$key] ?? 0 }}
-                                </span>
-                            </button>
-                        @endforeach
-                    </div>
-
-                    @if ($leads->count() > 0)
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted">
-                                Showing {{ $leads->firstItem() }} to {{ $leads->lastItem() }} of {{ $leads->total() }}
-                                leads
-                            </small>
-                            <form method="GET" action="{{ route('lead-management.index') }}" class="d-flex gap-2">
-                                <input type="hidden" name="search" value="{{ $filters['search'] ?? '' }}">
-                                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                                    <option value="">All Statuses</option>
-                                    @foreach ($statusOptions ?? [] as $statusOption)
-                                        <option value="{{ $statusOption['slug'] }}"
-                                            {{ ($filters['status'] ?? '') === $statusOption['slug'] ? 'selected' : '' }}>
-                                            {{ $statusOption['name'] }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </form>
-                        </div>
-                    @endif
-
-                    <div class="table-responsive lead-management-table-wrap">
-
-                        <table id="example" data-no-default-datatable="true"
-                            class="table table-striped table-bordered align-middle lead-management-table">
-                            <thead class="table-light">
-                                <tr>
-                                    <th class="lead-col-select">
-                                        @if ($canSelectLeads)
-                                            <input type="checkbox" id="selectAllLeads">
-                                        @endif
-                                    </th>
-                                    <th class="lead-col-index">Sr No</th>
-                                    <th class="lead-col-name">Name</th>
-                                    <th class="lead-col-email">Email</th>
-                                    <th class="lead-col-number">Number</th>
-                                    <th class="lead-col-company">Company</th>
-                                    <th class="lead-col-source">Source</th>
-                                    <th class="d-none">Source Key</th>
-                                    <th class="lead-col-status">Status</th>
-                                    <th class="lead-col-assigned">Assigned To</th>
-                                    <th class="lead-col-created">Created Date</th>
-                                    <th class="lead-actions-cell">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($leads as $lead)
-                                    <tr>
-                                        <td class="lead-col-select">
-                                            @if ($canSelectLeads)
-                                                <input type="checkbox" class="lead-select-checkbox"
-                                                    data-source="{{ $lead['source_type'] }}"
-                                                    data-id="{{ $lead['source_id'] }}">
-                                            @endif
-                                        </td>
-                                        <td class="lead-col-index">
-                                            {{ ($leads->currentPage() - 1) * $leads->perPage() + $loop->iteration }}</td>
-                                        <td class="lead-col-name"><span class="lead-name-text">{{ $lead['name'] }}</span>
-                                        </td>
-                                        <td class="lead-col-email">{{ $lead['email'] }}</td>
-                                        <td class="lead-col-number">{{ $lead['number'] }}</td>
-                                        <td class="lead-col-company">{{ $lead['company'] }}</td>
-                                        <td class="lead-col-source">{{ $lead['source'] }}</td>
-                                        <td class="d-none">{{ $lead['source_type'] }}</td>
-                                        <td class="lead-col-status"><span
-                                                class="badge bg-secondary rounded-pill text-uppercase">{{ $lead['status'] ?? 'new' }}</span>
-                                        </td>
-                                        <td class="lead-col-assigned">{{ $lead['assigned_to'] ?? '-' }}</td>
-                                        <td class="lead-col-created">{{ $lead['created_at'] }}</td>
-                                        <td class="lead-actions-cell">
-                                            <div class="order-actions">
-                                                <a href="{{ route('lead-management.show', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}"
-                                                    class="text-primary lead-action-control lead-action-view"
-                                                    title="View"><i class='bx bxs-show'></i></a>
-
-                                                @if ($canManageLeadAssignments ?? false)
-                                                    <button type="button"
-                                                        class="text-warning border-0 bg-transparent lead-action-control lead-action-assign"
-                                                        data-bs-toggle="modal"
-                                                        data-bs-target="#assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
-                                                        title="Assign">
-                                                        <i class='bx bxs-user-plus'></i>
-                                                    </button>
-
-                                                    @if ($lead['source_type'] == 'lead')
-                                                        {{-- <button type="button" class="text-info border-0 bg-transparent ms-2"
-                                                            data-bs-toggle="modal"
-                                                            data-bs-target="#statusLeadManagementModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
-                                                            title="Change Status" style="cursor: pointer;">
-                                                            <i class='bx bxs-edit-alt'></i>
-                                                        </button> --}}
-                                                        <a href="{{ route('lead.edit', $lead['source_id']) }}"
-                                                            class="text-info border-0 bg-transparent lead-action-control lead-action-edit"><i
-                                                                class='bx bxs-edit-alt'></i></a>
-                                                    @endif
-                                                @endif
-
-                                                @can('delete_leads')
-                                                    <form method="POST"
-                                                        action="{{ route('lead-management.destroy', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}"
-                                                        class="lead-actions-form lead-action-delete"
-                                                        onsubmit="return confirm('Are you sure you want to delete this lead?')">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit"
-                                                            class="text-danger border-0 bg-transparent lead-action-control"
-                                                            title="Delete">
-                                                            <i class='bx bxs-trash'></i>
-                                                        </button>
-                                                    </form>
-                                                @endcan
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="12" class="text-center">No leads found.</td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+@php
+    $query = array_filter($filters, fn ($value) => $value !== '');
+    $statusLabels = collect($statusOptions)->pluck('name', 'slug');
+    $canSelect = $canManageLeadAssignments || auth()->user()->can('delete_leads');
+    $cards = [
+        '' => ['All leads', 'all', 'Your selected pipeline'],
+        'overdue' => ['Overdue', 'overdue', 'Needs attention now'],
+        'today' => ['Due today', 'today', 'Today’s follow-up plan'],
+        'unscheduled' => ['No next action', 'unscheduled', 'Plan the next conversation'],
+        'closed' => ['Closed', 'closed', 'Won, lost and disqualified'],
+    ];
+@endphp
+<div class="page-wrapper"><div class="page-content lead-workspace">
+    @include('lead-management.partials.feedback')
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+        <div><div class="small text-muted mb-1">SALES WORKSPACE</div><h1 class="lead-heading mb-1">Lead Management</h1></div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="{{ route('lead-management.performance') }}" class="btn btn-outline-secondary btn-sm"><i class="bx bx-line-chart me-1"></i>Performance</a>
+            @can('create_leads')<a href="{{ route('add-lead') }}" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>Add lead</a>@endcan
         </div>
     </div>
-
-    @if ($canManageLeadAssignments ?? false)
-        <div class="modal fade" id="bulkAssignModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <form method="POST" action="{{ route('lead-management.bulk-assign') }}" id="bulkAssignForm">
-                        @csrf
-                        <div class="modal-header">
-                            <h5 class="modal-title">Bulk Assign Leads</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <div class="mb-2 text-muted">
-                                Selected leads: <strong id="selectedLeadsCount">0</strong>
-                            </div>
-                            <label class="form-label">Assign To</label>
-                            <div class="d-flex justify-content-end mb-2">
-                                <button type="button" class="btn btn-sm btn-outline-secondary select-all-staff-btn"
-                                    data-target="#bulkAssignStaffList">
-                                    Select All
-                                </button>
-                            </div>
-                            <div id="bulkAssignStaffList" class="border rounded p-2"
-                                style="max-height: 220px; overflow-y: auto;">
-                                @foreach ($staff as $member)
-                                    <div class="form-check mb-1">
-                                        <input class="form-check-input staff-checkbox" type="checkbox"
-                                            name="assigned_user_ids[]" value="{{ $member->id }}"
-                                            id="bulk-staff-{{ $member->id }}">
-                                        <label class="form-check-label" for="bulk-staff-{{ $member->id }}">
-                                            {{ $member->name ?: $member->first_name . ' ' . $member->last_name }}
-                                        </label>
-                                    </div>
-                                @endforeach
-                            </div>
-                            <div id="bulkAssignHiddenInputs"></div>
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                            <button type="submit" class="btn btn-primary">Assign Selected</button>
-                        </div>
-                    </form>
-                </div>
+    <div class="work-cards mb-4">
+        @foreach($cards as $key => [$label, $countKey, $hint])
+        <a href="{{ route('lead-management.index', array_merge($query, ['work' => $key])) }}" class="work-card {{ $key === 'overdue' ? 'danger' : '' }} {{ ($filters['work'] ?? '') === (string) $key ? 'active' : '' }}" @if(($filters['work'] ?? '') === (string) $key) aria-current="page" @endif>
+            <span>{{ $label }}</span><strong>{{ $workSummary[$countKey] ?? 0 }}</strong><small>{{ $hint }}</small>
+        </a>
+        @endforeach
+    </div>
+    <div class="card leads-panel"><div class="card-body p-3 p-lg-4">
+        <div class="source-tabs mb-3" aria-label="Lead sources">
+            <a class="source-pill {{ empty($filters['source']) ? 'active' : '' }}" href="{{ route('lead-management.index', array_merge($query, ['source' => ''])) }}">All sources <span>{{ $tabCounts['all'] ?? 0 }}</span></a>
+            @foreach($sources as $key => $label)
+                <a class="source-pill {{ ($filters['source'] ?? '') === $key ? 'active' : '' }}" href="{{ route('lead-management.index', array_merge($query, ['source' => $key])) }}">{{ $label }} <span>{{ $tabCounts[$key] ?? 0 }}</span></a>
+            @endforeach
+        </div>
+        <div class="work-toolbar mb-3">
+            <form method="GET" class="d-flex gap-2 flex-wrap" action="{{ route('lead-management.index') }}">
+                <input type="hidden" name="source" value="{{ $filters['source'] ?? '' }}">
+                <input type="hidden" name="work" value="{{ $filters['work'] ?? '' }}">
+                <input type="search" name="search" value="{{ $filters['search'] ?? '' }}" class="form-control form-control-sm" style="width:220px" placeholder="Search name, phone, email…" aria-label="Search leads">
+                <select name="status" class="form-select form-select-sm" style="width:175px" aria-label="Lead status">
+                    <option value="">All statuses</option>
+                    @foreach($statusOptions as $option)<option value="{{ $option['slug'] }}" @selected(($filters['status'] ?? '') === $option['slug'])>{{ $option['name'] }}</option>@endforeach
+                </select>
+                <button class="btn btn-sm btn-primary">Apply</button>
+                @if($query)<a href="{{ route('lead-management.index') }}" class="btn btn-sm btn-light">Reset</a>@endif
+            </form>
+            <div class="d-flex align-items-center gap-2">
+                <small class="text-muted" id="selectionCount" aria-live="polite">0 selected</small>
+                @if($canManageLeadAssignments)<button class="btn btn-sm btn-outline-primary" id="bulkAssignButton" type="button" disabled>Assign selected</button>@endif
+                @can('delete_leads')<button class="btn btn-sm btn-outline-danger" id="bulkDeleteButton" type="button" disabled>Delete</button>@endcan
+                @if(($filters['source'] ?? '') === 'meta')
+                <form method="POST" action="{{ route('leads.sync') }}" onsubmit="return confirm('Sync latest Meta leads?')">@csrf<input type="hidden" name="return_to" value="{{ route('lead-management.index', $query) }}"><button class="btn btn-sm btn-light" type="submit">Sync Meta</button></form>
+                @endif
             </div>
         </div>
-
-        @foreach ($leads as $lead)
-            <div class="modal fade" id="assignLeadModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
-                tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form method="POST"
-                            action="{{ route('lead-management.assign', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}"
-                            data-role="assign-lead-form">
-                            @csrf
-                            <div class="modal-header">
-                                <h5 class="modal-title">Assign Lead</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-2"><strong>{{ $lead['name'] }}</strong></div>
-                                <div class="text-muted mb-3">{{ $lead['email'] }} | {{ $lead['number'] }}</div>
-                                <label class="form-label">Assign To</label>
-                                <div class="d-flex justify-content-end mb-2">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary select-all-staff-btn"
-                                        data-target="#singleAssignStaffList-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}">
-                                        Select All
-                                    </button>
-                                </div>
-                                <div id="singleAssignStaffList-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
-                                    class="border rounded p-2" style="max-height: 220px; overflow-y: auto;">
-                                    @foreach ($staff as $member)
-                                        <div class="form-check mb-1">
-                                            <input class="form-check-input staff-checkbox" type="checkbox"
-                                                name="assigned_user_ids[]" value="{{ $member->id }}"
-                                                id="single-staff-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}-{{ $member->id }}">
-                                            <label class="form-check-label"
-                                                for="single-staff-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}-{{ $member->id }}">
-                                                {{ $member->name ?: $member->first_name . ' ' . $member->last_name }}
-                                            </label>
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Assign</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
+        <div class="table-responsive">
+            <table id="leadWorklist" data-no-default-datatable="true" class="table mb-0">
+                <thead><tr>
+                    <th style="width:28px">@if($canSelect)<input type="checkbox" id="selectAllLeads" aria-label="Select leads on this page">@endif</th>
+                    <th>Lead</th><th>Source</th><th>Stage</th><th>Assigned to</th><th>Next follow-up</th><th>Latest outcome</th><th>Actions</th>
+                </tr></thead>
+                <tbody>
+                @foreach($leads as $lead)
+                    @php
+                        $profileUrl = route('lead-management.show', ['source' => $lead['source_type'], 'id' => $lead['source_id']]);
+                        $nextAt = $lead['next_followup_at'];
+                        $last = $lead['last_followup'];
+                        $state = $lead['followup_state'];
+                        $stateLabel = ['overdue'=>'Overdue','today'=>'Due today','upcoming'=>'Upcoming','unscheduled'=>'Not scheduled','closed'=>'Closed'][$state];
+                    @endphp
+                    <tr class="priority-{{ $lead['priority'] ?? 'medium' }}">
+                        <td>@if($canSelect)<input type="checkbox" class="lead-selection" data-source="{{ $lead['source_type'] }}" data-id="{{ $lead['source_id'] }}" aria-label="Select {{ $lead['name'] }}">@endif</td>
+                        <td>
+                            <div class="lead-identity"><span class="lead-avatar">{{ mb_strtoupper(mb_substr($lead['name'] === '-' ? 'L' : $lead['name'], 0, 1)) }}</span><div>
+                                <a href="{{ $profileUrl }}" class="lead-title">{{ $lead['name'] === '-' ? 'Unnamed lead' : $lead['name'] }}</a>
+                                <span class="lead-sub">{{ $lead['company'] === '-' ? 'Individual lead' : $lead['company'] }}</span>
+                                @can('edit_leads')
+                                <form method="POST" action="{{ route('lead-management.priority', ['source'=>$lead['source_type'], 'id'=>$lead['source_id']]) }}" class="priority-control">
+                                    @csrf @method('PATCH')
+                                    <i class="bx bxs-flag-alt"></i>
+                                    <select name="priority" class="priority-select {{ $lead['priority'] ?? 'medium' }}" onchange="this.form.submit()" aria-label="Set lead priority">
+                                        @foreach(['high' => 'High priority', 'medium' => 'Medium priority', 'low' => 'Low priority'] as $priority => $label)
+                                            <option value="{{ $priority }}" @selected(($lead['priority'] ?? 'medium') === $priority)>{{ $label }}</option>
+                                        @endforeach
+                                    </select>
+                                </form>
+                                @else
+                                    <span class="priority-control {{ $lead['priority'] ?? 'medium' }}"><i class="bx bxs-flag-alt"></i><span>{{ ucfirst($lead['priority'] ?? 'medium') }}</span></span>
+                                @endcan
+                            </div></div>
+                        </td>
+                        <td><span class="small">{{ $lead['source'] }}</span><span class="lead-sub">{{ $lead['created_at'] }}</span></td>
+                        <td><span class="state-pill {{ $lead['status'] }}">{{ $statusLabels[$lead['status']] ?? ucwords(str_replace('_', ' ', $lead['status'])) }}</span></td>
+                        <td class="lead-assignees"><span class="lead-assignee-names">{{ $lead['assigned_to'] === '-' ? 'Unassigned' : $lead['assigned_to'] }}</span></td>
+                        <td data-order="{{ $state === 'closed' ? PHP_INT_MAX : ($nextAt?->timestamp ?? PHP_INT_MAX - 1) }}">
+                            <span class="state-pill {{ $state }}">{{ $stateLabel }}</span>
+                            @if($nextAt && $state !== 'closed')<span class="lead-sub">{{ $nextAt->format('d M Y, h:i A') }}</span>
+                            @elseif($state === 'unscheduled')<span class="lead-sub">Set the next action</span>
+                            @elseif($state === 'closed')<span class="lead-sub">No pending follow-up</span>@endif
+                        </td>
+                        <td class="last-outcome">
+                            @if($last)
+                                <span class="fw-semibold small">{{ ucwords(str_replace('_', ' ', $last->outcome ?: $last->followup_type)) }}</span>
+                                <span class="lead-sub">{{ $last->followup_date?->format('d M, h:i A') }} · {{ ucwords(str_replace('_', ' ', $last->followup_type)) }}</span>
+                                <div class="last-note lead-sub" title="{{ $last->discussion_notes }}">{{ $last->discussion_notes }}</div>
+                            @elseif($lead['status'] === 'lost' && $lead['lost_reason'])
+                                <span class="lead-sub">{{ $lead['lost_reason'] }}</span>
+                            @else<span class="lead-sub">No conversation logged</span>@endif
+                        </td>
+                        <td><div class="row-actions">
+                            <a href="{{ $profileUrl }}" class="row-action" aria-label="View journey for {{ $lead['name'] }}" title="View lead journey"><i class="bx bx-show"></i></a>
+                            @can('edit_leads')
+                                @if($state !== 'closed')<a href="{{ $profileUrl }}?action=followup" class="row-action" title="Log follow-up" aria-label="Log follow-up for {{ $lead['name'] }}"><i class="bx bx-phone-call"></i></a>@endif
+                            @endcan
+                            @if($canManageLeadAssignments)
+                            <button type="button" class="row-action assign-one" data-url="{{ route('lead-management.assign', ['source'=>$lead['source_type'], 'id'=>$lead['source_id']]) }}" data-name="{{ $lead['name'] }}" aria-label="Assign {{ $lead['name'] }}" title="Add assignees"><i class="bx bx-user-plus"></i></button>
+                            @endif
+                            @can('edit_leads')
+                                @if($lead['source_type'] === 'lead' && $state !== 'closed')<a href="{{ route('lead.edit', $lead['source_id']) }}" class="row-action" title="Edit lead details" aria-label="Edit {{ $lead['name'] }}"><i class="bx bx-edit"></i></a>@endif
+                            @endcan
+                        </div></td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+        </div>
+        <p class="small text-muted mt-3 mb-0"><i class="bx bx-info-circle me-1"></i>Open a lead to see its full journey or log the next conversation. Overdue leads appear first.</p>
+    </div></div>
+</div></div>
+@if($canManageLeadAssignments)
+<div class="modal fade" id="assignLeadsModal" tabindex="-1" aria-labelledby="assignLeadsTitle" aria-hidden="true"><div class="modal-dialog"><div class="modal-content">
+    <form method="POST" id="assignLeadsForm" action="{{ route('lead-management.bulk-assign') }}">
+        @csrf
+        <div class="modal-header"><h5 id="assignLeadsTitle" class="modal-title">Assign leads</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body"><p id="assignLeadContext" class="text-muted small"></p><p class="small">Selected staff will be added to the existing lead team.</p><div id="selectedLeadInputs"></div>
+            <div class="border rounded p-3" style="max-height:280px;overflow:auto">
+                @forelse($staff as $member)
+                <label class="d-flex gap-2 align-items-center py-2"><input class="form-check-input m-0" type="checkbox" name="assigned_user_ids[]" value="{{ $member->id }}"><span>{{ trim($member->first_name . ' ' . $member->last_name) }}</span></label>
+                @empty<p class="text-muted mb-0">No staff members available.</p>@endforelse
             </div>
-
-            <div class="modal fade" id="statusLeadManagementModal-{{ $lead['source_type'] }}-{{ $lead['source_id'] }}"
-                tabindex="-1" aria-hidden="true">
-                <div class="modal-dialog">
-                    <div class="modal-content">
-                        <form method="POST"
-                            action="{{ route('lead-management.status', ['source' => $lead['source_type'], 'id' => $lead['source_id']]) }}">
-                            @csrf
-                            @method('PATCH')
-                            <div class="modal-header">
-                                <h5 class="modal-title">Change Lead Status</h5>
-                                <button type="button" class="btn-close" data-bs-dismiss="modal"
-                                    aria-label="Close"></button>
-                            </div>
-                            <div class="modal-body">
-                                <div class="mb-2"><strong>{{ $lead['name'] }}</strong></div>
-                                <label class="form-label">Status</label>
-                                <select name="status" class="form-select" required>
-                                    @foreach ($statusOptions ?? [] as $statusOption)
-                                        <option value="{{ $statusOption['slug'] }}"
-                                            {{ ($lead['status'] ?? 'new') === $statusOption['slug'] ? 'selected' : '' }}>
-                                            {{ $statusOption['name'] }}
-                                        </option>
-                                    @endforeach
-                                </select>
-                                <label class="form-label mt-2">Conversion Value (if converted)</label>
-                                <input type="number" step="0.01" name="won_value" class="form-control">
-                                <label class="form-label mt-2">Lost Reason (required if lost)</label>
-                                <textarea name="lost_reason" class="form-control" rows="2"></textarea>
-                                <label class="form-label mt-2">Remarks</label>
-                                <input type="text" name="remarks" class="form-control">
-                            </div>
-                            <div class="modal-footer">
-                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                                <button type="submit" class="btn btn-primary">Update</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        @endforeach
-    @endif
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button class="btn btn-primary" @disabled($staff->isEmpty())>Save assignment</button></div>
+    </form>
+</div></div></div>
+@endif
+@can('delete_leads')
+<form id="deleteLeadsForm" action="{{ route('lead-management.bulk-delete') }}" method="POST">@csrf @method('DELETE')<div id="deleteLeadInputs"></div></form>
+@endcan
 @endsection
 
 @push('scripts')
-    <script>
-        $(document).ready(function() {
-            var $table = $('#example');
-            var dataTableInstance = null;
-
-            if ($table.length && !$.fn.DataTable.isDataTable($table)) {
-                dataTableInstance = $table.DataTable({
-                    order: [],
-                    autoWidth: false,
-                    scrollX: false
-                });
-            } else if ($table.length) {
-                dataTableInstance = $table.DataTable();
-            }
-
-            const sourceFilterButtons = document.querySelectorAll('.source-filter-btn');
-            const sourceColumnIndex = 7;
-            const metaSyncForm = document.getElementById('metaSyncForm');
-
-            function escapeRegex(value) {
-                return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            }
-
-            function updateSourceFilterButtonState(activeButton) {
-                sourceFilterButtons.forEach((button) => {
-                    const isActive = button === activeButton;
-                    const activeClass = button.dataset.activeClass || '';
-                    const inactiveClass = button.dataset.inactiveClass || '';
-
-                    if (activeClass) {
-                        activeClass.split(' ').filter(Boolean).forEach((className) => {
-                            button.classList.toggle(className, isActive);
-                        });
-                    }
-                    if (inactiveClass) {
-                        inactiveClass.split(' ').filter(Boolean).forEach((className) => {
-                            button.classList.toggle(className, !isActive);
-                        });
-                    }
-
-                    const badge = button.querySelector('.source-filter-badge');
-                    if (!badge) return;
-
-                    const activeBadgeClass = badge.dataset.activeBadgeClass || '';
-                    const inactiveBadgeClass = badge.dataset.inactiveBadgeClass || '';
-
-                    if (activeBadgeClass) {
-                        activeBadgeClass.split(' ').filter(Boolean).forEach((className) => {
-                            badge.classList.toggle(className, isActive);
-                        });
-                    }
-                    if (inactiveBadgeClass) {
-                        inactiveBadgeClass.split(' ').filter(Boolean).forEach((className) => {
-                            badge.classList.toggle(className, !isActive);
-                        });
-                    }
-                });
-            }
-
-            function setMetaSyncFormVisibility(sourceKey) {
-                if (!metaSyncForm) return;
-
-                metaSyncForm.classList.toggle('d-none', sourceKey !== 'meta');
-            }
-
-            function updateSourceUrl(sourceKey, replace = false) {
-                const url = new URL(window.location.href);
-
-                if (sourceKey) {
-                    url.searchParams.set('source', sourceKey);
-                } else {
-                    url.searchParams.delete('source');
-                }
-
-                const method = replace ? 'replaceState' : 'pushState';
-                window.history[method]({}, '', `${url.pathname}${url.search}${url.hash}`);
-            }
-
-            function submitMetaSyncForm() {
-                if (!metaSyncForm || metaSyncForm.dataset.autoSyncing === '1') return;
-
-                metaSyncForm.dataset.autoSyncing = '1';
-                const submitButton = metaSyncForm.querySelector('button[type="submit"]');
-
-                if (submitButton) {
-                    submitButton.disabled = true;
-                    submitButton.innerHTML = '<i class="bx bx-loader-alt bx-spin me-1"></i> Syncing...';
-                }
-
-                metaSyncForm.submit();
-            }
-
-            function applySourceFilter(sourceKey) {
-                if (!dataTableInstance) return;
-
-                if (sourceKey === '') {
-                    dataTableInstance.column(sourceColumnIndex).search('').draw();
-                } else {
-                    dataTableInstance
-                        .column(sourceColumnIndex)
-                        .search(`^${escapeRegex(sourceKey)}$`, true, false)
-                        .draw();
-                }
-            }
-
-            sourceFilterButtons.forEach((button) => {
-                button.addEventListener('click', function() {
-                    const sourceKey = (this.dataset.sourceKey || '').trim();
-
-                    updateSourceUrl(sourceKey);
-                    applySourceFilter(sourceKey);
-                    updateSourceFilterButtonState(this);
-                    setMetaSyncFormVisibility(sourceKey);
-
-                    if (sourceKey === 'meta') {
-                        submitMetaSyncForm();
-                    }
-                });
-            });
-
-            const initialActiveButton =
-                Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey ===
-                    @json($activeSource)) ||
-                Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey === '');
-
-            if (initialActiveButton) {
-                const initialSourceKey = (initialActiveButton.dataset.sourceKey || '').trim();
-
-                applySourceFilter(initialSourceKey);
-                updateSourceFilterButtonState(initialActiveButton);
-                setMetaSyncFormVisibility(initialSourceKey);
-            }
-
-            window.addEventListener('popstate', function() {
-                const sourceKey = new URL(window.location.href).searchParams.get('source') || '';
-                const activeButton = Array.from(sourceFilterButtons).find((button) =>
-                    button.dataset.sourceKey === sourceKey
-                ) || Array.from(sourceFilterButtons).find((button) => button.dataset.sourceKey === '');
-
-                if (!activeButton) return;
-
-                applySourceFilter(sourceKey);
-                updateSourceFilterButtonState(activeButton);
-                setMetaSyncFormVisibility(sourceKey);
-            });
-
-            const bulkAssignModalElement = document.getElementById('bulkAssignModal');
-            const bulkAssignModal = bulkAssignModalElement ? new bootstrap.Modal(bulkAssignModalElement) : null;
-            const openBulkAssignModalBtn = document.getElementById('openBulkAssignModalBtn');
-            const selectAllLeads = document.getElementById('selectAllLeads');
-            const selectedLeadsCount = document.getElementById('selectedLeadsCount');
-            const bulkAssignHiddenInputs = document.getElementById('bulkAssignHiddenInputs');
-            const bulkAssignForm = document.getElementById('bulkAssignForm');
-            const deleteSelectedLeadsBtn = document.getElementById('deleteSelectedLeadsBtn');
-            const bulkDeleteLeadsHiddenInputs = document.getElementById('bulkDeleteLeadsHiddenInputs');
-            const bulkDeleteLeadsForm = document.getElementById('bulkDeleteLeadsForm');
-
-            function selectedLeadCheckboxes() {
-                return Array.from(document.querySelectorAll('.lead-select-checkbox:checked'));
-            }
-
-            function updateSelectedCount() {
-                const selectedCount = selectedLeadCheckboxes().length;
-                if (selectedLeadsCount) {
-                    selectedLeadsCount.textContent = selectedCount;
-                }
-                if (deleteSelectedLeadsBtn) {
-                    deleteSelectedLeadsBtn.disabled = selectedCount === 0;
-                }
-            }
-
-            function populateSelectedLeadInputs(container) {
-                if (!container) return;
-                container.replaceChildren();
-                selectedLeadCheckboxes().forEach((checkbox, index) => {
-                    const sourceInput = document.createElement('input');
-                    sourceInput.type = 'hidden';
-                    sourceInput.name = `selected_leads[${index}][source]`;
-                    sourceInput.value = checkbox.dataset.source;
-                    container.appendChild(sourceInput);
-
-                    const idInput = document.createElement('input');
-                    idInput.type = 'hidden';
-                    idInput.name = `selected_leads[${index}][id]`;
-                    idInput.value = checkbox.dataset.id;
-                    container.appendChild(idInput);
-                });
-            }
-
-            function setHiddenInputsForSelectedLeads() {
-                populateSelectedLeadInputs(bulkAssignHiddenInputs);
-                populateSelectedLeadInputs(bulkDeleteLeadsHiddenInputs);
-            }
-
-            if (selectAllLeads) {
-                selectAllLeads.addEventListener('change', function() {
-                    document.querySelectorAll('.lead-select-checkbox').forEach((checkbox) => {
-                        checkbox.checked = this.checked;
-                    });
-                    updateSelectedCount();
-                });
-            }
-
-            document.querySelectorAll('.lead-select-checkbox').forEach((checkbox) => {
-                checkbox.addEventListener('change', function() {
-                    if (!this.checked && selectAllLeads) {
-                        selectAllLeads.checked = false;
-                    }
-                    updateSelectedCount();
-                });
-            });
-
-            if (openBulkAssignModalBtn) {
-                openBulkAssignModalBtn.addEventListener('click', function() {
-                    const selected = selectedLeadCheckboxes();
-                    if (selected.length === 0) {
-                        alert('Please select at least one lead for bulk assign.');
-                        return;
-                    }
-
-                    updateSelectedCount();
-                    setHiddenInputsForSelectedLeads();
-                    if (bulkAssignModal) {
-                        bulkAssignModal.show();
-                    }
-                });
-            }
-
-            if (bulkAssignForm) {
-                bulkAssignForm.addEventListener('submit', function(event) {
-                    setHiddenInputsForSelectedLeads();
-
-                    const checkedStaff = bulkAssignForm.querySelectorAll(
-                        'input[name="assigned_user_ids[]"]:checked');
-                    if (checkedStaff.length === 0) {
-                        alert('Please select at least one staff member.');
-                        event.preventDefault();
-                    }
-                });
-            }
-
-            if (deleteSelectedLeadsBtn && bulkDeleteLeadsForm) {
-                deleteSelectedLeadsBtn.addEventListener('click', function() {
-                    const selectedCount = selectedLeadCheckboxes().length;
-                    if (selectedCount === 0) return;
-
-                    if (!confirm(`Delete ${selectedCount} selected lead(s)? This cannot be undone.`))
-                        return;
-
-                    setHiddenInputsForSelectedLeads();
-                    bulkDeleteLeadsForm.requestSubmit();
-                });
-            }
-
-            document.querySelectorAll('.select-all-staff-btn').forEach((button) => {
-                button.addEventListener('click', function() {
-                    const targetSelector = this.getAttribute('data-target');
-                    const container = document.querySelector(targetSelector);
-                    if (!container) return;
-
-                    const checkboxes = container.querySelectorAll(
-                        'input[name="assigned_user_ids[]"]');
-                    if (!checkboxes.length) return;
-
-                    const allChecked = Array.from(checkboxes).every((cb) => cb.checked);
-                    checkboxes.forEach((cb) => {
-                        cb.checked = !allChecked;
-                    });
-
-                    this.textContent = allChecked ? 'Select All' : 'Unselect All';
-                });
-            });
-
-            document.querySelectorAll('form[data-role=\"assign-lead-form\"]').forEach((form) => {
-                form.addEventListener('submit', function(event) {
-                    const checkedStaff = form.querySelectorAll(
-                        'input[name="assigned_user_ids[]"]:checked');
-                    if (checkedStaff.length === 0) {
-                        alert('Please select at least one staff member.');
-                        event.preventDefault();
-                    }
-                });
+<script>
+$(function () {
+    const table = $('#leadWorklist').DataTable({
+        order: [], pageLength: 25, autoWidth: false,
+        columnDefs: [{targets: [0, 7], orderable: false, searchable: false}],
+        language: {emptyTable: 'No leads match these filters. Try another view or reset the filters.', zeroRecords: 'No matching leads found.'}
+    });
+    const allBoxes = () => Array.from(table.rows().nodes()).flatMap(row => Array.from(row.querySelectorAll('.lead-selection')));
+    const selected = () => allBoxes().filter(box => box.checked);
+    function refreshSelection() {
+        const count = selected().length;
+        document.getElementById('selectionCount').textContent = count + ' selected';
+        ['bulkAssignButton', 'bulkDeleteButton'].forEach(id => { const button = document.getElementById(id); if (button) button.disabled = count === 0; });
+        const page = Array.from(table.rows({page:'current', search:'applied'}).nodes()).flatMap(row => Array.from(row.querySelectorAll('.lead-selection')));
+        const all = document.getElementById('selectAllLeads');
+        if (all) { all.checked = page.length > 0 && page.every(box => box.checked); all.indeterminate = page.some(box => box.checked) && !all.checked; }
+    }
+    $('#leadWorklist').on('change', '.lead-selection', refreshSelection);
+    $('#selectAllLeads').on('change', function () {
+        table.rows({page:'current', search:'applied'}).nodes().toArray().forEach(row => row.querySelectorAll('.lead-selection').forEach(box => box.checked = this.checked));
+        refreshSelection();
+    });
+    table.on('draw', refreshSelection);
+    function fillSelection(container) {
+        container.replaceChildren();
+        selected().forEach((box, index) => {
+            [['source', box.dataset.source], ['id', box.dataset.id]].forEach(([key, value]) => {
+                const input = document.createElement('input'); input.type = 'hidden'; input.name = 'selected_leads[' + index + '][' + key + ']'; input.value = value; container.appendChild(input);
             });
         });
-    </script>
+    }
+    const assignForm = document.getElementById('assignLeadsForm');
+    const assignElement = document.getElementById('assignLeadsModal');
+    const assignModal = assignElement ? new bootstrap.Modal(assignElement) : null;
+    const bulkUrl = assignForm ? assignForm.action : '';
+    $('#leadWorklist').on('click', '.assign-one', function () {
+        assignForm.reset(); assignForm.action = this.dataset.url;
+        document.getElementById('selectedLeadInputs').replaceChildren();
+        document.getElementById('assignLeadContext').textContent = this.dataset.name;
+        assignModal.show();
+    });
+    $('#bulkAssignButton').on('click', function () {
+        if (!selected().length) return;
+        assignForm.reset(); assignForm.action = bulkUrl;
+        fillSelection(document.getElementById('selectedLeadInputs'));
+        document.getElementById('assignLeadContext').textContent = selected().length + ' selected lead(s)';
+        assignModal.show();
+    });
+    if (assignForm) assignForm.addEventListener('submit', function (event) {
+        if (!this.querySelector('input[name="assigned_user_ids[]"]:checked')) { event.preventDefault(); alert('Select at least one staff member.'); }
+    });
+    $('#bulkDeleteButton').on('click', function () {
+        if (!selected().length || !confirm('Delete ' + selected().length + ' selected lead(s)?')) return;
+        fillSelection(document.getElementById('deleteLeadInputs')); document.getElementById('deleteLeadsForm').requestSubmit();
+    });
+});
+</script>
 @endpush

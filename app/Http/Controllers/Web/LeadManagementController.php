@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\Http\Requests\LeadManagement\AddFollowupRequest;
+use App\Http\Requests\LeadManagement\LogWebLeadFollowupRequest;
 use App\Http\Requests\LeadManagement\AddLeadNoteRequest;
 use App\Http\Requests\LeadManagement\AddLeadReminderRequest;
 use App\Http\Requests\LeadManagement\AssignLeadRequest;
@@ -18,6 +18,7 @@ use App\Models\GoogleLead;
 use App\Models\ContactForm;
 use App\Models\EnquiryForm;
 use App\Models\Lead;
+use App\Models\LeadActivity;
 use App\Models\LeadConversion;
 use App\Models\LeadEscalation;
 use App\Models\LeadFollowup;
@@ -31,6 +32,7 @@ use App\Services\LeadManagement\LeadPipelineService;
 use App\Services\LeadManagement\LeadMobileNotificationService;
 use App\Services\LeadManagement\LeadClientConversionService;
 use App\Services\LeadManagement\LeadStatusService;
+use App\Services\LeadManagement\LeadWorklistService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\RedirectResponse;
@@ -39,6 +41,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class LeadManagementController extends \App\Http\Controllers\Controller
@@ -62,6 +65,9 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     private const SOURCE_JUSTDIAL = 'justdial';
     private const SOURCE_PIPELINE = 'lead';
 
+    private ?Collection $journeyLeads = null;
+    private ?Collection $sourceLinks = null;
+
     public function index(Request $request): View
     {
         abort_unless($this->canViewLeadManagement(), 403);
@@ -69,6 +75,10 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $search = trim((string) $request->query('search', ''));
         $statusFilter = trim((string) $request->query('status', ''));
         $sourceFilter = trim((string) $request->query('source', ''));
+        $workFilter = (string) $request->query('work', '');
+        if (! in_array($workFilter, ['overdue', 'today', 'upcoming', 'unscheduled', 'closed'], true)) {
+            $workFilter = '';
+        }
         $sourceLabels = [
             self::SOURCE_LEAD => 'Leads',
             self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
@@ -84,7 +94,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             $sourceFilter = '';
         }
 
-        $filteredBySearch = $this->mergedLeads()
+        $filteredBySearch = $this->withJourneyDetails($this->mergedLeads())
             ->when($search !== '', function (Collection $items) use ($search) {
                 return $items->filter(function (array $row) use ($search) {
                     $needle = mb_strtolower($search);
@@ -107,13 +117,21 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 ->count();
         }
 
-        // Source tabs are filtered in the DataTable. Keep all searched rows
-        // available so switching tabs also works after a filtered URL reload.
         $merged = $filteredBySearch
+            ->when($sourceFilter !== '', fn (Collection $items) => $items->where('source_type', $sourceFilter))
             ->when($statusFilter !== '', function (Collection $items) use ($statusFilter) {
                 return $items->filter(fn(array $row) => (string) ($row['status'] ?? '') === $statusFilter);
             })
-            ->sortByDesc('created_at_ts')
+            ->values();
+        $worklist = app(LeadWorklistService::class);
+        $workSummary = $worklist->summary($merged);
+        $merged = $merged
+            ->filter(fn (array $row) => $worklist->matchesWorkFilter($row, $workFilter))
+            ->sortBy(fn (array $row) => [
+                ['high' => 0, 'medium' => 1, 'low' => 2][$row['priority'] ?? 'medium'] ?? 1,
+                ['overdue' => 0, 'today' => 1, 'unscheduled' => 2, 'upcoming' => 3, 'closed' => 4][$row['followup_state']],
+                $row['next_followup_at']?->timestamp ?? -$row['created_at_ts'],
+            ])
             ->values();
 
         // Lead management uses client-side DataTable features, so provide all filtered rows.
@@ -142,9 +160,11 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 'search' => $search,
                 'source' => $sourceFilter,
                 'status' => $statusFilter,
+                'work' => $workFilter,
             ],
             'sources' => $sourceLabels,
             'tabCounts' => $tabCounts,
+            'workSummary' => $workSummary,
             'statusOptions' => config('lead_statuses', []),
             'canManageLeadAssignments' => $this->canManageLeadAssignments(),
         ]);
@@ -157,28 +177,82 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         $sourceRecord = $this->resolveSourceRecord($lead['source_type'], (int) $lead['source_id']);
         $leadModel = $this->resolveLeadEntityForPipeline($lead)->load('statusUpdatedBy');
 
-        $timeline = $leadModel->activities()->latest()->limit(100)->get();
-        $followups = $leadModel->followups()->latest('followup_date')->get();
-        $notes = $leadModel->notes()->latest()->get();
-        $reminders = $leadModel->reminders()->latest('remind_at')->get();
-        $assignments = $leadModel->assignments()->latest('assigned_at')->get();
-        $statusHistory = $leadModel->statusHistories()->latest()->get();
+        $timeline = $leadModel->activities()->with('user')->latest()->limit(100)->get();
+        $followups = $leadModel->followups()->with('staff')->where('followup_date', '<=', now())->latest('followup_date')->latest('id')->get();
+        $notes = $leadModel->notes()->where(function ($query) {
+            $query->where('is_private', false)->orWhere('user_id', auth()->id());
+            if ($this->hasAdminLevelLeadAccess()) {
+                $query->orWhere('is_private', true);
+            }
+        })->latest()->get();
+        $statusHistory = $leadModel->statusHistories()->with('changedBy')->latest()->limit(100)->get();
         $staff = User::staffMembers()->orderBy('first_name')->orderBy('last_name')->get();
+        // History carries the original remarks, which the generic activity description omits.
+        $timeline = $timeline->reject(fn (LeadActivity $activity) => in_array($activity->activity_type, ['status_changed', 'followup_added'], true))
+            ->concat($followups->map(function (LeadFollowup $followup) {
+                $activity = new LeadActivity([
+                    'activity_type' => 'followup_added',
+                    'description' => ucwords(str_replace('_', ' ', $followup->followup_type)) . ': '
+                        . ucwords(str_replace('_', ' ', $followup->outcome ?: 'Activity logged'))
+                        . ($followup->discussion_notes ? '. ' . $followup->discussion_notes : '.'),
+                    'metadata' => ['next_followup_at' => $followup->next_followup_date?->toDateTimeString()],
+                ]);
+                $activity->created_at = $followup->followup_date;
+                $activity->setRelation('user', $followup->staff);
+                return $activity;
+            }))
+            ->concat($statusHistory->map(function ($history) {
+                $activity = new LeadActivity([
+                    'activity_type' => 'status_changed',
+                    'description' => 'Stage changed from ' . ucwords(str_replace('_', ' ', $history->old_status ?: 'new'))
+                        . ' to ' . ucwords(str_replace('_', ' ', $history->new_status))
+                        . ($history->remarks ? '. ' . $history->remarks : '.'),
+                ]);
+                $activity->created_at = $history->changed_at ?? $history->created_at;
+                $activity->setRelation('user', $history->changedBy);
+                return $activity;
+            }))->sortByDesc('created_at')->take(100)->values();
         $statusOptions = config('lead_statuses', []);
+        $followupState = app(LeadWorklistService::class)->followupState($leadModel->next_followup_at, (string) $leadModel->status);
+        $allowedStatuses = collect($statusOptions)->filter(function (array $option) use ($leadModel) {
+            if (in_array((string) $leadModel->status, LeadWorklistService::CLOSED, true)) {
+                return $option['slug'] === $leadModel->status;
+            }
+            try {
+                $this->leadStatusService->validateTransition((string) $leadModel->status, $option['slug']);
+                return true;
+            } catch (ValidationException $exception) {
+                return false;
+            }
+        })->values();
 
         return view('lead-management.show', compact(
             'lead',
             'timeline',
             'followups',
             'notes',
-            'reminders',
-            'assignments',
-            'statusHistory',
             'staff',
             'leadModel',
             'statusOptions',
-            'sourceRecord'
+            'sourceRecord',
+            'followupState',
+            'allowedStatuses'
         ));
+    }
+
+    public function updatePriority(Request $request, string $source, int $id): RedirectResponse
+    {
+        abort_unless(auth()->user()?->can('edit_leads'), 403);
+
+        $validated = $request->validate([
+            'priority' => ['required', Rule::in(['low', 'medium', 'high'])],
+        ]);
+
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $leadModel->forceFill(['priority' => $validated['priority']])->save();
+
+        return back()->with('success', 'Lead priority updated successfully.');
     }
 
     public function assign(AssignLeadRequest $request, string $source, int $id): RedirectResponse
@@ -259,7 +333,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             $id = (int) $selectedLead['id'];
 
             // Ensure the selected pair is a valid visible lead source/id.
-            $this->findNormalizedLeadOrFail($source, $id);
+            $normalized = $this->findNormalizedLeadOrFail($source, $id);
 
             $existingAssignment = AssignedLead::query()
                 ->where('lead_model', $source)
@@ -289,16 +363,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 ]
             );
 
-            $leadModel = $this->resolveLeadEntityForPipeline([
-                'source_type' => $source,
-                'source_id' => $id,
-                'name' => null,
-                'email' => null,
-                'number' => null,
-                'company' => null,
-                'source' => ucfirst(str_replace('_', ' ', $source)),
-                'status' => 'new',
-            ]);
+            $leadModel = $this->resolveLeadEntityForPipeline($normalized);
             $this->syncPipelineAssignment($leadModel, $assigned);
             if (! empty($assigned)) {
                 $this->pipelineService->assignLead($leadModel, (int) $assigned[0], auth()->id(), 'Bulk assignment');
@@ -370,11 +435,25 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->with('success', 'Lead deleted successfully.');
     }
 
-    public function addFollowup(AddFollowupRequest $request, string $source, int $id): RedirectResponse
+    public function addFollowup(LogWebLeadFollowupRequest $request, string $source, int $id): RedirectResponse
     {
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
         $leadModel = $this->resolveLeadEntityForPipeline($normalized);
         $validated = $request->validated();
+
+        if (in_array((string) $leadModel->status, LeadWorklistService::CLOSED, true)) {
+            throw ValidationException::withMessages(['followup_date' => 'This lead is closed. Its activity history is available below.']);
+        }
+        $nextStatus = $validated['lead_status_after_followup'] ?? $leadModel->status;
+        if (($validated['outcome'] === 'converted' && $nextStatus !== 'converted')
+            || ($validated['outcome'] === 'lost' && $nextStatus !== 'lost')) {
+            throw ValidationException::withMessages(['lead_status_after_followup' => 'Choose the matching lead status for a won or lost outcome.']);
+        }
+        if (in_array($validated['outcome'], ['callback_later', 'meeting_scheduled'], true)
+            && empty($validated['next_followup_date']) && ! in_array($nextStatus, LeadWorklistService::CLOSED, true)) {
+            throw ValidationException::withMessages(['next_followup_date' => 'Choose the next follow-up time for a callback or meeting.']);
+        }
+        $this->validateWebStatusChange($leadModel, (string) $nextStatus);
 
         DB::transaction(function () use ($leadModel, $validated, $normalized) {
             $sourceType = strtolower(trim((string) ($normalized['source_type'] ?? self::SOURCE_LEAD)));
@@ -394,13 +473,22 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 'reminder_sent' => false,
             ]);
 
-            if (! empty($validated['next_followup_date'])) {
+            if (in_array($validated['lead_status_after_followup'] ?? '', LeadWorklistService::CLOSED, true)) {
+                $leadModel->next_followup_at = null;
+            } elseif (! empty($validated['next_followup_date'])) {
                 $leadModel->next_followup_at = Carbon::parse($validated['next_followup_date']);
+            } elseif (! empty($validated['complete_scheduled_followup'])) {
+                $leadModel->next_followup_at = null;
             }
-            if (! empty($validated['lead_status_after_followup'])) {
-                $oldStatus = (string) ($leadModel->status ?? '');
-                $leadModel->status = $validated['lead_status_after_followup'];
-                $this->pipelineService->logStatusChange($leadModel, $oldStatus, $validated['lead_status_after_followup'], auth()->id(), 'Updated via followup');
+            if (! empty($validated['lead_status_after_followup']) && $validated['lead_status_after_followup'] !== $leadModel->status) {
+                $sourceRecord = $this->resolveSourceRecord($normalized['source_type'], (int) $normalized['source_id']);
+                $this->updateLeadStatusAction->handle($sourceRecord, $leadModel, new StatusUpdateData(
+                    status: $validated['lead_status_after_followup'],
+                    remarks: $validated['discussion_notes'],
+                    lostReason: $validated['lost_reason'] ?? null,
+                    wonValue: isset($validated['won_value']) ? (float) $validated['won_value'] : null,
+                    actorId: auth()->id()
+                ));
             }
             $leadModel->save();
 
@@ -408,31 +496,24 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 $leadModel->id,
                 auth()->id(),
                 'followup_added',
-                'Followup added for lead.',
+                ucwords(str_replace('_', ' ', $validated['followup_type'])) . ': ' . str_replace('_', ' ', $validated['outcome']) . '. ' . $validated['discussion_notes'],
                 [
                     'followup_id' => $followup->id,
                     'followup_type' => $followup->followup_type,
                     'source_type' => $followup->source_type,
                     'source_id' => $followup->source_id,
+                    'next_followup_at' => $leadModel->next_followup_at?->toDateTimeString(),
                 ]
             );
 
-            if (! empty($validated['create_reminder']) && ! empty($validated['next_followup_date'])) {
-                $this->pipelineService->createReminder(
-                    $leadModel->id,
-                    auth()->id(),
-                    Carbon::parse($validated['next_followup_date']),
-                    $validated['reminder_type'] ?? 'dashboard'
-                );
-            }
         });
 
         $staffIds = $this->resolveLeadStaffIdsForNotification($normalized, $leadModel);
-        if (! empty($staffIds)) {
+        if (! empty($staffIds) && ! in_array((string) $leadModel->status, LeadWorklistService::CLOSED, true)) {
             $followupAt = Carbon::parse($validated['followup_date']);
             app(LeadMobileNotificationService::class)->notifyFollowupCreatedToStaff($leadModel, $staffIds, $followupAt);
 
-            if (! empty($validated['next_followup_date'])) {
+            if (! empty($validated['next_followup_date']) && config('queue.default') !== 'sync') {
                 app(LeadMobileNotificationService::class)->scheduleFollowupReminderPushes(
                     $leadModel,
                     $staffIds,
@@ -448,9 +529,35 @@ class LeadManagementController extends \App\Http\Controllers\Controller
     {
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
         $leadModel = $this->resolveLeadEntityForPipeline($normalized);
-        $followups = $leadModel->followups()->latest('followup_date')->paginate(20);
+        $followups = $leadModel->followups()->with('staff')->where('followup_date', '<=', now())->latest('followup_date')->latest('id')->paginate(20);
 
         return view('lead-management.followups', compact('leadModel', 'followups', 'normalized'));
+    }
+
+    public function scheduleFollowup(Request $request, string $source, int $id): RedirectResponse
+    {
+        abort_unless($request->user()?->can('edit_leads'), 403);
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $validated = $request->validate([
+            'next_followup_at' => ['required', 'date', 'after:now'],
+            'reason' => ['required', 'string', 'max:1000'],
+        ]);
+        if (in_array((string) $leadModel->status, LeadWorklistService::CLOSED, true)) {
+            throw ValidationException::withMessages(['next_followup_at' => 'A closed lead cannot have a pending follow-up.']);
+        }
+        DB::transaction(function () use ($leadModel, $validated) {
+            $previous = $leadModel->next_followup_at?->format('d M Y h:i A');
+            $leadModel->next_followup_at = Carbon::parse($validated['next_followup_at']);
+            $leadModel->save();
+            $this->pipelineService->logActivity($leadModel->id, auth()->id(), 'followup_scheduled',
+                ($previous ? 'Rescheduled from ' . $previous . '. ' : '') . $validated['reason'], [
+                    'previous_followup_at' => $previous,
+                    'next_followup_at' => $leadModel->next_followup_at->toDateTimeString(),
+                ]);
+        });
+
+        return back()->with('success', 'Next follow-up scheduled.');
     }
 
     public function addNote(AddLeadNoteRequest $request, string $source, int $id): RedirectResponse
@@ -581,10 +688,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
 
     public function updateStatus(UpdateLeadStatusRequest $request, string $source, int $id): RedirectResponse
     {
-        // abort_unless($this->canManageLeadAssignments(), 403);
-
         $validated = $request->validated();
-        $this->findNormalizedLeadOrFail($source, $id);
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
 
         $lead = match ($source) {
             self::SOURCE_LEAD => Lead::findOrFail($id),
@@ -597,22 +702,11 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             default => abort(404),
         };
 
-        $leadModel = $this->resolveLeadEntityForPipeline([
-            'source_type' => $source,
-            'source_id' => $id,
-            'name' => $lead->name ?? $lead->full_name ?? $lead->fname . ' ' . $lead->lname ?? null,
-            'email' => $lead->email ?? null,
-            'number' => $lead->phone ?? $lead->contact ?? null,
-            'company' => $lead->company ?? null,
-            'source' => $source,
-        ]);
-        $user = auth()->user();
-        $isAdminRole = in_array(strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? '')), ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
-        $isUnassigned = empty($leadModel->assigned);
-        // abort_unless(
-        //     $isAdminRole || $isUnassigned || (int) ($leadModel->assigned_to ?? 0) === (int) ($user?->id ?? 0),
-        //     403
-        // );
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $this->validateWebStatusChange($leadModel, (string) $validated['status']);
+        if ($validated['status'] === $leadModel->status) {
+            return back()->with('success', 'This lead is already in the selected stage.');
+        }
 
         $result = $this->updateLeadStatusAction->handle(
             $lead,
@@ -626,13 +720,17 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             )
         );
 
+        if (in_array((string) $leadModel->status, LeadWorklistService::CLOSED, true)) {
+            $leadModel->forceFill(['next_followup_at' => null])->save();
+        }
+
         if (($result['status'] ?? null) === 'converted' && !empty($result['client_user_id'])) {
             return redirect()
                 ->route('client.edit', $result['client_user_id'])
                 ->with('success', 'Lead converted and client created successfully. Please complete client details.');
         }
 
-        return redirect()->route('lead-management.index')->with('success', 'Lead status updated successfully.');
+        return redirect()->route('lead-management.show', ['source' => $source, 'id' => $id])->with('success', 'Lead status updated and journey recorded.');
     }
 
     private function resolveSourceRecord(string $source, int $id): ?Model
@@ -654,19 +752,13 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             return Lead::query()->findOrFail((int) $normalized['source_id']);
         }
 
-        $email = trim((string) ($normalized['email'] ?? ''));
-        $phone = trim((string) ($normalized['number'] ?? ''));
-
-        $existing = Lead::query()
-            ->when($email !== '' && $email !== '-', fn($q) => $q->where('email', $email))
-            ->when($phone !== '' && $phone !== '-', fn($q) => $q->orWhere('phone', $phone))
-            ->first();
-
+        $existing = $this->findJourneyLead($normalized);
         if ($existing) {
             return $existing;
         }
-
-        return Lead::query()->create([
+        $email = trim((string) ($normalized['email'] ?? ''));
+        $phone = trim((string) ($normalized['number'] ?? ''));
+        $created = Lead::query()->create([
             'name' => $normalized['name'] ?? 'Lead',
             'email' => $email !== '-' ? $email : null,
             'phone' => $phone !== '-' ? $phone : null,
@@ -676,6 +768,78 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'status' => $normalized['status'] ?? 'new',
             'created_by' => auth()->id(),
         ]);
+        $link = $this->pipelineService->logActivity($created->id, auth()->id(), 'source_linked', 'Lead journey started.', [
+            'source_type' => $normalized['source_type'],
+            'source_id' => (int) $normalized['source_id'],
+        ]);
+        $this->journeyLeads?->put($created->id, $created);
+        $this->sourceLinks?->put($normalized['source_type'] . ':' . $normalized['source_id'], $link->lead_id);
+
+        return $created;
+    }
+
+    private function findJourneyLead(array $row): ?Lead
+    {
+        $this->journeyLeads ??= Lead::query()->get()->keyBy('id');
+        $this->sourceLinks ??= LeadActivity::query()->where('activity_type', 'source_linked')->orderBy('id')->get()
+            ->mapWithKeys(fn (LeadActivity $activity) => [
+                ($activity->metadata['source_type'] ?? '') . ':' . ($activity->metadata['source_id'] ?? '') => $activity->lead_id,
+            ]);
+        if ($row['source_type'] === self::SOURCE_LEAD) {
+            return $this->journeyLeads->get((int) $row['source_id']);
+        }
+        $linkedId = $this->sourceLinks->get($row['source_type'] . ':' . $row['source_id']);
+        if ($linkedId) {
+            return $this->journeyLeads->get((int) $linkedId);
+        }
+        $email = $this->normalizeContact((string) ($row['email'] ?? ''));
+        $phone = $this->normalizeContact((string) ($row['number'] ?? ''));
+        if ($email === '' && $phone === '') {
+            return null;
+        }
+        $matches = $this->journeyLeads->filter(function (Lead $lead) use ($row, $email, $phone) {
+            $sameSource = in_array(strtolower((string) $lead->source), [strtolower((string) $row['source']), strtolower($row['source_type'])], true);
+            return $sameSource
+                && ($email === '' || $this->normalizeContact((string) $lead->email) === $email)
+                && ($phone === '' || $this->normalizeContact((string) $lead->phone) === $phone);
+        });
+
+        return $matches->count() === 1 ? $matches->first() : null;
+    }
+
+    private function withJourneyDetails(Collection $rows): Collection
+    {
+        $models = $rows->mapWithKeys(fn (array $row) => [$row['source_type'] . ':' . $row['source_id'] => $this->findJourneyLead($row)]);
+        $ids = $models->filter()->pluck('id')->unique()->all();
+        $latestFollowups = LeadFollowup::query()->with('staff')->whereIn('lead_id', $ids)->where('followup_date', '<=', now())
+            ->orderByDesc('followup_date')->orderByDesc('id')->get()->unique('lead_id')->keyBy('lead_id');
+
+        return $rows->map(function (array $row) use ($models, $latestFollowups) {
+            $model = $models->get($row['source_type'] . ':' . $row['source_id']);
+            $last = $model ? $latestFollowups->get($model->id) : null;
+            $row['status'] = $model?->status ?: $row['status'];
+            $row['next_followup_at'] = $model?->next_followup_at;
+            $row['followup_state'] = app(LeadWorklistService::class)->followupState($row['next_followup_at'], $row['status']);
+            $row['last_followup'] = $last;
+            $row['lost_reason'] = $model?->lost_reason;
+            $row['priority'] = $model?->priority ?: 'medium';
+
+            return $row;
+        });
+    }
+
+    private function validateWebStatusChange(Lead $lead, string $status): void
+    {
+        if (in_array((string) $lead->status, LeadWorklistService::CLOSED, true) && $status !== $lead->status) {
+            throw ValidationException::withMessages(['status' => 'This lead is already closed. Its existing journey is preserved.']);
+        }
+        $this->leadStatusService->validateTransition((string) $lead->status, $status);
+        if ($status === 'converted' && filled($lead->email)) {
+            $existing = User::query()->where('email', $lead->email)->first();
+            if ($existing && strtolower((string) $existing->getRawOriginal('role')) !== 'client') {
+                throw ValidationException::withMessages(['status' => 'This email belongs to an existing team account. Use a customer email before converting this lead.']);
+            }
+        }
     }
 
     private function syncPipelineAssignment(Lead $leadModel, array $staffIds): void
@@ -921,6 +1085,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'created_at' => $date?->format('d M Y h:i A') ?: '-',
             'created_at_ts' => $date?->timestamp ?: 0,
             'status' => $status ?: 'new',
+            'priority' => 'medium',
         ];
     }
 

@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Helpers\FcmNotificationHelper;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\InAppPushNotification;
@@ -12,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class UnifiedNotificationService
 {
     /**
-     * Save in-app database notification and send existing Firebase push.
+     * Save an in-app database notification.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
@@ -57,15 +56,18 @@ class UnifiedNotificationService
             ]);
         }
 
-        $pushResult = FcmNotificationHelper::sendToUser($user, $title, $body, $data);
-
         return [
-            'success' => $storedInDatabase || (($pushResult['success'] ?? false) === true),
+            'success' => $storedInDatabase,
             'database' => [
                 'stored' => $storedInDatabase,
                 'notification_id' => $notificationId,
             ],
-            'push' => $pushResult,
+            'push' => [
+                'success' => false,
+                'sent' => 0,
+                'failed' => 0,
+                'message' => 'Push notifications are disabled; in-app notification was used.',
+            ],
         ];
     }
 
@@ -99,13 +101,18 @@ class UnifiedNotificationService
     }
 
     /**
-     * Push-only mode for backward-compatible usage where DB storage is not needed.
+     * Kept for backward compatibility; external push notifications are disabled.
      *
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     public function sendPushOnlyToUser(User $user, string $title, string $body, array $data = []): array
     {
-        return FcmNotificationHelper::sendToUser($user, $title, $body, $data);
+        return [
+            'success' => false,
+            'sent' => 0,
+            'failed' => 0,
+            'message' => 'Push notifications are disabled.',
+        ];
     }
 }

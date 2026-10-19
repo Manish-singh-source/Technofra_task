@@ -32,6 +32,7 @@ use App\Services\LeadManagement\LeadPipelineService;
 use App\Services\LeadManagement\LeadMobileNotificationService;
 use App\Services\LeadManagement\LeadClientConversionService;
 use App\Services\LeadManagement\LeadStatusService;
+use App\Services\LeadManagement\LeadWorklistService;
 use App\Http\Resources\Api\V1\LeadManagement\LeadSummaryResource;
 use App\Http\Resources\Api\V1\LeadManagement\LeadDetailResource;
 use Illuminate\Database\Eloquent\Model;
@@ -41,6 +42,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class LeadManagementController extends \App\Http\Controllers\Controller
 {
@@ -375,13 +377,42 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         ], 'Lead status updated successfully.');
     }
 
+    public function updatePriority(Request $request, string $source, int $id): JsonResponse
+    {
+        $request->validate(['priority' => ['required', 'in:low,medium,high']]);
+        $normalized = $this->findNormalizedLeadOrFail($source, $id);
+        $leadModel = $this->resolveLeadEntityForPipeline($normalized);
+        $leadModel->forceFill(['priority' => $request->string('priority')->toString()])->save();
+
+        return ApiResponse::success([
+            'source_type' => $normalized['source_type'],
+            'source_id' => (int) $normalized['source_id'],
+            'priority' => $leadModel->priority,
+        ], 'Lead priority updated successfully.');
+    }
+
     public function addFollowup(AddFollowupRequest $request, string $source, int $id): JsonResponse
     {
         $normalized = $this->findNormalizedLeadOrFail($source, $id);
         $leadModel = $this->resolveLeadEntityForPipeline($normalized);
         $validated = $request->validated();
 
-        DB::transaction(function () use ($leadModel, $validated, $normalized) {
+        if (in_array((string) $leadModel->status, LeadWorklistService::CLOSED, true)) {
+            throw ValidationException::withMessages(['followup_date' => 'This lead is closed. Its activity history is available below.']);
+        }
+
+        $nextStatus = $validated['lead_status_after_followup'] ?? $leadModel->status;
+        if (($validated['outcome'] === 'converted' && $nextStatus !== 'converted')
+            || ($validated['outcome'] === 'lost' && $nextStatus !== 'lost')) {
+            throw ValidationException::withMessages(['lead_status_after_followup' => 'Choose the matching lead status for a won or lost outcome.']);
+        }
+        if (in_array($validated['outcome'], ['callback_later', 'meeting_scheduled'], true)
+            && empty($validated['next_followup_date'])
+            && ! in_array($nextStatus, LeadWorklistService::CLOSED, true)) {
+            throw ValidationException::withMessages(['next_followup_date' => 'Choose the next follow-up time for a callback or meeting.']);
+        }
+
+        DB::transaction(function () use ($leadModel, $validated, $normalized, $nextStatus) {
             $sourceType = strtolower(trim((string) ($normalized['source_type'] ?? self::SOURCE_LEAD)));
             $sourceId = (int) ($normalized['source_id'] ?? 0);
 
@@ -399,13 +430,22 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                 'reminder_sent' => false,
             ]);
 
-            if (! empty($validated['next_followup_date'])) {
+            if (in_array($nextStatus, LeadWorklistService::CLOSED, true)) {
+                $leadModel->next_followup_at = null;
+            } elseif (! empty($validated['next_followup_date'])) {
                 $leadModel->next_followup_at = Carbon::parse($validated['next_followup_date']);
+            } elseif (! empty($validated['complete_scheduled_followup'])) {
+                $leadModel->next_followup_at = null;
             }
-            if (! empty($validated['lead_status_after_followup'])) {
-                $oldStatus = (string) ($leadModel->status ?? '');
-                $leadModel->status = $validated['lead_status_after_followup'];
-                $this->pipelineService->logStatusChange($leadModel, $oldStatus, $validated['lead_status_after_followup'], auth()->id(), 'Updated via followup');
+            if (! empty($validated['lead_status_after_followup']) && $validated['lead_status_after_followup'] !== $leadModel->status) {
+                $sourceRecord = $this->resolveSourceRecord($normalized['source_type'], (int) $normalized['source_id']);
+                $this->updateLeadStatusAction->handle($sourceRecord, $leadModel, new StatusUpdateData(
+                    status: $validated['lead_status_after_followup'],
+                    remarks: $validated['discussion_notes'],
+                    lostReason: $validated['lost_reason'] ?? null,
+                    wonValue: isset($validated['won_value']) ? (float) $validated['won_value'] : null,
+                    actorId: auth()->id()
+                ));
             }
             $leadModel->save();
 
@@ -623,6 +663,20 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         return ApiResponse::success(['source' => $source, 'id' => $id], 'Lead deleted successfully.');
     }
 
+    private function resolveSourceRecord(string $source, int $id): ?Model
+    {
+        return match ($source) {
+            self::SOURCE_LEAD => Lead::find($id),
+            self::SOURCE_DIGITAL_MARKETING => DigitalMarketingLead::find($id),
+            self::SOURCE_WEBAPP => WebappLead::find($id),
+            self::SOURCE_META => MetaLead::find($id),
+            self::SOURCE_GOOGLE => GoogleLead::find($id),
+            self::SOURCE_CONTACTFORM => ContactForm::query()->where('id', $id)->whereNull('deleted_at')->first(),
+            self::SOURCE_ENQUIRYFORM => EnquiryForm::find($id),
+            default => null,
+        };
+    }
+
     private function resolveLeadEntityForPipeline(array $normalized): Lead
     {
         if ($normalized['source_type'] === self::SOURCE_LEAD) {
@@ -686,7 +740,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     'Digital Marketing',
                     null,
                     $lead->created_at,
-                    $lead->status
+                     $lead->status
                 );
         });
 
@@ -716,7 +770,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     'Meta',
                     null,
                     $lead->created_time,
-                    $lead->status
+                     $lead->status
                 );
         });
 
@@ -817,7 +871,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
                     $lead->source ?: 'Leads',
                     $lead->lead_value,
                     $lead->created_at,
-                    $lead->status
+                    $lead->status,
+                    $lead->priority
                 );
             });
 
@@ -873,7 +928,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         ?string $source,
         mixed $leadValue,
         mixed $createdAt,
-        ?string $status = null
+        ?string $status = null,
+        ?string $priority = null
     ): array {
         $date = $createdAt ? Carbon::parse($createdAt) : null;
 
@@ -890,6 +946,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'created_at' => $date?->format('d M Y h:i A') ?: '-',
             'created_at_ts' => $date?->timestamp ?: 0,
             'status' => $status ?: 'new',
+            'priority' => $priority ?: 'medium',
         ];
     }
 

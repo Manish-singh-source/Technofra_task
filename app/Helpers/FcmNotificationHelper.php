@@ -67,13 +67,28 @@ class FcmNotificationHelper
             ];
         }
 
+        // Push notifications are optional. A missing Firebase setup must not
+        // prevent lead actions such as logging a follow-up from completing.
+        if (blank(config('services.firebase.project_id')) || blank(config('services.firebase.credentials'))) {
+            Log::notice('FCM push skipped because Firebase is not configured.', [
+                'user_id' => $user->id,
+            ]);
+
+            return [
+                'success' => false,
+                'sent' => 0,
+                'failed' => 0,
+                'message' => 'Firebase push notifications are not configured.',
+            ];
+        }
+
         $sent = 0;
         $failed = 0;
         $errors = [];
-        $fcmService = app(FirebaseFcmService::class);
 
         foreach ($tokens as $token) {
             try {
+                $fcmService = app(FirebaseFcmService::class);
                 $fcmService->sendToToken((string) $token, $title, $body, $data);
                 $sent++;
             } catch (\Throwable $exception) {

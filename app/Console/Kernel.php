@@ -40,6 +40,7 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping();
         $schedule->command('meta:sync-leads')->hourly()->withoutOverlapping();
         $schedule->command('leads:escalate-overdue')->hourly()->withoutOverlapping();
+        $schedule->command('leads:send-alerts')->hourly()->withoutOverlapping();
 
         // $schedule->command('inspire')->hourly();
     }

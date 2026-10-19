@@ -23,6 +23,7 @@ class LeadSummaryResource extends JsonResource
             'source' => $row['source'] ?? null,
             'lead_value' => $row['lead_value'] ?? null,
             'status' => (string) ($row['status'] ?? 'new'),
+            'priority' => (string) ($row['priority'] ?? 'medium'),
             'assigned_to' => $row['assigned_to'] ?? null,
             'created_at' => $row['created_at'] ?? null,
         ];

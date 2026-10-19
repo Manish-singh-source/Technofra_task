@@ -125,6 +125,7 @@ class LeadController extends Controller
             'success' => true,
             'data' => [
                 'statuses' => self::STATUSES,
+                'priorities' => ['low', 'medium', 'high'],
                 // 'sources' => self::SOURCES,
                 'tags' => self::TAGS,
                 'staff' => User::staffMembers()
@@ -323,6 +324,7 @@ class LeadController extends Controller
             'tags.*' => 'string',
             'description' => 'nullable|string',
             'status' => 'nullable|in:' . implode(',', self::STATUSES),
+            'priority' => 'nullable|in:low,medium,high',
         ]);
     }
 
@@ -345,6 +347,7 @@ class LeadController extends Controller
             'tags' => $request->tags ?? [],
             'description' => $request->description,
             'status' => $request->status ?? 'new',
+            'priority' => $request->priority ?? 'medium',
         ];
     }
 
@@ -399,6 +402,7 @@ class LeadController extends Controller
             'tags' => $lead->tags ?? [],
             'description' => $lead->description,
             'status' => $lead->status,
+            'priority' => $lead->priority ?: 'medium',
             'created_at' => optional($lead->created_at)?->toISOString(),
             'updated_at' => optional($lead->updated_at)?->toISOString(),
             'links' => [

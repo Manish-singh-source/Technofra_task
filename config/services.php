@@ -46,6 +46,7 @@ return [
         'event_time_template' => env('K3_WHATSAPP_EVENT_TIME_TEMPLATE', 'calendar_appointment_reminder'),
         'renewal_template' => env('K3_WHATSAPP_RENEWAL_TEMPLATE', 'renewal_reminder_upcoming'),
         'meta_lead_welcome_template' => env('K3_WHATSAPP_META_LEAD_WELCOME_TEMPLATE', 'lead_received_confirmation'),
+        'lead_alert_template' => env('K3_WHATSAPP_LEAD_ALERT_TEMPLATE', 'lead_alert'),
         'meta_lead_welcome_header_video_url' => env('K3_WHATSAPP_META_LEAD_WELCOME_HEADER_VIDEO_URL'),
         'admin_phone' => env('K3_WHATSAPP_ADMIN_PHONE'),
     ],

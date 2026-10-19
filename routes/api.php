@@ -250,6 +250,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/bulk-assign', 'bulkAssign');
             Route::get('/{source}/{id}/status-history', 'statusHistory');
             Route::patch('/{source}/{id}/status', 'updateStatus');
+            Route::patch('/{source}/{id}/priority', 'updatePriority');
             Route::post('/{source}/{id}/followup', 'addFollowup');
             Route::get('/{source}/{id}/followups', 'followupHistory');
             Route::get('/{source}/{id}/note', 'listNotes');

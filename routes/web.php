@@ -289,11 +289,13 @@ Route::middleware('auth')->group(function () {
     Route::controller(LeadManagementController::class)->prefix('lead-management')->name('lead-management.')->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/{source}/{id}/view', 'show')->name('show');
+        Route::patch('/{source}/{id}/priority', 'updatePriority')->name('priority');
         Route::post('/{source}/{id}/assign', 'assign')->name('assign');
         Route::post('/bulk-assign', 'bulkAssign')->name('bulk-assign');
         Route::delete('/delete-selected', 'deleteSelected')->name('bulk-delete');
         Route::patch('/{source}/{id}/status', 'updateStatus')->name('status');
         Route::post('/{source}/{id}/followup', 'addFollowup')->name('followup');
+        Route::post('/{source}/{id}/next-followup', 'scheduleFollowup')->name('next-followup');
         Route::get('/{source}/{id}/followups', 'followupHistory')->name('followups');
         Route::post('/{source}/{id}/note', 'addNote')->name('note');
         Route::post('/{source}/{id}/reminder', 'addReminder')->name('reminder');
