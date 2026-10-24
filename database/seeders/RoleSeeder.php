@@ -100,6 +100,21 @@ class RoleSeeder extends Seeder
             'view_company_information',
             'view_email_settings',
             'manage_meta_credentials',
+
+            // Social Media Post Management
+            'view_social_media_posts',
+            'create_social_media_posts',
+            'edit_social_media_posts',
+            'delete_social_media_posts',
+            'manage_social_content_plans',
+            'manage_social_festival_events',
+            'assign_social_media_posts',
+            'review_social_media_posts',
+            'send_social_posts_to_client',
+            'manage_social_publishing',
+            'view_social_media_reports',
+            'approve_own_social_posts',
+            'comment_own_social_posts',
         ];
 
         // Create permissions if they don't exist
@@ -275,6 +290,18 @@ class RoleSeeder extends Seeder
                 'delete_digital_marketing_leads',
             ],
         ];
+
+        $socialManagerPermissions = [
+            'view_social_media_posts', 'create_social_media_posts', 'edit_social_media_posts',
+            'delete_social_media_posts', 'manage_social_content_plans', 'manage_social_festival_events',
+            'assign_social_media_posts', 'review_social_media_posts', 'send_social_posts_to_client',
+            'manage_social_publishing', 'view_social_media_reports',
+        ];
+        foreach (['super_admin', 'admin', 'manager'] as $roleName) {
+            $roles[$roleName] = array_merge($roles[$roleName], $socialManagerPermissions);
+        }
+        $roles['staff'] = array_merge($roles['staff'], ['view_social_media_posts', 'edit_social_media_posts']);
+        $roles['customer'] = array_merge($roles['customer'], ['view_social_media_posts', 'approve_own_social_posts', 'comment_own_social_posts']);
 
         // Create roles and assign permissions
         foreach ($roles as $roleName => $rolePermissions) {

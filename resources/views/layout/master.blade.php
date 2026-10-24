@@ -46,6 +46,17 @@
     <link rel="stylesheet" href="{{ asset('assets/css/header-colors.css') }}" />
 
     @stack('styles')
+    @if(request()->routeIs('social-media.*'))
+    <style>
+        .page-content:has(.social-media-page){background:#f7f9fd}.social-media-page{--sm-blue:#176ee2;--sm-ink:#172b4d;--sm-muted:#6c7a91;color:var(--sm-ink)}
+        .social-media-page .card{border:1px solid #e8eef7;border-radius:15px;box-shadow:0 4px 18px rgba(27,59,107,.06);margin-bottom:20px}.social-media-page .card-body{padding:1.25rem}.social-media-page h4,.social-media-page h5,.social-media-page h6{color:var(--sm-ink);font-weight:700}.social-media-page .form-control,.social-media-page .form-select{border-color:#dce5f2;border-radius:8px;min-height:39px}.social-media-page textarea.form-control{min-height:auto}.social-media-page .form-control:focus,.social-media-page .form-select:focus{border-color:#7db2f5;box-shadow:0 0 0 .18rem rgba(23,110,226,.1)}
+        .social-media-page .btn{border-radius:8px;font-weight:600}.social-media-page .btn-primary{background:#176ee2;border-color:#176ee2}.social-media-page .table{margin-bottom:0}.social-media-page .table thead th{background:#f6f8fc;border:0;color:#6c7a91;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;padding:.78rem}.social-media-page .table td{border-color:#edf1f6;color:#334766;padding:.85rem .78rem;vertical-align:middle}.social-media-page .table tbody tr:hover{background:#fafcff}.social-media-page .badge{font-weight:600;padding:.42em .68em;border-radius:20px}.social-media-page .badge.bg-primary{background:#e7f0ff!important;color:#176ee2}.social-media-page .page-title{font-size:1.35rem;margin:0}.social-media-page .page-subtitle{color:var(--sm-muted);margin:.25rem 0 0}.social-media-page .page-heading{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:14px;margin-bottom:22px}.social-media-page .empty-state{padding:38px 20px;text-align:center;color:var(--sm-muted)}
+        .social-media-page .workflow-strip{display:flex;gap:0;overflow:auto;padding:2px}.social-media-page .workflow-step{white-space:nowrap;padding:9px 14px;font-size:.78rem;font-weight:600;color:#8491a5;position:relative}.social-media-page .workflow-step:not(:last-child):after{content:'›';margin-left:18px;color:#b2bdcb;font-size:1.1rem}.social-media-page .workflow-step.active{color:#176ee2}.social-media-page .workflow-step.done{color:#15966a}
+        @media(max-width:767px){.social-media-page .card-body{padding:1rem}.social-media-page .page-heading{align-items:flex-start}.social-media-page .table{min-width:650px}}
+        /* The remaining Social Media screens use the same visual language without requiring duplicate markup. */
+        .page-content .card{border:1px solid #e8eef7;border-radius:15px;box-shadow:0 4px 18px rgba(27,59,107,.06)}.page-content .card-body{padding:1.25rem}.page-content .table thead th{background:#f6f8fc;border:0;color:#6c7a91;font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;padding:.78rem}.page-content .table td{border-color:#edf1f6;color:#334766;padding:.85rem .78rem;vertical-align:middle}.page-content .table tbody tr:hover{background:#fafcff}.page-content .form-control,.page-content .form-select{border-color:#dce5f2;border-radius:8px}.page-content .btn{border-radius:8px;font-weight:600}
+    </style>
+    @endif
 
     <!-- Custom Notification Styles -->
     <style>
@@ -311,6 +322,30 @@
                         </a>
                     </li>
                 @endcan
+                @if(auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']) || in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'staff', 'client', 'customer'], true) || auth()->user()->checkPermissionTo('view_social_media_posts'))
+                    <li>
+                        <a href="javascript:;" class="has-arrow">
+                            <div class="parent-icon"><i class="bx bx-share-alt"></i></div>
+                            <div class="menu-title">Social Media</div>
+                        </a>
+                        <ul>
+                            <li><a href="{{ route('social-media.dashboard') }}"><i class='bx bx-radio-circle'></i>Overview</a></li>
+                            @if(in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client', 'customer'], true))
+                                <li><a href="{{ route('social-media.posts.index') }}"><i class='bx bx-radio-circle'></i>My Posts</a></li>
+                                <li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>My Monthly Plan</a></li>
+                                <li><a href="{{ route('social-media.approvals') }}"><i class='bx bx-radio-circle'></i>My Approvals</a></li>
+                            @else
+                                @if(auth()->user()->checkPermissionTo('view_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.calendar') }}"><i class='bx bx-radio-circle'></i>Post Calendar</a></li><li><a href="{{ route('social-media.posts.index') }}"><i class='bx bx-radio-circle'></i>All Posts</a></li>@endif
+                                <li><a href="{{ route('social-media.my-assigned') }}"><i class='bx bx-radio-circle'></i>My Assigned Posts</a></li>
+                                @if(auth()->user()->checkPermissionTo('manage_social_content_plans') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>Monthly Plans</a></li>@endif
+                                @if(auth()->user()->checkPermissionTo('review_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.review') }}"><i class='bx bx-radio-circle'></i>Internal Review</a></li><li><a href="{{ route('social-media.approvals') }}"><i class='bx bx-radio-circle'></i>Client Approvals</a></li>@endif
+                                @if(auth()->user()->checkPermissionTo('manage_social_publishing') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.publishing') }}"><i class='bx bx-radio-circle'></i>Publishing Tracker</a></li>@endif
+                                @if(auth()->user()->checkPermissionTo('manage_social_festival_events') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.festivals.index') }}"><i class='bx bx-radio-circle'></i>Festival Master</a></li>@endif
+                                @if(auth()->user()->checkPermissionTo('view_social_media_reports') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.reports') }}"><i class='bx bx-radio-circle'></i>Monthly Reports</a></li>@endif
+                            @endif
+                        </ul>
+                    </li>
+                @endif
                 <!-- Client Issue section - removed permission check -->
                 @can('view_raise_issue')
                     <li>

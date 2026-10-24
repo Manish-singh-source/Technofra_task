@@ -383,4 +383,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(FcmToken::class);
     }
+
+    public function socialPostsForClient()
+    {
+        return $this->hasMany(SocialPost::class, 'client_id');
+    }
+
+    public function socialPostAssignments()
+    {
+        return $this->hasMany(SocialPostAssignment::class);
+    }
 }

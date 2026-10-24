@@ -17,6 +17,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalaryManagementController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\SettingController;
+use App\Http\Controllers\SocialMediaController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
@@ -69,6 +70,36 @@ Route::controller(AuthController::class)->group(function () {
 
 // Protected routes (require authentication)
 Route::middleware('auth')->group(function () {
+
+    // ============================= Social Media Post Management ====================
+    Route::prefix('social-media')->name('social-media.')->controller(SocialMediaController::class)->group(function () {
+        Route::get('/', 'dashboard')->name('dashboard');
+        Route::get('/calendar', 'calendar')->name('calendar');
+        Route::get('/plans', 'plans')->name('plans.index');
+        Route::post('/plans', 'storePlan')->name('plans.store');
+        Route::get('/internal-review', 'reviewQueue')->name('review');
+        Route::get('/client-approvals', 'approvalsQueue')->name('approvals');
+        Route::get('/publishing', 'publishingTracker')->name('publishing');
+        Route::get('/festivals', 'festivals')->name('festivals.index');
+        Route::post('/festivals', 'storeFestival')->name('festivals.store');
+        Route::get('/reports', 'reports')->name('reports');
+        Route::get('/posts', 'index')->name('posts.index');
+        Route::get('/my-assigned-posts', 'myAssigned')->name('my-assigned');
+        Route::get('/posts/create', 'create')->name('posts.create');
+        Route::post('/posts', 'store')->name('posts.store');
+        Route::get('/posts/{post}', 'show')->name('posts.show');
+        Route::get('/posts/{post}/edit', 'edit')->name('posts.edit');
+        Route::put('/posts/{post}', 'update')->name('posts.update');
+        Route::post('/posts/{post}/versions', 'submitVersion')->name('posts.versions.store');
+        Route::post('/posts/{post}/start-work', 'startWork')->name('posts.start-work');
+        Route::post('/posts/{post}/internal-review', 'internalReview')->name('posts.internal-review');
+        Route::post('/posts/{post}/client-decision', 'clientDecision')->name('posts.client-decision');
+        Route::post('/posts/{post}/comments', 'comment')->name('posts.comments.store');
+        Route::post('/posts/{post}/schedule', 'schedule')->name('posts.schedule');
+        Route::post('/posts/{post}/publish', 'publish')->name('posts.publish');
+        Route::get('/posts/{post}/version-files/{file}/download', 'downloadVersionFile')->name('posts.version-files.download');
+        Route::get('/posts/{post}/version-files/{file}/preview', 'previewVersionFile')->name('posts.version-files.preview');
+    });
 
     // Redirect root to dashboard
     Route::get('/', function () {

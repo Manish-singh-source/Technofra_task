@@ -34,6 +34,7 @@ class PermissionSeeder extends Seeder
             'dashboard',
             'book_calls',
             'digital_marketing_leads',
+            'social_media_posts',
         ];
 
         // Define all actions
@@ -68,6 +69,15 @@ class PermissionSeeder extends Seeder
             'assign_tasks',
             'view_all_tasks',
             'view_own_tasks',
+            'manage_social_content_plans',
+            'manage_social_festival_events',
+            'assign_social_media_posts',
+            'review_social_media_posts',
+            'send_social_posts_to_client',
+            'manage_social_publishing',
+            'view_social_media_reports',
+            'approve_own_social_posts',
+            'comment_own_social_posts',
         ];
 
         foreach ($additionalPermissions as $permission) {

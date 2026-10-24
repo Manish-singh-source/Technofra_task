@@ -24,6 +24,7 @@ use App\Http\Controllers\Api\WebEnquiryContactController;
 use App\Http\Controllers\Api\V1\ClientController as ApiV1ClientController;
 use App\Http\Controllers\Api\V1\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\V1\VendorRenewalController;
+use App\Http\Controllers\Api\V1\SocialMediaController as ApiSocialMediaController;
 use App\Http\Controllers\Api\WebEnquiryCareerController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GoogleAdsLeadController;
@@ -81,6 +82,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::controller(DashboardController::class)->group(function () {
             Route::get('/dashboard', 'index');
             Route::get('/quick-stats', 'quickStats');
+        });
+
+        // Social Media Post Management API
+        Route::prefix('social-media')->controller(ApiSocialMediaController::class)->group(function () {
+            Route::get('/options', 'options');
+            Route::get('/posts', 'index');
+            Route::post('/posts', 'store');
+            Route::get('/posts/{post}', 'show');
+            Route::match(['put', 'patch'], '/posts/{post}', 'update');
+            Route::post('/posts/{post}/start', 'start');
+            Route::post('/posts/{post}/versions', 'uploadVersion');
+            Route::post('/posts/{post}/internal-decision', 'internalDecision');
+            Route::post('/posts/{post}/client-decision', 'clientDecision');
+            Route::post('/posts/{post}/comments', 'comment');
+            Route::post('/posts/{post}/schedule', 'schedule');
+            Route::post('/posts/{post}/publish', 'publish');
         });
 
         Route::prefix('settings')->controller(ApiSettingController::class)->group(function () {
