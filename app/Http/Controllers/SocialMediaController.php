@@ -26,15 +26,103 @@ class SocialMediaController extends Controller
     public function dashboard(Request $request)
     {
         $selectedMonth = $request->input('month', now()->format('Y-m'));
+        $selectedYear = (int) substr($selectedMonth, 0, 4);
+        $selectedMonthNum = (int) substr($selectedMonth, 5, 2);
+
+        // Query planned monthly content plans created on /social-media/plans
+        $plansQuery = SocialContentPlan::with(['client', 'creator'])->withCount('posts');
+        if ($this->isClient()) {
+            $plansQuery->where('client_id', auth()->id());
+        } elseif ($request->filled('client_id')) {
+            $plansQuery->where('client_id', $request->client_id);
+        }
+        $totalPlansCount = (clone $plansQuery)->count();
+
         $posts = $this->visiblePosts($request)->get();
         $counts = collect(SocialPost::STATUSES)->mapWithKeys(fn ($status) => [$status => $posts->where('status', $status)->count()]);
-        $assignedPosts = $this->isClient() ? collect() : SocialPost::query()->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))->get();
-        $monthQuery = $this->visiblePosts($request)->whereYear('planned_at', substr($selectedMonth, 0, 4))->whereMonth('planned_at', substr($selectedMonth, 5, 2));
+        // Display planned content from /social-media/plans on "Planned" metric
+        $counts['planned'] = $totalPlansCount;
+        if ($this->isClient()) {
+            $assignedPosts = collect();
+        } else {
+            $userAssigned = SocialPost::query()->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))->with(['client', 'platforms'])->latest()->get();
+            if ($userAssigned->isNotEmpty()) {
+                $assignedPosts = $userAssigned;
+            } elseif ($this->isManager()) {
+                $assignedPosts = SocialPost::query()->with(['client', 'platforms'])->latest()->take(10)->get();
+            } else {
+                $assignedPosts = $userAssigned;
+            }
+        }
+
+        $clientApprovals = $this->isClient()
+            ? $this->visiblePosts($request)->whereIn('status', ['pending_client_approval', 'client_changes_requested'])->with(['platforms', 'client'])->latest()->get()
+            : collect();
+
+        
+        if ($request->filled('month')) {
+            $plansQuery->where('plan_year', $selectedYear)->where('plan_month', $selectedMonthNum);
+            $monthPlans = $plansQuery->latest()->get();
+        } else {
+            // Default to selected (current) month; if none found, load recent plans so created plans are immediately visible
+            $monthPlans = (clone $plansQuery)->where('plan_year', $selectedYear)->where('plan_month', $selectedMonthNum)->latest()->get();
+            if ($monthPlans->isEmpty()) {
+                $monthPlans = (clone $plansQuery)->latest()->take(10)->get();
+            }
+        }
+
+        $monthlyPlan = $this->isClient()
+            ? $monthPlans->first()
+            : ($request->filled('client_id') ? $monthPlans->first() : $monthPlans->first());
+
+        $monthQuery = $this->visiblePosts($request)->whereYear('planned_at', $selectedYear)->whereMonth('planned_at', $selectedMonthNum);
         if (! $this->isClient() && $request->filled('client_id')) $monthQuery->where('client_id', $request->client_id);
         $monthPosts = $monthQuery->with(['platforms', 'client'])->orderBy('planned_at')->get();
-        $monthlyPlan = $this->isClient() ? SocialContentPlan::where('client_id', auth()->id())->where('plan_year', substr($selectedMonth, 0, 4))->where('plan_month', substr($selectedMonth, 5, 2))->first() : null;
+
         $dashboardClients = $this->isClient() ? collect() : $this->formData()['clients'];
-        return view('social-media.dashboard', compact('counts', 'assignedPosts', 'monthPosts', 'selectedMonth', 'monthlyPlan', 'dashboardClients'));
+
+        // Calendar events for embedded Post Calendar
+        $calendarPosts = $this->visiblePosts($request)->whereNotNull('planned_at')->with(['client', 'platforms'])->orderBy('planned_at')->get();
+        $calendarEvents = $calendarPosts->map(function (SocialPost $post) {
+            $statusMeta = match ($post->status) {
+                'planned' => ['type' => 'planned', 'label' => 'Planned', 'color' => '#6c757d'],
+                'assigned', 'in_progress' => ['type' => 'in_progress', 'label' => 'In Design', 'color' => '#0d6efd'],
+                'internal_review', 'internal_changes_requested' => ['type' => 'internal_review', 'label' => 'In Review', 'color' => '#fd7e14'],
+                'pending_client_approval', 'client_changes_requested' => ['type' => 'pending_client_approval', 'label' => 'Client Approval', 'color' => '#0dcaf0'],
+                'client_approved', 'ready_for_publishing', 'scheduled' => ['type' => 'scheduled', 'label' => 'Scheduled', 'color' => '#6f42c1'],
+                'published', 'completed' => ['type' => 'published', 'label' => 'Published', 'color' => '#198754'],
+                default => ['type' => 'planned', 'label' => ucwords(str_replace('_', ' ', $post->status)), 'color' => '#6c757d']
+            };
+
+            $clientName = $post->client->name ?? '';
+            $platforms = $post->platforms->pluck('platform')->join(', ');
+            $descParts = array_filter([$clientName, $platforms, $post->creative_brief ?: $post->caption]);
+            $description = implode(' • ', $descParts);
+
+            return [
+                'id' => (string) $post->id,
+                'title' => $post->title,
+                'start' => optional($post->planned_at)->format('Y-m-d\\TH:i:s'),
+                'allDay' => false,
+                'backgroundColor' => $statusMeta['color'],
+                'borderColor' => $statusMeta['color'],
+                'textColor' => '#ffffff',
+                'url' => route('social-media.posts.show', $post),
+                'description' => $description,
+                'extendedProps' => [
+                    'event_type' => $statusMeta['type'],
+                    'event_type_label' => $statusMeta['label'],
+                    'status' => $post->status,
+                    'status_label' => ucwords(str_replace('_', ' ', $post->status)),
+                    'client_name' => $clientName,
+                    'platforms' => $platforms,
+                    'description' => $description,
+                    'url' => route('social-media.posts.show', $post),
+                ],
+            ];
+        })->values()->all();
+
+        return view('social-media.dashboard', compact('counts', 'assignedPosts', 'clientApprovals', 'monthPosts', 'monthPlans', 'selectedMonth', 'monthlyPlan', 'dashboardClients', 'calendarEvents'));
     }
 
     public function index(Request $request)
@@ -60,25 +148,94 @@ class SocialMediaController extends Controller
     public function storePlan(Request $request)
     {
         $this->ensureStaffPermission('manage_social_content_plans');
-        $data = $request->validate(['client_id' => 'required|exists:users,id', 'plan_month' => 'required|integer|between:1,12', 'plan_year' => 'required|integer|between:2020,2100', 'title' => 'nullable|string|max:255', 'notes' => 'nullable|string|max:4000']);
+        $data = $request->validate([
+            'client_id' => 'required|exists:users,id',
+            'plan_month' => 'required|integer|between:1,12',
+            'plan_year' => 'required|integer|between:2020,2100',
+            'title' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:4000',
+            'status' => 'nullable|in:draft,pending_client_review,client_approved,changes_requested'
+        ]);
         $data['created_by'] = auth()->id();
+        if (empty($data['status'])) {
+            $data['status'] = 'draft';
+        }
         SocialContentPlan::updateOrCreate(['client_id' => $data['client_id'], 'plan_month' => $data['plan_month'], 'plan_year' => $data['plan_year']], $data);
         return back()->with('success', 'Monthly content plan saved.');
+    }
+
+    public function updatePlan(Request $request, SocialContentPlan $plan)
+    {
+        $this->ensureStaffPermission('manage_social_content_plans');
+        $data = $request->validate([
+            'client_id' => 'required|exists:users,id',
+            'plan_month' => 'required|integer|between:1,12',
+            'plan_year' => 'required|integer|between:2020,2100',
+            'title' => 'nullable|string|max:255',
+            'notes' => 'nullable|string|max:4000',
+            'status' => 'nullable|in:draft,pending_client_review,client_approved,changes_requested'
+        ]);
+        if (empty($data['status'])) {
+            $data['status'] = 'draft';
+        }
+        $plan->update($data);
+        return back()->with('success', 'Monthly content plan updated successfully.');
+    }
+
+    public function destroyPlan(SocialContentPlan $plan)
+    {
+        $this->ensureStaffPermission('manage_social_content_plans');
+        $plan->delete();
+        return back()->with('success', 'Monthly content plan deleted successfully.');
     }
 
     public function calendar(Request $request)
     {
         $query = $this->visiblePosts($request)->with(['client', 'platforms']);
-        if ($request->filled('month')) $query->whereYear('planned_at', substr($request->month, 0, 4))->whereMonth('planned_at', substr($request->month, 5, 2));
+        if ($request->filled('month')) {
+            $query->whereYear('planned_at', substr($request->month, 0, 4))->whereMonth('planned_at', substr($request->month, 5, 2));
+        }
         $posts = $query->whereNotNull('planned_at')->orderBy('planned_at')->get();
+
         $calendarEvents = $posts->map(function (SocialPost $post) {
+            $statusMeta = match ($post->status) {
+                'planned' => ['type' => 'planned', 'label' => 'Planned', 'color' => '#6c757d'],
+                'assigned', 'in_progress' => ['type' => 'in_progress', 'label' => 'In Design', 'color' => '#0d6efd'],
+                'internal_review', 'internal_changes_requested' => ['type' => 'internal_review', 'label' => 'In Review', 'color' => '#fd7e14'],
+                'pending_client_approval', 'client_changes_requested' => ['type' => 'pending_client_approval', 'label' => 'Client Approval', 'color' => '#0dcaf0'],
+                'client_approved', 'ready_for_publishing', 'scheduled' => ['type' => 'scheduled', 'label' => 'Scheduled', 'color' => '#6f42c1'],
+                'published', 'completed' => ['type' => 'published', 'label' => 'Published', 'color' => '#198754'],
+                default => ['type' => 'planned', 'label' => ucwords(str_replace('_', ' ', $post->status)), 'color' => '#6c757d']
+            };
+
+            $clientName = $post->client->name ?? '';
+            $platforms = $post->platforms->pluck('platform')->join(', ');
+            $descParts = array_filter([$clientName, $platforms, $post->creative_brief ?: $post->caption]);
+            $description = implode(' • ', $descParts);
+
             return [
+                'id' => (string) $post->id,
                 'title' => $post->title,
-                'start' => optional($post->planned_at)->format('Y-m-d H:i:s'),
+                'start' => optional($post->planned_at)->format('Y-m-d\TH:i:s'),
+                'allDay' => false,
+                'backgroundColor' => $statusMeta['color'],
+                'borderColor' => $statusMeta['color'],
+                'textColor' => '#ffffff',
                 'url' => route('social-media.posts.show', $post),
-                'color' => ['planned' => '#6c757d', 'internal_review' => '#fd7e14', 'pending_client_approval' => '#0dcaf0', 'client_approved' => '#198754', 'scheduled' => '#6f42c1', 'published' => '#198754'][$post->status] ?? '#0d6efd',
+                'description' => $description,
+                'extendedProps' => [
+                    'event_type' => $statusMeta['type'],
+                    'event_type_label' => $statusMeta['label'],
+                    'status' => $post->status,
+                    'status_label' => ucwords(str_replace('_', ' ', $post->status)),
+                    'client_name' => $clientName,
+                    'platforms' => $platforms,
+                    'description' => $description,
+                    'url' => route('social-media.posts.show', $post),
+                ],
             ];
         })->values()->all();
+
         return view('social-media.calendar', compact('posts', 'calendarEvents'));
     }
 
@@ -298,10 +455,10 @@ class SocialMediaController extends Controller
 
     private function visiblePosts(Request $request) {
         $query = SocialPost::query();
-        if ($this->isClient()) return $query->where('client_id', $request->user()->id);
+        if ($this->isClient()) return $query->where('client_id', auth()->id());
         // Regular staff work only from their assigned queue; managers and users with
         // the explicit view permission can see the complete social-media workspace.
-        if (! $this->isPrivileged()) $query->whereHas('assignments', fn ($q) => $q->where('user_id', $request->user()->id));
+        if (! $this->isPrivileged()) $query->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()));
         return $query;
     }
     private function isClient(): bool { return in_array(strtolower((string) auth()->user()?->getRawOriginal('role')), ['client', 'customer'], true); }

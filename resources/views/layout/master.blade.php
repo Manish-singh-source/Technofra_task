@@ -37,7 +37,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&amp;display=swap" rel="stylesheet">
     <link href="{{ asset('assets/css/app.css') }}" rel="stylesheet">
     <link href="{{ asset('assets/css/icons.css') }}" rel="stylesheet">
-    <link href="assets/plugins/datatable/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="{{ asset('assets/plugins/datatable/css/dataTables.bootstrap5.min.css') }}" rel="stylesheet" />
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <!-- Theme Style CSS -->
@@ -326,7 +326,7 @@
                     <li>
                         <a href="javascript:;" class="has-arrow">
                             <div class="parent-icon"><i class="bx bx-share-alt"></i></div>
-                            <div class="menu-title">Social Media</div>
+                            <div class="menu-title">Social Media Post</div>
                         </a>
                         <ul>
                             <li><a href="{{ route('social-media.dashboard') }}"><i class='bx bx-radio-circle'></i>Overview</a></li>
@@ -335,13 +335,13 @@
                                 <li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>My Monthly Plan</a></li>
                                 <li><a href="{{ route('social-media.approvals') }}"><i class='bx bx-radio-circle'></i>My Approvals</a></li>
                             @else
-                                @if(auth()->user()->checkPermissionTo('view_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.calendar') }}"><i class='bx bx-radio-circle'></i>Post Calendar</a></li><li><a href="{{ route('social-media.posts.index') }}"><i class='bx bx-radio-circle'></i>All Posts</a></li>@endif
+                                @if(auth()->user()->checkPermissionTo('view_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin'])){{-- <li><a href="{{ route('social-media.calendar') }}"><i class='bx bx-radio-circle'></i>Post Calendar</a></li> --}}<li><a href="{{ route('social-media.posts.index') }}"><i class='bx bx-radio-circle'></i>All Posts</a></li>@endif
                                 <li><a href="{{ route('social-media.my-assigned') }}"><i class='bx bx-radio-circle'></i>My Assigned Posts</a></li>
                                 @if(auth()->user()->checkPermissionTo('manage_social_content_plans') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>Monthly Plans</a></li>@endif
                                 @if(auth()->user()->checkPermissionTo('review_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.review') }}"><i class='bx bx-radio-circle'></i>Internal Review</a></li><li><a href="{{ route('social-media.approvals') }}"><i class='bx bx-radio-circle'></i>Client Approvals</a></li>@endif
                                 @if(auth()->user()->checkPermissionTo('manage_social_publishing') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.publishing') }}"><i class='bx bx-radio-circle'></i>Publishing Tracker</a></li>@endif
                                 @if(auth()->user()->checkPermissionTo('manage_social_festival_events') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.festivals.index') }}"><i class='bx bx-radio-circle'></i>Festival Master</a></li>@endif
-                                @if(auth()->user()->checkPermissionTo('view_social_media_reports') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.reports') }}"><i class='bx bx-radio-circle'></i>Monthly Reports</a></li>@endif
+                                
                             @endif
                         </ul>
                     </li>

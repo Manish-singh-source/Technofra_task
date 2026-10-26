@@ -77,6 +77,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/calendar', 'calendar')->name('calendar');
         Route::get('/plans', 'plans')->name('plans.index');
         Route::post('/plans', 'storePlan')->name('plans.store');
+        Route::put('/plans/{plan}', 'updatePlan')->name('plans.update');
+        Route::delete('/plans/{plan}', 'destroyPlan')->name('plans.destroy');
         Route::get('/internal-review', 'reviewQueue')->name('review');
         Route::get('/client-approvals', 'approvalsQueue')->name('approvals');
         Route::get('/publishing', 'publishingTracker')->name('publishing');
