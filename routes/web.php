@@ -28,6 +28,7 @@ use App\Http\Controllers\Web\LeadManagementController;
 use App\Http\Controllers\Web\VendorController;
 use App\Http\Controllers\Web\VendorServiceController;
 use App\Http\Controllers\WebEnquiryController;
+use App\Http\Controllers\VCardController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -70,6 +71,20 @@ Route::controller(AuthController::class)->group(function () {
 
 // Protected routes (require authentication)
 Route::middleware('auth')->group(function () {
+
+    Route::prefix('vcards')->name('vcards.')->controller(VCardController::class)->group(function () {
+        Route::get('/dashboard', 'dashboard')->name('dashboard');
+        Route::get('/', 'index')->name('index');
+        Route::get('/create', 'create')->name('create');
+        Route::post('/', 'store')->name('store');
+        Route::get('/{id}', 'show')->whereNumber('id')->name('show');
+        Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
+        Route::put('/{id}', 'update')->whereNumber('id')->name('update');
+        Route::post('/{id}/regenerate', 'regenerate')->whereNumber('id')->name('regenerate');
+        Route::get('/{id}/qr/{format}', 'downloadQr')->whereNumber('id')->name('download-qr');
+        Route::get('/{id}/vcf', 'downloadVcf')->whereNumber('id')->name('download-vcf');
+        Route::delete('/{id}', 'destroy')->whereNumber('id')->name('destroy');
+    });
 
     // ============================= Social Media Post Management ====================
     Route::prefix('social-media')->name('social-media.')->controller(SocialMediaController::class)->group(function () {

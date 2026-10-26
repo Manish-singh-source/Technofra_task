@@ -84,6 +84,11 @@ class User extends Authenticatable
         return $this->hasMany(Todo::class);
     }
 
+    public function vcardContacts()
+    {
+        return $this->hasMany(VCardContact::class);
+    }
+
     /**
      * Get the customer record associated with the user.
      */

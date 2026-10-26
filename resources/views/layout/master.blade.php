@@ -473,6 +473,13 @@
                     </li>
                 @endcanany
 
+                <li>
+                    <a href="{{ route('vcards.index') }}">
+                        <div class="parent-icon"><i class="bx bx-id-card"></i></div>
+                        <div class="menu-title">VCard Generator</div>
+                    </a>
+                </li>
+
 
 
 
