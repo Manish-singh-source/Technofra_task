@@ -7,7 +7,7 @@ use Endroid\QrCode\ErrorCorrectionLevel;
 use Endroid\QrCode\QrCode;
 use Endroid\QrCode\Writer\PngWriter;
 use Endroid\QrCode\Writer\SvgWriter;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\File;
 use RuntimeException;
 
 class QrCodeService
@@ -16,10 +16,14 @@ class QrCodeService
     {
         if (strlen($payload) > 2200) throw new RuntimeException('This contact is too large for a reliably scannable QR code. Shorten notes or optional fields.');
         $qr = QrCode::create($payload)->setSize(1000)->setMargin(4)->setErrorCorrectionLevel(ErrorCorrectionLevel::Medium);
-        $base = 'vcards/'.$contact->id.'/contact-'.now()->format('YmdHis');
+        // Keep QR files with the application's existing public uploads. This
+        // avoids relying on Laravel's storage symlink, which is unavailable on
+        // some shared-hosting PHP configurations.
+        $base = 'uploads/vcards/'.$contact->id.'/contact-'.now()->format('YmdHis');
         $png = $base.'.png'; $svg = $base.'.svg';
-        Storage::disk('public')->put($png, (new PngWriter())->write($qr)->getString());
-        Storage::disk('public')->put($svg, (new SvgWriter())->write($qr)->getString());
+        File::ensureDirectoryExists(public_path(dirname($png)));
+        File::put(public_path($png), (new PngWriter())->write($qr)->getString());
+        File::put(public_path($svg), (new SvgWriter())->write($qr)->getString());
         $contact->qrCode()->updateOrCreate([], ['png_path' => $png, 'svg_path' => $svg, 'qr_format' => 'vcard-3.0', 'generated_at' => now()]);
     }
 }
