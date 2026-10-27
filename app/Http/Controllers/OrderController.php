@@ -18,10 +18,6 @@ class OrderController extends Controller
         $user = $request->user();
         $query = Order::with(['client', 'vendor', 'owner', 'items'])->orderBy('vendor_expected_date')->orderBy('client_delivery_date');
 
-        if ($this->isStaff($user)) {
-            $query->where(fn ($q) => $q->where('assigned_user_id', $user->id)->orWhere('created_by', $user->id));
-        }
-
         if ($request->filled('search')) {
             $term = '%'.trim($request->input('search')).'%';
             $query->where(function ($q) use ($term) {
@@ -58,9 +54,6 @@ class OrderController extends Controller
         if ($request->input('tab') === 'due') $query->where(fn ($q) => $q->whereBetween('vendor_expected_date', [today(), today()->addDays(7)])->orWhereBetween('client_delivery_date', [today(), today()->addDays(7)]));
 
         $statsQuery = Order::query();
-        if ($this->isStaff($user)) {
-            $statsQuery->where(fn ($q) => $q->where('assigned_user_id', $user->id)->orWhere('created_by', $user->id));
-        }
         $orderStats = [
             'all' => (clone $statsQuery)->count(),
             'open' => (clone $statsQuery)->where('overall_status', 'Open')->count(),
@@ -175,5 +168,4 @@ class OrderController extends Controller
     public function toggleHold(Request $request, Order $order) { $order->is_on_hold = !$order->is_on_hold; $order->save(); $this->history($order,'Order',$order->is_on_hold?'Active':'On Hold',$order->is_on_hold?'On Hold':'Active',$request->input('remark'),$request->user()->id); return back()->with('success', $order->is_on_hold ? 'Order placed on hold.' : 'Order resumed.'); }
     public function cancel(Request $request, Order $order) { $data=$request->validate(['cancel_reason'=>'required|string|max:1000']); $order->update(['overall_status'=>'Cancelled','cancel_reason'=>$data['cancel_reason'],'cancelled_by'=>$request->user()->id,'cancelled_at'=>now(),'updated_by'=>$request->user()->id]); $this->history($order,'Order','Open','Cancelled',$data['cancel_reason'],$request->user()->id); return back()->with('success','Order cancelled.'); }
     private function history(Order $order, string $track, ?string $from, string $to, ?string $remark, int $user): void { OrderStatusHistory::create(['order_id'=>$order->id,'track'=>$track,'from_status'=>$from,'to_status'=>$to,'changed_by'=>$user,'changed_at'=>now(),'remark'=>$remark]); }
-    private function isStaff(User $user): bool { return !in_array(strtolower((string)$user->role), ['admin','super_admin','super-admin','superadmin','manager'], true) && !$user->hasRole(['admin','super_admin','manager']); }
 }

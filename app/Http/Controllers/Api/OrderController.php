@@ -285,9 +285,10 @@ class OrderController extends Controller
 
     private function visibleQuery(User $user)
     {
-        $query = Order::query();
-        if ($this->isStaff($user)) $query->where(fn ($q) => $q->where('assigned_user_id', $user->id)->orWhere('created_by', $user->id));
-        return $query;
+        // Access is controlled by the route's `can:view_orders` permission.
+        // Do not apply role/staff ownership filters here: every user with the
+        // permission must see the complete order dataset.
+        return Order::query();
     }
 
     private function findVisible(User $user, int $id): Order
@@ -316,9 +317,4 @@ class OrderController extends Controller
         return $payload;
     }
 
-    private function isStaff(User $user): bool
-    {
-        return !in_array(strtolower((string) $user->role), ['admin', 'super_admin', 'super-admin', 'superadmin', 'manager'], true)
-            && !$user->hasRole(['admin', 'super_admin', 'manager']);
-    }
 }
