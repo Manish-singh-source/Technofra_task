@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\LeadController;
 use App\Http\Controllers\Api\V1\LeadManagementController as ApiLeadManagementController;
 use App\Http\Controllers\Api\MetaLeadController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\OrderController as ApiOrderController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ProjectController as ApiProjectController;
 use App\Http\Controllers\Api\RolesController as ApiRoleController;
@@ -77,6 +78,27 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::patch('/{id}/read', 'markAsRead');
             Route::patch('/read-all', 'markAllAsRead');
+        });
+
+        // Order Management API routes. These mirror every action available in
+        // the web order workspace and are protected by the same permissions.
+        Route::prefix('orders')->group(function () {
+            Route::get('/form-options', [ApiOrderController::class, 'formOptions'])->middleware('can:view_orders');
+            Route::get('/', [ApiOrderController::class, 'index'])->middleware('can:view_orders');
+            Route::post('/', [ApiOrderController::class, 'store'])->middleware('can:create_orders');
+            Route::get('/{order}', [ApiOrderController::class, 'show'])->middleware('can:view_orders');
+            Route::match(['put', 'patch'], '/{order}', [ApiOrderController::class, 'update'])->middleware('can:edit_orders');
+            Route::delete('/{order}', [ApiOrderController::class, 'destroy'])->middleware('can:delete_orders');
+
+            Route::post('/{order}/status', [ApiOrderController::class, 'status'])->middleware('can:edit_orders');
+            Route::post('/{order}/purchase/order', [ApiOrderController::class, 'markOrdered'])->middleware('can:edit_orders');
+            Route::post('/{order}/purchase/receipt', [ApiOrderController::class, 'recordReceipt'])->middleware('can:edit_orders');
+            Route::post('/{order}/purchase/receive', [ApiOrderController::class, 'markReceived'])->middleware('can:edit_orders');
+            Route::post('/{order}/delivery/ready', [ApiOrderController::class, 'markReadyToDispatch'])->middleware('can:edit_orders');
+            Route::post('/{order}/delivery/dispatch', [ApiOrderController::class, 'markDispatched'])->middleware('can:edit_orders');
+            Route::post('/{order}/delivery/deliver', [ApiOrderController::class, 'markDelivered'])->middleware('can:edit_orders');
+            Route::post('/{order}/hold', [ApiOrderController::class, 'toggleHold'])->middleware('can:edit_orders');
+            Route::post('/{order}/cancel', [ApiOrderController::class, 'cancel'])->middleware('can:delete_orders');
         });
 
         Route::controller(DashboardController::class)->group(function () {
