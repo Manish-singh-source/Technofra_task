@@ -187,6 +187,7 @@ class PermissionController extends Controller
             'vendors',
             'dashboard',
             'calendar',
+            'orders',
         ];
     }
 

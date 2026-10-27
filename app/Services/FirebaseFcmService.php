@@ -70,7 +70,7 @@ class FirebaseFcmService
                     'title' => $title,
                     'body' => $body,
                 ],
-                // 'data' => $data,
+                'data' => collect($data)->mapWithKeys(fn ($value, $key) => [(string) $key => (string) (is_scalar($value) ? $value : json_encode($value))])->all(),
             ],
         ];
 

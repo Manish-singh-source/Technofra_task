@@ -249,6 +249,16 @@
                                 </li>
                             @endcan
 
+                            @can('view_clients')
+                                <li>
+                                    <a href="{{ route('client') }}">
+                                        <div class="parent-icon">
+
+                                        </div>
+                                        <div class="menu-title">Client</div>
+                                    </a>
+                                </li>
+                            @endcan
 
                             @can('view_vendors_services')
                                 <li>
@@ -260,15 +270,6 @@
                                     </a>
                                 </li>
                             @endcan
-                            {{-- 
-                            <li>
-                                <a href="{{ route('client') }}">
-                                    <div class="parent-icon">
-
-                                    </div>
-                                    <div class="menu-title">Client</div>
-                                </a>
-                            </li> --}}
                             @can('view_vendors')
                                 <li>
                                     <a href="{{ route('vendor1') }}">
@@ -301,6 +302,14 @@
                             <div class="parent-icon"><i class="bx bx-spreadsheet"></i>
                             </div>
                             <div class="menu-title">Lead Management</div>
+                        </a>
+                    </li>
+                @endcan
+                @can('view_orders')
+                    <li>
+                        <a href="{{ route('orders.index') }}">
+                            <div class="parent-icon"><i class="bx bx-package"></i></div>
+                            <div class="menu-title">Orders</div>
                         </a>
                     </li>
                 @endcan
@@ -370,15 +379,6 @@
                         <a href="{{ route('salary-management.index') }}">
                             <div class="parent-icon"><i class="bx bxs-user-detail"></i></div>
                             <div class="menu-title">Staff &amp; Employee Master</div>
-                        </a>
-                    </li>
-                @endcan
-                @can('view_clients')
-                    <li>
-                        <a href="{{ route('client') }}">
-                            <div class="parent-icon"><i class="bx bx-user-check"></i>
-                            </div>
-                            <div class="menu-title">Client</div>
                         </a>
                     </li>
                 @endcan

@@ -35,6 +35,7 @@ class PermissionSeeder extends Seeder
             'book_calls',
             'digital_marketing_leads',
             'social_media_posts',
+            'orders',
         ];
 
         // Define all actions

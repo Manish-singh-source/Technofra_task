@@ -227,6 +227,7 @@
                                             <span><i class="calendar-category-dot renewal"></i>Renewals</span>
                                             <span><i class="calendar-category-dot lead"></i>Lead Management</span>
                                             <span><i class="calendar-category-dot todo"></i>To-do</span>
+                                            <span><i class="calendar-category-dot order"></i>Order receipt</span>
                                         </div>
                                         <div id="calendarUpcomingList" class="calendar-upcoming-list" aria-live="polite">
                                             <p class="calendar-upcoming-empty">Loading appointments...</p>
@@ -1182,6 +1183,10 @@
                 background: #29845b;
             }
 
+            .calendar-category-dot.order {
+                background: #176ee2;
+            }
+
             .calendar-event-kind {
                 display: inline-block;
                 margin-top: 0.25rem;
@@ -1426,6 +1431,11 @@
                         label: 'To-do',
                         background: '#e6f4eb',
                         color: '#236c49'
+                    },
+                    order: {
+                        label: 'Order receipt',
+                        background: '#e7f0ff',
+                        color: '#176ee2'
                     }
                 };
 

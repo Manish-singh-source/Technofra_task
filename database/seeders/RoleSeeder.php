@@ -30,6 +30,12 @@ class RoleSeeder extends Seeder
             'edit_roles',
             'delete_roles',
 
+            // Order Management
+            'view_orders',
+            'create_orders',
+            'edit_orders',
+            'delete_orders',
+
             // Project Management
             'view_projects',
             'create_projects',

@@ -10,6 +10,7 @@ use App\Models\Service;
 use App\Models\Task;
 use App\Models\Todo;
 use App\Models\VendorService;
+use App\Models\Order;
 use App\Services\CalendarManagement\CalendarNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -23,7 +24,7 @@ class CalendarEventController extends Controller
     public function index(Request $request)
     {
         $validated = $request->validate([
-            'type' => 'nullable|in:appointment,task,renewal,lead,todo',
+            'type' => 'nullable|in:appointment,task,renewal,lead,todo,order',
             'search' => 'nullable|string|max:100',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
@@ -164,7 +165,50 @@ class CalendarEventController extends Controller
             ->concat($this->renewalCalendarEvents($rangeStart, $rangeEnd))
             ->concat($this->leadCalendarEvents($rangeStart, $rangeEnd))
             ->concat($this->todoCalendarEvents($rangeStart, $rangeEnd))
+            ->concat($this->orderCalendarEvents($rangeStart, $rangeEnd))
             ->values();
+    }
+
+    private function orderCalendarEvents(Carbon $rangeStart, Carbon $rangeEnd)
+    {
+        $user = Auth::user();
+        $role = strtolower((string) ($user?->role ?? ''));
+        $canViewAll = in_array($role, ['admin', 'super_admin', 'super-admin', 'superadmin', 'manager'], true)
+            || ($user && method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['admin', 'super_admin', 'manager']));
+
+        $orders = Order::query()
+            ->where('overall_status', 'Open')
+            ->where('is_on_hold', false)
+            ->where('purchase_status', '!=', 'Received')
+            ->whereDate('order_date', '<=', $rangeEnd->toDateString())
+            ->when(! $canViewAll, fn ($query) => $query->where('assigned_user_id', Auth::id()))
+            ->with(['vendor', 'client'])
+            ->get();
+
+        $events = collect();
+        foreach ($orders as $order) {
+            $startDate = Carbon::parse($order->order_date)->startOfDay()->max($rangeStart->copy()->startOfDay());
+            $endDate = $order->vendor_received_date
+                ? Carbon::parse($order->vendor_received_date)->startOfDay()->min($rangeEnd->copy()->startOfDay())
+                : $rangeEnd->copy()->startOfDay();
+
+            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                foreach ([9, 15] as $hour) {
+                    $when = $date->copy()->setTime($hour, 0);
+                    $events->push($this->calendarFeedItem(
+                        'order-receipt-' . $order->id . '-' . $date->toDateString() . '-' . $hour,
+                        'Vendor receipt · ' . $order->order_no,
+                        $when->toIso8601String(),
+                        'order',
+                        'Waiting for goods from ' . ($order->vendor?->name ?: 'vendor') . '. Reminder to assigned user only.',
+                        route('orders.show', $order),
+                        false
+                    ));
+                }
+            }
+        }
+
+        return $events;
     }
 
     private function taskCalendarEvents(Carbon $rangeStart, Carbon $rangeEnd)
@@ -447,6 +491,7 @@ class CalendarEventController extends Controller
             'renewal' => '#bc7616',
             'lead' => '#7954a5',
             'todo' => '#29845b',
+            'order' => '#176ee2',
         ];
         $labels = [
             'appointment' => 'Appointment',
@@ -454,6 +499,7 @@ class CalendarEventController extends Controller
             'renewal' => 'Renewal',
             'lead' => 'Lead Management',
             'todo' => 'To-do',
+            'order' => 'Order receipt',
         ];
         $color = $colors[$type] ?? '#64748b';
 

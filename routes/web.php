@@ -23,6 +23,7 @@ use App\Http\Controllers\TagController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\TodoController;
 use App\Http\Controllers\LegalController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\Web\ClientController as WebClientController;
 use App\Http\Controllers\Web\LeadManagementController;
 use App\Http\Controllers\Web\VendorController;
@@ -125,6 +126,18 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard route (protected by auth middleware) - also serves as index
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+    Route::prefix('orders')->name('orders.')->controller(OrderController::class)->group(function () {
+        Route::get('/', 'index')->middleware('can:view_orders')->name('index');
+        Route::get('/create', 'create')->middleware('can:create_orders')->name('create');
+        Route::post('/', 'store')->middleware('can:create_orders')->name('store');
+        Route::get('/{order}', 'show')->middleware('can:view_orders')->name('show');
+        Route::get('/{order}/edit', 'edit')->middleware('can:edit_orders')->name('edit');
+        Route::put('/{order}', 'update')->middleware('can:edit_orders')->name('update');
+        Route::post('/{order}/status', 'updateStatus')->middleware('can:edit_orders')->name('status');
+        Route::post('/{order}/hold', 'toggleHold')->middleware('can:edit_orders')->name('hold');
+        Route::post('/{order}/cancel', 'cancel')->middleware('can:delete_orders')->name('cancel');
+        Route::delete('/{order}', 'destroy')->middleware('can:delete_orders')->name('destroy');
+    });
     Route::get('/dashboard/operations-summary/download', [DashboardController::class, 'downloadOperationsSummary'])->name('dashboard.operations-summary.download');
     Route::middleware('can:view_salary_management')->group(function () {
         Route::get('/salary-management', [SalaryManagementController::class, 'index'])->name('salary-management.index');

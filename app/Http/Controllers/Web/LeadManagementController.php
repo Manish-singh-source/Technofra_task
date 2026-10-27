@@ -81,14 +81,14 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         }
         $sourceLabels = [
             self::SOURCE_LEAD => 'Leads',
-            self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
-            self::SOURCE_WEBAPP => 'Web App',
-            self::SOURCE_META => 'Meta',
-            self::SOURCE_GOOGLE => 'Google',
             self::SOURCE_CONTACTFORM => 'Contact Form',
             self::SOURCE_ENQUIRYFORM => 'Enquiry Form',
-            self::SOURCE_INDIAMART => 'IndiaMart',
+            self::SOURCE_META => 'Meta',
+            self::SOURCE_DIGITAL_MARKETING => 'Digital Marketing',
+            self::SOURCE_WEBAPP => 'Web App',
+            self::SOURCE_GOOGLE => 'Google',
             self::SOURCE_JUSTDIAL => 'JustDial',
+            self::SOURCE_INDIAMART => 'IndiaMart',
         ];
         if (! array_key_exists($sourceFilter, $sourceLabels)) {
             $sourceFilter = '';
@@ -1076,12 +1076,8 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             'number' => $number ?: '-',
             'company' => $company ?: '-',
             'source' => $source ?: '-',
-            'assigned_to' => $this->resolveAssignedTo(
-                $sourceType,
-                $id,
-                $email,
-                $number
-            ),
+            'assigned_staff' => $assignedStaff = $this->resolveAssignedStaffNames($sourceType, $id),
+            'assigned_to' => !empty($assignedStaff) ? implode(', ', $assignedStaff) : '-',
             'created_at' => $date?->format('d M Y h:i A') ?: '-',
             'created_at_ts' => $date?->timestamp ?: 0,
             'status' => $status ?: 'new',
@@ -1089,7 +1085,7 @@ class LeadManagementController extends \App\Http\Controllers\Controller
         ];
     }
 
-    private function resolveAssignedTo(string $sourceType, int $id, ?string $email, ?string $number): string
+    private function resolveAssignedStaffNames(string $sourceType, int $id): array
     {
         $assignment = AssignedLead::query()
             ->where('lead_model', $sourceType)
@@ -1097,19 +1093,25 @@ class LeadManagementController extends \App\Http\Controllers\Controller
             ->first();
 
         if (! $assignment || empty($assignment->staff_ids) || ! is_array($assignment->staff_ids)) {
-            return '-';
+            return [];
         }
 
-        $names = User::staffMembers()
+        return User::staffMembers()
             ->whereIn('id', $assignment->staff_ids)
             ->orderBy('first_name')
             ->orderBy('last_name')
             ->get()
             ->map(fn(User $user) => trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? '')))
             ->filter()
-            ->values();
+            ->values()
+            ->all();
+    }
 
-        return $names->isNotEmpty() ? $names->implode(', ') : '-';
+    private function resolveAssignedTo(string $sourceType, int $id, ?string $email, ?string $number): string
+    {
+        $names = $this->resolveAssignedStaffNames($sourceType, $id);
+
+        return !empty($names) ? implode(', ', $names) : '-';
     }
 
     private function findNormalizedLeadOrFail(string $source, int $id): array

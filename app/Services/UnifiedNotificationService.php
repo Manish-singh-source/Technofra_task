@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Setting;
 use App\Models\User;
 use App\Notifications\InAppPushNotification;
+use App\Helpers\FcmNotificationHelper;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
@@ -63,10 +64,7 @@ class UnifiedNotificationService
                 'notification_id' => $notificationId,
             ],
             'push' => [
-                'success' => false,
-                'sent' => 0,
-                'failed' => 0,
-                'message' => 'Push notifications are disabled; in-app notification was used.',
+                ...FcmNotificationHelper::sendToUser($user, $title, $body, $data),
             ],
         ];
     }
@@ -108,11 +106,6 @@ class UnifiedNotificationService
      */
     public function sendPushOnlyToUser(User $user, string $title, string $body, array $data = []): array
     {
-        return [
-            'success' => false,
-            'sent' => 0,
-            'failed' => 0,
-            'message' => 'Push notifications are disabled.',
-        ];
+        return FcmNotificationHelper::sendToUser($user, $title, $body, $data);
     }
 }

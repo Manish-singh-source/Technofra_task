@@ -42,6 +42,28 @@ class Kernel extends ConsoleKernel
         $schedule->command('leads:escalate-overdue')->hourly()->withoutOverlapping();
         $schedule->command('leads:send-alerts')->hourly()->withoutOverlapping();
         $schedule->command('social-media:send-reminders')->hourly()->withoutOverlapping();
+        $schedule->call(function () {
+            $today = \Carbon\Carbon::today();
+            $slot = now()->hour >= 15 ? 'afternoon' : 'morning';
+
+            \App\Models\Order::query()
+                ->where('overall_status', 'Open')
+                ->where('is_on_hold', false)
+                ->where('purchase_status', '!=', 'Received')
+                ->whereDate('order_date', '<=', $today)
+                ->get()
+                ->each(function ($order) use ($today, $slot) {
+                    $type = 'Vendor receipt reminder';
+                    $reminder = \App\Models\OrderReminder::firstOrCreate(
+                        ['order_id' => $order->id, 'user_id' => $order->assigned_user_id, 'reminder_type' => $type, 'sent_on' => $today, 'sent_slot' => $slot],
+                        ['reminder_for_date' => $order->vendor_expected_date, 'channel' => 'in_app', 'status' => 'Sent']
+                    );
+
+                    if ($reminder->wasRecentlyCreated) {
+                        $order->owner?->notify(new \App\Notifications\OrderReminderNotification($order, $type, null));
+                    }
+                });
+        })->twiceDaily(9, 15)->name('order-receipt-reminders')->withoutOverlapping();
 
         // $schedule->command('inspire')->hourly();
     }

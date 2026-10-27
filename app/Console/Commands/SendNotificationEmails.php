@@ -6,9 +6,12 @@ use App\Mail\NotificationMail;
 use App\Models\Service;
 use App\Models\Setting;
 use App\Models\VendorService;
+use App\Models\User;
+use App\Helpers\FcmNotificationHelper;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
 
 class SendNotificationEmails extends Command
 {
@@ -81,6 +84,8 @@ class SendNotificationEmails extends Command
             return Command::SUCCESS;
         }
 
+        $this->sendRenewalPushes($upcomingServices, $upcomingVendorServices, $today);
+
         try {
             $this->applyMailSettings($settings);
             $defaultTheme = strtolower(trim((string) ($settings['default_theme'] ?? $settings['theme'] ?? 'white')));
@@ -92,6 +97,27 @@ class SendNotificationEmails extends Command
         } catch (\Throwable $e) {
             $this->error('Failed to send renewal notification email: ' . $e->getMessage());
             return Command::FAILURE;
+        }
+    }
+
+    private function sendRenewalPushes($services, $vendorServices, Carbon $today): void
+    {
+        $recipients = User::query()->whereIn('role', ['admin', 'super_admin', 'super-admin', 'super_admin2'])->get();
+
+        foreach ($recipients as $recipient) {
+            foreach ($services as $service) {
+                $key = 'renewal-fcm:client:'.$service->id.':'.$recipient->id.':'.$today->toDateString();
+                if (Cache::add($key, true, now()->endOfDay())) {
+                    FcmNotificationHelper::sendToUser($recipient, 'Client renewal reminder', ($service->service_name ?: 'Client service').' expires on '.optional($service->end_date)->format('d M Y').'.', ['service_id' => (string) $service->id, 'type' => 'renewal']);
+                }
+            }
+
+            foreach ($vendorServices as $service) {
+                $key = 'renewal-fcm:vendor:'.$service->id.':'.$recipient->id.':'.$today->toDateString();
+                if (Cache::add($key, true, now()->endOfDay())) {
+                    FcmNotificationHelper::sendToUser($recipient, 'Vendor renewal reminder', ($service->service_name ?: 'Vendor service').' expires on '.optional($service->end_date)->format('d M Y').'.', ['vendor_service_id' => (string) $service->id, 'type' => 'renewal']);
+                }
+            }
         }
     }
 

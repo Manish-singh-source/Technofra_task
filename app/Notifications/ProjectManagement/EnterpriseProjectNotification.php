@@ -3,6 +3,7 @@
 namespace App\Notifications\ProjectManagement;
 
 use App\Notifications\Channels\WhatsAppReadyChannel;
+use App\Notifications\Channels\FcmChannel;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -23,6 +24,7 @@ class EnterpriseProjectNotification extends Notification
     public function via(object $notifiable): array
     {
         $channels = ['database'];
+        $channels[] = FcmChannel::class;
 
         if ($this->sendEmail) {
             $channels[] = 'mail';
@@ -63,5 +65,10 @@ class EnterpriseProjectNotification extends Notification
             'type' => $this->type,
             'data' => $this->data,
         ];
+    }
+
+    public function toFcm(object $notifiable): array
+    {
+        return ['title' => $this->title, 'body' => $this->body, 'data' => $this->data];
     }
 }
