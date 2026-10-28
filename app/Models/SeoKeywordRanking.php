@@ -1,0 +1,1 @@
+<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class SeoKeywordRanking extends Model { protected $fillable=['seo_keyword_id','checked_on','rank_position','source','remarks','recorded_by']; protected $casts=['checked_on'=>'date']; public function keyword(){return $this->belongsTo(SeoKeyword::class,'seo_keyword_id');} }

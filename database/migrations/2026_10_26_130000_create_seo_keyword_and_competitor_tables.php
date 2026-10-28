@@ -1,0 +1,12 @@
+<?php
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+return new class extends Migration {
+ public function up(): void {
+  Schema::create('seo_competitors', function(Blueprint $t){$t->id();$t->foreignId('seo_campaign_id')->constrained()->cascadeOnDelete();$t->string('name');$t->string('website_url',512);$t->text('services')->nullable();$t->text('strengths')->nullable();$t->text('weaknesses')->nullable();$t->text('opportunities')->nullable();$t->text('notes')->nullable();$t->string('data_source',100)->nullable();$t->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();$t->timestamps();$t->unique(['seo_campaign_id','website_url'],'seo_competitor_campaign_url_unique');});
+  Schema::create('seo_keywords', function(Blueprint $t){$t->id();$t->foreignId('seo_campaign_id')->constrained()->cascadeOnDelete();$t->string('keyword');$t->string('normalized_keyword');$t->string('target_page_url',2048)->nullable();$t->string('category',100)->nullable();$t->enum('search_intent',['informational','navigational','commercial','transactional','local','other'])->nullable();$t->string('location',150)->nullable();$t->string('language',20)->default('en');$t->enum('device',['desktop','mobile'])->default('desktop');$t->string('search_engine',50)->default('google');$t->unsignedInteger('search_volume')->nullable();$t->decimal('keyword_difficulty',6,2)->nullable();$t->enum('priority',['high','medium','low'])->default('medium');$t->text('remarks')->nullable();$t->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();$t->timestamps();$t->softDeletes();$t->unique(['seo_campaign_id','normalized_keyword','location','device','search_engine'],'seo_keyword_duplicate_guard');});
+  Schema::create('seo_keyword_rankings', function(Blueprint $t){$t->id();$t->foreignId('seo_keyword_id')->constrained()->cascadeOnDelete();$t->date('checked_on');$t->unsignedInteger('rank_position')->nullable();$t->string('source',100)->default('manual');$t->text('remarks')->nullable();$t->foreignId('recorded_by')->nullable()->constrained('users')->nullOnDelete();$t->timestamps();$t->unique(['seo_keyword_id','checked_on','source'],'seo_keyword_ranking_snapshot_unique');$t->index(['checked_on','rank_position']);});
+ }
+ public function down(): void {Schema::dropIfExists('seo_keyword_rankings');Schema::dropIfExists('seo_keywords');Schema::dropIfExists('seo_competitors');}
+};

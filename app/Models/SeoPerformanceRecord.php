@@ -1,0 +1,1 @@
+<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class SeoPerformanceRecord extends Model {protected $fillable=['seo_campaign_id','period_start','period_end','source','metric_key','metric_value','dimensions','recorded_at','recorded_by'];protected $casts=['period_start'=>'date','period_end'=>'date','dimensions'=>'array','recorded_at'=>'datetime'];}

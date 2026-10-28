@@ -16,6 +16,9 @@ use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SalaryManagementController;
 use App\Http\Controllers\ServiceController;
+use App\Http\Controllers\SeoCampaignController;
+use App\Http\Controllers\SeoKeywordController;
+use App\Http\Controllers\SeoOperationsController;
 use App\Http\Controllers\SettingController;
 use App\Http\Controllers\SocialMediaController;
 use App\Http\Controllers\StaffController;
@@ -72,6 +75,37 @@ Route::controller(AuthController::class)->group(function () {
 
 // Protected routes (require authentication)
 Route::middleware('auth')->group(function () {
+
+    Route::prefix('seo')->name('seo.')->controller(SeoCampaignController::class)->group(function () {
+        Route::get('/campaigns', 'index')->name('campaigns.index');
+        Route::get('/campaigns/create', 'create')->name('campaigns.create');
+        Route::post('/campaigns', 'store')->name('campaigns.store');
+        Route::get('/campaigns/archived', 'index')->name('campaigns.archived');
+        Route::patch('/campaigns/{campaignId}/restore', 'restore')->name('campaigns.restore');
+        Route::get('/campaigns/{campaign}', 'show')->name('campaigns.show');
+        Route::delete('/campaigns/{campaign}', 'destroy')->name('campaigns.destroy');
+        Route::put('/campaigns/{campaign}/audit', 'saveAudit')->name('audit.save');
+        Route::post('/campaigns/{campaign}/audit/findings', 'addFinding')->name('audit.findings.store');
+        Route::get('/campaigns/{campaign}/audit/submit', fn (\App\Models\SeoCampaign $campaign) => redirect()->route('seo.campaigns.show', $campaign)->with('error', 'Audit submission must be made from the campaign audit screen.'))->name('audit.submit.form');
+        Route::post('/campaigns/{campaign}/audit/submit', 'submitAudit')->name('audit.submit');
+        Route::post('/campaigns/{campaign}/audit/review', 'reviewAudit')->name('audit.review');
+        Route::put('/campaigns/{campaign}/baseline', 'saveBaseline')->name('baseline.save');
+        Route::post('/campaigns/{campaign}/baseline/approve', 'approveBaseline')->name('baseline.approve');
+    });
+    Route::prefix('seo/campaigns/{campaign}')->name('seo.')->controller(SeoKeywordController::class)->group(function () {
+        Route::get('/keywords', 'index')->name('keywords.index');
+        Route::post('/keywords', 'store')->name('keywords.store');
+        Route::delete('/keywords/{keyword}', 'destroy')->name('keywords.destroy');
+        Route::post('/keywords/{keyword}/rankings', 'addRanking')->name('keywords.rankings.store');
+        Route::get('/competitors', 'competitors')->name('competitors.index');
+        Route::post('/competitors', 'storeCompetitor')->name('competitors.store');
+    });
+    Route::prefix('seo/campaigns/{campaign}')->name('seo.')->controller(SeoOperationsController::class)->group(function () {
+        Route::get('/dashboard', 'dashboard')->name('dashboard'); Route::get('/workspace', 'workspace')->name('workspace');
+        Route::post('/cycles', 'addCycle')->name('cycles.store'); Route::post('/activities', 'addActivity')->name('activities.store'); Route::patch('/activities/{activity}', 'updateActivity')->name('activities.update'); Route::post('/activities/{activity}/review', 'reviewActivity')->name('activities.review');
+        Route::post('/technical-issues', 'addTechnical')->name('technical.store'); Route::post('/backlinks', 'addBacklink')->name('backlinks.store'); Route::post('/performance', 'addPerformance')->name('performance.store');
+        Route::post('/reports', 'createReport')->name('reports.store'); Route::post('/reports/{report}/review', 'reviewReport')->name('reports.review');
+    });
 
     Route::prefix('vcards')->name('vcards.')->controller(VCardController::class)->group(function () {
         Route::get('/dashboard', 'dashboard')->name('dashboard');

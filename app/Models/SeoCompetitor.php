@@ -1,0 +1,1 @@
+<?php namespace App\Models; use Illuminate\Database\Eloquent\Model; class SeoCompetitor extends Model { protected $fillable=['seo_campaign_id','name','website_url','services','strengths','weaknesses','opportunities','notes','data_source','created_by']; public function campaign(){return $this->belongsTo(SeoCampaign::class,'seo_campaign_id');} }

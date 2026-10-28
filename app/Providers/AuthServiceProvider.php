@@ -4,8 +4,10 @@ namespace App\Providers;
 
 use App\Models\Lead;
 use App\Models\Project;
+use App\Models\SeoCampaign;
 use App\Policies\LeadPolicy;
 use App\Policies\ProjectPolicy;
+use App\Policies\SeoCampaignPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -19,6 +21,7 @@ class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Lead::class => LeadPolicy::class,
         Project::class => ProjectPolicy::class,
+        SeoCampaign::class => SeoCampaignPolicy::class,
     ];
 
     /**
