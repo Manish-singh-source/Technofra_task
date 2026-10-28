@@ -25,7 +25,7 @@ class SeoCampaignController extends Controller
     public function store(Request $request)
     {
         $this->requireAdmin(); $data=$this->campaignData($request); $members=$data['members']??[]; unset($data['members']);
-        abort_unless(collect($members)->where('campaign_role', 'manager')->count() === 1, 422, 'Assign exactly one SEO Manager.');
+        abort_unless(collect($members)->where('campaign_role', 'manager')->isNotEmpty(), 422, 'Assign at least one SEO Manager.');
         $data['target_locations'] = filled($data['target_locations'] ?? null) ? collect(explode(',', $data['target_locations']))->map(fn ($location) => trim($location))->filter()->values()->all() : null;
         $campaign=DB::transaction(function() use($data,$members){ $campaign=SeoCampaign::create($data+['created_by'=>auth()->id()]); foreach($members as $member){ $campaign->members()->create(['user_id'=>$member['user_id'],'campaign_role'=>$member['campaign_role']]); } return $campaign; });
         return redirect()->route('seo.campaigns.show',$campaign)->with('success','SEO campaign created. Begin the initial audit.');
