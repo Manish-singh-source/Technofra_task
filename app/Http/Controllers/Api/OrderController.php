@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\OrderStatusHistory;
 use App\Models\User;
 use App\Models\Vendor;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -141,9 +142,42 @@ class OrderController extends Controller
 
     public function recordReceipt(Request $request, int $order)
     {
-        $request->merge(['received' => $request->input('received', [])]);
-        $request->validate(['received' => ['required', 'array'], 'received.*' => ['numeric', 'min:0']]);
-        return $this->runAction($request, $order, 'Purchase', 'Partially Received', $request->only('received', 'date', 'remark'));
+        $data = $request->validate([
+            'received' => ['required', 'array', 'min:1'],
+            'received.*' => ['numeric', 'min:0'],
+            'date' => ['nullable', 'date'],
+            'remark' => ['nullable', 'string', 'max:1000'],
+        ]);
+        $model = $this->findVisible($request->user(), $order);
+        if ($model->overall_status === 'Cancelled' || $model->is_on_hold) abort(422, 'This order is cancelled or on hold.');
+        if (!in_array($model->purchase_status, ['Ordered', 'Partially Received'], true)) abort(422, 'Receipts can be recorded only after the order is marked Ordered.');
+
+        DB::transaction(function () use ($model, $data, $request) {
+            $order = Order::with('items')->lockForUpdate()->findOrFail($model->id);
+            $old = $order->purchase_status;
+            $items = $order->items->keyBy('id');
+
+            foreach ($data['received'] as $itemId => $quantity) {
+                $item = $items->get($itemId);
+                if (!$item) abort(422, "Order item {$itemId} does not belong to this order.");
+                if ((float) $quantity < (float) $item->qty_received) abort(422, "Received quantity for {$item->product_name} cannot decrease.");
+                if ((float) $quantity > (float) $item->quantity) abort(422, "Received quantity for {$item->product_name} cannot exceed ordered quantity.");
+                $item->update(['qty_received' => $quantity]);
+            }
+
+            $allReceived = $order->items->every(fn ($item) => (float) $item->qty_received >= (float) $item->quantity);
+            $new = $allReceived ? 'Received' : 'Partially Received';
+            if ($allReceived) $order->vendor_received_date = $data['date'] ?? today();
+            $order->purchase_status = $new;
+            $order->refreshOverallStatus();
+            $order->updated_by = $request->user()->id;
+            $order->save();
+
+            $receiptDate = isset($data['date']) ? Carbon::parse($data['date'])->startOfDay() : now();
+            $this->recordHistory($order, 'Purchase', $old, $new, $data['remark'] ?? null, $request->user()->id, $receiptDate, ['receipt_date' => $receiptDate->toDateString(), 'received' => $data['received']]);
+        });
+
+        return ApiResponse::success($this->orderPayload($model->fresh(['client', 'vendor', 'owner', 'items', 'history.user'])), 'Receipt recorded successfully.');
     }
 
     public function markReceived(Request $request, int $order)
@@ -302,9 +336,9 @@ class OrderController extends Controller
         foreach ($items as $index => $item) $order->items()->create(array_merge($item, ['sort_order' => $index]));
     }
 
-    private function recordHistory(Order $order, string $track, ?string $from, string $to, ?string $remark, int $userId): void
+    private function recordHistory(Order $order, string $track, ?string $from, string $to, ?string $remark, int $userId, $changedAt = null, ?array $meta = null): void
     {
-        OrderStatusHistory::create(['order_id' => $order->id, 'track' => $track, 'from_status' => $from, 'to_status' => $to, 'changed_by' => $userId, 'changed_at' => now(), 'remark' => $remark]);
+        OrderStatusHistory::create(['order_id' => $order->id, 'track' => $track, 'from_status' => $from, 'to_status' => $to, 'changed_by' => $userId, 'changed_at' => $changedAt ?? now(), 'remark' => $remark, 'meta' => $meta]);
     }
 
     private function orderPayload(Order $order, bool $details = false): array
