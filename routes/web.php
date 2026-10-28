@@ -95,6 +95,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('seo/campaigns/{campaign}')->name('seo.')->controller(SeoKeywordController::class)->group(function () {
         Route::get('/keywords', 'index')->name('keywords.index');
         Route::post('/keywords', 'store')->name('keywords.store');
+        Route::get('/keywords/template', 'downloadTemplate')->name('keywords.template');
+        Route::post('/keywords/import', 'import')->name('keywords.import');
         Route::delete('/keywords/{keyword}', 'destroy')->name('keywords.destroy');
         Route::post('/keywords/{keyword}/rankings', 'addRanking')->name('keywords.rankings.store');
         Route::get('/competitors', 'competitors')->name('competitors.index');
