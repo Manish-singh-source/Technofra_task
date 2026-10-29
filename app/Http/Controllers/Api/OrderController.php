@@ -142,8 +142,9 @@ class OrderController extends Controller
 
     public function recordReceipt(Request $request, int $order)
     {
+        $request->merge(['received' => $request->input('received', [])]);
         $data = $request->validate([
-            'received' => ['required', 'array', 'min:1'],
+            'received' => ['required', 'array'],
             'received.*' => ['numeric', 'min:0'],
             'date' => ['nullable', 'date'],
             'remark' => ['nullable', 'string', 'max:1000'],
@@ -167,7 +168,11 @@ class OrderController extends Controller
 
             $allReceived = $order->items->every(fn ($item) => (float) $item->qty_received >= (float) $item->quantity);
             $new = $allReceived ? 'Received' : 'Partially Received';
-            if ($allReceived) $order->vendor_received_date = $data['date'] ?? today();
+            if ($allReceived) {
+                $order->vendor_received_date = $data['date'] ?? today();
+            } elseif (!empty($data['date'])) {
+                $order->vendor_received_date = $data['date'];
+            }
             $order->purchase_status = $new;
             $order->refreshOverallStatus();
             $order->updated_by = $request->user()->id;
@@ -247,7 +252,9 @@ class OrderController extends Controller
         $allowed = $track === 'Purchase' ? self::PURCHASE_STATUSES : self::DELIVERY_STATUSES;
         if (!in_array($new, $allowed, true)) abort(422, 'Invalid '.$track.' status.');
         $old = $track === 'Purchase' ? $order->purchase_status : $order->delivery_status;
-        if ($old === $new) abort(422, 'Order is already '.$new.'.');
+        if ($old === $new && !($track === 'Purchase' && $new === 'Partially Received')) {
+            abort(422, 'Order is already '.$new.'.');
+        }
         if ($track === 'Delivery' && in_array($new, ['Ready to Dispatch', 'Dispatched', 'Delivered'], true) && !in_array($order->purchase_status, ['Partially Received', 'Received'], true)) {
             abort(422, 'Receive at least part of the purchase before dispatching.');
         }
@@ -264,6 +271,9 @@ class OrderController extends Controller
                 foreach ($order->items as $item) if (isset($data['received'][$item->id])) {
                     if ((float) $data['received'][$item->id] > (float) $item->quantity) abort(422, 'Received quantity cannot exceed ordered quantity.');
                     $item->update(['qty_received' => $data['received'][$item->id]]);
+                }
+                if (!empty($data['date'])) {
+                    $order->vendor_received_date = $data['date'];
                 }
             }
             if ($track === 'Delivery' && $new === 'Delivered') $order->client_delivered_date = $data['date'] ?? today();
