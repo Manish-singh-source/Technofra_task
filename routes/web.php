@@ -86,6 +86,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/campaigns/{campaign}', 'destroy')->name('campaigns.destroy');
         Route::put('/campaigns/{campaign}/audit', 'saveAudit')->name('audit.save');
         Route::post('/campaigns/{campaign}/audit/findings', 'addFinding')->name('audit.findings.store');
+        Route::patch('/campaigns/{campaign}/audit/findings/{finding}', 'updateFinding')->name('audit.findings.update');
         Route::get('/campaigns/{campaign}/audit/submit', fn (\App\Models\SeoCampaign $campaign) => redirect()->route('seo.campaigns.show', $campaign)->with('error', 'Audit submission must be made from the campaign audit screen.'))->name('audit.submit.form');
         Route::post('/campaigns/{campaign}/audit/submit', 'submitAudit')->name('audit.submit');
         Route::post('/campaigns/{campaign}/audit/review', 'reviewAudit')->name('audit.review');
@@ -105,8 +106,8 @@ Route::middleware('auth')->group(function () {
     Route::prefix('seo/campaigns/{campaign}')->name('seo.')->controller(SeoOperationsController::class)->group(function () {
         Route::get('/dashboard', 'dashboard')->name('dashboard'); Route::get('/workspace', 'workspace')->name('workspace');
         Route::post('/cycles', 'addCycle')->name('cycles.store'); Route::post('/activities', 'addActivity')->name('activities.store'); Route::patch('/activities/{activity}', 'updateActivity')->name('activities.update'); Route::post('/activities/{activity}/review', 'reviewActivity')->name('activities.review');
-        Route::post('/technical-issues', 'addTechnical')->name('technical.store'); Route::post('/backlinks', 'addBacklink')->name('backlinks.store'); Route::post('/performance', 'addPerformance')->name('performance.store');
-        Route::post('/reports', 'createReport')->name('reports.store'); Route::post('/reports/{report}/review', 'reviewReport')->name('reports.review');
+        Route::post('/technical-issues', 'addTechnical')->name('technical.store'); Route::patch('/technical-issues/{technicalIssue}', 'updateTechnical')->name('technical.update'); Route::post('/on-page', 'addOnPage')->name('onpage.store'); Route::post('/backlinks', 'addBacklink')->name('backlinks.store'); Route::post('/performance', 'addPerformance')->name('performance.store');
+        Route::post('/reports', 'createReport')->name('reports.store'); Route::post('/reports/{report}/submit', 'submitReport')->name('reports.submit'); Route::post('/reports/{report}/review', 'reviewReport')->name('reports.review');
     });
 
     Route::prefix('vcards')->name('vcards.')->controller(VCardController::class)->group(function () {
