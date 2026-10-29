@@ -122,6 +122,9 @@ class OrderController extends Controller
     public function status(Request $request, int $order)
     {
         $model = $this->findVisible($request->user(), $order);
+        if ($request->has('received')) {
+            $request->merge(['received' => $this->normalizeReceived($request->input('received'))]);
+        }
         $data = $request->validate([
             'track' => ['required', Rule::in(['Purchase', 'Delivery'])],
             'status' => ['required', 'string'],
@@ -142,7 +145,7 @@ class OrderController extends Controller
 
     public function recordReceipt(Request $request, int $order)
     {
-        $request->merge(['received' => $request->input('received', [])]);
+        $request->merge(['received' => $this->normalizeReceived($request->input('received', []))]);
         $data = $request->validate([
             'received' => ['required', 'array'],
             'received.*' => ['numeric', 'min:0'],
@@ -161,13 +164,13 @@ class OrderController extends Controller
             foreach ($data['received'] as $itemId => $quantity) {
                 $item = $items->get($itemId);
                 if (!$item) abort(422, "Order item {$itemId} does not belong to this order.");
-                if ((float) $quantity < (float) $item->qty_received) abort(422, "Received quantity for {$item->product_name} cannot decrease.");
                 if ((float) $quantity > (float) $item->quantity) abort(422, "Received quantity for {$item->product_name} cannot exceed ordered quantity.");
                 $item->update(['qty_received' => $quantity]);
             }
 
             $allReceived = $order->items->every(fn ($item) => (float) $item->qty_received >= (float) $item->quantity);
-            $new = $allReceived ? 'Received' : 'Partially Received';
+            $anyReceived = $order->items->some(fn ($item) => (float) $item->qty_received > 0);
+            $new = $allReceived ? 'Received' : ($anyReceived ? 'Partially Received' : 'Ordered');
             if ($allReceived) {
                 $order->vendor_received_date = $data['date'] ?? today();
             } elseif (!empty($data['date'])) {
@@ -268,12 +271,18 @@ class OrderController extends Controller
                 $order->vendor_received_date = $data['date'] ?? today();
             }
             if ($track === 'Purchase' && $new === 'Partially Received') {
-                foreach ($order->items as $item) if (isset($data['received'][$item->id])) {
-                    if ((float) $data['received'][$item->id] > (float) $item->quantity) abort(422, 'Received quantity cannot exceed ordered quantity.');
-                    $item->update(['qty_received' => $data['received'][$item->id]]);
+                $received = $this->normalizeReceived($data['received'] ?? []);
+                foreach ($order->items as $item) if (isset($received[$item->id])) {
+                    if ((float) $received[$item->id] > (float) $item->quantity) abort(422, 'Received quantity cannot exceed ordered quantity.');
+                    $item->update(['qty_received' => $received[$item->id]]);
                 }
                 if (!empty($data['date'])) {
                     $order->vendor_received_date = $data['date'];
+                }
+                $allReceived = $order->items->every(fn ($item) => (float) $item->qty_received >= (float) $item->quantity);
+                if ($allReceived) {
+                    $new = 'Received';
+                    $order->vendor_received_date = $data['date'] ?? today();
                 }
             }
             if ($track === 'Delivery' && $new === 'Delivered') $order->client_delivered_date = $data['date'] ?? today();
@@ -344,6 +353,28 @@ class OrderController extends Controller
     {
         $order->items()->delete();
         foreach ($items as $index => $item) $order->items()->create(array_merge($item, ['sort_order' => $index]));
+    }
+
+    private function normalizeReceived($received): array
+    {
+        if (!is_array($received)) {
+            return [];
+        }
+
+        $normalized = [];
+        foreach ($received as $key => $val) {
+            if (is_array($val)) {
+                $itemId = $val['id'] ?? $val['item_id'] ?? null;
+                $qty = $val['quantity'] ?? $val['qty_received'] ?? $val['received'] ?? null;
+                if ($itemId !== null && $qty !== null) {
+                    $normalized[$itemId] = $qty;
+                }
+            } else {
+                $normalized[$key] = $val;
+            }
+        }
+
+        return $normalized;
     }
 
     private function recordHistory(Order $order, string $track, ?string $from, string $to, ?string $remark, int $userId, $changedAt = null, ?array $meta = null): void
