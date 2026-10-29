@@ -62,6 +62,15 @@ class SeoCampaignController extends Controller
         $data=$request->validate(['category'=>['required',Rule::in(['technical','on_page','performance','other'])],'title'=>'required|string|max:255','affected_url'=>'nullable|url|max:2048','description'=>'nullable|string|max:5000','severity'=>['required',Rule::in(['critical','high','medium','low'])],'recommended_solution'=>'nullable|string|max:5000','assigned_to'=>['nullable',Rule::exists('users','id')]]);
         $audit->findings()->create($data); return back()->with('success','Audit finding added.');
     }
+    public function updateFinding(Request $request, SeoCampaign $campaign, SeoAuditFinding $finding)
+    {
+        $this->authorize('contribute', $campaign); abort_unless($finding->audit?->seo_campaign_id === $campaign->id, 404);
+        if (! auth()->user()->can('manage', $campaign) && $finding->assigned_to && (int) $finding->assigned_to !== (int) auth()->id()) abort(403, 'Only the assigned executive or a manager can update this finding.');
+        $data = $request->validate(['status'=>['required',Rule::in(['open','in_progress','resolved','verified','closed'])],'resolution_notes'=>'nullable|string|max:5000','evidence_url'=>'nullable|url|max:2048']);
+        if (in_array($data['status'], ['verified','closed'], true)) $this->authorize('manage', $campaign);
+        $finding->update($data + (in_array($data['status'], ['resolved','verified','closed'], true) ? ['resolved_at'=>now()] : []));
+        return back()->with('success', 'Audit finding updated.');
+    }
     public function submitAudit(SeoCampaign $campaign)
     { $this->authorize('contribute',$campaign); $audit=$campaign->audit; if (! $audit || ! $audit->findings()->exists()) return back()->with('error','Add at least one audit finding before submitting the audit for review.'); $audit->update(['status'=>'submitted','submitted_at'=>now()]); return back()->with('success','Audit submitted for manager review.'); }
     public function reviewAudit(Request $request, SeoCampaign $campaign)
