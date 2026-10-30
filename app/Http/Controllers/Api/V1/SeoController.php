@@ -465,7 +465,19 @@ class SeoController extends Controller
     private function ensureCycle(SeoCampaign $campaign, $cycleId): void { if ($cycleId) abort_unless($campaign->cycles()->whereKey($cycleId)->exists(), 422, 'Selected month does not belong to this campaign.'); }
     private function ensureOwner(SeoCampaign $campaign, $assignedTo): void { if (! auth()->user()->can('manage', $campaign) && $assignedTo && (int) $assignedTo !== (int) auth()->id()) abort(403, 'Only the assigned executive or manager can update this work.'); }
     private function isClient(): bool { return in_array(strtolower((string) (auth()->user()?->getRawOriginal('role') ?? '')), ['client', 'customer'], true); }
-    private function isAdmin(): bool { $user = auth()->user(); return $user && ((method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['super-admin', 'super_admin', 'super admin', 'admin'])) || in_array(strtolower(trim((string) ($user->getRawOriginal('role') ?? ''))), ['admin', 'super-admin', 'super_admin', 'super admin', 'super_admin2'], true)); }
+    private function isAdmin(): bool
+    {
+        $user = auth()->user();
+        if (! $user) return false;
+
+        // Keep this in sync with SeoCampaignController so the API and web
+        // campaign lists expose the same records to administrators.
+        if (method_exists($user, 'hasAnyRole') && $user->hasAnyRole(['super-admin', 'super_admin', 'super admin', 'super_admin2', 'admin'])) {
+            return true;
+        }
+
+        return in_array(strtolower(trim((string) ($user->getRawOriginal('role') ?? ''))), ['admin', 'super-admin', 'super_admin', 'super admin', 'super_admin2'], true);
+    }
     private function requireAdmin(): void { abort_unless($this->isAdmin(), 403, 'Only administrators can manage SEO campaigns.'); }
     private function ok($data, string $message = null) { return response()->json(['success' => true, 'message' => $message, 'data' => $data]); }
     private function created($data, string $message) { return response()->json(['success' => true, 'message' => $message, 'data' => $data], 201); }
