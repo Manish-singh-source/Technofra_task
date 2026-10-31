@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\ClientController as ApiV1ClientController;
 use App\Http\Controllers\Api\V1\VendorController as ApiVendorController;
 use App\Http\Controllers\Api\V1\VendorRenewalController;
 use App\Http\Controllers\Api\V1\SocialMediaController as ApiSocialMediaController;
+use App\Http\Controllers\Api\V1\SeoController as ApiSeoController;
 use App\Http\Controllers\Api\WebEnquiryCareerController;
 use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\GoogleAdsLeadController;
@@ -120,6 +121,50 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/posts/{post}/comments', 'comment');
             Route::post('/posts/{post}/schedule', 'schedule');
             Route::post('/posts/{post}/publish', 'publish');
+        });
+
+        // SEO campaign management API. These endpoints mirror the authenticated
+        // SEO web workspace and keep campaign-policy authorization in the API.
+        Route::prefix('seo')->controller(ApiSeoController::class)->group(function () {
+            Route::get('/campaigns', 'campaigns');
+            Route::post('/campaigns', 'storeCampaign');
+            Route::get('/campaigns/{campaign}', 'showCampaign');
+            Route::delete('/campaigns/{campaign}', 'archiveCampaign');
+            Route::post('/campaigns/{campaignId}/restore', 'restoreCampaign')->whereNumber('campaignId');
+
+            Route::put('/campaigns/{campaign}/audit', 'saveAudit');
+            Route::post('/campaigns/{campaign}/audit/findings', 'addFinding');
+            Route::patch('/campaigns/{campaign}/audit/findings/{finding}', 'updateFinding');
+            Route::post('/campaigns/{campaign}/audit/submit', 'submitAudit');
+            Route::post('/campaigns/{campaign}/audit/review', 'reviewAudit');
+            Route::put('/campaigns/{campaign}/baseline', 'saveBaseline');
+            Route::post('/campaigns/{campaign}/baseline/approve', 'approveBaseline');
+
+            Route::get('/campaigns/{campaign}/dashboard', 'dashboard');
+            Route::get('/campaigns/{campaign}/workspace', 'workspace');
+
+            Route::get('/campaigns/{campaign}/keywords', 'keywords');
+            Route::post('/campaigns/{campaign}/keywords', 'storeKeyword');
+            Route::get('/campaigns/{campaign}/keywords/template', 'keywordTemplate');
+            Route::post('/campaigns/{campaign}/keywords/import', 'importKeywords');
+            Route::delete('/campaigns/{campaign}/keywords/{keyword}', 'deleteKeyword');
+            Route::post('/campaigns/{campaign}/keywords/{keyword}/rankings', 'addRanking');
+
+            Route::get('/campaigns/{campaign}/competitors', 'competitors');
+            Route::post('/campaigns/{campaign}/competitors', 'storeCompetitor');
+
+            Route::post('/campaigns/{campaign}/cycles', 'addCycle');
+            Route::post('/campaigns/{campaign}/activities', 'addActivity');
+            Route::patch('/campaigns/{campaign}/activities/{activity}', 'updateActivity');
+            Route::post('/campaigns/{campaign}/activities/{activity}/review', 'reviewActivity');
+            Route::post('/campaigns/{campaign}/technical-issues', 'addTechnical');
+            Route::patch('/campaigns/{campaign}/technical-issues/{technicalIssue}', 'updateTechnical');
+            Route::post('/campaigns/{campaign}/on-page', 'addOnPage');
+            Route::post('/campaigns/{campaign}/backlinks', 'addBacklink');
+            Route::post('/campaigns/{campaign}/performance', 'addPerformance');
+            Route::post('/campaigns/{campaign}/reports', 'createReport');
+            Route::post('/campaigns/{campaign}/reports/{report}/submit', 'submitReport');
+            Route::post('/campaigns/{campaign}/reports/{report}/review', 'reviewReport');
         });
 
         Route::prefix('settings')->controller(ApiSettingController::class)->group(function () {
