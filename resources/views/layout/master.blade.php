@@ -452,9 +452,15 @@
                 <li>
                     <a href="{{ route('vcards.index') }}">
                         <div class="parent-icon"><i class="bx bx-id-card"></i></div>
-                        <div class="menu-title">VCard Generator</div>
+                        <div class="menu-title">QR Code Generator</div>
                     </a>
                 </li>
+                {{-- <li>
+                    <a href="{{ route('digital-cards.create') }}">
+                        <div class="parent-icon"><i class="bx bx-palette"></i></div>
+                        <div class="menu-title">Digital Card</div>
+                    </a>
+                </li> --}}
                 @if(in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'manager', 'staff', 'client', 'customer'], true))
                     <li class="{{ request()->routeIs('seo.*') ? 'mm-active' : '' }}">
                         <a href="{{ route('seo.campaigns.index') }}">

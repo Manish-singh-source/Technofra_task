@@ -6,6 +6,7 @@ use App\Http\Controllers\CalendarEventController;
 use App\Http\Controllers\ClientController;
 use App\Http\Controllers\ClientIssueController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DigitalCardController;
 use App\Http\Controllers\DigitalMarketingLeadController;
 use App\Http\Controllers\GoogleLeadViewController;
 use App\Http\Controllers\LeadController;
@@ -76,6 +77,9 @@ Route::controller(AuthController::class)->group(function () {
 // Protected routes (require authentication)
 Route::middleware('auth')->group(function () {
 
+    Route::get('/digital-cards/create', [DigitalCardController::class, 'create'])->name('digital-cards.create');
+    Route::post('/digital-cards/export-html', [DigitalCardController::class, 'exportHtml'])->name('digital-cards.export-html');
+
     Route::prefix('seo')->name('seo.')->controller(SeoCampaignController::class)->group(function () {
         Route::get('/campaigns', 'index')->name('campaigns.index');
         Route::get('/campaigns/create', 'create')->name('campaigns.create');
@@ -114,6 +118,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', 'dashboard')->name('dashboard');
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
+        Route::post('/url-qr', 'generateUrlQr')->name('url-qr');
         Route::post('/', 'store')->name('store');
         Route::get('/{id}', 'show')->whereNumber('id')->name('show');
         Route::get('/{id}/edit', 'edit')->whereNumber('id')->name('edit');
