@@ -77,12 +77,34 @@ class ServiceController extends Controller
 
         $query = $this->scopedQuery($user)->with(['company', 'client.businessDetail', 'vendor']);
 
-        if ($request->filled('from_date')) {
-            $query->where('end_date', '>=', $request->from_date);
+        if ($request->filled('billing_from_date')) {
+            $query->whereDate('billing_date', '>=', $request->billing_from_date);
         }
 
-        if ($request->filled('to_date')) {
-            $query->where('end_date', '<=', $request->to_date);
+        if ($request->filled('billing_to_date')) {
+            $query->whereDate('billing_date', '<=', $request->billing_to_date);
+        }
+
+        if ($request->filled('service_from_date') || $request->filled('service_to_date')) {
+            $query->where(function ($dateQuery) use ($request) {
+                $dateQuery->where(function ($query) use ($request) {
+                    if ($request->filled('service_from_date')) {
+                        $query->whereDate('start_date', '>=', $request->service_from_date);
+                    }
+
+                    if ($request->filled('service_to_date')) {
+                        $query->whereDate('start_date', '<=', $request->service_to_date);
+                    }
+                })->orWhere(function ($query) use ($request) {
+                    if ($request->filled('service_from_date')) {
+                        $query->whereDate('end_date', '>=', $request->service_from_date);
+                    }
+
+                    if ($request->filled('service_to_date')) {
+                        $query->whereDate('end_date', '<=', $request->service_to_date);
+                    }
+                });
+            });
         }
 
         $services = $query

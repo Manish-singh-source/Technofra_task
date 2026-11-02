@@ -1,4 +1,7 @@
 @extends('/layout/master')
+@push('styles')
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+@endpush
 @section('content')
     <style>
         .btn-orange {
@@ -85,14 +88,22 @@
                                 id="dateFilterForm">
                                 <input type="hidden" name="tab" id="activeTabInput" value="{{ $activeTab }}">
                                 <div class="col-md-3">
-                                    <label for="from_date" class="form-label">From End Date</label>
-                                    <input type="date" class="form-control" id="from_date" name="from_date"
-                                        value="{{ request('from_date') }}">
+                                    <label for="billing_date_range" class="form-label">Billing Date Range</label>
+                                    <input type="text" class="form-control" id="billing_date_range"
+                                        placeholder="Select billing date range" autocomplete="off">
+                                    <input type="hidden" id="billing_from_date" name="billing_from_date"
+                                        value="{{ request('billing_from_date') }}">
+                                    <input type="hidden" id="billing_to_date" name="billing_to_date"
+                                        value="{{ request('billing_to_date') }}">
                                 </div>
                                 <div class="col-md-3">
-                                    <label for="to_date" class="form-label">To End Date</label>
-                                    <input type="date" class="form-control" id="to_date" name="to_date"
-                                        value="{{ request('to_date') }}">
+                                    <label for="service_date_range" class="form-label">Service Date Range</label>
+                                    <input type="text" class="form-control" id="service_date_range"
+                                        placeholder="Select start / end date range" autocomplete="off">
+                                    <input type="hidden" id="service_from_date" name="service_from_date"
+                                        value="{{ request('service_from_date') }}">
+                                    <input type="hidden" id="service_to_date" name="service_to_date"
+                                        value="{{ request('service_to_date') }}">
                                 </div>
                                 <div class="col-md-3">
                                     {{-- 
@@ -143,14 +154,26 @@
                                     <h6 class="mb-0">
                                         Showing <span id="visibleServiceCount">{{ $visibleCount }}</span> service(s)
                                         in <span id="activeTabLabel">{{ $tabLabels[$activeTab] ?? 'All' }}</span>
-                                        @if (request('from_date') || request('to_date'))
+                                        @if (request('billing_from_date') || request('billing_to_date'))
                                             <small class="text-muted">
-                                                (filtered
-                                                @if (request('from_date'))
-                                                    from {{ \Carbon\Carbon::parse(request('from_date'))->format('d M Y') }}
+                                                (billing date
+                                                @if (request('billing_from_date'))
+                                                    from {{ \Carbon\Carbon::parse(request('billing_from_date'))->format('d M Y') }}
                                                 @endif
-                                                @if (request('to_date'))
-                                                    to {{ \Carbon\Carbon::parse(request('to_date'))->format('d M Y') }}
+                                                @if (request('billing_to_date'))
+                                                    to {{ \Carbon\Carbon::parse(request('billing_to_date'))->format('d M Y') }}
+                                                @endif
+                                                )
+                                            </small>
+                                        @endif
+                                        @if (request('service_from_date') || request('service_to_date'))
+                                            <small class="text-muted">
+                                                (service start/end date
+                                                @if (request('service_from_date'))
+                                                    from {{ \Carbon\Carbon::parse(request('service_from_date'))->format('d M Y') }}
+                                                @endif
+                                                @if (request('service_to_date'))
+                                                    to {{ \Carbon\Carbon::parse(request('service_to_date'))->format('d M Y') }}
                                                 @endif
                                                 )
                                             </small>
@@ -285,12 +308,17 @@
             </div>
         </div>
     </div>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const selectAll = document.getElementById('select-all');
             const deleteButton = document.getElementById('delete-selected');
-            const fromDateInput = document.getElementById('from_date');
-            const toDateInput = document.getElementById('to_date');
+            const billingDateRangeInput = document.getElementById('billing_date_range');
+            const billingFromDateInput = document.getElementById('billing_from_date');
+            const billingToDateInput = document.getElementById('billing_to_date');
+            const serviceDateRangeInput = document.getElementById('service_date_range');
+            const serviceFromDateInput = document.getElementById('service_from_date');
+            const serviceToDateInput = document.getElementById('service_to_date');
             const dateFilterForm = document.getElementById('dateFilterForm');
             const activeTabInput = document.getElementById('activeTabInput');
             const tabButtons = document.querySelectorAll('.service-tab-btn');
@@ -430,12 +458,36 @@
                 });
             });
 
-            fromDateInput.addEventListener('change', function() {
-                dateFilterForm.submit();
+            flatpickr(billingDateRangeInput, {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd M Y',
+                defaultDate: [billingFromDateInput.value, billingToDateInput.value].filter(Boolean),
+                onChange: function(selectedDates, _dateString, instance) {
+                    billingFromDateInput.value = selectedDates[0] ? instance.formatDate(selectedDates[0], 'Y-m-d') : '';
+                    billingToDateInput.value = selectedDates[1] ? instance.formatDate(selectedDates[1], 'Y-m-d') : '';
+
+                    if (selectedDates.length === 2) {
+                        dateFilterForm.submit();
+                    }
+                }
             });
 
-            toDateInput.addEventListener('change', function() {
-                dateFilterForm.submit();
+            flatpickr(serviceDateRangeInput, {
+                mode: 'range',
+                dateFormat: 'Y-m-d',
+                altInput: true,
+                altFormat: 'd M Y',
+                defaultDate: [serviceFromDateInput.value, serviceToDateInput.value].filter(Boolean),
+                onChange: function(selectedDates, _dateString, instance) {
+                    serviceFromDateInput.value = selectedDates[0] ? instance.formatDate(selectedDates[0], 'Y-m-d') : '';
+                    serviceToDateInput.value = selectedDates[1] ? instance.formatDate(selectedDates[1], 'Y-m-d') : '';
+
+                    if (selectedDates.length === 2) {
+                        dateFilterForm.submit();
+                    }
+                }
             });
 
             applyTabFilter(activeTab);
