@@ -351,11 +351,19 @@
                     </li>
                 @endcan
                 @can('view_salary_management')
-                    <li>
-                        <a href="{{ route('salary-management.index') }}">
+                    <li class="{{ request()->routeIs('salary-management.*') ? 'mm-active' : '' }}">
+                        <a href="javascript:;" class="has-arrow">
                             <div class="parent-icon"><i class="bx bxs-user-detail"></i></div>
                             <div class="menu-title">Salary Management</div>
                         </a>
+                        <ul>
+                            <li class="{{ request()->routeIs('salary-management.salary-master') ? 'mm-active' : '' }}">
+                                <a href="{{ route('salary-management.salary-master') }}"><i class="bx bx-radio-circle"></i>Salary Master</a>
+                            </li>
+                            <li class="{{ request()->routeIs('salary-management.attendance', 'salary-management.upload-form') ? 'mm-active' : '' }}">
+                                <a href="{{ route('salary-management.attendance') }}"><i class="bx bx-radio-circle"></i>Import SalaryBox Attendance</a>
+                            </li>
+                        </ul>
                     </li>
                 @endcan
                 @can('view_book_calls')

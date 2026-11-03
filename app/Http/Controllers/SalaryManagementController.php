@@ -22,7 +22,17 @@ class SalaryManagementController extends Controller
 {
     public function index(Request $request)
     {
-        return $this->renderPage($request, null, null, now()->format('Y-m'));
+        return redirect()->route('salary-management.salary-master');
+    }
+
+    public function salaryMaster(Request $request)
+    {
+        return $this->renderPage($request, null, null, now()->format('Y-m'), 'master');
+    }
+
+    public function attendance(Request $request)
+    {
+        return $this->renderPage($request, null, null, now()->format('Y-m'), 'attendance');
     }
 
     public function upload(
@@ -64,7 +74,7 @@ class SalaryManagementController extends Controller
         ], now()->addMinutes(30));
         $request->session()->put('salary_preview_token', $previewToken);
 
-        return $this->renderPage($request, $previewRows, $previewToken, $salaryMonth);
+        return $this->renderPage($request, $previewRows, $previewToken, $salaryMonth, 'attendance');
     }
 
     public function save(Request $request)
@@ -107,7 +117,7 @@ class SalaryManagementController extends Controller
         Cache::forget($key);
         $request->session()->forget('salary_preview_token');
 
-        return redirect()->route('salary-management.index')->with('success', 'Attendance salary records saved.');
+        return redirect()->route('salary-management.attendance')->with('success', 'Attendance salary records saved.');
     }
 
     public function saveProfile(Request $request)
@@ -161,7 +171,7 @@ class SalaryManagementController extends Controller
         return response()->streamDownload(function () use ($book) { (new Xlsx($book))->save('php://output'); }, 'Payroll-Adjustment-Template.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
-    private function renderPage(Request $request, ?array $previewRows, ?string $previewToken, string $salaryMonth)
+    private function renderPage(Request $request, ?array $previewRows, ?string $previewToken, string $salaryMonth, string $salarySection)
     {
         $canManage = $request->user()->can('upload_salary_management');
         $query = SalaryRecord::query()->with('staffUser')->orderByDesc('salary_month')->orderByDesc('id');
@@ -269,7 +279,7 @@ class SalaryManagementController extends Controller
 
         $salaryProfiles = SalaryProfile::query()->with('staffUser')->orderBy('employee_code')->get();
 
-        return view('salary-management.index', compact(
+        return view($salarySection === 'master' ? 'salary-management.master' : 'salary-management.attendance-import', compact(
             'records',
             'previewRows',
             'previewToken',
@@ -289,7 +299,8 @@ class SalaryManagementController extends Controller
             'holidays',
             'leaveRequests',
             'documents',
-            'salaryProfiles'
+            'salaryProfiles',
+            'salarySection'
         ));
     }
 

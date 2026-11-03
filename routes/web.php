@@ -183,7 +183,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/dashboard/operations-summary/download', [DashboardController::class, 'downloadOperationsSummary'])->name('dashboard.operations-summary.download');
     Route::middleware('can:view_salary_management')->group(function () {
         Route::get('/salary-management', [SalaryManagementController::class, 'index'])->name('salary-management.index');
-        Route::get('/salary-management/upload', [SalaryManagementController::class, 'index'])->name('salary-management.upload-form');
+        Route::get('/salary-management/salary-master', [SalaryManagementController::class, 'salaryMaster'])->name('salary-management.salary-master');
+        Route::get('/salary-management/import-attendance', [SalaryManagementController::class, 'attendance'])->name('salary-management.attendance');
+        Route::get('/salary-management/upload', [SalaryManagementController::class, 'attendance'])->name('salary-management.upload-form');
         Route::post('/salary-management/upload', [SalaryManagementController::class, 'upload'])
             ->middleware('can:upload_salary_management')
             ->name('salary-management.upload');
