@@ -190,6 +190,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/salary-management/save', [SalaryManagementController::class, 'save'])
             ->middleware('can:upload_salary_management')
             ->name('salary-management.save');
+        Route::get('/salary-management/template', [SalaryManagementController::class, 'downloadTemplate'])->name('salary-management.template');
+        Route::get('/salary-management/stamp', function () {
+            return response()->file(base_path('salary/stamp.png'));
+        })->name('salary-management.stamp');
+        Route::get('/salary-management/logo', function () {
+            return response()->file(base_path('salary/logo-black.png'));
+        })->name('salary-management.logo');
+        Route::post('/salary-management/profiles', [SalaryManagementController::class, 'saveProfile'])
+            ->middleware('can:upload_salary_management')->name('salary-management.profiles.save');
+        Route::post('/salary-management/{salaryRecord}/approve', [SalaryManagementController::class, 'approve'])
+            ->middleware('can:upload_salary_management')->name('salary-management.approve');
+        Route::get('/salary-management/{salaryRecord}/payslip', [SalaryManagementController::class, 'payslip'])->name('salary-management.payslip');
     });
     Route::get('/user-profile', [AuthController::class, 'profile'])->name('user-profile');
     Route::put('/user-profile', [AuthController::class, 'updateProfile'])->name('user-profile.update');

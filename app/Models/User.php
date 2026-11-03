@@ -84,6 +84,11 @@ class User extends Authenticatable
         return $this->hasMany(Todo::class);
     }
 
+    public function salaryProfile()
+    {
+        return $this->hasOne(SalaryProfile::class, 'staff_user_id');
+    }
+
     public function vcardContacts()
     {
         return $this->hasMany(VCardContact::class);

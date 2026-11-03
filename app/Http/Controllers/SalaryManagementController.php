@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\SalaryRecord;
+use App\Models\SalaryProfile;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\SalaryAttendanceImportService;
@@ -13,6 +14,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class SalaryManagementController extends Controller
 {
@@ -48,9 +52,10 @@ class SalaryManagementController extends Controller
 
         $users = User::withTrashed()
             ->where('role', 'staff')
-            ->with('departments')
+            ->with(['departments', 'salaryProfile'])
             ->get();
-        $previewRows = $this->matchRows($report['rows'], $users, $calculator);
+        $daysInMonth = Carbon::createFromFormat('Y-m', $salaryMonth)->daysInMonth;
+        $previewRows = $this->matchRows($report['rows'], $users, $calculator, $daysInMonth);
         $previewToken = (string) Str::uuid();
 
         Cache::put($this->previewKey($request->user()->id, $previewToken), [
@@ -91,6 +96,8 @@ class SalaryManagementController extends Controller
                         'data' => array_merge($row['data'], [
                             'employee' => $row['employee'],
                             'calculation' => $row['calculation'],
+                            'payroll_status' => 'draft',
+                            'payment_status' => 'pending',
                         ]),
                     ]
                 );
@@ -101,6 +108,57 @@ class SalaryManagementController extends Controller
         $request->session()->forget('salary_preview_token');
 
         return redirect()->route('salary-management.index')->with('success', 'Attendance salary records saved.');
+    }
+
+    public function saveProfile(Request $request)
+    {
+        $validated = $request->validate([
+            'staff_user_id' => 'required|exists:users,id',
+            'employee_code' => ['nullable', 'string', 'max:50', Rule::unique('salary_profiles', 'employee_code')->ignore(SalaryProfile::where('staff_user_id', $request->input('staff_user_id'))->value('id'))],
+            'salarybox_id' => ['nullable', 'string', 'max:50', Rule::unique('salary_profiles', 'salarybox_id')->ignore(SalaryProfile::where('staff_user_id', $request->input('staff_user_id'))->value('id'))],
+            'monthly_salary' => 'required|numeric|min:0',
+            'standard_deduction' => 'nullable|numeric|min:0',
+            'bank_name' => 'nullable|string|max:120',
+            'bank_account_last4' => 'nullable|digits:4',
+        ]);
+
+        // This field is no longer entered in the Salary Master form. Keep the
+        // stored value numeric so the database default is not overwritten by null.
+        $validated['standard_deduction'] = $validated['standard_deduction'] ?? 0;
+
+        SalaryProfile::updateOrCreate(['staff_user_id' => $validated['staff_user_id']], $validated);
+        return back()->with('success', 'Employee salary profile saved.');
+    }
+
+    public function approve(Request $request, SalaryRecord $salaryRecord)
+    {
+        $data = $salaryRecord->data ?? [];
+        $data['payroll_status'] = 'approved';
+        $data['approved_by'] = $request->user()->id;
+        $data['approved_at'] = now()->toDateTimeString();
+        $salaryRecord->update(['data' => $data]);
+        return back()->with('success', 'Payroll approved. Salary slip is now available.');
+    }
+
+    public function payslip(Request $request, SalaryRecord $salaryRecord)
+    {
+        abort_unless($request->user()->can('upload_salary_management') || $salaryRecord->staff_user_id === $request->user()->id, 403);
+        abort_unless(data_get($salaryRecord->data, 'payroll_status') === 'approved', 403, 'Salary slip is available after approval.');
+        return view('salary-management.payslip', ['record' => $salaryRecord->load('staffUser')]);
+    }
+
+    public function downloadTemplate()
+    {
+        $book = new Spreadsheet();
+        $sheet = $book->getActiveSheet();
+        $sheet->setTitle('Payroll Adjustments');
+        $headings = ['Employee Code', 'SalaryBox ID', 'Employee Name', 'Month (YYYY-MM)', 'Monthly Salary', 'Advance', 'Bonus / Incentive', 'Other Deduction (TDS/PF)', 'Paid Amount', 'Remarks'];
+        $sheet->fromArray([$headings], null, 'A1');
+        $sheet->getStyle('A1:J1')->getFont()->setBold(true);
+        $sheet->freezePane('A2');
+        foreach (range('A', 'J') as $column) $sheet->getColumnDimension($column)->setAutoSize(true);
+        $sheet->getComment('A1')->getText()->createTextRun('Use this sheet as the HR monthly adjustment register. SalaryBox attendance is uploaded separately.');
+        return response()->streamDownload(function () use ($book) { (new Xlsx($book))->save('php://output'); }, 'Payroll-Adjustment-Template.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
     private function renderPage(Request $request, ?array $previewRows, ?string $previewToken, string $salaryMonth)
@@ -128,7 +186,7 @@ class SalaryManagementController extends Controller
 
         $staffMembers = User::withTrashed()
             ->whereIn('role', ['staff', 'admin'])
-            ->with(['departments', 'teams'])
+            ->with(['departments', 'teams', 'salaryProfile'])
             ->orderBy('first_name')
             ->get()
             ->map(function (User $user) {
@@ -209,7 +267,9 @@ class SalaryManagementController extends Controller
             ['employee' => 'Sneha Patil', 'doc_name' => 'Bank Passbook & Cancelled Cheque', 'type' => 'Banking', 'format' => 'PDF', 'uploaded_on' => '22 Jun 2023', 'status' => 'Verified'],
         ];
 
-        return view('salary-management.attendance', compact(
+        $salaryProfiles = SalaryProfile::query()->with('staffUser')->orderBy('employee_code')->get();
+
+        return view('salary-management.index', compact(
             'records',
             'previewRows',
             'previewToken',
@@ -228,11 +288,12 @@ class SalaryManagementController extends Controller
             'activeTab',
             'holidays',
             'leaveRequests',
-            'documents'
+            'documents',
+            'salaryProfiles'
         ));
     }
 
-    private function matchRows(array $rows, $users, SalaryCalculationService $calculator): array
+    private function matchRows(array $rows, $users, SalaryCalculationService $calculator, int $daysInMonth): array
     {
         $previewRows = [];
         $seenUsers = [];
@@ -241,9 +302,17 @@ class SalaryManagementController extends Controller
             $errors = [];
             $phone = $this->normalizePhone($row['phone']);
             $name = $this->normalizeName($row['employee_name']);
-            $matches = $phone !== ''
-                ? $users->filter(fn(User $user) => $this->normalizePhone($user->phone) === $phone)->values()
+            $salaryBoxId = trim((string) $row['salarybox_id']);
+            $employeeId = trim((string) $row['employee_id']);
+            $matches = $salaryBoxId !== ''
+                ? $users->filter(fn(User $user) => $user->salaryProfile?->salarybox_id === $salaryBoxId)->values()
                 : collect();
+            if ($matches->isEmpty() && $employeeId !== '') {
+                $matches = $users->filter(fn(User $user) => $user->salaryProfile?->employee_code === $employeeId)->values();
+            }
+            if ($matches->isEmpty() && $phone !== '') {
+                $matches = $users->filter(fn(User $user) => $this->normalizePhone($user->phone) === $phone)->values();
+            }
 
             if ($matches->isEmpty() && $name !== '') {
                 $matches = $users->filter(fn(User $user) => $this->normalizeName($user->name) === $name)->values();
@@ -270,9 +339,11 @@ class SalaryManagementController extends Controller
                 $seenUsers[$staff->id] = true;
             }
 
-            $salary = $this->numericValue($row['salary']);
+            $salary = $this->numericValue($row['salary']) ?? (float) ($staff?->salaryProfile?->monthly_salary ?? 0);
             if ($salary === null || $salary < 0) {
                 $errors[] = 'Salary must be a valid non-negative number.';
+            } elseif ($salary == 0) {
+                $errors[] = 'No monthly salary is configured for this employee.';
             }
 
             foreach (
@@ -303,7 +374,7 @@ class SalaryManagementController extends Controller
                 $row['salary'] = $salary;
             }
             $calculation = $salary !== null
-                ? $calculator->calculate($salary, $row)
+                ? $calculator->calculate($salary, $row, ['other_deduction' => (float) ($staff?->salaryProfile?->standard_deduction ?? 0)], $daysInMonth)
                 : null;
 
             $databaseDepartment = $staff?->departments->pluck('name')->filter()->implode(', ');
