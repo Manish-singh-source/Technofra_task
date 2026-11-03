@@ -24,8 +24,10 @@ class SeoCampaignController extends Controller
     }
     public function store(Request $request)
     {
-        $this->requireAdmin(); $data=$this->campaignData($request); $members=$data['members']??[]; unset($data['members']);
-        abort_unless(collect($members)->where('campaign_role', 'manager')->isNotEmpty(), 422, 'Assign at least one SEO Manager.');
+        $this->requireAdmin(); $data=$this->campaignData($request); $managerIds = $data['manager_ids']; $executiveIds = $data['executive_ids'] ?? []; unset($data['manager_ids'], $data['executive_ids']);
+        abort_if(collect($managerIds)->intersect($executiveIds)->isNotEmpty(), 422, 'A staff member cannot be assigned as both manager and executive.');
+        $members = collect($managerIds)->map(fn ($userId) => ['user_id' => $userId, 'campaign_role' => 'manager'])
+            ->merge(collect($executiveIds)->map(fn ($userId) => ['user_id' => $userId, 'campaign_role' => 'executive']))->all();
         $data['target_locations'] = filled($data['target_locations'] ?? null) ? collect(explode(',', $data['target_locations']))->map(fn ($location) => trim($location))->filter()->values()->all() : null;
         $campaign=DB::transaction(function() use($data,$members){ $campaign=SeoCampaign::create($data+['created_by'=>auth()->id()]); foreach($members as $member){ $campaign->members()->create(['user_id'=>$member['user_id'],'campaign_role'=>$member['campaign_role']]); } return $campaign; });
         return redirect()->route('seo.campaigns.show',$campaign)->with('success','SEO campaign created. Begin the initial audit.');
@@ -96,9 +98,9 @@ class SeoCampaignController extends Controller
             'target_country' => 'nullable|string|max:100', 'target_locations' => 'nullable|string|max:2000', 'target_language' => 'required|string|max:20',
             'search_engine' => 'required|string|max:50', 'devices' => 'nullable|array', 'devices.*' => Rule::in(['desktop', 'mobile']),
             'start_date' => 'required|date', 'goals' => 'nullable|string|max:5000', 'reporting_frequency' => ['required', Rule::in(['weekly', 'monthly', 'quarterly'])],
-            'status' => ['required', Rule::in(['draft', 'active', 'on_hold', 'completed', 'cancelled'])], 'members' => 'required|array|min:1',
-            'members.*.user_id' => ['required', 'distinct', Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'staff'))],
-            'members.*.campaign_role' => ['required', Rule::in(['manager', 'executive'])],
+            'status' => ['required', Rule::in(['draft', 'active', 'on_hold', 'completed', 'cancelled'])],
+            'manager_ids' => 'required|array|min:1', 'manager_ids.*' => ['required', 'distinct', Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'staff'))],
+            'executive_ids' => 'nullable|array', 'executive_ids.*' => ['distinct', Rule::exists('users', 'id')->where(fn ($q) => $q->where('role', 'staff'))],
         ]);
     }
     private function formData(): array { return ['clients'=>User::query()->whereIn('role',['client','customer'])->orderBy('first_name')->get(),'staff'=>User::staffMembers()->orderBy('first_name')->get()]; }
