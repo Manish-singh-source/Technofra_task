@@ -201,6 +201,10 @@ Route::middleware('auth')->group(function () {
         })->name('salary-management.logo');
         Route::post('/salary-management/profiles', [SalaryManagementController::class, 'saveProfile'])
             ->middleware('can:upload_salary_management')->name('salary-management.profiles.save');
+        Route::put('/salary-management/profiles/{salaryProfile}', [SalaryManagementController::class, 'updateProfile'])
+            ->middleware('can:upload_salary_management')->name('salary-management.profiles.update');
+        Route::delete('/salary-management/profiles/{salaryProfile}', [SalaryManagementController::class, 'deleteProfile'])
+            ->middleware('can:upload_salary_management')->name('salary-management.profiles.delete');
         Route::post('/salary-management/{salaryRecord}/approve', [SalaryManagementController::class, 'approve'])
             ->middleware('can:upload_salary_management')->name('salary-management.approve');
         Route::get('/salary-management/{salaryRecord}/payslip', [SalaryManagementController::class, 'payslip'])->name('salary-management.payslip');

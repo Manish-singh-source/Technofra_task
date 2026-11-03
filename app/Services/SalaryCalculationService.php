@@ -8,7 +8,10 @@ class SalaryCalculationService
     {
         $daysInMonth = $daysInMonth ?: 30;
         $dailyRate = $monthlySalary / $daysInMonth;
-        $absentDeduction = round((float) ($attendance['absent'] ?? 0) * $dailyRate, 2);
+        $absentDays = (float) ($attendance['absent'] ?? 0);
+        $paidLeaveDays = (float) ($attendance['paid_leave'] ?? 0);
+        $deductibleAbsentDays = max(0.0, $absentDays - $paidLeaveDays);
+        $absentDeduction = round($deductibleAbsentDays * $dailyRate, 2);
         $unpaidLeaveDeduction = round((float) ($attendance['unpaid_leave'] ?? 0) * $dailyRate, 2);
         $halfDayDeduction = round((float) ($attendance['half_day'] ?? 0) * 0.5 * $dailyRate, 2);
         $overtimeDays = (float) ($attendance['overtime_working_day'] ?? 0)
@@ -27,13 +30,14 @@ class SalaryCalculationService
             'monthly_salary' => round($monthlySalary, 2),
             'per_day_salary' => round($dailyRate, 2),
             'days_in_month' => $daysInMonth,
-            'absent_days' => (float) ($attendance['absent'] ?? 0),
+            'absent_days' => $absentDays,
+            'deductible_absent_days' => $deductibleAbsentDays,
             'absent_deduction' => $absentDeduction,
             'unpaid_leave_days' => (float) ($attendance['unpaid_leave'] ?? 0),
             'unpaid_leave_deduction' => $unpaidLeaveDeduction,
             'half_days' => (float) ($attendance['half_day'] ?? 0),
             'half_day_deduction' => $halfDayDeduction,
-            'paid_leave_days' => (float) ($attendance['paid_leave'] ?? 0),
+            'paid_leave_days' => $paidLeaveDays,
             'overtime_days' => $overtimeDays,
             'overtime_payment' => $overtimePayment,
             'bonus' => round($bonus, 2),

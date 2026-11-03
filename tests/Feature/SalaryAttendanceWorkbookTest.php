@@ -42,23 +42,23 @@ class SalaryAttendanceWorkbookTest extends TestCase
         ]);
 
         $response->assertOk()
-            ->assertViewIs('salary-management.index')
-            ->assertSee('Sep 2026')
+            ->assertViewIs('salary-management.attendance-import')
+            ->assertSee('2026-09')
             ->assertSee('TFR012')
             ->assertSee('Khushi Yadav')
             ->assertSee('Manish Singh')
             ->assertSee('3,000.00')
             ->assertSee('4,000.00')
             ->assertSee('8,000.00')
-            ->assertSee('800.00')
+            ->assertSee('400.00')
             ->assertSee('133.33')
-            ->assertSee('3,333.33');
+            ->assertSee('3,733.33');
 
         $this->assertDatabaseCount('salary_records', 0);
 
         $this->post(route('salary-management.save'), [
             'preview_token' => $response->viewData('previewToken'),
-        ])->assertRedirect(route('salary-management.index'));
+        ])->assertRedirect(route('salary-management.attendance'));
 
         $this->assertDatabaseCount('salary_records', 3);
         $savedRecord = SalaryRecord::query()->where('staff_user_id', $khushi->id)->firstOrFail();
@@ -69,15 +69,16 @@ class SalaryAttendanceWorkbookTest extends TestCase
 
         $manishRecord = SalaryRecord::query()->where('staff_user_id', $manish->id)->firstOrFail();
         $this->assertSame(133.33, (float) $manishRecord->data['calculation']['per_day_salary']);
-        $this->assertSame(800.0, (float) $manishRecord->data['calculation']['absent_deduction']);
+        $this->assertSame(400.0, (float) $manishRecord->data['calculation']['absent_deduction']);
+        $this->assertSame(3.0, (float) $manishRecord->data['calculation']['deductible_absent_days']);
         $this->assertSame(133.33, (float) $manishRecord->data['calculation']['overtime_payment']);
-        $this->assertSame(3333.33, (float) $manishRecord->data['calculation']['net_salary']);
+        $this->assertSame(3733.33, (float) $manishRecord->data['calculation']['net_salary']);
     }
 
     public function test_paid_leave_is_paid_but_unpaid_leave_and_half_days_are_deducted(): void
     {
         $calculation = (new SalaryCalculationService())->calculate(3000, [
-            'absent' => 0,
+            'absent' => 6,
             'paid_leave' => 5,
             'unpaid_leave' => 1,
             'half_day' => 2,
@@ -86,8 +87,16 @@ class SalaryAttendanceWorkbookTest extends TestCase
         $this->assertSame(100.0, $calculation['per_day_salary']);
         $this->assertSame(100.0, $calculation['unpaid_leave_deduction']);
         $this->assertSame(100.0, $calculation['half_day_deduction']);
-        $this->assertSame(0.0, $calculation['absent_deduction']);
-        $this->assertSame(2800.0, $calculation['net_salary']);
+        $this->assertSame(1.0, $calculation['deductible_absent_days']);
+        $this->assertSame(100.0, $calculation['absent_deduction']);
+        $this->assertSame(2700.0, $calculation['net_salary']);
+
+        $paidLeaveExceedsAbsence = (new SalaryCalculationService())->calculate(3000, [
+            'absent' => 2,
+            'paid_leave' => 5,
+        ]);
+        $this->assertSame(0.0, $paidLeaveExceedsAbsence['deductible_absent_days']);
+        $this->assertSame(0.0, $paidLeaveExceedsAbsence['absent_deduction']);
     }
 
     private function createStaff(string $first, string $last, string $email, string $role, string $phone = ''): User

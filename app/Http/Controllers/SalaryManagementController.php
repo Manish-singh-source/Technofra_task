@@ -140,6 +140,25 @@ class SalaryManagementController extends Controller
         return back()->with('success', 'Employee salary profile saved.');
     }
 
+    public function updateProfile(Request $request, SalaryProfile $salaryProfile)
+    {
+        $validated = $request->validate([
+            'staff_user_id' => ['required', 'exists:users,id', Rule::unique('salary_profiles', 'staff_user_id')->ignore($salaryProfile->id)],
+            'monthly_salary' => 'required|numeric|min:0',
+        ]);
+
+        $salaryProfile->update($validated);
+
+        return back()->with('success', 'Employee salary profile updated.');
+    }
+
+    public function deleteProfile(SalaryProfile $salaryProfile)
+    {
+        $salaryProfile->delete();
+
+        return back()->with('success', 'Employee salary profile deleted. The staff account was not affected.');
+    }
+
     public function approve(Request $request, SalaryRecord $salaryRecord)
     {
         $data = $salaryRecord->data ?? [];
