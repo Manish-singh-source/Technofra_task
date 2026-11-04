@@ -184,6 +184,8 @@ Route::middleware('auth')->group(function () {
     Route::middleware('can:view_salary_management')->group(function () {
         Route::get('/salary-management', [SalaryManagementController::class, 'index'])->name('salary-management.index');
         Route::get('/salary-management/salary-master', [SalaryManagementController::class, 'salaryMaster'])->name('salary-management.salary-master');
+        Route::get('/salary-management/salary-reports', [SalaryManagementController::class, 'salaryReports'])->name('salary-management.reports');
+        Route::get('/salary-management/salary-reports/export', [SalaryManagementController::class, 'exportSalaryReports'])->name('salary-management.reports.export');
         Route::get('/salary-management/import-attendance', [SalaryManagementController::class, 'attendance'])->name('salary-management.attendance');
         Route::get('/salary-management/upload', [SalaryManagementController::class, 'attendance'])->name('salary-management.upload-form');
         Route::post('/salary-management/upload', [SalaryManagementController::class, 'upload'])

@@ -500,6 +500,9 @@
                             <li class="{{ request()->routeIs('salary-management.attendance', 'salary-management.upload-form') ? 'mm-active' : '' }}">
                                 <a href="{{ route('salary-management.attendance') }}"><i class="bx bx-radio-circle"></i>Import SalaryBox Attendance</a>
                             </li>
+                            <li class="{{ request()->routeIs('salary-management.reports') ? 'mm-active' : '' }}">
+                                <a href="{{ route('salary-management.reports') }}"><i class="bx bx-radio-circle"></i>Salary Reports</a>
+                            </li>
                         </ul>
                     </li>
                 @endcan

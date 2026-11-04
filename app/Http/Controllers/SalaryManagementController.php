@@ -30,6 +30,192 @@ class SalaryManagementController extends Controller
         return $this->renderPage($request, null, null, now()->format('Y-m'), 'master');
     }
 
+    public function salaryReports(Request $request)
+    {
+        return view('salary-management.reports', $this->buildSalaryReport($request));
+    }
+
+    public function exportSalaryReports(Request $request)
+    {
+        $report = $this->buildSalaryReport($request);
+        $headings = [
+            'Staff',
+            'Email',
+            'Staff Status',
+            'Department',
+            'Designation',
+            'Employee ID',
+            'Monthly Salary',
+            'Present',
+            'Absent',
+            'Half Day',
+            'Paid Leave',
+            'Unpaid Leave',
+            'Adjustment Days',
+            'Total Deductions',
+            'Net Payable',
+            'Payroll Status',
+            'Salary Slip',
+        ];
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Salary Reports');
+        $sheet->fromArray($headings, null, 'A1');
+
+        $rows = $report['reportRows']->map(function (array $row) {
+            $hasPayroll = $row['record'] !== null;
+            $status = $hasPayroll ? ucfirst($row['payroll_status'] ?? 'draft') : 'No payroll';
+
+            return [
+                $this->safeExcelText($row['name']),
+                $this->safeExcelText($row['staff']->email),
+                $this->safeExcelText($row['staff_status']),
+                $this->safeExcelText($row['department']),
+                $this->safeExcelText($row['designation']),
+                $this->safeExcelText($row['employee_code']),
+                $row['monthly_salary'],
+                $hasPayroll ? (float) data_get($row, 'attendance.present', 0) : null,
+                $hasPayroll ? (float) data_get($row, 'attendance.absent', 0) : null,
+                $hasPayroll ? (float) data_get($row, 'attendance.half_day', 0) : null,
+                $hasPayroll ? (float) data_get($row, 'attendance.paid_leave', 0) : null,
+                $hasPayroll ? (float) data_get($row, 'attendance.unpaid_leave', 0) : null,
+                $hasPayroll ? (int) data_get($row, 'calculation.salary_adjustment_days', 0) : null,
+                $hasPayroll ? (float) data_get($row, 'calculation.total_deductions', 0) : null,
+                $hasPayroll ? (float) data_get($row, 'calculation.net_salary', 0) : null,
+                $status,
+                $hasPayroll && $row['payroll_status'] === 'approved' ? 'Available' : 'Not available',
+            ];
+        })->all();
+
+        if ($rows !== []) {
+            $sheet->fromArray($rows, null, 'A2');
+        }
+
+        $lastRow = count($rows) + 1;
+        $sheet->getStyle('A1:Q1')->getFont()->setBold(true);
+        $sheet->getStyle('G2:G' . max(2, $lastRow))->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->getStyle('N2:O' . max(2, $lastRow))->getNumberFormat()->setFormatCode('#,##0.00');
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:Q' . max(1, $lastRow));
+
+        foreach (range('A', 'Q') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $filename = 'salary-reports-' . $report['salaryMonth'] . '.xlsx';
+
+        return response()->streamDownload(
+            function () use ($spreadsheet) {
+                (new Xlsx($spreadsheet))->save('php://output');
+            },
+            $filename,
+            ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']
+        );
+    }
+
+    private function safeExcelText(?string $value): string
+    {
+        $value = (string) $value;
+        return preg_match('/^[\s]*[=+\-@]/', $value) ? "'" . $value : $value;
+    }
+
+    private function buildSalaryReport(Request $request): array
+    {
+        $validated = $request->validate([
+            'month' => 'nullable|date_format:Y-m',
+            'department' => 'nullable|string|max:120',
+            'status' => 'nullable|in:approved,draft,no_payroll',
+            'search' => 'nullable|string|max:120',
+        ]);
+        $salaryMonth = $validated['month'] ?? now()->format('Y-m');
+        $monthDate = Carbon::createFromFormat('Y-m', $salaryMonth)->startOfMonth();
+
+        $staffMembers = User::withTrashed()
+            ->whereIn('role', ['staff', 'admin'])
+            ->with(['departments', 'teams', 'salaryProfile'])
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get();
+
+        $payrollRecords = SalaryRecord::query()
+            ->whereDate('salary_month', $monthDate->toDateString())
+            ->get()
+            ->keyBy('staff_user_id');
+
+        $reportRows = $staffMembers->map(function (User $staff) use ($payrollRecords) {
+            $record = $payrollRecords->get($staff->id);
+            $data = $record?->data ?? [];
+            $calculation = data_get($data, 'calculation', []);
+            $profile = $staff->salaryProfile;
+
+            return [
+                'staff' => $staff,
+                'name' => trim($staff->first_name . ' ' . $staff->last_name),
+                'department' => $staff->departments->pluck('name')->first() ?? '—',
+                'designation' => $staff->teams->pluck('name')->first() ?? '—',
+                'employee_code' => $profile?->employee_code ?: data_get($data, 'employee.employee_id', '—'),
+                'monthly_salary' => (float) ($profile?->monthly_salary ?? data_get($calculation, 'monthly_salary', data_get($data, 'salary', 0))),
+                'record' => $record,
+                'attendance' => $data,
+                'calculation' => $calculation,
+                'payroll_status' => data_get($data, 'payroll_status'),
+                'staff_status' => $staff->trashed() ? 'Left' : ucfirst((string) ($staff->status ?: 'active')),
+            ];
+        });
+
+        $departmentOptions = $reportRows->pluck('department')
+            ->filter(fn (string $department) => $department !== '—')
+            ->unique()
+            ->sort()
+            ->values();
+
+        if (! empty($validated['department'])) {
+            $reportRows = $reportRows->filter(fn (array $row) => $row['department'] === $validated['department']);
+        }
+
+        if (! empty($validated['status'])) {
+            $reportRows = $reportRows->filter(function (array $row) use ($validated) {
+                if ($validated['status'] === 'no_payroll') {
+                    return $row['record'] === null;
+                }
+
+                return $row['payroll_status'] === $validated['status'];
+            });
+        }
+
+        if (! empty($validated['search'])) {
+            $search = mb_strtolower(trim($validated['search']));
+            $reportRows = $reportRows->filter(function (array $row) use ($search) {
+                foreach ([$row['name'], $row['staff']->email, $row['employee_code'], $row['department'], $row['designation']] as $value) {
+                    if (mb_stripos((string) $value, $search) !== false) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+        }
+
+        $reportRows = $reportRows->values();
+
+        $payrollRows = $reportRows->filter(fn (array $row) => $row['record'] !== null);
+        $summary = [
+            'staff_count' => $reportRows->count(),
+            'payroll_count' => $payrollRows->count(),
+            'monthly_salary' => $reportRows->sum('monthly_salary'),
+            'net_payable' => $payrollRows->sum(fn (array $row) => (float) data_get($row, 'calculation.net_salary', 0)),
+            'pending_count' => $payrollRows->where('payroll_status', '!=', 'approved')->count(),
+        ];
+
+        $filters = [
+            'department' => $validated['department'] ?? '',
+            'status' => $validated['status'] ?? '',
+            'search' => $validated['search'] ?? '',
+        ];
+
+        return compact('salaryMonth', 'reportRows', 'summary', 'departmentOptions', 'filters');
+    }
+
     public function attendance(Request $request)
     {
         $previewToken = $request->session()->get('salary_preview_token');
@@ -228,7 +414,12 @@ class SalaryManagementController extends Controller
 
     public function payslip(Request $request, SalaryRecord $salaryRecord)
     {
-        abort_unless($request->user()->can('upload_salary_management') || $salaryRecord->staff_user_id === $request->user()->id, 403);
+        abort_unless(
+            $request->user()->can('view_salary_management')
+                || $request->user()->can('upload_salary_management')
+                || $salaryRecord->staff_user_id === $request->user()->id,
+            403
+        );
         abort_unless(data_get($salaryRecord->data, 'payroll_status') === 'approved', 403, 'Salary slip is available after approval.');
         return view('salary-management.payslip', ['record' => $salaryRecord->load('staffUser')]);
     }

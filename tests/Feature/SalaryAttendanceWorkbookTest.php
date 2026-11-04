@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\SalaryCalculationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use Spatie\Permission\Models\Permission;
@@ -157,6 +158,88 @@ class SalaryAttendanceWorkbookTest extends TestCase
         $this->assertSame(200.0, (float) $record->data['calculation']['salary_adjustment_deduction']);
         $this->assertSame(1800.0, (float) $record->data['calculation']['net_salary']);
         $this->assertSame(3000.0, (float) $profile->fresh()->monthly_salary);
+    }
+
+    public function test_salary_reports_lists_staff_and_selected_month_payroll_details(): void
+    {
+        $viewer = $this->createStaff('Report', 'Viewer', 'report-viewer@example.com', 'admin');
+        $viewer->givePermissionTo(Permission::findOrCreate('view_salary_management', 'web'));
+
+        $staffWithPayroll = $this->createStaff('Asha', 'Patel', 'asha-report@example.com', 'staff');
+        SalaryProfile::create([
+            'staff_user_id' => $staffWithPayroll->id,
+            'employee_code' => 'TF123',
+            'salarybox_id' => 'SB123',
+            'monthly_salary' => 30000,
+            'standard_deduction' => 0,
+        ]);
+        SalaryRecord::create([
+            'staff_user_id' => $staffWithPayroll->id,
+            'salary_month' => '2026-10-01',
+            'data' => [
+                'present' => 16,
+                'absent' => 15,
+                'paid_leave' => 10,
+                'unpaid_leave' => 0,
+                'payroll_status' => 'approved',
+                'calculation' => [
+                    'monthly_salary' => 30000,
+                    'total_deductions' => 5322.58,
+                    'net_salary' => 24677.42,
+                    'salary_adjustment_days' => 0,
+                ],
+            ],
+        ]);
+        $this->createStaff('No', 'Payroll', 'no-payroll@example.com', 'staff');
+
+        $response = $this->actingAs($viewer)
+            ->get(route('salary-management.reports', ['month' => '2026-10']))
+            ->assertOk()
+            ->assertViewIs('salary-management.reports')
+            ->assertSee('Asha Patel')
+            ->assertSee('TF123')
+            ->assertSee('₹24,677.42')
+            ->assertSee('Approved')
+            ->assertSee('No payroll');
+
+        $this->assertCount(3, $response->viewData('reportRows'));
+        $this->assertSame(1, $response->viewData('summary')['payroll_count']);
+
+        $this->get(route('salary-management.payslip', SalaryRecord::query()->where('staff_user_id', $staffWithPayroll->id)->firstOrFail()))
+            ->assertOk()
+            ->assertViewIs('salary-management.payslip')
+            ->assertSee('EMPLOYEE SALARY SLIP');
+
+        $filteredResponse = $this->get(route('salary-management.reports', [
+            'month' => '2026-10',
+            'status' => 'approved',
+            'search' => 'asha-report@example.com',
+        ]))->assertOk()
+            ->assertSee('Asha Patel')
+            ->assertDontSee('No Payroll');
+
+        $this->assertCount(1, $filteredResponse->viewData('reportRows'));
+        $this->assertSame(1, $filteredResponse->viewData('summary')['payroll_count']);
+
+        $exportResponse = $this->get(route('salary-management.reports.export', [
+            'month' => '2026-10',
+            'status' => 'approved',
+            'search' => 'asha-report@example.com',
+        ]))->assertOk()
+            ->assertDownload('salary-reports-2026-10.xlsx');
+
+        $temporaryFile = tempnam(sys_get_temp_dir(), 'salary-report-');
+        try {
+            file_put_contents($temporaryFile, $exportResponse->streamedContent());
+            $exportedSheet = IOFactory::load($temporaryFile)->getActiveSheet();
+            $this->assertSame('Asha Patel', $exportedSheet->getCell('A2')->getValue());
+            $this->assertSame('asha-report@example.com', $exportedSheet->getCell('B2')->getValue());
+            $this->assertSame(1, $exportedSheet->getHighestDataRow() - 1);
+        } finally {
+            if (is_file($temporaryFile)) {
+                unlink($temporaryFile);
+            }
+        }
     }
 
     private function createStaff(string $first, string $last, string $email, string $role, string $phone = ''): User
