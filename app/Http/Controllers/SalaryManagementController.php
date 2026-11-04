@@ -32,7 +32,22 @@ class SalaryManagementController extends Controller
 
     public function attendance(Request $request)
     {
-        return $this->renderPage($request, null, null, now()->format('Y-m'), 'attendance');
+        $previewToken = $request->session()->get('salary_preview_token');
+        $preview = $previewToken
+            ? Cache::get($this->previewKey($request->user()->id, $previewToken))
+            : null;
+
+        if (! $preview) {
+            $previewToken = null;
+        }
+
+        return $this->renderPage(
+            $request,
+            $preview['rows'] ?? null,
+            $previewToken,
+            $preview['month'] ?? now()->format('Y-m'),
+            'attendance'
+        );
     }
 
     public function upload(
@@ -55,11 +70,6 @@ class SalaryManagementController extends Controller
             return back()->withInput()->withErrors(['month' => 'The report month could not be read. Select the salary month and upload again.']);
         }
 
-        $previousToken = $request->session()->pull('salary_preview_token');
-        if ($previousToken) {
-            Cache::forget($this->previewKey($request->user()->id, $previousToken));
-        }
-
         $users = User::withTrashed()
             ->where('role', 'staff')
             ->with(['departments', 'salaryProfile'])
@@ -72,9 +82,8 @@ class SalaryManagementController extends Controller
             'month' => $salaryMonth,
             'rows' => $previewRows,
         ], now()->addMinutes(30));
-        $request->session()->put('salary_preview_token', $previewToken);
-
-        return $this->renderPage($request, $previewRows, $previewToken, $salaryMonth, 'attendance');
+        return redirect()->route('salary-management.upload-form')
+            ->with('salary_preview_token', $previewToken);
     }
 
     public function save(Request $request)
@@ -115,9 +124,57 @@ class SalaryManagementController extends Controller
         });
 
         Cache::forget($key);
-        $request->session()->forget('salary_preview_token');
 
         return redirect()->route('salary-management.attendance')->with('success', 'Attendance salary records saved.');
+    }
+
+    public function adjustPreviewSalary(
+        Request $request,
+        string $previewToken,
+        int $rowIndex,
+        SalaryCalculationService $calculator
+    ) {
+        $validated = $request->validate([
+            'days' => 'required|integer|between:1,31',
+        ]);
+
+        $key = $this->previewKey($request->user()->id, $previewToken);
+        $preview = Cache::get($key);
+
+        if (! $preview || ! array_key_exists($rowIndex, $preview['rows'])) {
+            return redirect()->route('salary-management.upload-form')
+                ->withErrors(['file' => 'This preview row is no longer available. Upload the workbook again.']);
+        }
+
+        $row = $preview['rows'][$rowIndex];
+        if ($row['errors'] !== [] || $row['calculation'] === null) {
+            return redirect()->route('salary-management.upload-form')
+                ->withErrors(['file' => 'Resolve this employee’s attendance validation errors before adjusting salary.']);
+        }
+
+        $daysInMonth = (int) $row['calculation']['days_in_month'];
+        if ((int) $validated['days'] > $daysInMonth) {
+            return redirect()->route('salary-management.upload-form')
+                ->with('salary_preview_token', $previewToken)
+                ->withErrors(['days' => "Days to deduct cannot exceed the {$daysInMonth} days in this month."]);
+        }
+
+        $adjustments = $row['calculation_adjustments'] ?? [];
+        $adjustments['salary_adjustment_days'] = (int) $validated['days'];
+        $row['calculation_adjustments'] = $adjustments;
+        $row['calculation'] = $calculator->calculate(
+            (float) $row['data']['salary'],
+            $row['data'],
+            $adjustments,
+            (int) $row['calculation']['days_in_month']
+        );
+        $preview['rows'][$rowIndex] = $row;
+
+        Cache::put($key, $preview, now()->addMinutes(30));
+
+        return redirect()->route('salary-management.upload-form')
+            ->with('salary_preview_token', $previewToken)
+            ->with('success', 'Salary adjustment applied to ' . $row['employee']['name'] . ' for this payroll preview.');
     }
 
     public function saveProfile(Request $request)
@@ -403,8 +460,9 @@ class SalaryManagementController extends Controller
             if ($salary !== null) {
                 $row['salary'] = $salary;
             }
+            $calculationAdjustments = ['other_deduction' => (float) ($staff?->salaryProfile?->standard_deduction ?? 0)];
             $calculation = $salary !== null
-                ? $calculator->calculate($salary, $row, ['other_deduction' => (float) ($staff?->salaryProfile?->standard_deduction ?? 0)], $daysInMonth)
+                ? $calculator->calculate($salary, $row, $calculationAdjustments, $daysInMonth)
                 : null;
 
             $databaseDepartment = $staff?->departments->pluck('name')->filter()->implode(', ');
@@ -422,6 +480,7 @@ class SalaryManagementController extends Controller
                     'status' => ! $staff ? 'Unmatched' : ($staff->trashed() ? 'Deleted' : ucfirst((string) $staff->status)),
                 ],
                 'data' => $row,
+                'calculation_adjustments' => $calculationAdjustments,
                 'calculation' => $calculation,
                 'errors' => $errors,
             ];

@@ -192,6 +192,10 @@ Route::middleware('auth')->group(function () {
         Route::post('/salary-management/save', [SalaryManagementController::class, 'save'])
             ->middleware('can:upload_salary_management')
             ->name('salary-management.save');
+        Route::post('/salary-management/preview/{previewToken}/rows/{rowIndex}/adjustment', [SalaryManagementController::class, 'adjustPreviewSalary'])
+            ->whereNumber('rowIndex')
+            ->middleware('can:upload_salary_management')
+            ->name('salary-management.preview.adjustment');
         Route::get('/salary-management/template', [SalaryManagementController::class, 'downloadTemplate'])->name('salary-management.template');
         Route::get('/salary-management/stamp', function () {
             return response()->file(base_path('salary/stamp.png'));

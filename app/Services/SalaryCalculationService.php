@@ -18,7 +18,9 @@ class SalaryCalculationService
             + (float) ($attendance['overtime_week_off'] ?? 0)
             + (float) ($attendance['overtime_holiday'] ?? 0);
         $overtimePayment = round($overtimeDays * $dailyRate, 2);
-        $totalDeductions = round($absentDeduction + $unpaidLeaveDeduction + $halfDayDeduction, 2);
+        $salaryAdjustmentDays = (int) ($adjustments['salary_adjustment_days'] ?? 0);
+        $salaryAdjustmentDeduction = round($salaryAdjustmentDays * $dailyRate, 2);
+        $totalDeductions = round($absentDeduction + $unpaidLeaveDeduction + $halfDayDeduction + $salaryAdjustmentDeduction, 2);
         $advance = (float) ($adjustments['advance'] ?? 0);
         $otherDeduction = (float) ($adjustments['other_deduction'] ?? 0);
         $bonus = (float) ($adjustments['bonus'] ?? 0);
@@ -38,6 +40,8 @@ class SalaryCalculationService
             'half_days' => (float) ($attendance['half_day'] ?? 0),
             'half_day_deduction' => $halfDayDeduction,
             'paid_leave_days' => $paidLeaveDays,
+            'salary_adjustment_days' => $salaryAdjustmentDays,
+            'salary_adjustment_deduction' => $salaryAdjustmentDeduction,
             'overtime_days' => $overtimeDays,
             'overtime_payment' => $overtimePayment,
             'bonus' => round($bonus, 2),

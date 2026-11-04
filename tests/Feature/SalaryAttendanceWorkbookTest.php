@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Department;
 use App\Models\SalaryRecord;
+use App\Models\SalaryProfile;
 use App\Models\User;
 use App\Services\SalaryCalculationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -33,14 +34,15 @@ class SalaryAttendanceWorkbookTest extends TestCase
         $rahul = $this->createStaff('Rahul', 'Nadar', 'rahul@example.com', 'staff', '8591028709');
         $rahul->delete();
 
-        $response = $this->actingAs($uploader)->post(route('salary-management.upload'), [
+        $this->actingAs($uploader)->post(route('salary-management.upload'), [
             'file' => $this->attendanceWorkbook([
                 ['SBK123', 'Khushi Yadav', 'TFR012', '9321807085', 'Main Branch', 'Admin', 'HR Executive', '', 20, 6, 0, 4, 0, 0, 0, 1, 0, 1, 20, 9, 3000],
                 ['SBM456', 'Manish Singh', 'TFR037', '7039553407', 'Main Branch', 'Web designer', 'Website Designer', 'Permanent', 17, 6, 0, 4, 0, 3, 0, 1, 0, 0, 15, 6, 4000],
                 ['SBR456', 'Rahul Nadar', '', '8591028709', 'Main Branch', 'Web', 'Developer', '', 0, 29, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 8000],
             ]),
-        ]);
+        ])->assertRedirect(route('salary-management.upload-form'));
 
+        $response = $this->get(route('salary-management.upload-form'));
         $response->assertOk()
             ->assertViewIs('salary-management.attendance-import')
             ->assertSee('2026-09')
@@ -97,6 +99,64 @@ class SalaryAttendanceWorkbookTest extends TestCase
         ]);
         $this->assertSame(0.0, $paidLeaveExceedsAbsence['deductible_absent_days']);
         $this->assertSame(0.0, $paidLeaveExceedsAbsence['absent_deduction']);
+    }
+
+    public function test_salary_adjustment_is_applied_to_the_current_payroll_only(): void
+    {
+        $uploader = $this->createStaff('Payroll', 'Manager', 'adjustment@example.com', 'admin');
+        $uploader->givePermissionTo(
+            Permission::findOrCreate('view_salary_management', 'web'),
+            Permission::findOrCreate('upload_salary_management', 'web')
+        );
+
+        $staff = $this->createStaff('Khushi', 'Yadav', 'khushi-adjustment@example.com', 'staff', '8080803375');
+        $profile = SalaryProfile::create([
+            'staff_user_id' => $staff->id,
+            'employee_code' => 'TFR012',
+            'salarybox_id' => 'SBK123',
+            'monthly_salary' => 3000,
+            'standard_deduction' => 0,
+        ]);
+
+        $this->actingAs($uploader);
+        $this->post(route('salary-management.upload'), [
+            'file' => $this->attendanceWorkbook([
+                ['SBK123', 'Khushi Yadav', 'TFR012', '8080803375', 'Main Branch', 'Admin', 'HR Executive', '', 20, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3000],
+            ]),
+        ])->assertRedirect(route('salary-management.upload-form'));
+
+        $uploadPreview = $this->get(route('salary-management.upload-form'))->assertOk();
+        $previewToken = $uploadPreview->viewData('previewToken');
+        $this->from(route('salary-management.upload-form'))
+            ->post(route('salary-management.preview.adjustment', [$previewToken, 0]), [
+                'days' => 31,
+            ])
+            ->assertRedirect(route('salary-management.upload-form'))
+            ->assertSessionHasErrors('days');
+
+        $this->post(route('salary-management.preview.adjustment', [$previewToken, 0]), [
+            'days' => 2,
+        ])->assertRedirect(route('salary-management.upload-form'));
+
+        $previewResponse = $this->get(route('salary-management.upload-form'))->assertOk();
+        $previewRow = $previewResponse->viewData('previewRows')[0];
+        $this->assertSame(2, $previewRow['calculation']['salary_adjustment_days']);
+        $this->assertSame(200.0, $previewRow['calculation']['salary_adjustment_deduction']);
+        $this->assertSame(1800.0, $previewRow['calculation']['net_salary']);
+
+        $this->get(route('salary-management.upload-form'))
+            ->assertOk()
+            ->assertViewHas('previewRows', null);
+
+        $this->post(route('salary-management.save'), [
+            'preview_token' => $previewToken,
+        ])->assertRedirect(route('salary-management.attendance'));
+
+        $record = SalaryRecord::query()->where('staff_user_id', $staff->id)->firstOrFail();
+        $this->assertSame(2, $record->data['calculation']['salary_adjustment_days']);
+        $this->assertSame(200.0, (float) $record->data['calculation']['salary_adjustment_deduction']);
+        $this->assertSame(1800.0, (float) $record->data['calculation']['net_salary']);
+        $this->assertSame(3000.0, (float) $profile->fresh()->monthly_salary);
     }
 
     private function createStaff(string $first, string $last, string $email, string $role, string $phone = ''): User
