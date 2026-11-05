@@ -12,9 +12,20 @@
     @if($canManage)
     <div class="card payroll-card mb-4"><div class="card-header d-flex align-items-center justify-content-between"><span><i class="bx bx-upload text-primary me-1"></i> Import SalaryBox Attendance</span><a href="{{ route('salary-management.template') }}" class="btn btn-outline-primary btn-sm"><i class="bx bx-download"></i> HR Adjustment Template</a></div><div class="card-body"><form action="{{ route('salary-management.upload') }}" method="POST" enctype="multipart/form-data" class="row align-items-end g-3">@csrf<div class="col-md-3"><label class="form-label">Report month (fallback)</label><input type="month" name="month" class="form-control" value="{{ old('month', $salaryMonth) }}"></div><div class="col-md-6"><label class="form-label">Attendance Muster Report</label><input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required></div><div class="col-md-3"><button class="btn btn-primary w-100"><i class="bx bx-spreadsheet"></i> Upload & Preview</button></div></form></div></div>
     @endif
-    @if(is_array($previewRows)) @php($hasErrors=collect($previewRows)->contains(fn($row)=>$row['errors']!==[]))
+    @if(is_array($previewRows))
+    @php($previewCollection=collect($previewRows))
+    @php($hasErrors=$previewCollection->contains(fn($row)=>$row['errors']!==[]))
+    @php($hasActionableRows=$previewCollection->contains(fn($row)=>$row['import_state']!=='unchanged'))
+    @php($hasExistingRows=$previewCollection->contains(fn($row)=>$row['import_state']!=='new')||$missingExistingCount>0)
+    @php($hasApprovedChanges=$previewCollection->contains(fn($row)=>$row['import_state']==='changed'&&$row['existing_status']==='approved'))
     <div class="card payroll-card mb-4">
-        <div class="card-header d-flex justify-content-between"><span>Payroll Preview — {{ count($previewRows) }} employee(s)</span><span class="badge {{ $hasErrors?'bg-danger':'bg-success' }}">{{ $hasErrors?'Fix errors before saving':'Ready to save' }}</span></div>
+        <div class="card-header d-flex justify-content-between"><span>Payroll Preview — {{ count($previewRows) }} employee(s)</span><span class="badge {{ $hasErrors?'bg-danger':($hasActionableRows?'bg-warning text-dark':'bg-success') }}">{{ $hasErrors?'Fix errors before saving':($hasActionableRows?'Review changes':'No changes detected') }}</span></div>
+        @if($hasExistingRows)
+            <div class="alert alert-info m-3 mb-0">This month already has saved payroll. Identical rows will be left untouched. Changed or new rows require explicit confirmation. @if($missingExistingCount>0)<strong>{{ $missingExistingCount }} saved record(s) missing from this workbook will be kept.</strong>@endif</div>
+        @endif
+        @if($hasApprovedChanges)
+            <div class="alert alert-warning m-3 mb-0">An approved payroll record has changed. Reopen that record with a reason in Saved Payroll, then upload the workbook again. Approved amounts cannot be replaced directly.</div>
+        @endif
         <div class="table-responsive"><table class="table payroll-table mb-0">
             <thead><tr><th>Employee</th><th>Present / Absent</th><th>Salary</th><th>Per day</th><th>Deductions</th><th>Net payable</th><th>Adjustment</th></tr></thead>
             <tbody>
@@ -22,7 +33,19 @@
                     @php($currentAdjustmentDays = (int) data_get($row, 'calculation.salary_adjustment_days', 0))
                     @php($currentAdjustmentDeduction = (float) data_get($row, 'calculation.salary_adjustment_deduction', 0))
                     <tr class="{{ $row['errors']!==[]?'table-danger':'' }}">
-                        <td><strong>{{ $row['employee']['name'] }}</strong><br><small>{{ $row['employee']['employee_id'] ?: $row['employee']['phone'] }}</small></td>
+                        <td><strong>{{ $row['employee']['name'] }}</strong><br><small>{{ $row['employee']['employee_id'] ?: $row['employee']['phone'] }}</small>
+                            @if($row['import_state']==='new')<div><span class="badge bg-primary mt-1">New record</span></div>
+                            @elseif($row['import_state']==='unchanged')<div><span class="badge bg-success mt-1">Identical to saved</span></div>
+                            @else<div><span class="badge bg-warning text-dark mt-1">Changed · {{ ucfirst($row['existing_status'] ?? 'draft') }}</span></div>
+                                @if($row['changed_fields']!==[])
+                                    <small class="d-block text-muted mt-1">
+                                        @foreach($row['changed_values'] as $field=>$change)
+                                            {{ $field }}: {{ $change['before'] ?? '—' }} → {{ $change['after'] ?? '—' }}@if(! $loop->last); @endif
+                                        @endforeach
+                                    </small>
+                                @endif
+                            @endif
+                        </td>
                         <td>{{ $row['data']['present'] }} / {{ $row['data']['absent'] }}</td>
                         <td>₹{{ number_format((float)$row['data']['salary'],2) }}</td>
                         <td>₹{{ number_format((float)data_get($row,'calculation.per_day_salary',0),2) }}</td>
@@ -52,7 +75,22 @@
                 @endforeach
             </tbody>
         </table></div>
-        <div class="card-body text-end"><form action="{{ route('salary-management.save') }}" method="POST">@csrf<input type="hidden" name="preview_token" value="{{ $previewToken }}"><button class="btn btn-success" {{ $hasErrors?'disabled':'' }}>Save as Draft Payroll</button></form></div>
+        <div class="card-body">
+            @if($hasActionableRows && ! $hasApprovedChanges)
+                <form action="{{ route('salary-management.save') }}" method="POST" class="row g-2 align-items-end justify-content-end">
+                    @csrf
+                    <input type="hidden" name="preview_token" value="{{ $previewToken }}">
+                    <input type="hidden" name="mode" value="{{ $hasExistingRows?'apply':'save' }}">
+                    @if($hasExistingRows)
+                        <div class="col-md-6"><label for="payrollUpdateReason" class="form-label">Reason for this re-import</label><input id="payrollUpdateReason" name="reason" class="form-control" maxlength="500" required placeholder="Explain why this payroll is being updated"></div>
+                    @endif
+                    <div class="col-md-3 text-end"><button class="btn btn-success" {{ $hasErrors?'disabled':'' }}>{{ $hasExistingRows?'Confirm changes and save':'Save as Draft Payroll' }}</button></div>
+                </form>
+            @endif
+            <div class="text-end {{ $hasActionableRows && ! $hasApprovedChanges?'mt-2':'' }}">
+                <form action="{{ route('salary-management.preview.cancel') }}" method="POST" class="d-inline">@csrf<input type="hidden" name="preview_token" value="{{ $previewToken }}"><button class="btn btn-outline-secondary">{{ $hasActionableRows?'Cancel':'Done' }}</button></form>
+            </div>
+        </div>
     </div>
     <div class="modal fade" id="salaryAdjustmentModal" tabindex="-1" aria-labelledby="salaryAdjustmentModalLabel" aria-hidden="true">
         <div class="modal-dialog"><div class="modal-content">
@@ -74,7 +112,30 @@
         </div></div>
     </div>
     @endif
-    <div class="card payroll-card"><div class="card-header"><i class="bx bx-list-ul text-primary me-1"></i> Saved Payroll</div><div class="table-responsive"><table id="payroll-register-table" class="table payroll-table mb-0"><thead><tr><th>Employee</th><th>Month</th><th>Net Salary</th><th>Payroll status</th><th class="text-end">Action</th></tr></thead><tbody>@forelse($records as $record)<tr><td><strong>{{ data_get($record->data,'employee.name',$record->staffUser?->name) }}</strong></td><td>{{ $record->salary_month?->format('F Y') }}</td><td class="fw-bold text-primary">₹{{ number_format((float)data_get($record->data,'calculation.net_salary',0),2) }}</td><td><span class="badge {{ data_get($record->data,'payroll_status')==='approved'?'bg-success':'bg-warning text-dark' }}">{{ ucfirst(data_get($record->data,'payroll_status','draft')) }}</span></td><td class="text-end">@if(data_get($record->data,'payroll_status')==='approved')<a target="_blank" href="{{ route('salary-management.payslip',$record) }}" class="btn btn-outline-primary btn-sm">Salary Slip</a>@elseif($canManage)<form class="d-inline" method="POST" action="{{ route('salary-management.approve',$record) }}">@csrf<button class="btn btn-success btn-sm">Approve</button></form>@endif</td></tr>@empty<tr><td colspan="5" class="text-center text-muted py-4">No saved payroll yet.</td></tr>@endforelse</tbody></table></div></div>
+    <div class="card payroll-card">
+        <div class="card-header"><i class="bx bx-list-ul text-primary me-1"></i> Saved Payroll</div>
+        <div class="table-responsive"><table id="payroll-register-table" class="table payroll-table mb-0">
+            <thead><tr><th>Employee</th><th>Month</th><th>Net Salary</th><th>Payroll status</th><th class="text-end">Action</th></tr></thead>
+            <tbody>
+                @forelse($records as $record)
+                    @php($recordStatus=data_get($record->data,'payroll_status'))
+                    <tr>
+                        <td><strong>{{ data_get($record->data,'employee.name',$record->staffUser?->name) }}</strong></td>
+                        <td>{{ $record->salary_month?->format('F Y') }}</td>
+                        <td class="fw-bold text-primary">₹{{ number_format((float)data_get($record->data,'calculation.net_salary',0),2) }}</td>
+                        <td><span class="badge {{ $recordStatus==='approved'?'bg-success':'bg-warning text-dark' }}">{{ ucfirst($recordStatus ?? 'draft') }}</span></td>
+                        <td class="text-end">
+                            @if($recordStatus==='approved')
+                                <a target="_blank" href="{{ route('salary-management.payslip',$record) }}" class="btn btn-outline-primary btn-sm">Salary Slip</a>
+                            @elseif($canManage)
+                                <form class="d-inline" method="POST" action="{{ route('salary-management.approve',$record) }}">@csrf<button class="btn btn-success btn-sm">Approve</button></form>
+                            @endif
+                        </td>
+                    </tr>
+                @empty<tr><td colspan="5" class="text-center text-muted py-4">No saved payroll yet.</td>@endforelse
+            </tbody>
+        </table></div>
+    </div>
 </div></div>
 @endsection
 @push('styles')<style>.salary-adjustment-panel{border:1px solid #e4eaf2;border-radius:12px;padding:14px 16px;background:#f8faff}.salary-adjustment-panel .form-range{height:1.2rem}.salary-adjustment-summary{background:#f5f7fb;border:1px solid #e8edf5}.salary-adjustment-summary .input-group{max-width:170px}.salary-adjustment-summary .form-control{background:#fff}</style>@endpush

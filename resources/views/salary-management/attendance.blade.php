@@ -930,6 +930,7 @@
                                         <form action="{{ route('salary-management.save') }}" method="POST">
                                             @csrf
                                             <input type="hidden" name="preview_token" value="{{ $previewToken }}">
+                                            <input type="hidden" name="mode" value="save">
                                             <button type="submit" class="btn btn-success btn-sm px-4 fw-semibold" {{ $previewHasErrors ? 'disabled' : '' }}>
                                                 <i class="bx bx-check me-1"></i> Save Attendance Records
                                             </button>
@@ -1635,4 +1636,3 @@
         });
     </script>
 @endpush
-

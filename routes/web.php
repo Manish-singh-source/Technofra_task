@@ -194,6 +194,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/salary-management/save', [SalaryManagementController::class, 'save'])
             ->middleware('can:upload_salary_management')
             ->name('salary-management.save');
+        Route::post('/salary-management/preview/cancel', [SalaryManagementController::class, 'cancelPreview'])
+            ->middleware('can:upload_salary_management')
+            ->name('salary-management.preview.cancel');
         Route::post('/salary-management/preview/{previewToken}/rows/{rowIndex}/adjustment', [SalaryManagementController::class, 'adjustPreviewSalary'])
             ->whereNumber('rowIndex')
             ->middleware('can:upload_salary_management')
@@ -213,6 +216,8 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:upload_salary_management')->name('salary-management.profiles.delete');
         Route::post('/salary-management/{salaryRecord}/approve', [SalaryManagementController::class, 'approve'])
             ->middleware('can:upload_salary_management')->name('salary-management.approve');
+        Route::post('/salary-management/{salaryRecord}/reopen', [SalaryManagementController::class, 'reopen'])
+            ->middleware('can:upload_salary_management')->name('salary-management.reopen');
         Route::get('/salary-management/{salaryRecord}/payslip', [SalaryManagementController::class, 'payslip'])->name('salary-management.payslip');
     });
     Route::get('/user-profile', [AuthController::class, 'profile'])->name('user-profile');

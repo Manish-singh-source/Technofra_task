@@ -22,4 +22,9 @@ class SalaryRecord extends Model
     {
         return $this->belongsTo(User::class, 'staff_user_id')->withTrashed();
     }
+
+    public function versions()
+    {
+        return $this->hasMany(SalaryRecordVersion::class)->latest();
+    }
 }

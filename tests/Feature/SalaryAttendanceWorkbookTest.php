@@ -61,6 +61,7 @@ class SalaryAttendanceWorkbookTest extends TestCase
 
         $this->post(route('salary-management.save'), [
             'preview_token' => $response->viewData('previewToken'),
+            'mode' => 'save',
         ])->assertRedirect(route('salary-management.attendance'));
 
         $this->assertDatabaseCount('salary_records', 3);
@@ -151,6 +152,7 @@ class SalaryAttendanceWorkbookTest extends TestCase
 
         $this->post(route('salary-management.save'), [
             'preview_token' => $previewToken,
+            'mode' => 'save',
         ])->assertRedirect(route('salary-management.attendance'));
 
         $record = SalaryRecord::query()->where('staff_user_id', $staff->id)->firstOrFail();
@@ -158,6 +160,120 @@ class SalaryAttendanceWorkbookTest extends TestCase
         $this->assertSame(200.0, (float) $record->data['calculation']['salary_adjustment_deduction']);
         $this->assertSame(1800.0, (float) $record->data['calculation']['net_salary']);
         $this->assertSame(3000.0, (float) $profile->fresh()->monthly_salary);
+    }
+
+    public function test_identical_reupload_does_not_change_saved_or_approved_payroll(): void
+    {
+        $uploader = $this->createStaff('Payroll', 'Manager', 'duplicate@example.com', 'admin');
+        $uploader->givePermissionTo(
+            Permission::findOrCreate('view_salary_management', 'web'),
+            Permission::findOrCreate('upload_salary_management', 'web')
+        );
+        $staff = $this->createStaff('Asha', 'Patel', 'asha-duplicate@example.com', 'staff', '8080803375');
+        SalaryProfile::create([
+            'staff_user_id' => $staff->id,
+            'employee_code' => 'TF123',
+            'salarybox_id' => 'SB123',
+            'monthly_salary' => 3000,
+            'standard_deduction' => 0,
+        ]);
+        $row = ['SB123', 'Asha Patel', 'TF123', '8080803375', 'Main Branch', 'Admin', 'HR Executive', '', 20, 6, 0, 4, 0, 0, 0, 1, 0, 1, 20, 9, 3000];
+
+        $this->actingAs($uploader)->post(route('salary-management.upload'), [
+            'file' => $this->attendanceWorkbook([$row]),
+        ])->assertRedirect(route('salary-management.upload-form'));
+        $preview = $this->get(route('salary-management.upload-form'))->assertOk();
+        $this->post(route('salary-management.save'), [
+            'preview_token' => $preview->viewData('previewToken'),
+            'mode' => 'save',
+        ])->assertRedirect(route('salary-management.attendance'));
+
+        $record = SalaryRecord::query()->where('staff_user_id', $staff->id)->firstOrFail();
+        $this->post(route('salary-management.approve', $record))->assertRedirect();
+        $approvedData = $record->fresh()->data;
+
+        $this->post(route('salary-management.upload'), [
+            'file' => $this->attendanceWorkbook([$row]),
+        ])->assertRedirect(route('salary-management.upload-form'));
+        $duplicatePreview = $this->get(route('salary-management.upload-form'))
+            ->assertOk()
+            ->assertSee('Identical to saved');
+
+        $this->post(route('salary-management.save'), [
+            'preview_token' => $duplicatePreview->viewData('previewToken'),
+            'mode' => 'apply',
+            'reason' => 'Retrying the same import',
+        ])->assertRedirect(route('salary-management.attendance'));
+
+        $this->assertSame($approvedData, $record->fresh()->data);
+        $this->assertSame(0, $record->versions()->count());
+    }
+
+    public function test_changed_reupload_requires_confirmation_and_preserves_old_payroll_versions(): void
+    {
+        $uploader = $this->createStaff('Payroll', 'Manager', 'changed@example.com', 'admin');
+        $uploader->givePermissionTo(
+            Permission::findOrCreate('view_salary_management', 'web'),
+            Permission::findOrCreate('upload_salary_management', 'web')
+        );
+        $staff = $this->createStaff('Asha', 'Patel', 'asha-changed@example.com', 'staff', '8080803375');
+        SalaryProfile::create([
+            'staff_user_id' => $staff->id,
+            'employee_code' => 'TF124',
+            'salarybox_id' => 'SB124',
+            'monthly_salary' => 3000,
+            'standard_deduction' => 0,
+        ]);
+        $originalRow = ['SB124', 'Asha Patel', 'TF124', '8080803375', 'Main Branch', 'Admin', 'HR Executive', '', 20, 6, 0, 4, 0, 0, 0, 1, 0, 1, 20, 9, 3000];
+        $changedRow = $originalRow;
+        $changedRow[9] = 8;
+
+        $this->actingAs($uploader)->post(route('salary-management.upload'), [
+            'file' => $this->attendanceWorkbook([$originalRow]),
+        ])->assertRedirect(route('salary-management.upload-form'));
+        $initialPreview = $this->get(route('salary-management.upload-form'))->assertOk();
+        $this->post(route('salary-management.save'), [
+            'preview_token' => $initialPreview->viewData('previewToken'),
+            'mode' => 'save',
+        ])->assertRedirect(route('salary-management.attendance'));
+
+        $record = SalaryRecord::query()->where('staff_user_id', $staff->id)->firstOrFail();
+        $this->post(route('salary-management.upload'), [
+            'file' => $this->attendanceWorkbook([$changedRow]),
+        ])->assertRedirect(route('salary-management.upload-form'));
+        $changedPreview = $this->get(route('salary-management.upload-form'))
+            ->assertOk()
+            ->assertSee('Changed · Draft')
+            ->assertSee('Absent: 6 → 8');
+
+        $this->post(route('salary-management.save'), [
+            'preview_token' => $changedPreview->viewData('previewToken'),
+            'mode' => 'save',
+        ])->assertRedirect(route('salary-management.upload-form'))
+            ->assertSessionHasErrors('file');
+        $changedPreview = $this->get(route('salary-management.upload-form'))->assertOk();
+
+        $this->post(route('salary-management.save'), [
+            'preview_token' => $changedPreview->viewData('previewToken'),
+            'mode' => 'apply',
+            'reason' => 'Corrected attendance from the revised workbook',
+        ])->assertRedirect(route('salary-management.attendance'));
+
+        $updatedRecord = $record->fresh();
+        $this->assertSame(8.0, (float) $updatedRecord->data['absent']);
+        $this->assertSame('draft', $updatedRecord->data['payroll_status']);
+        $this->assertSame(1, $updatedRecord->versions()->count());
+        $this->assertSame(6.0, (float) $updatedRecord->versions()->first()->data['absent']);
+        $this->assertSame('Corrected attendance from the revised workbook', $updatedRecord->versions()->first()->reason);
+
+        $this->post(route('salary-management.approve', $updatedRecord))->assertRedirect();
+        $this->post(route('salary-management.reopen', $updatedRecord), [
+            'reason' => 'Approved with an incorrect attendance figure',
+        ])->assertRedirect(route('salary-management.attendance'));
+        $this->assertSame('draft', $updatedRecord->fresh()->data['payroll_status']);
+        $this->assertSame(2, $updatedRecord->versions()->count());
+        $reopenedVersion = $updatedRecord->versions()->where('action', 'reopened')->firstOrFail();
+        $this->assertSame('approved', $reopenedVersion->data['payroll_status']);
     }
 
     public function test_salary_reports_lists_staff_and_selected_month_payroll_details(): void
@@ -170,7 +286,7 @@ class SalaryAttendanceWorkbookTest extends TestCase
             'staff_user_id' => $staffWithPayroll->id,
             'employee_code' => 'TF123',
             'salarybox_id' => 'SB123',
-            'monthly_salary' => 30000,
+            'monthly_salary' => 45000,
             'standard_deduction' => 0,
         ]);
         SalaryRecord::create([
@@ -182,6 +298,11 @@ class SalaryAttendanceWorkbookTest extends TestCase
                 'paid_leave' => 10,
                 'unpaid_leave' => 0,
                 'payroll_status' => 'approved',
+                'salary' => 30000,
+                'employee' => [
+                    'name' => 'Asha Patel',
+                    'employee_id' => 'TF123',
+                ],
                 'calculation' => [
                     'monthly_salary' => 30000,
                     'total_deductions' => 5322.58,
@@ -200,10 +321,11 @@ class SalaryAttendanceWorkbookTest extends TestCase
             ->assertSee('TF123')
             ->assertSee('₹24,677.42')
             ->assertSee('Approved')
-            ->assertSee('No payroll');
+            ->assertDontSee('No payroll');
 
-        $this->assertCount(3, $response->viewData('reportRows'));
+        $this->assertCount(1, $response->viewData('reportRows'));
         $this->assertSame(1, $response->viewData('summary')['payroll_count']);
+        $this->assertSame(30000.0, $response->viewData('reportRows')[0]['monthly_salary']);
 
         $this->get(route('salary-management.payslip', SalaryRecord::query()->where('staff_user_id', $staffWithPayroll->id)->firstOrFail()))
             ->assertOk()
@@ -215,8 +337,7 @@ class SalaryAttendanceWorkbookTest extends TestCase
             'status' => 'approved',
             'search' => 'asha-report@example.com',
         ]))->assertOk()
-            ->assertSee('Asha Patel')
-            ->assertDontSee('No Payroll');
+            ->assertSee('Asha Patel');
 
         $this->assertCount(1, $filteredResponse->viewData('reportRows'));
         $this->assertSame(1, $filteredResponse->viewData('summary')['payroll_count']);

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Department;
 use App\Models\SalaryRecord;
+use App\Models\SalaryRecordVersion;
 use App\Models\SalaryProfile;
 use App\Models\Team;
 use App\Models\User;
@@ -55,6 +56,7 @@ class SalaryManagementController extends Controller
             'Total Deductions',
             'Net Payable',
             'Payroll Status',
+            'Last Updated',
             'Salary Slip',
         ];
         $spreadsheet = new Spreadsheet();
@@ -68,7 +70,7 @@ class SalaryManagementController extends Controller
 
             return [
                 $this->safeExcelText($row['name']),
-                $this->safeExcelText($row['staff']->email),
+                $this->safeExcelText($row['staff']?->email),
                 $this->safeExcelText($row['staff_status']),
                 $this->safeExcelText($row['department']),
                 $this->safeExcelText($row['designation']),
@@ -83,7 +85,8 @@ class SalaryManagementController extends Controller
                 $hasPayroll ? (float) data_get($row, 'calculation.total_deductions', 0) : null,
                 $hasPayroll ? (float) data_get($row, 'calculation.net_salary', 0) : null,
                 $status,
-                $hasPayroll && $row['payroll_status'] === 'approved' ? 'Available' : 'Not available',
+                $row['record']->updated_at?->format('Y-m-d H:i:s'),
+                $row['payroll_status'] === 'approved' ? 'Available' : 'Not available',
             ];
         })->all();
 
@@ -92,13 +95,13 @@ class SalaryManagementController extends Controller
         }
 
         $lastRow = count($rows) + 1;
-        $sheet->getStyle('A1:Q1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:R1')->getFont()->setBold(true);
         $sheet->getStyle('G2:G' . max(2, $lastRow))->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->getStyle('N2:O' . max(2, $lastRow))->getNumberFormat()->setFormatCode('#,##0.00');
         $sheet->freezePane('A2');
-        $sheet->setAutoFilter('A1:Q' . max(1, $lastRow));
+        $sheet->setAutoFilter('A1:R' . max(1, $lastRow));
 
-        foreach (range('A', 'Q') as $column) {
+        foreach (range('A', 'R') as $column) {
             $sheet->getColumnDimension($column)->setAutoSize(true);
         }
 
@@ -124,42 +127,42 @@ class SalaryManagementController extends Controller
         $validated = $request->validate([
             'month' => 'nullable|date_format:Y-m',
             'department' => 'nullable|string|max:120',
-            'status' => 'nullable|in:approved,draft,no_payroll',
+            'status' => 'nullable|in:approved,draft',
             'search' => 'nullable|string|max:120',
         ]);
         $salaryMonth = $validated['month'] ?? now()->format('Y-m');
         $monthDate = Carbon::createFromFormat('Y-m', $salaryMonth)->startOfMonth();
 
-        $staffMembers = User::withTrashed()
-            ->whereIn('role', ['staff', 'admin'])
-            ->with(['departments', 'teams', 'salaryProfile'])
-            ->orderBy('first_name')
-            ->orderBy('last_name')
+        $payrollRecords = SalaryRecord::query()
+            ->with(['staffUser.departments', 'staffUser.teams', 'staffUser.salaryProfile', 'versions.changedBy'])
+            ->whereDate('salary_month', $monthDate->toDateString())
+            ->orderBy('id')
             ->get();
 
-        $payrollRecords = SalaryRecord::query()
-            ->whereDate('salary_month', $monthDate->toDateString())
-            ->get()
-            ->keyBy('staff_user_id');
-
-        $reportRows = $staffMembers->map(function (User $staff) use ($payrollRecords) {
-            $record = $payrollRecords->get($staff->id);
-            $data = $record?->data ?? [];
+        $reportRows = $payrollRecords->map(function (SalaryRecord $record) {
+            $staff = $record->staffUser;
+            $data = $record->data ?? [];
             $calculation = data_get($data, 'calculation', []);
-            $profile = $staff->salaryProfile;
+            $employee = data_get($data, 'employee', []);
+            $importedDepartment = data_get($employee, 'department') ?: $staff?->departments->pluck('name')->first();
+            $importedDesignation = data_get($employee, 'designation') ?: $staff?->teams->pluck('name')->first();
 
             return [
-                'staff' => $staff,
-                'name' => trim($staff->first_name . ' ' . $staff->last_name),
-                'department' => $staff->departments->pluck('name')->first() ?? '—',
-                'designation' => $staff->teams->pluck('name')->first() ?? '—',
-                'employee_code' => $profile?->employee_code ?: data_get($data, 'employee.employee_id', '—'),
-                'monthly_salary' => (float) ($profile?->monthly_salary ?? data_get($calculation, 'monthly_salary', data_get($data, 'salary', 0))),
                 'record' => $record,
+                'staff' => $staff,
+                'name' => data_get($employee, 'name') ?: trim(($staff?->first_name ?? '') . ' ' . ($staff?->last_name ?? '')),
+                'department' => $importedDepartment ?: '—',
+                'designation' => $importedDesignation ?: '—',
+                'employee_code' => data_get($employee, 'employee_id')
+                    ?: data_get($data, 'employee_id')
+                    ?: $staff?->salaryProfile?->employee_code
+                    ?: '—',
+                'monthly_salary' => (float) data_get($calculation, 'monthly_salary', data_get($data, 'salary', 0)),
                 'attendance' => $data,
                 'calculation' => $calculation,
                 'payroll_status' => data_get($data, 'payroll_status'),
-                'staff_status' => $staff->trashed() ? 'Left' : ucfirst((string) ($staff->status ?: 'active')),
+                'updated_at' => $record->updated_at,
+                'staff_status' => ! $staff ? 'Unknown' : ($staff->trashed() ? 'Left' : ucfirst((string) ($staff->status ?: 'active'))),
             ];
         });
 
@@ -174,19 +177,13 @@ class SalaryManagementController extends Controller
         }
 
         if (! empty($validated['status'])) {
-            $reportRows = $reportRows->filter(function (array $row) use ($validated) {
-                if ($validated['status'] === 'no_payroll') {
-                    return $row['record'] === null;
-                }
-
-                return $row['payroll_status'] === $validated['status'];
-            });
+            $reportRows = $reportRows->filter(fn (array $row) => $row['payroll_status'] === $validated['status']);
         }
 
         if (! empty($validated['search'])) {
             $search = mb_strtolower(trim($validated['search']));
             $reportRows = $reportRows->filter(function (array $row) use ($search) {
-                foreach ([$row['name'], $row['staff']->email, $row['employee_code'], $row['department'], $row['designation']] as $value) {
+                foreach ([$row['name'], $row['staff']?->email, $row['employee_code'], $row['department'], $row['designation']] as $value) {
                     if (mb_stripos((string) $value, $search) !== false) {
                         return true;
                     }
@@ -198,13 +195,12 @@ class SalaryManagementController extends Controller
 
         $reportRows = $reportRows->values();
 
-        $payrollRows = $reportRows->filter(fn (array $row) => $row['record'] !== null);
         $summary = [
             'staff_count' => $reportRows->count(),
-            'payroll_count' => $payrollRows->count(),
+            'payroll_count' => $reportRows->count(),
             'monthly_salary' => $reportRows->sum('monthly_salary'),
-            'net_payable' => $payrollRows->sum(fn (array $row) => (float) data_get($row, 'calculation.net_salary', 0)),
-            'pending_count' => $payrollRows->where('payroll_status', '!=', 'approved')->count(),
+            'net_payable' => $reportRows->sum(fn (array $row) => (float) data_get($row, 'calculation.net_salary', 0)),
+            'pending_count' => $reportRows->where('payroll_status', '!=', 'approved')->count(),
         ];
 
         $filters = [
@@ -232,7 +228,8 @@ class SalaryManagementController extends Controller
             $preview['rows'] ?? null,
             $previewToken,
             $preview['month'] ?? now()->format('Y-m'),
-            'attendance'
+            'attendance',
+            $preview['missing_existing_count'] ?? 0
         );
     }
 
@@ -262,11 +259,35 @@ class SalaryManagementController extends Controller
             ->get();
         $daysInMonth = Carbon::createFromFormat('Y-m', $salaryMonth)->daysInMonth;
         $previewRows = $this->matchRows($report['rows'], $users, $calculator, $daysInMonth);
+        $existingRecords = SalaryRecord::query()
+            ->whereDate('salary_month', Carbon::createFromFormat('Y-m', $salaryMonth)->startOfMonth()->toDateString())
+            ->get()
+            ->keyBy('staff_user_id');
+
+        foreach ($previewRows as &$row) {
+            $record = $row['staff_user_id'] ? $existingRecords->get($row['staff_user_id']) : null;
+            $row['existing_record_id'] = $record?->id;
+            $row['existing_status'] = data_get($record?->data, 'payroll_status');
+            $row['import_state'] = $record
+                ? ($this->sourceRow($row['data']) == $this->storedSourceRow($record->data ?? []) ? 'unchanged' : 'changed')
+                : 'new';
+            $row['changed_fields'] = $row['import_state'] === 'changed'
+                ? $this->changedSourceFields($this->sourceRow($row['data']), $this->storedSourceRow($record->data ?? []))
+                : [];
+            $row['changed_values'] = $row['import_state'] === 'changed'
+                ? $this->changedSourceValues($this->sourceRow($row['data']), $this->storedSourceRow($record->data ?? []))
+                : [];
+        }
+        unset($row);
+
+        $uploadedStaffIds = collect($previewRows)->pluck('staff_user_id')->filter()->unique();
+        $missingExistingCount = $existingRecords->keys()->diff($uploadedStaffIds)->count();
         $previewToken = (string) Str::uuid();
 
         Cache::put($this->previewKey($request->user()->id, $previewToken), [
             'month' => $salaryMonth,
             'rows' => $previewRows,
+            'missing_existing_count' => $missingExistingCount,
         ], now()->addMinutes(30));
         return redirect()->route('salary-management.upload-form')
             ->with('salary_preview_token', $previewToken);
@@ -274,7 +295,11 @@ class SalaryManagementController extends Controller
 
     public function save(Request $request)
     {
-        $validated = $request->validate(['preview_token' => 'required|uuid']);
+        $validated = $request->validate([
+            'preview_token' => 'required|uuid',
+            'mode' => 'required|in:save,apply',
+            'reason' => 'nullable|string|max:500|required_if:mode,apply',
+        ]);
         $key = $this->previewKey($request->user()->id, $validated['preview_token']);
         $preview = Cache::get($key);
 
@@ -286,32 +311,140 @@ class SalaryManagementController extends Controller
         foreach ($preview['rows'] as $row) {
             if ($row['errors'] !== []) {
                 return redirect()->route('salary-management.upload-form')
+                    ->with('salary_preview_token', $validated['preview_token'])
                     ->withErrors(['file' => 'Resolve all unmatched or invalid rows before saving.']);
             }
         }
 
-        DB::transaction(function () use ($preview, $request) {
-            $salaryMonth = Carbon::createFromFormat('Y-m', $preview['month'])->startOfMonth()->toDateString();
+        try {
+            $result = DB::transaction(function () use ($preview, $request, $validated) {
+                $salaryMonth = Carbon::createFromFormat('Y-m', $preview['month'])->startOfMonth()->toDateString();
+                $monthHasRecords = SalaryRecord::query()
+                    ->whereDate('salary_month', $salaryMonth)
+                    ->lockForUpdate()
+                    ->exists();
+                $added = 0;
+                $updated = 0;
 
-            foreach ($preview['rows'] as $row) {
-                SalaryRecord::updateOrCreate(
-                    ['staff_user_id' => $row['staff_user_id'], 'salary_month' => $salaryMonth],
-                    [
-                        'uploaded_by' => $request->user()->id,
-                        'data' => array_merge($row['data'], [
-                            'employee' => $row['employee'],
-                            'calculation' => $row['calculation'],
-                            'payroll_status' => 'draft',
-                            'payment_status' => 'pending',
-                        ]),
-                    ]
-                );
-            }
-        });
+                foreach ($preview['rows'] as $row) {
+                    $record = SalaryRecord::query()
+                        ->where('staff_user_id', $row['staff_user_id'])
+                        ->whereDate('salary_month', $salaryMonth)
+                        ->lockForUpdate()
+                        ->first();
+                    $sourceRow = $this->sourceRow($row['data']);
+
+                    if ($record && $sourceRow == $this->storedSourceRow($record->data ?? [])) {
+                        continue;
+                    }
+
+                    if ($record && $validated['mode'] !== 'apply') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'file' => 'This month already has payroll. Review the differences and explicitly confirm the update.',
+                        ]);
+                    }
+
+                    if (! $record && $monthHasRecords && $validated['mode'] !== 'apply') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'file' => 'This month already has payroll. Review the preview and explicitly confirm the new or changed records.',
+                        ]);
+                    }
+
+                    if ($record && data_get($record->data, 'payroll_status') === 'approved') {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'file' => 'Approved payroll for ' . ($row['employee']['name'] ?? 'this employee') . ' cannot be updated. Reopen it with a reason, then upload the workbook again.',
+                        ]);
+                    }
+
+                    $data = array_merge($row['data'], [
+                        'source_row' => $sourceRow,
+                        'employee' => $row['employee'],
+                        'calculation' => $row['calculation'],
+                        'payroll_status' => 'draft',
+                        'payment_status' => $record ? data_get($record->data, 'payment_status', 'pending') : 'pending',
+                    ]);
+
+                    if ($record) {
+                        SalaryRecordVersion::create([
+                            'salary_record_id' => $record->id,
+                            'changed_by' => $request->user()->id,
+                            'action' => 'updated',
+                            'reason' => $validated['reason'],
+                            'data' => $record->data,
+                        ]);
+                        $record->update(['uploaded_by' => $request->user()->id, 'data' => $data]);
+                        $updated++;
+                    } else {
+                        SalaryRecord::create([
+                            'staff_user_id' => $row['staff_user_id'],
+                            'salary_month' => $salaryMonth,
+                            'uploaded_by' => $request->user()->id,
+                            'data' => $data,
+                        ]);
+                        $added++;
+                    }
+                }
+
+                return compact('added', 'updated');
+            });
+        } catch (\Illuminate\Validation\ValidationException $exception) {
+            return redirect()->route('salary-management.upload-form')
+                ->with('salary_preview_token', $validated['preview_token'])
+                ->withErrors($exception->errors());
+        }
 
         Cache::forget($key);
 
-        return redirect()->route('salary-management.attendance')->with('success', 'Attendance salary records saved.');
+        if ($result['added'] === 0 && $result['updated'] === 0) {
+            $message = 'This attendance workbook matches the saved payroll. No records were changed.';
+        } else {
+            $message = "{$result['added']} payroll record(s) added and {$result['updated']} updated. Existing records not in this workbook were kept.";
+        }
+
+        return redirect()->route('salary-management.attendance')->with('success', $message);
+    }
+
+    public function cancelPreview(Request $request)
+    {
+        $validated = $request->validate(['preview_token' => 'required|uuid']);
+        Cache::forget($this->previewKey($request->user()->id, $validated['preview_token']));
+        $request->session()->forget('salary_preview_token');
+
+        return redirect()->route('salary-management.attendance')->with('success', 'Payroll preview cancelled. Saved payroll was not changed.');
+    }
+
+    public function reopen(Request $request, SalaryRecord $salaryRecord)
+    {
+        $validated = $request->validate(['reason' => 'required|string|min:3|max:500']);
+
+        DB::transaction(function () use ($salaryRecord, $request, $validated) {
+            $record = SalaryRecord::query()->lockForUpdate()->findOrFail($salaryRecord->id);
+            $data = $record->data ?? [];
+
+            if (data_get($data, 'payroll_status') !== 'approved') {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'reason' => 'Only approved payroll can be reopened.',
+                ]);
+            }
+
+            SalaryRecordVersion::create([
+                'salary_record_id' => $record->id,
+                'changed_by' => $request->user()->id,
+                'action' => 'reopened',
+                'reason' => $validated['reason'],
+                'data' => $data,
+            ]);
+
+            $data['payroll_status'] = 'draft';
+            $data['reopened_by'] = $request->user()->id;
+            $data['reopened_at'] = now()->toDateTimeString();
+            $data['reopen_reason'] = $validated['reason'];
+            unset($data['approved_by'], $data['approved_at']);
+            $record->update(['data' => $data]);
+        });
+
+        return redirect()->route('salary-management.attendance')
+            ->with('success', 'Payroll reopened and its approved version was retained in history. Upload the workbook again to review changes.');
     }
 
     public function adjustPreviewSalary(
@@ -438,10 +571,17 @@ class SalaryManagementController extends Controller
         return response()->streamDownload(function () use ($book) { (new Xlsx($book))->save('php://output'); }, 'Payroll-Adjustment-Template.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
     }
 
-    private function renderPage(Request $request, ?array $previewRows, ?string $previewToken, string $salaryMonth, string $salarySection)
+    private function renderPage(
+        Request $request,
+        ?array $previewRows,
+        ?string $previewToken,
+        string $salaryMonth,
+        string $salarySection,
+        int $missingExistingCount = 0
+    )
     {
         $canManage = $request->user()->can('upload_salary_management');
-        $query = SalaryRecord::query()->with('staffUser')->orderByDesc('salary_month')->orderByDesc('id');
+        $query = SalaryRecord::query()->with(['staffUser', 'versions.changedBy'])->orderByDesc('salary_month')->orderByDesc('id');
 
         if (! $canManage) {
             $query->where('staff_user_id', $request->user()->id);
@@ -550,6 +690,7 @@ class SalaryManagementController extends Controller
             'records',
             'previewRows',
             'previewToken',
+            'missingExistingCount',
             'salaryMonth',
             'canManage',
             'summary',
@@ -678,6 +819,52 @@ class SalaryManagementController extends Controller
         }
 
         return $previewRows;
+    }
+
+    private function sourceRow(array $row): array
+    {
+        unset($row['row_number']);
+
+        return $row;
+    }
+
+    private function storedSourceRow(array $data): array
+    {
+        if (isset($data['source_row']) && is_array($data['source_row'])) {
+            return $data['source_row'];
+        }
+
+        foreach (['row_number', 'source_row', 'employee', 'calculation', 'payroll_status', 'payment_status', 'approved_by', 'approved_at', 'reopened_by', 'reopened_at', 'reopen_reason'] as $key) {
+            unset($data[$key]);
+        }
+
+        return $data;
+    }
+
+    private function changedSourceFields(array $incoming, array $saved): array
+    {
+        $fields = [];
+        foreach (array_unique(array_merge(array_keys($incoming), array_keys($saved))) as $key) {
+            if (($incoming[$key] ?? null) != ($saved[$key] ?? null)) {
+                $fields[] = Str::headline($key);
+            }
+        }
+
+        return $fields;
+    }
+
+    private function changedSourceValues(array $incoming, array $saved): array
+    {
+        $changes = [];
+        foreach (array_unique(array_merge(array_keys($incoming), array_keys($saved))) as $key) {
+            $before = $saved[$key] ?? null;
+            $after = $incoming[$key] ?? null;
+            if ($after != $before) {
+                $changes[Str::headline($key)] = ['before' => $before, 'after' => $after];
+            }
+        }
+
+        return $changes;
     }
 
     private function normalizePhone(?string $phone): string

@@ -18,7 +18,7 @@
         <div class="row g-3 align-items-end">
             <div class="col-6 col-lg-2"><label for="salaryReportMonth" class="filter-label">Payroll month</label><input id="salaryReportMonth" type="month" name="month" value="{{ $salaryMonth }}" class="form-control"></div>
             <div class="col-6 col-lg-3"><label for="salaryReportDepartment" class="filter-label">Department</label><select id="salaryReportDepartment" name="department" class="form-select"><option value="">All departments</option>@foreach($departmentOptions as $department)<option value="{{ $department }}" @selected($filters['department'] === $department)>{{ $department }}</option>@endforeach</select></div>
-            <div class="col-6 col-lg-2"><label for="salaryReportStatus" class="filter-label">Payroll status</label><select id="salaryReportStatus" name="status" class="form-select"><option value="">All statuses</option><option value="approved" @selected($filters['status'] === 'approved')>Approved</option><option value="draft" @selected($filters['status'] === 'draft')>Draft / Pending</option><option value="no_payroll" @selected($filters['status'] === 'no_payroll')>No payroll</option></select></div>
+            <div class="col-6 col-lg-2"><label for="salaryReportStatus" class="filter-label">Payroll status</label><select id="salaryReportStatus" name="status" class="form-select"><option value="">All statuses</option><option value="approved" @selected($filters['status'] === 'approved')>Approved</option><option value="draft" @selected($filters['status'] === 'draft')>Draft / Pending</option></select></div>
             <div class="col-12 col-lg-3"><label for="salaryReportSearch" class="filter-label">Search staff</label><input id="salaryReportSearch" type="search" name="search" value="{{ $filters['search'] }}" class="form-control" placeholder="Name, email, employee ID"></div>
             <div class="col-6 col-lg-1 d-grid"><button type="submit" class="btn btn-primary"><i class="bx bx-filter-alt me-1"></i>Filter</button></div>
             <div class="col-6 col-lg-1 d-grid"><a href="{{ route('salary-management.reports') }}" class="btn btn-outline-secondary">Reset</a></div>
@@ -28,7 +28,7 @@
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-3"><div class="report-stat"><div class="report-stat-top"><span class="report-stat-icon"><i class="bx bx-group"></i></span><span class="report-count">Filtered view</span></div><small>Staff listed</small><strong>{{ number_format($summary['staff_count']) }}</strong></div></div>
         <div class="col-6 col-xl-3"><div class="report-stat"><div class="report-stat-top"><span class="report-stat-icon"><i class="bx bx-receipt"></i></span><span class="report-count">Selected month</span></div><small>Payroll records</small><strong>{{ number_format($summary['payroll_count']) }}</strong></div></div>
-        <div class="col-6 col-xl-3"><div class="report-stat"><div class="report-stat-top"><span class="report-stat-icon"><i class="bx bx-wallet"></i></span><span class="report-count">Salary Master</span></div><small>Current monthly salary total</small><strong>₹{{ number_format($summary['monthly_salary'], 2) }}</strong></div></div>
+        <div class="col-6 col-xl-3"><div class="report-stat"><div class="report-stat-top"><span class="report-stat-icon"><i class="bx bx-wallet"></i></span><span class="report-count">Attendance payroll</span></div><small>Monthly salary total</small><strong>₹{{ number_format($summary['monthly_salary'], 2) }}</strong></div></div>
         <div class="col-6 col-xl-3"><div class="report-stat"><div class="report-stat-top"><span class="report-stat-icon"><i class="bx bx-money"></i></span><span class="report-count">{{ $summary['pending_count'] }} pending</span></div><small>Net payable · {{ \Carbon\Carbon::createFromFormat('Y-m', $salaryMonth)->format('M Y') }}</small><strong>₹{{ number_format($summary['net_payable'], 2) }}</strong></div></div>
     </div>
 
@@ -52,37 +52,32 @@
                 </tr></thead>
                 <tbody>
                     @forelse($reportRows as $row)
-                        @php($hasPayroll = $row['record'] !== null)
                         <tr>
-                            <td><div class="staff-report-name">{{ $row['name'] ?: '—' }}</div><div class="staff-report-meta">{{ $row['staff']->email }} · {{ $row['staff_status'] }}</div></td>
+                            <td><div class="staff-report-name">{{ $row['name'] ?: '—' }}</div><div class="staff-report-meta">{{ $row['staff']?->email ?? '—' }} · {{ $row['staff_status'] }}</div></td>
                             <td>{{ $row['department'] }}<div class="staff-report-meta">{{ $row['designation'] }}</div></td>
                             <td>{{ $row['employee_code'] }}</td>
                             <td>₹{{ number_format($row['monthly_salary'], 2) }}</td>
-                            <td>{{ $hasPayroll ? data_get($row, 'attendance.present', 0) : '—' }}</td>
-                            <td>{{ $hasPayroll ? data_get($row, 'attendance.absent', 0) : '—' }}</td>
-                            <td>{{ $hasPayroll ? data_get($row, 'attendance.half_day', 0) : '—' }}</td>
-                            <td>{{ $hasPayroll ? data_get($row, 'attendance.paid_leave', 0) : '—' }}</td>
-                            <td>{{ $hasPayroll ? data_get($row, 'attendance.unpaid_leave', 0) : '—' }}</td>
-                            <td>{{ $hasPayroll ? data_get($row, 'calculation.salary_adjustment_days', 0) : '—' }}</td>
-                            <td>{{ $hasPayroll ? '₹' . number_format((float) data_get($row, 'calculation.total_deductions', 0), 2) : '—' }}</td>
-                            <td class="fw-semibold">{{ $hasPayroll ? '₹' . number_format((float) data_get($row, 'calculation.net_salary', 0), 2) : '—' }}</td>
+                            <td>{{ data_get($row, 'attendance.present', 0) }}</td>
+                            <td>{{ data_get($row, 'attendance.absent', 0) }}</td>
+                            <td>{{ data_get($row, 'attendance.half_day', 0) }}</td>
+                            <td>{{ data_get($row, 'attendance.paid_leave', 0) }}</td>
+                            <td>{{ data_get($row, 'attendance.unpaid_leave', 0) }}</td>
+                            <td>{{ data_get($row, 'calculation.salary_adjustment_days', 0) }}</td>
+                            <td>₹{{ number_format((float) data_get($row, 'calculation.total_deductions', 0), 2) }}</td>
+                            <td class="fw-semibold">₹{{ number_format((float) data_get($row, 'calculation.net_salary', 0), 2) }}</td>
                             <td>
-                                @if(! $hasPayroll)
-                                    <span class="badge bg-secondary report-status">No payroll</span>
-                                @else
-                                    <span class="badge report-status {{ $row['payroll_status'] === 'approved' ? 'bg-success' : 'bg-warning text-dark' }}">{{ ucfirst($row['payroll_status'] ?? 'draft') }}</span>
-                                @endif
+                                <span class="badge report-status {{ $row['payroll_status'] === 'approved' ? 'bg-success' : 'bg-warning text-dark' }}">{{ ucfirst($row['payroll_status'] ?? 'draft') }}</span>
                             </td>
                             <td>
-                                @if($hasPayroll && $row['payroll_status'] === 'approved')
+                                @if($row['payroll_status'] === 'approved')
                                     <a href="{{ route('salary-management.payslip', $row['record']) }}" target="_blank" class="btn btn-outline-primary btn-sm"><i class="bx bx-file me-1"></i>View Salary Slip</a>
                                 @else
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="{{ $hasPayroll ? 'Approve payroll before viewing the salary slip.' : 'Upload payroll for this month before a salary slip can be created.' }}"><i class="bx bx-file me-1"></i>View Salary Slip</button>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" disabled title="Approve payroll before viewing the salary slip."><i class="bx bx-file me-1"></i>View Salary Slip</button>
                                 @endif
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="14" class="text-center text-muted py-4">No staff records found.</td></tr>
+                        <tr><td colspan="14" class="text-center text-muted py-4">No attendance payroll records found for this month and filter selection.</td></tr>
                     @endforelse
                 </tbody>
             </table>
