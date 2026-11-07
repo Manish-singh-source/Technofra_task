@@ -76,6 +76,7 @@
             <tr><td>Monthly Salary</td><td class="amount strong">{{ number_format((float) data_get($calculation, 'monthly_salary', 0), 2) }}</td><td>Advance</td><td class="amount">{{ number_format((float) data_get($calculation, 'advance', 0), 2) }}</td></tr>
             <tr><td>Overtime</td><td class="amount">{{ number_format((float) data_get($calculation, 'overtime_payment', 0), 2) }}</td><td>Other (TDS / PF)</td><td class="amount">{{ number_format((float) data_get($calculation, 'other_deduction', 0), 2) }}</td></tr>
             <tr><td>Bonus / Incentive</td><td class="amount">{{ number_format((float) data_get($calculation, 'bonus', 0), 2) }}</td><td></td><td></td></tr>
+            <tr><td>Extra Payment</td><td class="amount">{{ number_format((float) data_get($calculation, 'extra_payment', 0), 2) }}</td><td></td><td></td></tr>
         </tbody>
     </table>
 

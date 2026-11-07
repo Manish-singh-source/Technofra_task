@@ -61,7 +61,8 @@ class SeoCampaignController extends Controller
     public function addFinding(Request $request, SeoCampaign $campaign)
     {
         $this->authorize('contribute',$campaign); $audit=$campaign->audit()->firstOrCreate([],['prepared_by'=>auth()->id()]); abort_if($audit->status==='approved',422,'An approved audit cannot be edited.');
-        $data=$request->validate(['category'=>['required',Rule::in(['technical','on_page','performance','other'])],'title'=>'required|string|max:255','affected_url'=>'nullable|url|max:2048','description'=>'nullable|string|max:5000','severity'=>['required',Rule::in(['critical','high','medium','low'])],'recommended_solution'=>'nullable|string|max:5000','assigned_to'=>['nullable',Rule::exists('users','id')]]);
+        $data=$request->validate(['category'=>['required',Rule::in(['technical','on_page','performance','other'])],'title'=>'required|string|max:255','affected_url'=>'nullable|url|max:2048','description'=>'nullable|string|max:5000','severity'=>['nullable',Rule::in(['critical','high','medium','low'])],'recommended_solution'=>'nullable|string|max:5000','assigned_to'=>['nullable',Rule::exists('users','id')]]);
+        $data['severity'] = $data['severity'] ?? 'medium';
         $audit->findings()->create($data); return back()->with('success','Audit finding added.');
     }
     public function updateFinding(Request $request, SeoCampaign $campaign, SeoAuditFinding $finding)

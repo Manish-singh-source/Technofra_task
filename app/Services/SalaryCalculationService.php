@@ -24,9 +24,10 @@ class SalaryCalculationService
         $advance = (float) ($adjustments['advance'] ?? 0);
         $otherDeduction = (float) ($adjustments['other_deduction'] ?? 0);
         $bonus = (float) ($adjustments['bonus'] ?? 0);
+        $extraPayment = (float) ($adjustments['extra_payment'] ?? 0);
         $paidAmount = (float) ($adjustments['paid_amount'] ?? 0);
         $totalDeductions = round($totalDeductions + $advance + $otherDeduction, 2);
-        $netSalary = round($monthlySalary - $totalDeductions + $overtimePayment + $bonus, 2);
+        $netSalary = round($monthlySalary - $totalDeductions + $overtimePayment + $bonus + $extraPayment, 2);
 
         return [
             'monthly_salary' => round($monthlySalary, 2),
@@ -45,6 +46,7 @@ class SalaryCalculationService
             'overtime_days' => $overtimeDays,
             'overtime_payment' => $overtimePayment,
             'bonus' => round($bonus, 2),
+            'extra_payment' => round($extraPayment, 2),
             'advance' => round($advance, 2),
             'other_deduction' => round($otherDeduction, 2),
             'total_deductions' => $totalDeductions,

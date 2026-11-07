@@ -454,7 +454,10 @@ class SalaryManagementController extends Controller
         SalaryCalculationService $calculator
     ) {
         $validated = $request->validate([
-            'days' => 'required|integer|between:1,31',
+            'days' => 'nullable|integer|between:0,31',
+            'bonus' => 'nullable|numeric|min:0',
+            'extra_payment' => 'nullable|numeric|min:0',
+            'adjustment_note' => 'nullable|string|max:500',
         ]);
 
         $key = $this->previewKey($request->user()->id, $previewToken);
@@ -472,14 +475,17 @@ class SalaryManagementController extends Controller
         }
 
         $daysInMonth = (int) $row['calculation']['days_in_month'];
-        if ((int) $validated['days'] > $daysInMonth) {
+        if ((int) ($validated['days'] ?? 0) > $daysInMonth) {
             return redirect()->route('salary-management.upload-form')
                 ->with('salary_preview_token', $previewToken)
                 ->withErrors(['days' => "Days to deduct cannot exceed the {$daysInMonth} days in this month."]);
         }
 
         $adjustments = $row['calculation_adjustments'] ?? [];
-        $adjustments['salary_adjustment_days'] = (int) $validated['days'];
+        $adjustments['salary_adjustment_days'] = (int) ($validated['days'] ?? 0);
+        $adjustments['bonus'] = (float) ($validated['bonus'] ?? 0);
+        $adjustments['extra_payment'] = (float) ($validated['extra_payment'] ?? 0);
+        $adjustments['adjustment_note'] = $validated['adjustment_note'] ?? null;
         $row['calculation_adjustments'] = $adjustments;
         $row['calculation'] = $calculator->calculate(
             (float) $row['data']['salary'],
