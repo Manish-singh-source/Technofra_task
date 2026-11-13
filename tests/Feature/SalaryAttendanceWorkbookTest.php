@@ -138,13 +138,19 @@ class SalaryAttendanceWorkbookTest extends TestCase
 
         $this->post(route('salary-management.preview.adjustment', [$previewToken, 0]), [
             'days' => 2,
+            'bonus' => 50,
+            'extra_payment' => 25,
+            'adjustment_note' => 'Payroll adjustment test',
         ])->assertRedirect(route('salary-management.upload-form'));
 
         $previewResponse = $this->get(route('salary-management.upload-form'))->assertOk();
         $previewRow = $previewResponse->viewData('previewRows')[0];
         $this->assertSame(2, $previewRow['calculation']['salary_adjustment_days']);
         $this->assertSame(200.0, $previewRow['calculation']['salary_adjustment_deduction']);
-        $this->assertSame(1800.0, $previewRow['calculation']['net_salary']);
+        $this->assertSame(50.0, $previewRow['calculation']['bonus']);
+        $this->assertSame(25.0, $previewRow['calculation']['extra_payment']);
+        $this->assertSame('Payroll adjustment test', $previewRow['calculation_adjustments']['adjustment_note']);
+        $this->assertSame(1875.0, $previewRow['calculation']['net_salary']);
 
         $this->get(route('salary-management.upload-form'))
             ->assertOk()
@@ -158,7 +164,9 @@ class SalaryAttendanceWorkbookTest extends TestCase
         $record = SalaryRecord::query()->where('staff_user_id', $staff->id)->firstOrFail();
         $this->assertSame(2, $record->data['calculation']['salary_adjustment_days']);
         $this->assertSame(200.0, (float) $record->data['calculation']['salary_adjustment_deduction']);
-        $this->assertSame(1800.0, (float) $record->data['calculation']['net_salary']);
+        $this->assertSame(50.0, (float) $record->data['calculation']['bonus']);
+        $this->assertSame(25.0, (float) $record->data['calculation']['extra_payment']);
+        $this->assertSame(1875.0, (float) $record->data['calculation']['net_salary']);
         $this->assertSame(3000.0, (float) $profile->fresh()->monthly_salary);
     }
 
@@ -207,6 +215,86 @@ class SalaryAttendanceWorkbookTest extends TestCase
 
         $this->assertSame($approvedData, $record->fresh()->data);
         $this->assertSame(0, $record->versions()->count());
+    }
+
+    public function test_bulk_approval_approves_selected_draft_records(): void
+    {
+        $approver = $this->createStaff('Payroll', 'Manager', 'bulk-approve@example.com', 'admin');
+        $approver->givePermissionTo(
+            Permission::findOrCreate('view_salary_management', 'web'),
+            Permission::findOrCreate('upload_salary_management', 'web')
+        );
+        $firstStaff = $this->createStaff('First', 'Employee', 'first-bulk@example.com', 'staff');
+        $secondStaff = $this->createStaff('Second', 'Employee', 'second-bulk@example.com', 'staff');
+        $firstRecord = SalaryRecord::create([
+            'staff_user_id' => $firstStaff->id,
+            'salary_month' => '2026-10-01',
+            'data' => ['payroll_status' => 'draft'],
+        ]);
+        $secondRecord = SalaryRecord::create([
+            'staff_user_id' => $secondStaff->id,
+            'salary_month' => '2026-10-01',
+            'data' => ['payroll_status' => 'draft'],
+        ]);
+
+        $this->actingAs($approver)->post(route('salary-management.approve-bulk'), [
+            'salary_record_ids' => [$firstRecord->id, $secondRecord->id],
+        ])->assertRedirect();
+
+        foreach ([$firstRecord, $secondRecord] as $record) {
+            $approvedData = $record->fresh()->data;
+            $this->assertSame('approved', $approvedData['payroll_status']);
+            $this->assertSame($approver->id, $approvedData['approved_by']);
+            $this->assertNotEmpty($approvedData['approved_at']);
+        }
+    }
+
+    public function test_bulk_approval_rejects_mixed_draft_and_approved_records_without_changes(): void
+    {
+        $approver = $this->createStaff('Payroll', 'Manager', 'bulk-reject@example.com', 'admin');
+        $approver->givePermissionTo(
+            Permission::findOrCreate('view_salary_management', 'web'),
+            Permission::findOrCreate('upload_salary_management', 'web')
+        );
+        $draftStaff = $this->createStaff('Draft', 'Employee', 'draft-bulk@example.com', 'staff');
+        $approvedStaff = $this->createStaff('Approved', 'Employee', 'approved-bulk@example.com', 'staff');
+        $draftRecord = SalaryRecord::create([
+            'staff_user_id' => $draftStaff->id,
+            'salary_month' => '2026-10-01',
+            'data' => ['payroll_status' => 'draft'],
+        ]);
+        $approvedRecord = SalaryRecord::create([
+            'staff_user_id' => $approvedStaff->id,
+            'salary_month' => '2026-10-01',
+            'data' => ['payroll_status' => 'approved'],
+        ]);
+
+        $this->actingAs($approver)->post(route('salary-management.approve-bulk'), [
+            'salary_record_ids' => [$draftRecord->id, $approvedRecord->id],
+        ])->assertSessionHasErrors('salary_record_ids');
+
+        $this->assertSame('draft', $draftRecord->fresh()->data['payroll_status']);
+        $this->assertSame('approved', $approvedRecord->fresh()->data['payroll_status']);
+    }
+
+    public function test_draft_payroll_rows_render_visible_bulk_selection_checkboxes(): void
+    {
+        $manager = $this->createStaff('Payroll', 'Manager', 'bulk-checkbox@example.com', 'admin');
+        $manager->givePermissionTo(
+            Permission::findOrCreate('view_salary_management', 'web'),
+            Permission::findOrCreate('upload_salary_management', 'web')
+        );
+        $staff = $this->createStaff('Draft', 'Employee', 'bulk-checkbox-employee@example.com', 'staff');
+        SalaryRecord::create([
+            'staff_user_id' => $staff->id,
+            'salary_month' => '2026-10-01',
+            'data' => ['payroll_status' => 'draft'],
+        ]);
+
+        $this->actingAs($manager)->get(route('salary-management.attendance'))
+            ->assertOk()
+            ->assertSee('id="bulkApproveSelectAll"', false)
+            ->assertSee('class="form-check-input m-0 bulk-approve-checkbox"', false);
     }
 
     public function test_changed_reupload_requires_confirmation_and_preserves_old_payroll_versions(): void
@@ -330,7 +418,10 @@ class SalaryAttendanceWorkbookTest extends TestCase
         $this->get(route('salary-management.payslip', SalaryRecord::query()->where('staff_user_id', $staffWithPayroll->id)->firstOrFail()))
             ->assertOk()
             ->assertViewIs('salary-management.payslip')
-            ->assertSee('EMPLOYEE SALARY SLIP');
+            ->assertSee('EMPLOYEE SALARY SLIP')
+            ->assertSee('Technofra company stamp')
+            ->assertDontSee('Gopal Giri')
+            ->assertDontSee('Authorised Signatory');
 
         $filteredResponse = $this->get(route('salary-management.reports', [
             'month' => '2026-10',

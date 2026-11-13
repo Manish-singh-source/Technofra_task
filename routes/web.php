@@ -214,6 +214,8 @@ Route::middleware('auth')->group(function () {
             ->middleware('can:upload_salary_management')->name('salary-management.profiles.update');
         Route::delete('/salary-management/profiles/{salaryProfile}', [SalaryManagementController::class, 'deleteProfile'])
             ->middleware('can:upload_salary_management')->name('salary-management.profiles.delete');
+        Route::post('/salary-management/approve-bulk', [SalaryManagementController::class, 'approveBulk'])
+            ->middleware('can:upload_salary_management')->name('salary-management.approve-bulk');
         Route::post('/salary-management/{salaryRecord}/approve', [SalaryManagementController::class, 'approve'])
             ->middleware('can:upload_salary_management')->name('salary-management.approve');
         Route::post('/salary-management/{salaryRecord}/reopen', [SalaryManagementController::class, 'reopen'])

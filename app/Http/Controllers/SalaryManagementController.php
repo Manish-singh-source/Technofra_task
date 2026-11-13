@@ -454,10 +454,7 @@ class SalaryManagementController extends Controller
         SalaryCalculationService $calculator
     ) {
         $validated = $request->validate([
-            'days' => 'nullable|integer|between:0,31',
-            'bonus' => 'nullable|numeric|min:0',
-            'extra_payment' => 'nullable|numeric|min:0',
-            'adjustment_note' => 'nullable|string|max:500',
+            'days' => 'required|integer|between:1,31',
         ]);
 
         $key = $this->previewKey($request->user()->id, $previewToken);
@@ -475,17 +472,14 @@ class SalaryManagementController extends Controller
         }
 
         $daysInMonth = (int) $row['calculation']['days_in_month'];
-        if ((int) ($validated['days'] ?? 0) > $daysInMonth) {
+        if ((int) $validated['days'] > $daysInMonth) {
             return redirect()->route('salary-management.upload-form')
                 ->with('salary_preview_token', $previewToken)
                 ->withErrors(['days' => "Days to deduct cannot exceed the {$daysInMonth} days in this month."]);
         }
 
         $adjustments = $row['calculation_adjustments'] ?? [];
-        $adjustments['salary_adjustment_days'] = (int) ($validated['days'] ?? 0);
-        $adjustments['bonus'] = (float) ($validated['bonus'] ?? 0);
-        $adjustments['extra_payment'] = (float) ($validated['extra_payment'] ?? 0);
-        $adjustments['adjustment_note'] = $validated['adjustment_note'] ?? null;
+        $adjustments['salary_adjustment_days'] = (int) $validated['days'];
         $row['calculation_adjustments'] = $adjustments;
         $row['calculation'] = $calculator->calculate(
             (float) $row['data']['salary'],
@@ -549,6 +543,46 @@ class SalaryManagementController extends Controller
         $data['approved_at'] = now()->toDateTimeString();
         $salaryRecord->update(['data' => $data]);
         return back()->with('success', 'Payroll approved. Salary slip is now available.');
+    }
+
+    public function approveBulk(Request $request)
+    {
+        $validated = $request->validate([
+            'salary_record_ids' => ['required', 'array', 'min:1', 'max:100'],
+            'salary_record_ids.*' => ['required', 'integer', 'distinct', 'exists:salary_records,id'],
+        ]);
+
+        $approvedCount = DB::transaction(function () use ($validated, $request) {
+            $records = SalaryRecord::query()
+                ->whereIn('id', $validated['salary_record_ids'])
+                ->lockForUpdate()
+                ->get();
+
+            if ($records->count() !== count($validated['salary_record_ids'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'salary_record_ids' => 'One or more selected payroll records are no longer available.',
+                ]);
+            }
+
+            if ($records->contains(fn (SalaryRecord $record) => data_get($record->data, 'payroll_status') === 'approved')) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'salary_record_ids' => 'Only draft payroll records can be bulk approved. No records were changed.',
+                ]);
+            }
+
+            $approvedAt = now()->toDateTimeString();
+            foreach ($records as $record) {
+                $data = $record->data ?? [];
+                $data['payroll_status'] = 'approved';
+                $data['approved_by'] = $request->user()->id;
+                $data['approved_at'] = $approvedAt;
+                $record->update(['data' => $data]);
+            }
+
+            return $records->count();
+        });
+
+        return back()->with('success', "{$approvedCount} payroll record(s) approved. Salary slips are now available.");
     }
 
     public function payslip(Request $request, SalaryRecord $salaryRecord)

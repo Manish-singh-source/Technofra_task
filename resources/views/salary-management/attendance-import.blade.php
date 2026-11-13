@@ -122,12 +122,21 @@
     @endif
     <div class="card payroll-card">
         <div class="card-header"><i class="bx bx-list-ul text-primary me-1"></i> Saved Payroll</div>
+        @if($canManage)
+            <div class="d-flex justify-content-end px-3 pt-3">
+                <button type="submit" form="bulkApproveForm" id="bulkApproveButton" class="btn btn-success btn-sm" disabled>Approve selected</button>
+                <form id="bulkApproveForm" method="POST" action="{{ route('salary-management.approve-bulk') }}">@csrf</form>
+            </div>
+        @endif
         <div class="table-responsive"><table id="payroll-register-table" class="table payroll-table mb-0">
-            <thead><tr><th>Employee</th><th>Month</th><th>Net Salary</th><th>Payroll status</th><th class="text-end">Action</th></tr></thead>
+            <thead><tr>@if($canManage)<th><input type="checkbox" class="form-check-input m-0" id="bulkApproveSelectAll" aria-label="Select all draft payroll records"></th>@endif<th>Employee</th><th>Month</th><th>Net Salary</th><th>Payroll status</th><th class="text-end">Action</th></tr></thead>
             <tbody>
                 @forelse($records as $record)
                     @php($recordStatus=data_get($record->data,'payroll_status'))
                     <tr>
+                        @if($canManage)
+                            <td>@if($recordStatus!=='approved')<input type="checkbox" class="form-check-input m-0 bulk-approve-checkbox" name="salary_record_ids[]" value="{{ $record->id }}" form="bulkApproveForm" aria-label="Select {{ data_get($record->data,'employee.name',$record->staffUser?->name) }} payroll for approval">@endif</td>
+                        @endif
                         <td><strong>{{ data_get($record->data,'employee.name',$record->staffUser?->name) }}</strong></td>
                         <td>{{ $record->salary_month?->format('F Y') }}</td>
                         <td class="fw-bold text-primary">₹{{ number_format((float)data_get($record->data,'calculation.net_salary',0),2) }}</td>
@@ -145,7 +154,76 @@
         </table></div>
     </div>
 </div></div>
-@push('scripts')<script>document.addEventListener('DOMContentLoaded',function(){const form=document.getElementById('salaryAdjustmentForm'),days=document.getElementById('salaryAdjustmentDays'),bonus=document.getElementById('salaryAdjustmentBonus'),extra=document.getElementById('salaryAdjustmentExtraPayment'),note=document.getElementById('salaryAdjustmentNote'),updated=document.getElementById('salaryAdjustmentUpdatedNet');function refresh(){updated.value=(Number(form.dataset.baseSalary||0)-(Number(days.value||0)*Number(form.dataset.dailyRate||0))+Number(bonus.value||0)+Number(extra.value||0)).toFixed(2);}document.addEventListener('click',function(e){const button=e.target.closest('.salary-adjust-button');if(!button)return;bonus.value=button.dataset.bonus||0;extra.value=button.dataset.extraPayment||0;note.value=button.dataset.note||'';setTimeout(refresh,0);});[days,bonus,extra].forEach(function(input){input.addEventListener('input',refresh);});});</script>@endpush
 @endsection
-@push('styles')<style>.salary-adjustment-panel{border:1px solid #e4eaf2;border-radius:12px;padding:14px 16px;background:#f8faff}.salary-adjustment-panel .form-range{height:1.2rem}.salary-adjustment-summary{background:#f5f7fb;border:1px solid #e8edf5}.salary-adjustment-summary .input-group{max-width:170px}.salary-adjustment-summary .form-control{background:#fff}</style>@endpush
-@push('scripts')<script>$(function(){if($('#payroll-register-table').length&&$.fn.DataTable&&!$.fn.DataTable.isDataTable('#payroll-register-table')){$('#payroll-register-table').DataTable({pageLength:10,order:[],language:{search:'',searchPlaceholder:'Search...'}});}});const salaryAdjustmentForm=document.getElementById('salaryAdjustmentForm');const salaryAdjustmentDays=document.getElementById('salaryAdjustmentDays');function updateNetPayable(){const days=Number(salaryAdjustmentDays.value);const currentNet=Number(salaryAdjustmentForm.dataset.currentNetPayable||0);const baseSalary=Number(salaryAdjustmentForm.dataset.baseSalary||currentNet);const dailyRate=Number(salaryAdjustmentForm.dataset.dailyRate||0);document.getElementById('salaryAdjustmentUpdatedNet').value=days>0?(baseSalary-days*dailyRate).toFixed(2):currentNet.toFixed(2);}document.addEventListener('click',function(event){const button=event.target.closest('.salary-adjust-button');if(!button)return;salaryAdjustmentForm.action=button.dataset.updateUrl;salaryAdjustmentForm.dataset.dailyRate=button.dataset.dailyRate||0;salaryAdjustmentForm.dataset.baseSalary=button.dataset.baseSalary||0;salaryAdjustmentForm.dataset.currentNetPayable=button.dataset.currentNetPayable||0;document.getElementById('salaryAdjustmentEmployeeMonth').value=button.dataset.employee+' — '+button.dataset.month;document.getElementById('salaryAdjustmentTotalDays').value=button.dataset.totalDays||'';document.getElementById('salaryAdjustmentCurrentNet').value=Number(button.dataset.currentNetPayable||0).toFixed(2);salaryAdjustmentDays.max=button.dataset.totalDays||31;salaryAdjustmentDays.value=button.dataset.days==='0'?'':button.dataset.days;updateNetPayable();});salaryAdjustmentDays.addEventListener('input',updateNetPayable);</script>@endpush
+@push('styles')<style>.salary-adjustment-panel{border:1px solid #e4eaf2;border-radius:12px;padding:14px 16px;background:#f8faff}.salary-adjustment-panel .form-range{height:1.2rem}.salary-adjustment-summary{background:#f5f7fb;border:1px solid #e8edf5}.salary-adjustment-summary .input-group{max-width:170px}.salary-adjustment-summary .form-control{background:#fff}.bulk-approve-checkbox,#bulkApproveSelectAll{width:1.15rem;height:1.15rem;vertical-align:middle;cursor:pointer}</style>@endpush
+@push('scripts')
+<script>
+$(function(){
+    if($('#payroll-register-table').length&&$.fn.DataTable&&!$.fn.DataTable.isDataTable('#payroll-register-table')){
+        $('#payroll-register-table').DataTable({pageLength:10,order:[],language:{search:'',searchPlaceholder:'Search...'}});
+    }
+});
+
+const salaryAdjustmentForm=document.getElementById('salaryAdjustmentForm');
+if(salaryAdjustmentForm){
+    const salaryAdjustmentDays=document.getElementById('salaryAdjustmentDays');
+    const salaryAdjustmentBonus=document.getElementById('salaryAdjustmentBonus');
+    const salaryAdjustmentExtraPayment=document.getElementById('salaryAdjustmentExtraPayment');
+    const salaryAdjustmentNote=document.getElementById('salaryAdjustmentNote');
+
+    function updateNetPayable(){
+        const baseSalary=Number(salaryAdjustmentForm.dataset.baseSalary||0);
+        const dailyRate=Number(salaryAdjustmentForm.dataset.dailyRate||0);
+        const days=Number(salaryAdjustmentDays.value||0);
+        const bonus=Number(salaryAdjustmentBonus.value||0);
+        const extraPayment=Number(salaryAdjustmentExtraPayment.value||0);
+        document.getElementById('salaryAdjustmentUpdatedNet').value=(baseSalary-days*dailyRate+bonus+extraPayment).toFixed(2);
+    }
+
+    document.addEventListener('click',function(event){
+        const button=event.target.closest('.salary-adjust-button');
+        if(!button)return;
+        salaryAdjustmentForm.action=button.dataset.updateUrl;
+        salaryAdjustmentForm.dataset.dailyRate=button.dataset.dailyRate||0;
+        salaryAdjustmentForm.dataset.baseSalary=button.dataset.baseSalary||0;
+        salaryAdjustmentForm.dataset.currentNetPayable=button.dataset.currentNetPayable||0;
+        document.getElementById('salaryAdjustmentEmployeeMonth').value=button.dataset.employee+' — '+button.dataset.month;
+        document.getElementById('salaryAdjustmentTotalDays').value=button.dataset.totalDays||'';
+        document.getElementById('salaryAdjustmentCurrentNet').value=Number(button.dataset.currentNetPayable||0).toFixed(2);
+        salaryAdjustmentDays.max=button.dataset.totalDays||31;
+        salaryAdjustmentDays.value=button.dataset.days==='0'?'':button.dataset.days;
+        salaryAdjustmentBonus.value=button.dataset.bonus||0;
+        salaryAdjustmentExtraPayment.value=button.dataset.extraPayment||0;
+        salaryAdjustmentNote.value=button.dataset.note||'';
+        updateNetPayable();
+    });
+
+    [salaryAdjustmentDays,salaryAdjustmentBonus,salaryAdjustmentExtraPayment].forEach(function(input){
+        input.addEventListener('input',updateNetPayable);
+    });
+}
+
+const bulkApproveForm=document.getElementById('bulkApproveForm');
+if(bulkApproveForm){
+    const bulkCheckboxes=Array.from(document.querySelectorAll('.bulk-approve-checkbox'));
+    const bulkButton=document.getElementById('bulkApproveButton');
+    const selectAll=document.getElementById('bulkApproveSelectAll');
+    function updateBulkApproveControls(){
+        const checkedCount=bulkCheckboxes.filter(checkbox=>checkbox.checked).length;
+        bulkButton.disabled=checkedCount===0;
+        bulkButton.textContent=checkedCount?`Approve selected (${checkedCount})`:'Approve selected';
+        selectAll.checked=bulkCheckboxes.length>0&&checkedCount===bulkCheckboxes.length;
+        selectAll.indeterminate=checkedCount>0&&checkedCount<bulkCheckboxes.length;
+    }
+    bulkCheckboxes.forEach(checkbox=>checkbox.addEventListener('change',updateBulkApproveControls));
+    selectAll.addEventListener('change',function(){
+        bulkCheckboxes.forEach(checkbox=>{checkbox.checked=selectAll.checked;});
+        updateBulkApproveControls();
+    });
+    bulkApproveForm.addEventListener('submit',function(event){
+        const checkedCount=bulkCheckboxes.filter(checkbox=>checkbox.checked).length;
+        if(checkedCount===0||!window.confirm(`Approve ${checkedCount} selected payroll record(s)?`))event.preventDefault();
+    });
+}
+</script>
+@endpush

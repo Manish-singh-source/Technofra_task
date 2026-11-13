@@ -30,9 +30,7 @@
         .net-salary-label { letter-spacing: .4px; }
         .net-salary-amount { white-space: nowrap; }
         .signature { width: 48mm; margin-top: auto; padding-top: 10mm; text-align: center; }
-        .stamp-image { display: block; width: 23mm; height: 23mm; margin: 0 auto 2mm; object-fit: contain; }
-        .sign-name { padding-bottom: 1mm; border-bottom: 1px solid #95a1b2; color: #123f70; font: italic 15pt cursive; }
-        .signature small { display: block; margin-top: 1.5mm; color: #15233d; font-size: 8pt; }
+        .stamp-image { display: block; width: 23mm; height: 23mm; margin: 0 auto; object-fit: contain; }
         .page-footer { margin-top: 14mm; padding-top: 3mm; border-top: 1px solid #aeb8c5; color: #111827; font-size: 8pt; line-height: 1.55; text-align: center; }
         @media print {
             @page { size: A4; margin: 0; }
@@ -83,9 +81,7 @@
     <div class="net-salary"><span class="net-salary-label">NET SALARY</span><span class="net-salary-amount">₹ {{ number_format((float) data_get($calculation, 'net_salary', 0), 2) }}</span></div>
 
     <div class="signature">
-        <img class="stamp-image" src="{{ route('salary-management.stamp') }}" alt="Technofra authorised stamp">
-        <div class="sign-name">Gopal Giri</div>
-        <small>Authorised Signatory</small>
+        <img class="stamp-image" src="{{ route('salary-management.stamp') }}" alt="Technofra company stamp">
     </div>
 
     <footer class="page-footer">Office No. 501, 5th Floor, Ghanshyam Enclave, Link Road, Kandivali (West), Mumbai - 400067. Maharashtra.<br>☎ +91 8080 80 3374 / 8080 80 3375 &nbsp;|&nbsp; Email: info@technofra.com &nbsp;|&nbsp; Website: www.technofra.com</footer>
