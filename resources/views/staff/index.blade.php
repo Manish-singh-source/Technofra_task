@@ -36,6 +36,9 @@
                 <div class="card-body">
                     <div class="d-lg-flex align-items-center mb-4 gap-3">
                         <div class="ms-auto d-flex gap-2">
+                            <a href="{{ route('staff.activity-log') }}" class="btn btn-outline-primary radius-30 mt-2 mt-lg-0">
+                                <i class="bx bx-history"></i> Activity Log
+                            </a>
                             <button type="button" class="btn btn-danger radius-30 mt-2 mt-lg-0" id="bulk-delete-btn">
                                 <i class="bx bxs-trash"></i> Delete Selected
                             </button>
@@ -80,7 +83,11 @@
                                         </td>
                                         <td>{{ $member->email }}</td>
                                         <td>{{ ucwords(str_replace('_', ' ', $member->role)) }}</td>
-                                        <td>{{ $member->created_at->format('Y-m-d H:i A') }}</td>
+                                        <td>
+                                            {{ $member->activity_logs_max_logged_in_at
+                                                ? \Carbon\Carbon::parse($member->activity_logs_max_logged_in_at)->format('Y-m-d H:i A')
+                                                : 'Never' }}
+                                        </td>
                                         <td>
                                             <div
                                                 class="badge rounded-pill {{ $member->status == 'active' ? 'text-success bg-light-success' : 'text-warning bg-light-warning' }} p-2 text-uppercase px-3">

@@ -7,6 +7,7 @@ use App\Mail\StaffInviteMail;
 use App\Models\Department;
 use App\Models\Project;
 use App\Models\Setting;
+use App\Models\StaffActivityLog;
 use App\Models\Team;
 use App\Models\User;
 use App\Services\StaffLeadAnalyticsService;
@@ -48,6 +49,7 @@ class StaffController extends Controller
     {
         $staff = User::query()
             ->with('address')
+            ->withMax('activityLogs', 'logged_in_at')
             ->whereNotNull('role')
             ->whereIn('role', ['staff', 'super_admin2', 'admin'])
             ->orderBy('first_name')
@@ -55,6 +57,34 @@ class StaffController extends Controller
             ->map(fn(User $user) => $this->hydrateStaffUser($user));
 
         return view('staff.index', compact('staff'));
+    }
+
+    /**
+     * Display staff login sessions and device details.
+     */
+    public function activityLog(Request $request)
+    {
+        $request->validate([
+            'staff_id' => ['nullable', 'integer', 'exists:users,id'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        $logs = StaffActivityLog::query()
+            ->when($request->filled('staff_id'), fn ($query) => $query->where('user_id', $request->input('staff_id')))
+            ->when($request->filled('from'), fn ($query) => $query->whereDate('logged_in_at', '>=', $request->input('from')))
+            ->when($request->filled('to'), fn ($query) => $query->whereDate('logged_in_at', '<=', $request->input('to')))
+            ->with('user')
+            ->latest('logged_in_at')
+            ->paginate(20)
+            ->withQueryString();
+
+        $staffMembers = User::query()
+            ->where('role', 'staff')
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'last_name', 'email']);
+
+        return view('staff.activity-log', compact('logs', 'staffMembers'));
     }
 
     /**

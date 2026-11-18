@@ -290,6 +290,7 @@ Route::middleware('auth')->group(function () {
     // ============================= Staff Controller ====================
     Route::controller(StaffController::class)->group(function () {
         Route::get('/staff', 'index')->name('staff');
+        Route::get('/staff/activity-log', 'activityLog')->name('staff.activity-log');
         Route::delete('/staff/delete/{id}', 'destroy')->name('staff.destroy');
         Route::match(['post', 'delete'], '/staff/delete-selected', 'deleteSelected')->name('delete.selected.staff');
         Route::post('/staff/restore/{id}', 'restore')->name('staff.restore');

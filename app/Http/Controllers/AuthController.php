@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Helpers\FileUpload;
 use App\Models\Setting;
+use App\Models\StaffActivityLog;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -109,6 +110,19 @@ class AuthController extends Controller
 
             // Store user permissions in session for quick access
             $user = Auth::user();
+            if (strtolower((string) $user->getRawOriginal('role')) === 'staff') {
+                $activityLog = StaffActivityLog::create([
+                    'user_id' => $user->id,
+                    'staff_name' => $user->name,
+                    'staff_email' => $user->email,
+                    'session_id' => $request->session()->getId(),
+                    'ip_address' => $request->ip(),
+                    'user_agent' => mb_substr((string) $request->userAgent(), 0, 1000),
+                    'logged_in_at' => now(),
+                ]);
+                $request->session()->put('staff_activity_log_id', $activityLog->id);
+            }
+
             $permissions = $user->getAllPermissions()->pluck('name')->toArray();
             $roles = $user->getRoleNames()->toArray();
 
@@ -140,6 +154,15 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
+        $user = Auth::user();
+        if ($user && strtolower((string) $user->getRawOriginal('role')) === 'staff') {
+            StaffActivityLog::query()
+                ->whereKey($request->session()->get('staff_activity_log_id'))
+                ->where('user_id', $user->id)
+                ->whereNull('logged_out_at')
+                ->update(['logged_out_at' => now()]);
+        }
+
         Auth::logout();
 
         $request->session()->invalidate();

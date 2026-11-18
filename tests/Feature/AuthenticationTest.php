@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\StaffActivityLog;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
@@ -80,6 +81,33 @@ class AuthenticationTest extends TestCase
 
         $response->assertRedirect('/dashboard');
         $this->assertAuthenticatedAs($user);
+    }
+
+    /** @test */
+    public function staff_login_and_logout_are_recorded_with_device_details()
+    {
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'email' => 'staff@example.com',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $this->withHeaders([
+            'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+        ])->post('/login', [
+            'email' => $staff->email,
+            'password' => 'password123',
+        ])->assertRedirect('/dashboard');
+
+        $log = StaffActivityLog::query()->where('user_id', $staff->id)->firstOrFail();
+        $this->assertSame('Windows desktop', $log->device_name);
+        $this->assertSame('Google Chrome', $log->browser_name);
+        $this->assertNotEmpty($log->ip_address);
+        $this->assertNotNull($log->logged_in_at);
+
+        $this->post('/logout')->assertRedirect('/login');
+
+        $this->assertNotNull($log->fresh()->logged_out_at);
     }
 
 
