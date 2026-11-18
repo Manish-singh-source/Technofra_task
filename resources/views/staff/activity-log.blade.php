@@ -26,7 +26,7 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                         <div>
                             <h5 class="mb-1">Staff Activity Log</h5>
-                            <p class="text-muted mb-0">Successful logins, login device, IP address, and explicit logout time.</p>
+                            <p class="text-muted mb-0">Successful logins, login device, IP address, and explicit logout time. Staff on the same Wi-Fi or VPN may share an IP address.</p>
                         </div>
                     </div>
 

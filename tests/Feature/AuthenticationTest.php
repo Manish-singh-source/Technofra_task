@@ -110,6 +110,54 @@ class AuthenticationTest extends TestCase
         $this->assertNotNull($log->fresh()->logged_out_at);
     }
 
+    /** @test */
+    public function staff_login_uses_forwarded_ip_only_from_a_configured_proxy()
+    {
+        config(['trustedproxy.proxies' => '10.0.0.1']);
+
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $this->withServerVariables([
+            'REMOTE_ADDR' => '10.0.0.1',
+            'HTTP_X_FORWARDED_FOR' => '203.0.113.25',
+        ])->post('/login', [
+            'email' => $staff->email,
+            'password' => 'password123',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertSame(
+            '203.0.113.25',
+            StaffActivityLog::query()->where('user_id', $staff->id)->value('ip_address')
+        );
+    }
+
+    /** @test */
+    public function staff_login_ignores_forwarded_ip_from_an_untrusted_source()
+    {
+        config(['trustedproxy.proxies' => null]);
+
+        $staff = User::factory()->create([
+            'role' => 'staff',
+            'password' => Hash::make('password123'),
+        ]);
+
+        $this->withServerVariables([
+            'REMOTE_ADDR' => '198.51.100.10',
+            'HTTP_X_FORWARDED_FOR' => '203.0.113.25',
+        ])->post('/login', [
+            'email' => $staff->email,
+            'password' => 'password123',
+        ])->assertRedirect('/dashboard');
+
+        $this->assertSame(
+            '198.51.100.10',
+            StaffActivityLog::query()->where('user_id', $staff->id)->value('ip_address')
+        );
+    }
+
 
     /** @test */
     public function user_can_login_with_remember_me_enabled()
