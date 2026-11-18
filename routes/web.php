@@ -137,11 +137,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/plans', 'storePlan')->name('plans.store');
         Route::put('/plans/{plan}', 'updatePlan')->name('plans.update');
         Route::delete('/plans/{plan}', 'destroyPlan')->name('plans.destroy');
+        Route::post('/plans/{plan}/client-decision', 'clientPlanDecision')->name('plans.client-decision');
         Route::get('/internal-review', 'reviewQueue')->name('review');
         Route::get('/client-approvals', 'approvalsQueue')->name('approvals');
         Route::get('/publishing', 'publishingTracker')->name('publishing');
         Route::get('/festivals', 'festivals')->name('festivals.index');
         Route::post('/festivals', 'storeFestival')->name('festivals.store');
+        Route::put('/festivals/{festival}', 'updateFestival')->name('festivals.update');
+        Route::delete('/festivals/{festival}', 'destroyFestival')->name('festivals.destroy');
         Route::get('/reports', 'reports')->name('reports');
         Route::get('/posts', 'index')->name('posts.index');
         Route::get('/my-assigned-posts', 'myAssigned')->name('my-assigned');
@@ -150,6 +153,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/posts/{post}', 'show')->name('posts.show');
         Route::get('/posts/{post}/edit', 'edit')->name('posts.edit');
         Route::put('/posts/{post}', 'update')->name('posts.update');
+        Route::delete('/posts/{post}', 'destroy')->name('posts.destroy');
         Route::post('/posts/{post}/versions', 'submitVersion')->name('posts.versions.store');
         Route::post('/posts/{post}/start-work', 'startWork')->name('posts.start-work');
         Route::post('/posts/{post}/internal-review', 'internalReview')->name('posts.internal-review');

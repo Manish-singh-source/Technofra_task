@@ -36,11 +36,12 @@
 .calendar-category-dot.scheduled { background: #6f42c1; }
 .calendar-category-dot.published { background: #198754; }
 .calendar-event-kind { display: inline-block; margin-top: 0.25rem; padding: 0.12rem 0.38rem; border-radius: 999px; font-size: 0.62rem; line-height: 1.35; font-weight: 600; }
-#calendar .calendar-category-marker { display: block; width: 12px; height: 12px; min-height: 12px; margin: 2px; border-radius: 3px; }
-#calendar .fc-daygrid-event { display: none !important; }
-#calendar .fc-daygrid-day-frame { position: relative; padding-bottom: 18px; }
-#calendar .calendar-day-markers { display: flex; position: absolute; right: 4px; bottom: 4px; left: 4px; height: 10px; align-items: center; justify-content: center; gap: 3px; overflow: hidden; pointer-events: none; }
-#calendar .calendar-day-marker { display: block; flex: 0 0 8px; width: 8px; height: 8px; border-radius: 2px; }
+  #calendar .fc-daygrid-event { margin:2px 3px; border:0; border-left:3px solid currentColor; border-radius:5px; background:#f4f7fb; color:#263b53; white-space:normal; }
+  #calendar .fc-daygrid-event-harness { margin-top:1px; }
+  #calendar .calendar-post-event { display:block; padding:4px 5px; line-height:1.18; overflow:hidden; }
+  #calendar .calendar-post-title { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.71rem; font-weight:700; }
+  #calendar .calendar-post-meta { display:block; overflow:hidden; margin-top:2px; color:rgba(255,255,255,.82); font-size:.63rem; text-overflow:ellipsis; white-space:nowrap; }
+  #calendar .fc-daygrid-more-link { margin:2px 5px; color:#176ee2; font-size:.7rem; font-weight:700; }
 .calendar-upcoming-list { max-height: 460px; overflow-y: auto; }
 .calendar-upcoming-item { display: flex; width: 100%; gap: 0.65rem; align-items: flex-start; margin-bottom: 0.5rem; padding: 0.75rem; border: 1px solid transparent; border-radius: 8px; text-align: left; color: inherit; background: #f8fafc; transition: filter 180ms ease, transform 180ms ease; cursor: pointer; }
 .calendar-upcoming-item:hover { filter: brightness(0.97); transform: translateY(-1px); }
@@ -86,40 +87,66 @@
 @section('content')
 <div class="page-wrapper"><div class="page-content social-media-page social-dashboard">
 
+    <div class="page-heading mb-3">
+        <div>
+            <h4 class="page-title">Social Media Workspace</h4>
+            <p class="page-subtitle">Plan, review and publish every client post from one calendar.</p>
+        </div>
+        @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
+            <a href="{{ route('social-media.posts.create') }}" class="btn btn-primary"><i class="bx bx-plus me-1"></i>Create Post</a>
+        @endif
+    </div>
+
+    <form method="GET" class="card mb-4 dashboard-filter-card">
+        <div class="card-body py-3">
+            <div class="row g-2 align-items-end">
+                @if(!$dashboardClients->isEmpty())
+                    <div class="col-md-4 col-lg-3"><label class="form-label small mb-1">Client</label><select name="client_id" class="form-select"><option value="">All accessible clients</option>@foreach($dashboardClients as $client)<option value="{{ $client->id }}" @selected((string) request('client_id') === (string) $client->id)>{{ $client->name }}</option>@endforeach</select></div>
+                @endif
+                <div class="col-md-3 col-lg-2"><label class="form-label small mb-1">Status</label><select name="status" class="form-select"><option value="">All statuses</option>@foreach(\App\Models\SocialPost::STATUSES as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ ucwords(str_replace('_', ' ', $status)) }}</option>@endforeach</select></div>
+                <div class="col-md-3 col-lg-2"><label class="form-label small mb-1">Plan month</label><input type="month" name="month" value="{{ $selectedMonth }}" class="form-control"></div>
+                <div class="col-md-auto"><button class="btn btn-outline-primary w-100"><i class="bx bx-filter-alt me-1"></i>Apply</button></div>
+                <div class="col-md-auto"><a href="{{ route('social-media.dashboard') }}" class="btn btn-light w-100">Reset</a></div>
+                @if(in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))<div class="col-12"><small class="text-muted"><i class="bx bx-lock-alt me-1"></i>You are viewing only your own posts and approval dates.</small></div>@endif
+            </div>
+        </div>
+    </form>
+
     {{-- 1. Top Section: 8 Lists Status Metric Cards (Heading Section) --}}
     @php
+        $dashboardFilters = array_filter(request()->only(['client_id', 'month']));
         $statusConfig = [
             'planned' => [
                 'label' => 'Planned',
-                'url' => route('social-media.plans.index'),
+                'url' => route('social-media.plans.index', $dashboardFilters),
             ],
             'in_progress' => [
                 'label' => 'In Design',
-                'url' => route('social-media.posts.index', ['status' => 'in_progress']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'in_progress'])),
             ],
             'internal_review' => [
                 'label' => 'Internal Review',
-                'url' => route('social-media.posts.index', ['status' => 'internal_review']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'internal_review'])),
             ],
             'pending_client_approval' => [
                 'label' => 'Client Approvals',
-                'url' => route('social-media.posts.index', ['status' => 'pending_client_approval']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'pending_client_approval'])),
             ],
             'client_changes_requested' => [
                 'label' => 'Changes Requested',
-                'url' => route('social-media.posts.index', ['status' => 'client_changes_requested']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'client_changes_requested'])),
             ],
             'scheduled' => [
                 'label' => 'Scheduled',
-                'url' => route('social-media.posts.index', ['status' => 'scheduled']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'scheduled'])),
             ],
             'published' => [
                 'label' => 'Published',
-                'url' => route('social-media.posts.index', ['status' => 'published']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'published'])),
             ],
             'rejected' => [
                 'label' => 'Rejected',
-                'url' => route('social-media.posts.index', ['status' => 'rejected']),
+                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'rejected'])),
             ],
         ];
     @endphp
@@ -145,7 +172,7 @@
                 <div class="card-header appointment-header">
                     <div>
                         <h6 class="mb-0">Publishing Calendar</h6>
-                        <p class="mb-0 text-muted font-13">Monthly schedule of planned, reviewed and scheduled posts</p>
+                        <p class="mb-0 text-muted font-13">Each post is shown on its planned date; scheduled posts move to their final publishing date.</p>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
@@ -418,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var selectedDateEl = document.getElementById('calendarSelectedDate');
     var upcomingEvents = [];
     var showAllUpcomingEvents = false;
-    var selectedCalendarDate = calendarDateKey(new Date());
+    var selectedCalendarDate = @json($selectedMonth . '-01');
 
     var calendarEventStyles = {
         planned: {
@@ -588,7 +615,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 hour: 'numeric',
                 minute: '2-digit'
             }).format(event.start);
-            time.textContent = dateLabel + (event.allDay ? '' : ' at ' + timeLabel);
+            time.textContent = (event.extendedProps.date_label || dateLabel) + (event.allDay ? '' : ' · ' + timeLabel);
 
             var kind = document.createElement('span');
             kind.className = 'calendar-event-kind';
@@ -631,6 +658,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
+        initialDate: @json($selectedMonth . '-01'),
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
@@ -642,20 +670,32 @@ document.addEventListener('DOMContentLoaded', function() {
         editable: false,
         selectable: true,
         selectMirror: true,
-        dayMaxEvents: true,
+        dayMaxEvents: 3,
         events: @json($calendarEvents),
         eventsSet: function(events) {
-            renderCalendarMarkers(events);
             renderUpcomingEvents(events);
         },
         eventContent: function(info) {
-            var marker = document.createElement('span');
-            marker.className = 'calendar-category-marker';
-            marker.setAttribute('aria-hidden', 'true');
-            marker.style.backgroundColor = info.event.backgroundColor || '#6c757d';
+            var eventNode = document.createElement('span');
+            eventNode.className = 'calendar-post-event';
+            eventNode.style.borderLeftColor = info.event.backgroundColor || '#6c757d';
 
+            var title = document.createElement('span');
+            title.className = 'calendar-post-title';
+            title.textContent = info.event.title || 'Untitled post';
+
+            var meta = document.createElement('span');
+            meta.className = 'calendar-post-meta';
+            meta.textContent = [
+                info.event.extendedProps.client_name,
+                info.event.extendedProps.post_type,
+                info.event.extendedProps.platforms
+            ].filter(Boolean).join(' · ');
+
+            eventNode.appendChild(title);
+            if (meta.textContent) eventNode.appendChild(meta);
             return {
-                domNodes: [marker]
+                domNodes: [eventNode]
             };
         },
         dateClick: function(info) {
@@ -676,6 +716,8 @@ document.addEventListener('DOMContentLoaded', function() {
             var eventStyle = calendarEventStyles[eventType] || calendarEventStyles.planned;
             var categoryLabel = info.event.extendedProps.event_type_label || eventStyle.label;
             var tooltipTitle = categoryLabel + ': ' + info.event.title;
+            if (info.event.extendedProps.client_name) tooltipTitle += ' — ' + info.event.extendedProps.client_name;
+            if (info.event.extendedProps.platforms) tooltipTitle += ' (' + info.event.extendedProps.platforms + ')';
 
             info.el.setAttribute('aria-label', tooltipTitle);
             if (window.$ && $.fn.tooltip) {

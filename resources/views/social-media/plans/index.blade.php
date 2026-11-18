@@ -1,4 +1,5 @@
 @extends('layout.master')
+<?php $isClient = in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client', 'customer'], true); ?>
 
 @push('styles')
 <style>
@@ -190,9 +191,12 @@
                             @endphp
                             <span class="badge {{ $statusBadge }}">{{ ucwords(str_replace('_',' ', $plan->status ?? 'draft')) }}</span>
                         </td>
-                        <td><small class="text-muted">{{ Str::limit($plan->notes ?: '-', 45) }}</small></td>
+                        <td>
+                            <small class="text-muted d-block">{{ Str::limit($plan->notes ?: '-', 45) }}</small>
+                            @if($plan->client_feedback)<small class="d-block mt-1 text-danger"><strong>Client feedback:</strong> {{ Str::limit($plan->client_feedback, 60) }}</small>@endif
+                        </td>
                         <td class="text-end">
-                            @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
+                            @if(!$isClient)
                                 <div class="plan-actions-group">
                                     <a class="plan-btn-action plan-btn-post" href="{{ route('social-media.posts.create', ['client_id' => $plan->client_id, 'plan_id' => $plan->id]) }}" title="Create Post for this plan">
                                         <i class="bx bx-plus"></i> Post
@@ -216,8 +220,15 @@
                                         </button>
                                     </form>
                                 </div>
+                            @elseif($plan->status === 'pending_client_review')
+                                <form method="POST" action="{{ route('social-media.plans.client-decision', $plan) }}" class="text-start" style="min-width:210px">
+                                    @csrf
+                                    <textarea name="feedback" rows="2" class="form-control form-control-sm mb-2" placeholder="Feedback required if requesting changes"></textarea>
+                                    <button name="decision" value="approved" class="btn btn-sm btn-success">Approve</button>
+                                    <button name="decision" value="changes_requested" class="btn btn-sm btn-outline-warning">Request changes</button>
+                                </form>
                             @else
-                                <span class="text-muted small">-</span>
+                                <small class="text-muted">{{ $plan->client_reviewed_at ? 'Reviewed '.$plan->client_reviewed_at->format('d M Y') : 'No action needed' }}</small>
                             @endif
                         </td>
                     </tr>
