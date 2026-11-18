@@ -8,6 +8,7 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Exceptions\UnauthorizedException as SpatieUnauthorizedException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Throwable;
 
 class Handler extends ExceptionHandler
@@ -55,6 +56,10 @@ class Handler extends ExceptionHandler
 
     public function render($request, Throwable $exception)
     {
+        if ($exception instanceof NotFoundHttpException && ! $request->expectsJson() && ! $request->is('api/*')) {
+            return response()->view('errors.404', [], 404);
+        }
+
         if ($request->expectsJson() || $request->is('api/*')) {
             if ($exception instanceof ValidationException) {
                 return ApiResponse::error('Validation error.', $exception->errors(), 422);
