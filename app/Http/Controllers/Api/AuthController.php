@@ -71,6 +71,10 @@ class AuthController extends Controller
                 return ApiResponse::error('Invalid credentials', null, 401);
             }
 
+            if (! in_array((string) $user->getRawOriginal('status'), ['1', 'active'], true)) {
+                return ApiResponse::error('This account has been blocked. Please contact an administrator.', null, 403);
+            }
+
             $token = $user->createToken('flutter-app')->plainTextToken;
 
             return ApiResponse::success([

@@ -54,6 +54,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'session_invalidated_at' => 'datetime',
     ];
 
     public function getNameAttribute(): string

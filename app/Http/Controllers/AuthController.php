@@ -105,8 +105,16 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
         $remember = $request->boolean('remember');
 
+        $loginUser = User::query()->where('email', $credentials['email'])->first();
+        if ($loginUser && ! $this->isActiveUser($loginUser)) {
+            return redirect()->back()
+                ->withErrors(['email' => 'This account has been blocked. Please contact an administrator.'])
+                ->withInput($request->only('email', 'remember'));
+        }
+
         if (Auth::attempt($credentials, $remember)) {
             $request->session()->regenerate();
+            $request->session()->put('authenticated_at', now()->toIso8601String());
 
             // Store user permissions in session for quick access
             $user = Auth::user();
@@ -170,6 +178,11 @@ class AuthController extends Controller
 
         return redirect()->route('login')
             ->with('success', 'You have been logged out successfully.');
+    }
+
+    private function isActiveUser(User $user): bool
+    {
+        return in_array((string) $user->getRawOriginal('status'), ['1', 'active'], true);
     }
 
     /**

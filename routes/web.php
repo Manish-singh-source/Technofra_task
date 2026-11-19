@@ -75,7 +75,7 @@ Route::controller(AuthController::class)->group(function () {
 
 
 // Protected routes (require authentication)
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'active.user'])->group(function () {
 
     Route::get('/digital-cards/create', [DigitalCardController::class, 'create'])->name('digital-cards.create');
     Route::post('/digital-cards/export-html', [DigitalCardController::class, 'exportHtml'])->name('digital-cards.export-html');
@@ -295,6 +295,9 @@ Route::middleware('auth')->group(function () {
     Route::controller(StaffController::class)->group(function () {
         Route::get('/staff', 'index')->name('staff');
         Route::get('/staff/activity-log', 'activityLog')->name('staff.activity-log');
+        Route::post('/staff/{staff}/logout', 'forceLogout')->name('staff.force-logout');
+        Route::post('/staff/{staff}/block', 'block')->name('staff.block');
+        Route::post('/staff/{staff}/unblock', 'unblock')->name('staff.unblock');
         Route::delete('/staff/delete/{id}', 'destroy')->name('staff.destroy');
         Route::match(['post', 'delete'], '/staff/delete-selected', 'deleteSelected')->name('delete.selected.staff');
         Route::post('/staff/restore/{id}', 'restore')->name('staff.restore');

@@ -61,7 +61,7 @@ Route::prefix('/v1')->group(function () {
 });
 
 // Protected API routes (require authentication)
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
     // Auth routes
     Route::prefix('/v1')->group(function () {
 
@@ -586,7 +586,7 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 // Fallback route for authenticated user
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
+Route::middleware(['auth:sanctum', 'active.user'])->get('/user', function (Request $request) {
     return $request->user();
 });
 

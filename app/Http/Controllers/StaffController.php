@@ -84,7 +84,97 @@ class StaffController extends Controller
             ->orderBy('first_name')
             ->get(['id', 'first_name', 'last_name', 'email']);
 
-        return view('staff.activity-log', compact('logs', 'staffMembers'));
+        $canManageStaffAccounts = $this->canManageStaffAccounts($request->user());
+
+        return view('staff.activity-log', compact('logs', 'staffMembers', 'canManageStaffAccounts'));
+    }
+
+    /**
+     * End every active browser and API session for a staff member.
+     */
+    public function forceLogout(Request $request, User $staff)
+    {
+        $this->authorizeStaffAccountAction($request, $staff);
+        $this->invalidateStaffSessions($staff);
+
+        return redirect()->route('staff.activity-log', $request->query())
+            ->with('success', $staff->name . ' has been logged out from all devices.');
+    }
+
+    /**
+     * Block a staff account and immediately invalidate every active session.
+     */
+    public function block(Request $request, User $staff)
+    {
+        $this->authorizeStaffAccountAction($request, $staff);
+
+        $staff->forceFill(['status' => 'inactive'])->save();
+        $this->invalidateStaffSessions($staff);
+
+        return redirect()->route('staff.activity-log', $request->query())
+            ->with('success', $staff->name . ' has been blocked and logged out.');
+    }
+
+    /**
+     * Restore login access for a previously blocked staff account.
+     */
+    public function unblock(Request $request, User $staff)
+    {
+        $this->authorizeStaffAccountAction($request, $staff);
+        $staff->forceFill(['status' => 'active'])->save();
+
+        return redirect()->route('staff.activity-log', $request->query())
+            ->with('success', $staff->name . ' can log in again.');
+    }
+
+    private function authorizeStaffAccountAction(Request $request, User $staff): void
+    {
+        $actor = $request->user();
+        $staffRole = strtolower((string) $staff->getRawOriginal('role'));
+
+        abort_unless($this->canManageStaffAccounts($actor), 403);
+        abort_unless($staffRole === 'staff', 404);
+        abort_if((int) $actor->id === (int) $staff->id, 422, 'You cannot block or log out your own account.');
+    }
+
+    private function canManageStaffAccounts(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        $roles = collect([
+            $user->getRawOriginal('role'),
+            $user->role,
+        ]);
+
+        if (method_exists($user, 'getRoleNames')) {
+            $roles = $roles->merge($user->getRoleNames());
+        }
+
+        return $roles
+            ->filter()
+            ->map(fn ($role) => str_replace([' ', '-'], '_', strtolower(trim((string) $role))))
+            ->contains(fn ($role) => in_array($role, ['admin', 'super_admin', 'super_admin2', 'superadmin'], true));
+    }
+
+    private function invalidateStaffSessions(User $staff): void
+    {
+        $now = now();
+
+        DB::transaction(function () use ($staff, $now) {
+            $staff->forceFill([
+                'session_invalidated_at' => $now,
+                'remember_token' => null,
+            ])->save();
+
+            $staff->tokens()->delete();
+
+            StaffActivityLog::query()
+                ->where('user_id', $staff->id)
+                ->whereNull('logged_out_at')
+                ->update(['logged_out_at' => $now]);
+        });
     }
 
     /**

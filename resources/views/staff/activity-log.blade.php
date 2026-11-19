@@ -26,7 +26,7 @@
                     <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                         <div>
                             <h5 class="mb-1">Staff Activity Log</h5>
-                            <p class="text-muted mb-0">Successful logins, login device, IP address, and explicit logout time. Staff on the same Wi-Fi or VPN may share an IP address.</p>
+                            <p class="text-muted mb-0">Successful logins, login device, IP address, and explicit logout time. Account actions apply to every device for that staff member. Your own account cannot be blocked or remotely logged out here.</p>
                         </div>
                     </div>
 
@@ -67,6 +67,7 @@
                                     <th>Browser</th>
                                     <th>IP address</th>
                                     <th>Session</th>
+                                    <th>Account action</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -86,10 +87,47 @@
                                                 {{ $log->logged_out_at ? 'Logged out' : 'Logout not recorded' }}
                                             </span>
                                         </td>
+                                        <td class="text-nowrap">
+                                            @php
+                                                $isCurrentUser = (int) auth()->id() === (int) $log->user_id;
+                                                $isBlocked = ! in_array((string) $log->user?->getRawOriginal('status'), ['1', 'active'], true);
+                                            @endphp
+                                            @if ($isCurrentUser)
+                                                <span class="badge bg-light text-dark border">Current account</span>
+                                            @elseif ($canManageStaffAccounts && $log->user)
+                                                <div class="d-inline-flex gap-1">
+                                                    <form method="POST" action="{{ route('staff.force-logout', $log->user) }}" onsubmit="return confirm('Log out {{ addslashes($log->user->name) }} from all devices?');">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-sm btn-outline-warning px-2" title="Log out from all devices" aria-label="Log out from all devices">
+                                                            <i class="bx bx-log-out"></i>
+                                                        </button>
+                                                    </form>
+                                                    @if ($isBlocked)
+                                                        <form method="POST" action="{{ route('staff.unblock', $log->user) }}" onsubmit="return confirm('Allow {{ addslashes($log->user->name) }} to log in again?');">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-outline-success px-2" title="Unblock account" aria-label="Unblock account">
+                                                                <i class="bx bx-check-circle"></i>
+                                                            </button>
+                                                        </form>
+                                                    @else
+                                                        <form method="POST" action="{{ route('staff.block', $log->user) }}" onsubmit="return confirm('Block {{ addslashes($log->user->name) }}? This logs them out and prevents future login.');">
+                                                            @csrf
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Block account" aria-label="Block account">
+                                                                <i class="bx bx-block"></i>
+                                                            </button>
+                                                        </form>
+                                                    @endif
+                                                </div>
+                                            @elseif (! $log->user)
+                                                <span class="text-muted">Account unavailable</span>
+                                            @else
+                                                <span class="text-muted">No permission</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="7" class="text-center text-muted py-4">No staff login activity found.</td>
+                                        <td colspan="8" class="text-center text-muted py-4">No staff login activity found.</td>
                                     </tr>
                                 @endforelse
                             </tbody>
