@@ -135,6 +135,7 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/calendar', 'calendar')->name('calendar');
         Route::get('/plans', 'plans')->name('plans.index');
         Route::post('/plans', 'storePlan')->name('plans.store');
+        Route::get('/plans/{plan}', 'showPlan')->name('plans.show');
         Route::put('/plans/{plan}', 'updatePlan')->name('plans.update');
         Route::delete('/plans/{plan}', 'destroyPlan')->name('plans.destroy');
         Route::post('/plans/{plan}/client-decision', 'clientPlanDecision')->name('plans.client-decision');
@@ -220,6 +221,8 @@ Route::middleware(['auth', 'active.user'])->group(function () {
             ->middleware('can:upload_salary_management')->name('salary-management.profiles.delete');
         Route::post('/salary-management/approve-bulk', [SalaryManagementController::class, 'approveBulk'])
             ->middleware('can:upload_salary_management')->name('salary-management.approve-bulk');
+        Route::delete('/salary-management/{salaryRecord}', [SalaryManagementController::class, 'destroy'])
+            ->middleware('can:upload_salary_management')->name('salary-management.destroy');
         Route::post('/salary-management/{salaryRecord}/approve', [SalaryManagementController::class, 'approve'])
             ->middleware('can:upload_salary_management')->name('salary-management.approve');
         Route::post('/salary-management/{salaryRecord}/reopen', [SalaryManagementController::class, 'reopen'])

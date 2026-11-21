@@ -206,6 +206,40 @@
                 </div>
             </div>
             <!--navigation-->
+            <?php
+                $sidebarUser = auth()->user();
+                $sidebarRole = strtolower((string) ($sidebarUser?->getRawOriginal('role') ?? ''));
+                $isClientPortalUser = in_array($sidebarRole, ['client', 'customer'], true);
+                $isStaffPortalUser = $sidebarRole === 'staff';
+
+                // Parent items are visible only when at least one child is available.
+                $canRenewalMaster = $sidebarUser?->can('view_services')
+                    || $sidebarUser?->can('view_clients')
+                    || $sidebarUser?->can('view_vendors_services')
+                    || $sidebarUser?->can('view_vendors');
+                $canViewProjectsMenu = $isClientPortalUser || $sidebarUser?->can('view_projects');
+                $canRaiseIssueMenu = $isClientPortalUser || $isStaffPortalUser || $sidebarUser?->can('view_raise_issue');
+                $canAccessControlMenu = $sidebarUser?->can('view_roles');
+                $canSettingsMenu = $sidebarUser?->can('manage_settings')
+                    || $sidebarUser?->can('manage_meta_credentials')
+                    || $sidebarUser?->can('view_general_settings')
+                    || $sidebarUser?->can('view_company_information')
+                    || $sidebarUser?->can('view_email_settings');
+                $canSocialMediaMenu = $isClientPortalUser || $isStaffPortalUser
+                    || $sidebarUser?->can('view_social_media_posts')
+                    || $sidebarUser?->can('manage_social_content_plans');
+                $hasMasterMenu = $canRenewalMaster
+                    || $sidebarUser?->can('view_leads_management')
+                    || $sidebarUser?->can('view_orders')
+                    || $canViewProjectsMenu
+                    || $sidebarUser?->can('view_tasks')
+                    || $canRaiseIssueMenu
+                    || $sidebarUser?->can('view_staff')
+                    || $sidebarUser?->can('view_book_calls')
+                    || $sidebarUser?->can('view_digital_marketing_leads')
+                    || $canAccessControlMenu
+                    || $canSettingsMenu;
+            ?>
             <ul class="metismenu" id="menu">
                 <li>
                     <a href="{{ route('dashboard') }}">
@@ -229,8 +263,8 @@
       </li>
      </ul>
     </li> -->
-                <li class="menu-label">Master</li>
-                @can('view_renewals')
+                @if($hasMasterMenu)<li class="menu-label">Master</li>@endif
+                @if($canRenewalMaster)
                     <li>
                         <a href="javascript:;" class="has-arrow">
                             <div class="parent-icon"><i class="bx bx-category"></i>
@@ -282,8 +316,7 @@
                             @endcan
                         </ul>
                     </li>
-                @endcan
-                <!-- Leads section - removed permission check -->
+                @endif
                 {{-- 
                 @can('view_leads')
                     <li>
@@ -313,7 +346,7 @@
                         </a>
                     </li>
                 @endcan
-                @can('view_projects')
+                @if($canViewProjectsMenu)
                     <li>
                         <a href="{{ route('project') }}">
                             <div class="parent-icon"><i class="bx bx-bar-chart"></i>
@@ -321,7 +354,7 @@
                             <div class="menu-title">Projects</div>
                         </a>
                     </li>
-                @endcan
+                @endif
                 @can('view_tasks')
                     <li>
                         <a href="{{ route('task') }}">
@@ -331,8 +364,7 @@
                         </a>
                     </li>
                 @endcan
-                <!-- Client Issue section - removed permission check -->
-                @can('view_raise_issue')
+                @if($canRaiseIssueMenu)
                     <li>
                         <a href="{{ route('client-issue') }}">
                             <div class="parent-icon"><i class="bx bx-error"></i>
@@ -340,7 +372,7 @@
                             <div class="menu-title">Raise Issue</div>
                         </a>
                     </li>
-                @endcan
+                @endif
                 @can('view_staff')
                     <li>
                         <a href="{{ route('staff') }}">
@@ -401,46 +433,6 @@
                     </li>
                 @endcan 
                 --}}
-                @can('view_staff')
-                    <li>
-                        <a href="javascript:;" class="has-arrow">
-                            <div class="parent-icon"><i class="bx bx-user-circle"></i>
-                            </div>
-                            <div class="menu-title">Access Control</div>
-                        </a>
-                        <ul>
-                            @can('view_roles')
-                                <li>
-                                    <a href="{{ route('roles.index') }}">
-                                        <div class="parent-icon">
-
-                                        </div>
-                                        <div class="menu-title">Roles</div>
-                                    </a>
-                                </li>
-                            @endcan
-
-                            {{-- @can('view_permissions') --}}
-                            <li>
-                                <a href="{{ route('permissions.index') }}">
-                                    <div class="parent-icon"></div>
-                                    <div class="menu-title">Permissions</div>
-                                </a>
-                            </li>
-                            {{-- @endcan --}}
-                        </ul>
-                    </li>
-                @endcan
-                @canany(['manage_settings', 'manage_meta_credentials'])
-                    <li>
-                        <a href="{{ route('settings') }}">
-                            <div class="parent-icon"><i class="bx bx-cog"></i>
-                            </div>
-                            <div class="menu-title">Settings</div>
-                        </a>
-                    </li>
-                @endcanany
-
                 <li>
                     <a href="{{ route('vcards.index') }}">
                         <div class="parent-icon"><i class="bx bx-id-card"></i></div>
@@ -463,7 +455,7 @@
                         </a>
                     </li>
                 @endif
-                @if(auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']) || in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'staff', 'client', 'customer'], true) || auth()->user()->checkPermissionTo('view_social_media_posts'))
+                @if($canSocialMediaMenu)
                     <li>
                         <a href="javascript:;" class="has-arrow">
                             <div class="parent-icon"><i class="bx bx-share-alt"></i></div>
@@ -471,18 +463,7 @@
                         </a>
                         <ul>
                             <li><a href="{{ route('social-media.dashboard') }}"><i class='bx bx-radio-circle'></i>Overview</a></li>
-                            @if(in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client', 'customer'], true))
-                                <li><a href="{{ route('social-media.posts.index') }}"><i class='bx bx-radio-circle'></i>My Posts</a></li>
-                                <li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>My Monthly Plan</a></li>
-                                <li><a href="{{ route('social-media.approvals') }}"><i class='bx bx-radio-circle'></i>My Approvals</a></li>
-                            @else
-                                @if(auth()->user()->checkPermissionTo('view_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin'])){{-- <li><a href="{{ route('social-media.calendar') }}"><i class='bx bx-radio-circle'></i>Post Calendar</a></li> --}}<li><a href="{{ route('social-media.posts.index') }}"><i class='bx bx-radio-circle'></i>All Posts</a></li>@endif
-                                <li><a href="{{ route('social-media.my-assigned') }}"><i class='bx bx-radio-circle'></i>My Assigned Posts</a></li>
-                                @if(auth()->user()->checkPermissionTo('manage_social_content_plans') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>Monthly Plans</a></li>@endif
-                                @if(auth()->user()->checkPermissionTo('review_social_media_posts') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.review') }}"><i class='bx bx-radio-circle'></i>Internal Review</a></li><li><a href="{{ route('social-media.approvals') }}"><i class='bx bx-radio-circle'></i>Client Approvals</a></li>@endif
-                                @if(auth()->user()->checkPermissionTo('manage_social_publishing') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.publishing') }}"><i class='bx bx-radio-circle'></i>Publishing Tracker</a></li>@endif
-                                @if(auth()->user()->checkPermissionTo('manage_social_festival_events') || auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']))<li><a href="{{ route('social-media.festivals.index') }}"><i class='bx bx-radio-circle'></i>Festival Master</a></li>@endif
-                            @endif
+                            <li><a href="{{ route('social-media.plans.index') }}"><i class='bx bx-radio-circle'></i>Content Planning</a></li>
                         </ul>
                     </li>
                 @endif
@@ -506,6 +487,32 @@
                         </ul>
                     </li>
                 @endcan
+
+                @if($canAccessControlMenu)
+                    <li>
+                        <a href="javascript:;" class="has-arrow">
+                            <div class="parent-icon"><i class="bx bx-user-circle"></i></div>
+                            <div class="menu-title">Access Control</div>
+                        </a>
+                        <ul>
+                            <li>
+                                <a href="{{ route('roles.index') }}"><i class='bx bx-radio-circle'></i>Roles</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('permissions.index') }}"><i class='bx bx-radio-circle'></i>Permissions</a>
+                            </li>
+                        </ul>
+                    </li>
+                @endif
+
+                @if($canSettingsMenu)
+                    <li>
+                        <a href="{{ route('settings') }}">
+                            <div class="parent-icon"><i class="bx bx-cog"></i></div>
+                            <div class="menu-title">Settings</div>
+                        </a>
+                    </li>
+                @endif
 
 
 

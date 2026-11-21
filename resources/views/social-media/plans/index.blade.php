@@ -82,6 +82,17 @@
         </div>
     </div>
 
+    <div class="nav nav-pills flex-wrap gap-2 mb-4" aria-label="Content planning sections">
+        <a @class(['nav-link', 'active' => $activeTab === 'plans']) href="{{ route('social-media.plans.index', ['tab' => 'plans']) }}"><i class="bx bx-calendar me-1"></i>Monthly Plans</a>
+        @if(!$isClient)
+            <a @class(['nav-link', 'active' => $activeTab === 'work']) href="{{ route('social-media.plans.index', ['tab' => 'work']) }}"><i class="bx bx-task me-1"></i>My Work</a>
+            <a @class(['nav-link', 'active' => $activeTab === 'review']) href="{{ route('social-media.plans.index', ['tab' => 'review']) }}"><i class="bx bx-search-alt me-1"></i>Review</a>
+            <a @class(['nav-link', 'active' => $activeTab === 'approvals']) href="{{ route('social-media.plans.index', ['tab' => 'approvals']) }}"><i class="bx bx-user-check me-1"></i>Client Approvals</a>
+            <a @class(['nav-link', 'active' => $activeTab === 'publishing']) href="{{ route('social-media.plans.index', ['tab' => 'publishing']) }}"><i class="bx bx-send me-1"></i>Publishing</a>
+            <a @class(['nav-link', 'active' => $activeTab === 'festivals']) href="{{ route('social-media.plans.index', ['tab' => 'festivals']) }}"><i class="bx bx-party me-1"></i>Festival Master</a>
+        @endif
+    </div>
+
     @if(session('success'))
         <div class="alert alert-success alert-dismissible fade show" role="alert">
             {{ session('success') }}
@@ -100,7 +111,8 @@
         </div>
     @endif
 
-    @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
+    @if($activeTab === 'plans')
+    @if($canManageContentPlans)
     <div class="card mb-4">
         <div class="card-header bg-transparent">
             <h6 class="mb-0 fw-semibold"><i class="bx bx-plus-circle me-1"></i> Create New Content Plan</h6>
@@ -158,10 +170,10 @@
     <div class="card"><div class="card-body">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="mb-0">All Content Plans</h5>
-            <small class="text-muted">Total: {{ $plans->total() }}</small>
+            <small class="text-muted">Total: {{ $plans->count() }}</small>
         </div>
         <div class="table-responsive">
-            <table class="table align-middle table-hover mb-0">
+            <table id="monthly-plans-table" data-no-default-datatable="true" class="table align-middle table-hover mb-0">
                 <thead class="table-light">
                     <tr>
                         <th>Client</th>
@@ -178,14 +190,14 @@
                     <tr>
                         <td><strong>{{ $plan->client->name ?? '-' }}</strong></td>
                         <td>{{ $plan->title ?: 'Content Plan' }}</td>
-                        <td>{{ \Carbon\Carbon::create($plan->plan_year, $plan->plan_month, 1)->format('F Y') }}</td>
+                        <td data-order="{{ sprintf('%04d-%02d', $plan->plan_year, $plan->plan_month) }}">{{ \Carbon\Carbon::create($plan->plan_year, $plan->plan_month, 1)->format('F Y') }}</td>
                         <td><span class="badge bg-light text-dark border">{{ $plan->posts_count }} posts</span></td>
                         <td>
                             @php
                                 $statusBadge = match($plan->status) {
                                     'client_approved' => 'bg-success',
                                     'pending_client_review' => 'bg-warning text-dark',
-                                    'changes_requested' => 'bg-danger',
+                                    'changes_requested', 'not_required' => 'bg-danger',
                                     default => 'bg-secondary'
                                 };
                             @endphp
@@ -196,7 +208,10 @@
                             @if($plan->client_feedback)<small class="d-block mt-1 text-danger"><strong>Client feedback:</strong> {{ Str::limit($plan->client_feedback, 60) }}</small>@endif
                         </td>
                         <td class="text-end">
-                            @if(!$isClient)
+                            <a class="plan-btn-action plan-btn-post" href="{{ route('social-media.plans.show', $plan) }}" title="View monthly plan and content">
+                                <i class="bx bx-show"></i> View
+                            </a>
+                            @if($canManageContentPlans)
                                 <div class="plan-actions-group">
                                     <a class="plan-btn-action plan-btn-post" href="{{ route('social-media.posts.create', ['client_id' => $plan->client_id, 'plan_id' => $plan->id]) }}" title="Create Post for this plan">
                                         <i class="bx bx-plus"></i> Post
@@ -220,12 +235,14 @@
                                         </button>
                                     </form>
                                 </div>
-                            @elseif($plan->status === 'pending_client_review')
+                            @elseif($isClient && $plan->status === 'pending_client_review')
                                 <form method="POST" action="{{ route('social-media.plans.client-decision', $plan) }}" class="text-start" style="min-width:210px">
                                     @csrf
                                     <textarea name="feedback" rows="2" class="form-control form-control-sm mb-2" placeholder="Feedback required if requesting changes"></textarea>
                                     <button name="decision" value="approved" class="btn btn-sm btn-success">Approve</button>
                                     <button name="decision" value="changes_requested" class="btn btn-sm btn-outline-warning">Request changes</button>
+                                    <div class="small text-muted mt-2">Monthly planning is not needed?</div>
+                                    <button name="decision" value="not_required" class="btn btn-sm btn-outline-danger mt-1" onclick="return confirm('Confirm that you do not need this monthly content plan?');">I don't need monthly planning</button>
                                 </form>
                             @else
                                 <small class="text-muted">{{ $plan->client_reviewed_at ? 'Reviewed '.$plan->client_reviewed_at->format('d M Y') : 'No action needed' }}</small>
@@ -240,10 +257,66 @@
                 </tbody>
             </table>
         </div>
-        <div class="mt-3">
-            {{ $plans->links() }}
-        </div>
     </div></div>
+    @else
+        @if($activeTab === 'festivals')
+            <div class="card mb-4">
+                <div class="card-header bg-transparent"><h6 class="mb-0 fw-semibold"><i class="bx bx-plus-circle me-1"></i>Add Festival / Event</h6></div>
+                <div class="card-body">
+                    <form class="row g-3" method="POST" action="{{ route('social-media.festivals.store') }}">
+                        @csrf
+                        <div class="col-md-4"><label class="form-label small fw-semibold">Name *</label><input required name="name" class="form-control" placeholder="e.g. Diwali"></div>
+                        <div class="col-md-2"><label class="form-label small fw-semibold">Date</label><input type="date" name="event_date" class="form-control"></div>
+                        <div class="col-md-2"><label class="form-label small fw-semibold">Category</label><input name="category" class="form-control" placeholder="Festival"></div>
+                        <div class="col-md-2"><label class="form-label small fw-semibold">Recurrence *</label><select name="recurrence_type" class="form-select"><option value="yearly">Yearly</option><option value="none">One time</option></select></div>
+                        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-primary w-100" type="submit"><i class="bx bx-save me-1"></i>Save</button></div>
+                    </form>
+                </div>
+            </div>
+            <div class="card"><div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Festival Master</h5><small class="text-muted">{{ $festivals->count() }} events</small></div>
+                <div class="table-responsive"><table class="table align-middle table-hover mb-0"><thead class="table-light"><tr><th>Event</th><th>Date</th><th>Category</th><th>Region</th><th>Client</th><th>Repeats</th></tr></thead><tbody>
+                    @forelse($festivals as $festival)
+                        <tr><td><strong>{{ $festival->name }}</strong><small class="d-block text-muted">{{ Str::limit($festival->description, 65) }}</small></td><td>{{ optional($festival->event_date)->format('d M Y') ?: '-' }}</td><td>{{ $festival->category ?: '-' }}</td><td>{{ $festival->country_region ?: '-' }}</td><td>{{ $festival->client->name ?? 'All clients' }}</td><td>{{ $festival->recurrence_type === 'yearly' ? 'Yearly' : 'One time' }}</td></tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center text-muted py-4">No festival events added yet.</td></tr>
+                    @endforelse
+                </tbody></table></div>
+            </div></div>
+        @else
+            @php
+                $tabTitle = ['work' => 'My Work', 'review' => 'Internal Review', 'approvals' => 'Client Approvals', 'publishing' => 'Publishing Tracker'][$activeTab] ?? 'Content Items';
+            @endphp
+            <div class="card"><div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">{{ $tabTitle }}</h5><small class="text-muted">{{ $tabPosts->count() }} content items</small></div>
+                <div class="table-responsive"><table class="table align-middle table-hover mb-0"><thead class="table-light"><tr><th>Content</th><th>Client</th><th>Planned date</th><th>Platforms</th><th>Status</th><th class="text-end">Action</th></tr></thead><tbody>
+                    @forelse($tabPosts as $post)
+                        <tr>
+                            <td><strong>{{ $post->title }}</strong><small class="d-block text-muted">{{ $post->content_category ?: ucfirst($post->post_type) }}</small></td>
+                            <td>{{ $post->client->name ?? '-' }}</td>
+                            <td>{{ optional($post->planned_at)->format('d M Y') ?: optional($post->publishing_scheduled_at)->format('d M Y') ?: '-' }}</td>
+                            <td>{{ $post->platforms->pluck('platform')->join(', ') ?: '-' }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ ucwords(str_replace('_', ' ', $post->status)) }}</span></td>
+                            <td class="text-end text-nowrap">
+                                <a class="btn btn-sm btn-outline-primary" href="{{ route('social-media.posts.show', $post) }}"><i class="bx bx-show"></i> View</a>
+                                @if(!$isClient)
+                                    <form method="POST" action="{{ route('social-media.posts.destroy', $post) }}" class="d-inline" onsubmit="return confirm('Delete this post and all of its related versions, comments and publishing records?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger ms-1" title="Delete post">
+                                            <i class="bx bx-trash"></i> Delete
+                                        </button>
+                                    </form>
+                                @endif
+                            </td>
+                        </tr>
+                    @empty
+                        <tr><td colspan="6" class="text-center text-muted py-4">No content items in this section.</td></tr>
+                    @endforelse
+                </tbody></table></div>
+            </div></div>
+        @endif
+    @endif
 </div></div>
 
 {{-- Edit Plan Modal --}}
@@ -291,6 +364,7 @@
                                 <option value="pending_client_review">Pending Client Review</option>
                                 <option value="client_approved">Client Approved</option>
                                 <option value="changes_requested">Changes Requested</option>
+                                <option value="not_required">Monthly Planning Not Required</option>
                             </select>
                         </div>
                         <div class="col-12">
@@ -312,6 +386,20 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    var plansTable = $('#monthly-plans-table');
+    if (plansTable.length && $.fn.DataTable && !$.fn.DataTable.isDataTable(plansTable)) {
+        plansTable.DataTable({
+            pageLength: 10,
+            lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
+            order: [[2, 'desc']],
+            columnDefs: [{ targets: 6, orderable: false, searchable: false }],
+            language: {
+                search: '',
+                searchPlaceholder: 'Search plans...'
+            }
+        });
+    }
+
     var editModalEl = document.getElementById('editPlanModal');
     var editModal = editModalEl && window.bootstrap ? new bootstrap.Modal(editModalEl) : null;
     var editForm = document.getElementById('editPlanForm');

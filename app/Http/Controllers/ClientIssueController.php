@@ -92,7 +92,7 @@ class ClientIssueController extends Controller
     /**
      * Display a listing of client issues.
      */
-    public function index()
+    public function index(bool $openCreateForm = false)
     {
         $clientUser = $this->getLoggedInClient();
         $isClient = $this->isClient();
@@ -131,7 +131,7 @@ class ClientIssueController extends Controller
             $selectedProjectId = null;
         }
 
-        return view('client-issue', compact('clientIssues', 'projects', 'clientUsers', 'selectedProjectId', 'isClient'));
+        return view('client-issue', compact('clientIssues', 'projects', 'clientUsers', 'selectedProjectId', 'isClient', 'openCreateForm'));
     }
 
     /**
@@ -186,23 +186,9 @@ class ClientIssueController extends Controller
      */
     public function create()
     {
-        $clientUser = $this->getLoggedInClient();
-        $isClient = $this->isClient();
-
-        if ($clientUser) {
-            // Client can only see their own projects
-            $projects = Project::where('customer_id', $clientUser->id)->get();
-            $clientUsers = collect([$clientUser]);
-            // Auto-select project if only one exists
-            $selectedProjectId = $projects->count() === 1 ? $projects->first()->id : null;
-        } else {
-            // Admin/Staff can see all projects and clients
-            $projects = Project::all();
-            $clientUsers = User::where('role', 'client')->get();
-            $selectedProjectId = null;
-        }
-
-        return view('client-issue', compact('projects', 'clientUsers', 'selectedProjectId', 'isClient'));
+        // The create form is a modal within the issue listing. Reuse the listing
+        // data so this direct URL has every variable the shared view requires.
+        return $this->index(true);
     }
 
     /**

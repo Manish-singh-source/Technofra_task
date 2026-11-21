@@ -535,6 +535,22 @@ class SalaryManagementController extends Controller
         return back()->with('success', 'Employee salary profile deleted. The staff account was not affected.');
     }
 
+    /**
+     * Permanently remove one saved payroll record and its associated history.
+     */
+    public function destroy(SalaryRecord $salaryRecord)
+    {
+        DB::transaction(function () use ($salaryRecord) {
+            SalaryRecord::query()
+                ->lockForUpdate()
+                ->findOrFail($salaryRecord->id)
+                ->delete();
+        });
+
+        return redirect()->route('salary-management.attendance')
+            ->with('success', 'Payroll record deleted permanently.');
+    }
+
     public function approve(Request $request, SalaryRecord $salaryRecord)
     {
         $data = $salaryRecord->data ?? [];

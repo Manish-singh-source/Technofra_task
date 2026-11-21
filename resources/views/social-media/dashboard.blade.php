@@ -9,6 +9,7 @@
 .social-dashboard .table thead th{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#495057;background:#f8f9fa}
 .social-dashboard .table td{border-color:#edf1f6;padding:.85rem .75rem}
 .social-dashboard .form-select,.social-dashboard .form-control{border-color:#dce5f2;border-radius:8px}
+.status-summary{display:flex;flex-wrap:nowrap;align-items:center;gap:.38rem;white-space:nowrap}.status-summary-item{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:1px solid #e3eaf3;border-radius:7px;background:#fff;color:#536171;line-height:1;text-decoration:none;transition:background .15s ease,transform .15s ease}.status-summary-item:hover{background:#f5f8fc;color:#1a315a;transform:translateY(-1px)}.status-summary-item i{font-size:1rem}.status-summary-count{position:absolute;top:-5px;right:-5px;display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;padding:0 3px;border:1px solid #fff;border-radius:999px;background:#edf3fb;color:#1a315a;font-size:.62rem;font-weight:700}.status-summary-item.status-planned i{color:#6c757d}.status-summary-item.status-in_progress i{color:#0d6efd}.status-summary-item.status-internal_review i{color:#fd7e14}.status-summary-item.status-pending_client_approval i{color:#0dcaf0}.status-summary-item.status-client_changes_requested i,.status-summary-item.status-rejected i{color:#dc3545}.status-summary-item.status-scheduled i{color:#6f42c1}.status-summary-item.status-published i{color:#198754}@media (max-width:1199.98px){.status-summary{flex-wrap:wrap}}
 .social-dashboard .radius-10{position:relative;overflow:hidden}
 .social-dashboard .radius-10:before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#1674ea}
 .social-dashboard .radius-10 h3{color:#1a315a;font-weight:700}
@@ -35,6 +36,7 @@
 .calendar-category-dot.pending_client_approval { background: #0dcaf0; }
 .calendar-category-dot.scheduled { background: #6f42c1; }
 .calendar-category-dot.published { background: #198754; }
+.calendar-category-dot.content_plan { background: #6c757d; }
 .calendar-event-kind { display: inline-block; margin-top: 0.25rem; padding: 0.12rem 0.38rem; border-radius: 999px; font-size: 0.62rem; line-height: 1.35; font-weight: 600; }
   #calendar .fc-daygrid-event { margin:2px 3px; border:0; border-left:3px solid currentColor; border-radius:5px; background:#f4f7fb; color:#263b53; white-space:normal; }
   #calendar .fc-daygrid-event-harness { margin-top:1px; }
@@ -97,110 +99,83 @@
         @endif
     </div>
 
+    @php
+        $dashboardFilters = array_filter(request()->only(['client_id', 'month']));
+        $statusConfig = [
+            'planned' => ['label' => 'Planned', 'icon' => 'bx-calendar-check', 'url' => $canViewContentPlans ? route('social-media.plans.index', $dashboardFilters) : null],
+            'in_progress' => ['label' => 'In Design', 'icon' => 'bx-palette', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'in_progress']))],
+            'internal_review' => ['label' => 'Review', 'icon' => 'bx-search-alt', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'internal_review']))],
+            'pending_client_approval' => ['label' => 'Approvals', 'icon' => 'bx-user-check', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'pending_client_approval']))],
+            'client_changes_requested' => ['label' => 'Changes', 'icon' => 'bx-revision', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'client_changes_requested']))],
+            'scheduled' => ['label' => 'Scheduled', 'icon' => 'bx-time-five', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'scheduled']))],
+            'published' => ['label' => 'Published', 'icon' => 'bx-send', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'published']))],
+            'rejected' => ['label' => 'Rejected', 'icon' => 'bx-x-circle', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'rejected']))],
+        ];
+    @endphp
+
     <form method="GET" class="card mb-4 dashboard-filter-card">
         <div class="card-body py-3">
             <div class="row g-2 align-items-end">
                 @if(!$dashboardClients->isEmpty())
-                    <div class="col-md-4 col-lg-3"><label class="form-label small mb-1">Client</label><select name="client_id" class="form-select"><option value="">All accessible clients</option>@foreach($dashboardClients as $client)<option value="{{ $client->id }}" @selected((string) request('client_id') === (string) $client->id)>{{ $client->name }}</option>@endforeach</select></div>
+                    <div class="col-md-4 col-lg-2"><label class="form-label small mb-1">Client</label><select name="client_id" class="form-select"><option value="">All accessible clients</option>@foreach($dashboardClients as $client)<option value="{{ $client->id }}" @selected((string) request('client_id') === (string) $client->id)>{{ $client->name }}</option>@endforeach</select></div>
                 @endif
                 <div class="col-md-3 col-lg-2"><label class="form-label small mb-1">Status</label><select name="status" class="form-select"><option value="">All statuses</option>@foreach(\App\Models\SocialPost::STATUSES as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ ucwords(str_replace('_', ' ', $status)) }}</option>@endforeach</select></div>
                 <div class="col-md-3 col-lg-2"><label class="form-label small mb-1">Plan month</label><input type="month" name="month" value="{{ $selectedMonth }}" class="form-control"></div>
                 <div class="col-md-auto"><button class="btn btn-outline-primary w-100"><i class="bx bx-filter-alt me-1"></i>Apply</button></div>
                 <div class="col-md-auto"><a href="{{ route('social-media.dashboard') }}" class="btn btn-light w-100">Reset</a></div>
+                <div class="col-xl-auto ms-xl-auto">
+                    <div class="status-summary" aria-label="Post status summary">
+                        @foreach($statusConfig as $key => $cfg)
+                            @if($cfg['url'])
+                            <a href="{{ $cfg['url'] }}" class="status-summary-item status-{{ $key }}" title="View {{ $cfg['label'] }} posts" aria-label="{{ $cfg['label'] }}: {{ $counts[$key] ?? 0 }}">
+                                <i class="bx {{ $cfg['icon'] }}"></i><span class="status-summary-count">{{ $counts[$key] ?? 0 }}</span>
+                            </a>
+                            @else
+                            <span class="status-summary-item status-{{ $key }}" aria-label="{{ $cfg['label'] }}: {{ $counts[$key] ?? 0 }}">
+                                <i class="bx {{ $cfg['icon'] }}"></i><span class="status-summary-count">{{ $counts[$key] ?? 0 }}</span>
+                            </span>
+                            @endif
+                        @endforeach
+                    </div>
+                </div>
                 @if(in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))<div class="col-12"><small class="text-muted"><i class="bx bx-lock-alt me-1"></i>You are viewing only your own posts and approval dates.</small></div>@endif
             </div>
         </div>
     </form>
 
-    {{-- 1. Top Section: 8 Lists Status Metric Cards (Heading Section) --}}
-    @php
-        $dashboardFilters = array_filter(request()->only(['client_id', 'month']));
-        $statusConfig = [
-            'planned' => [
-                'label' => 'Planned',
-                'url' => route('social-media.plans.index', $dashboardFilters),
-            ],
-            'in_progress' => [
-                'label' => 'In Design',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'in_progress'])),
-            ],
-            'internal_review' => [
-                'label' => 'Internal Review',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'internal_review'])),
-            ],
-            'pending_client_approval' => [
-                'label' => 'Client Approvals',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'pending_client_approval'])),
-            ],
-            'client_changes_requested' => [
-                'label' => 'Changes Requested',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'client_changes_requested'])),
-            ],
-            'scheduled' => [
-                'label' => 'Scheduled',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'scheduled'])),
-            ],
-            'published' => [
-                'label' => 'Published',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'published'])),
-            ],
-            'rejected' => [
-                'label' => 'Rejected',
-                'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'rejected'])),
-            ],
-        ];
-    @endphp
-    <div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3 mb-4">
-        @foreach($statusConfig as $key => $cfg)
-            <div class="col">
-                <a href="{{ $cfg['url'] }}" class="text-decoration-none">
-                    <div class="card radius-10 mb-0 shadow-sm border-0 h-100">
-                        <div class="card-body">
-                            <p class="mb-1 text-muted">{{ $cfg['label'] }}</p>
-                            <h3 class="mb-0 text-dark">{{ $counts[$key] ?? 0 }}</h3>
-                        </div>
-                    </div>
-                </a>
-            </div>
-        @endforeach
-    </div>
-
-    {{-- 2. Below Lists: Post Calendar Widget --}}
+    {{-- Post Calendar Widget --}}
     <div class="row justify-content-center mb-4">
         <div class="col-12">
             <div class="card radius-10 post-calendar-card shadow-sm border-0">
                 <div class="card-header appointment-header">
                     <div>
-                        <h6 class="mb-0">Publishing Calendar</h6>
-                        <p class="mb-0 text-muted font-13">Each post is shown on its planned date; scheduled posts move to their final publishing date.</p>
+                        <h6 class="mb-0">Monthly Content Plan Calendar</h6>
+                        <p class="mb-0 text-muted font-13">Only monthly content plans are shown here. Individual posts are managed separately.</p>
                     </div>
+                    @if($canViewContentPlans)
                     <div class="d-flex align-items-center gap-2">
                         @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
-                            <a href="{{ route('social-media.posts.create') }}" class="btn btn-primary btn-sm calendar-add-event">
-                                <i class="bx bx-plus me-1"></i> Create Post
+                            <a href="{{ route('social-media.plans.index') }}" class="btn btn-primary btn-sm">
+                                <i class="bx bx-calendar-plus me-1"></i> Manage Plans
                             </a>
                         @endif
-                        <a href="{{ route('social-media.posts.index') }}" class="btn btn-outline-primary calendar-view-all">
-                            <i class="bx bx-table me-1"></i> View All Posts
+                        <a href="{{ route('social-media.plans.index') }}" class="btn btn-outline-primary calendar-view-all">
+                            <i class="bx bx-table me-1"></i> View All Plans
                         </a>
                     </div>
+                    @endif
                 </div>
                 <div class="card-body">
                     <div class="calendar-dashboard-layout">
                         <div id="calendar"></div>
-                        <aside class="calendar-upcoming" aria-label="Upcoming posts">
-                            <h6 class="calendar-upcoming-title">You are going to</h6>
+                        <aside class="calendar-upcoming" aria-label="Monthly content plans">
+                            <h6 class="calendar-upcoming-title">Plans for selected date</h6>
                             <p id="calendarSelectedDate" class="calendar-selected-date"></p>
                             <div class="calendar-event-legend" aria-label="Calendar post categories">
-                                <span><i class="calendar-category-dot planned"></i>Planned</span>
-                                <span><i class="calendar-category-dot in_progress"></i>In Design</span>
-                                <span><i class="calendar-category-dot internal_review"></i>In Review</span>
-                                <span><i class="calendar-category-dot pending_client_approval"></i>Client Approval</span>
-                                <span><i class="calendar-category-dot scheduled"></i>Scheduled</span>
-                                <span><i class="calendar-category-dot published"></i>Published</span>
+                                <span><i class="calendar-category-dot content_plan"></i>Monthly Plan</span>
                             </div>
                             <div id="calendarUpcomingList" class="calendar-upcoming-list" aria-live="polite">
-                                <p class="calendar-upcoming-empty">Loading posts...</p>
+                                <p class="calendar-upcoming-empty">Loading plans...</p>
                             </div>
                             <button type="button" id="calendarUpcomingMore"
                                 class="btn btn-light calendar-upcoming-more" hidden>See More</button>
@@ -226,10 +201,10 @@
                                 </div>
                                 <div class="ms-auto d-flex align-items-center gap-2">
                                     <span class="badge bg-warning text-dark">{{ $monthPlans->count() }} This Month</span>
-                                    <span class="badge bg-danger">{{ $monthPlans->whereIn('status', ['changes_requested', 'rejected'])->count() }} Changes</span>
-                                    <a href="{{ route('social-media.plans.index') }}" class="btn btn-primary btn-sm">
+                                    <span class="badge bg-danger">{{ $monthPlans->whereIn('status', ['changes_requested', 'not_required', 'rejected'])->count() }} Changes</span>
+                                    @if($canViewContentPlans)<a href="{{ route('social-media.plans.index') }}" class="btn btn-primary btn-sm">
                                         <i class="bx bx-list-ul"></i> View All
-                                    </a>
+                                    </a>@endif
                                 </div>
                             </div>
                         </div>
@@ -250,11 +225,11 @@
                                 <tbody>
                                     @forelse($monthPlans as $plan)
                                         @php
-                                            $isDanger = in_array($plan->status, ['changes_requested', 'rejected']);
+                                            $isDanger = in_array($plan->status, ['changes_requested', 'not_required', 'rejected']);
                                             $statusBadgeClass = match($plan->status) {
                                                 'client_approved' => 'bg-success',
                                                 'pending_client_review' => 'bg-warning text-dark',
-                                                'changes_requested' => 'bg-danger',
+                                                'changes_requested', 'not_required' => 'bg-danger',
                                                 default => 'bg-secondary'
                                             };
                                         @endphp
@@ -279,8 +254,13 @@
                                             <td class="text-end">
                                                 <div class="d-flex order-actions justify-content-end">
                                                     <a href="{{ route('social-media.plans.index') }}" title="View Plan"><i class="bx bxs-show"></i></a>
-                                                    @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
+                                                    @if($canManageContentPlans)
                                                         <a href="{{ route('social-media.posts.create', ['client_id' => $plan->client_id, 'plan_id' => $plan->id]) }}" class="ms-2 text-primary" title="Create Post for this plan"><i class="bx bx-plus-circle"></i></a>
+                                                         <form method="POST" action="{{ route('social-media.plans.destroy', $plan) }}" class="d-inline ms-2" onsubmit="return confirm('Are you sure you want to delete this content plan?');">
+                                                             @csrf
+                                                             @method('DELETE')
+                                                             <button type="submit" class="btn p-0 border-0 text-danger" title="Delete Plan" aria-label="Delete Plan"><i class="bx bx-trash"></i></button>
+                                                         </form>
                                                     @endif
                                                 </div>
                                             </td>
@@ -412,6 +392,11 @@
                                                     <div class="d-flex order-actions justify-content-end">
                                                         <a href="{{ route('social-media.posts.show', $post) }}" title="View"><i class="bx bxs-show"></i></a>
                                                         <a href="{{ route('social-media.posts.edit', $post) }}" class="ms-2" title="Edit"><i class="bx bxs-edit"></i></a>
+                                                         <form method="POST" action="{{ route('social-media.posts.destroy', $post) }}" class="d-inline ms-2" onsubmit="return confirm('Delete this post and all of its related versions, comments and publishing records?');">
+                                                             @csrf
+                                                             @method('DELETE')
+                                                             <button type="submit" class="btn p-0 border-0 text-danger" title="Delete Post" aria-label="Delete Post"><i class="bx bx-trash"></i></button>
+                                                         </form>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -452,6 +437,12 @@ document.addEventListener('DOMContentLoaded', function() {
             label: 'Planned',
             background: '#edf1f5',
             color: '#536171',
+            dot: '#6c757d'
+        },
+        content_plan: {
+            label: 'Monthly Plan',
+            background: '#eef2f7',
+            color: '#455468',
             dot: '#6c757d'
         },
         in_progress: {
@@ -576,7 +567,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (visibleEvents.length === 0) {
             var emptyMessage = document.createElement('p');
             emptyMessage.className = 'calendar-upcoming-empty';
-            emptyMessage.textContent = 'No scheduled posts for this date.';
+            emptyMessage.textContent = 'No monthly content plan for this date.';
             upcomingListEl.appendChild(emptyMessage);
         }
 

@@ -147,15 +147,22 @@
                             @elseif($canManage)
                                 <form class="d-inline" method="POST" action="{{ route('salary-management.approve',$record) }}">@csrf<button class="btn btn-success btn-sm">Approve</button></form>
                             @endif
+                            @if($canManage)
+                                <form class="d-inline" method="POST" action="{{ route('salary-management.destroy',$record) }}" onsubmit="return confirm('Permanently delete payroll for {{ addslashes(data_get($record->data, 'employee.name', $record->staffUser?->name)) }}? This cannot be undone.');">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger px-2" title="Delete payroll" aria-label="Delete payroll"><i class="bx bx-trash"></i></button>
+                                </form>
+                            @endif
                         </td>
                     </tr>
-                @empty<tr><td colspan="5" class="text-center text-muted py-4">No saved payroll yet.</td>@endforelse
+                @empty<tr><td colspan="{{ $canManage ? 6 : 5 }}" class="text-center text-muted py-4">No saved payroll yet.</td>@endforelse
             </tbody>
         </table></div>
     </div>
 </div></div>
 @endsection
-@push('styles')<style>.salary-adjustment-panel{border:1px solid #e4eaf2;border-radius:12px;padding:14px 16px;background:#f8faff}.salary-adjustment-panel .form-range{height:1.2rem}.salary-adjustment-summary{background:#f5f7fb;border:1px solid #e8edf5}.salary-adjustment-summary .input-group{max-width:170px}.salary-adjustment-summary .form-control{background:#fff}.bulk-approve-checkbox,#bulkApproveSelectAll{width:1.15rem;height:1.15rem;vertical-align:middle;cursor:pointer}</style>@endpush
+@push('styles')<style>.salary-adjustment-panel{border:1px solid #e4eaf2;border-radius:12px;padding:14px 16px;background:#f8faff}.salary-adjustment-panel .form-range{height:1.2rem}.salary-adjustment-summary{background:#f5f7fb;border:1px solid #e8edf5}.salary-adjustment-summary .input-group{max-width:170px}.salary-adjustment-summary .form-control{background:#fff}.bulk-approve-checkbox,#bulkApproveSelectAll{width:1.15rem;height:1.15rem;vertical-align:middle;cursor:pointer}#bulkApproveButton{margin-bottom:14px}#payroll-register-table_wrapper .dataTables_filter{margin-bottom:12px}</style>@endpush
 @push('scripts')
 <script>
 $(function(){

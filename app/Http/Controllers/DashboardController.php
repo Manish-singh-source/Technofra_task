@@ -269,6 +269,34 @@ class DashboardController extends Controller
         $notificationCounts = NotificationService::getNotificationCounts($userId);
         $hasCriticalNotifications = NotificationService::hasCriticalNotifications($userId);
 
+        $isClientDashboard = $this->isClientDashboardUser();
+        $clientProjects = collect();
+        $clientServiceCount = 0;
+        $clientSupportTickets = collect();
+        $clientOpenTickets = 0;
+
+        if ($isClientDashboard && $userId) {
+            $clientProjects = Project::query()
+                ->where('customer_id', $userId)
+                ->orderByDesc('updated_at')
+                ->limit(5)
+                ->get();
+
+            $clientServiceCount = (clone $clientRenewalBaseQuery)->count();
+
+            $clientSupportTickets = ClientIssue::query()
+                ->where('customer_id', $userId)
+                ->with('project')
+                ->latest()
+                ->limit(5)
+                ->get();
+
+            $clientOpenTickets = ClientIssue::query()
+                ->where('customer_id', $userId)
+                ->whereNotIn('status', ['resolved', 'closed'])
+                ->count();
+        }
+
         return view('index', compact(
             'totalProjects',
             'totalTasks',
@@ -297,7 +325,12 @@ class DashboardController extends Controller
             'teamAvailabilityYearly',
             'renewalNotifications',
             'notificationCounts',
-            'hasCriticalNotifications'
+            'hasCriticalNotifications',
+            'isClientDashboard',
+            'clientProjects',
+            'clientServiceCount',
+            'clientSupportTickets',
+            'clientOpenTickets'
         ));
     }
 
@@ -482,6 +515,14 @@ class DashboardController extends Controller
         $rawRole = strtolower((string) ($user->getRawOriginal('role') ?? $user->role ?? ''));
 
         return in_array($rawRole, ['admin', 'super-admin', 'super_admin', 'super_admin2'], true);
+    }
+
+    private function isClientDashboardUser(): bool
+    {
+        $user = auth()->user();
+        $rawRole = strtolower((string) ($user?->getRawOriginal('role') ?? $user?->role ?? ''));
+
+        return in_array($rawRole, ['client', 'customer'], true);
     }
 
     private function authenticatedStaffId(): ?int

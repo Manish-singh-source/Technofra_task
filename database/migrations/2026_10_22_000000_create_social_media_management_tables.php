@@ -15,7 +15,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('plan_year');
             $table->string('title')->nullable();
             $table->text('notes')->nullable();
-            $table->enum('status', ['draft', 'pending_client_review', 'client_approved', 'changes_requested'])->default('draft');
+            $table->enum('status', ['draft', 'pending_client_review', 'client_approved', 'changes_requested', 'not_required'])->default('draft');
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestamps();
             $table->unique(['client_id', 'plan_month', 'plan_year'], 'social_plan_client_month_unique');

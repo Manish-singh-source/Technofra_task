@@ -234,7 +234,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // Delete Selected functionality
-    document.getElementById('delete-selected').addEventListener('click', function() {
+    const deleteSelected = document.getElementById('delete-selected');
+    if (deleteSelected) {
+        deleteSelected.addEventListener('click', function() {
         let selected = [];
         document.querySelectorAll('.row-checkbox:checked').forEach(cb => {
             selected.push(cb.value);
@@ -256,7 +258,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.appendChild(form);
             form.submit();
         }
-    });
+        });
+    }
 
     // Save button click handler
     document.getElementById('saveIssueBtn').addEventListener('click', function() {
@@ -302,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Show modal if there are validation errors
-    @if($errors->any())
+    @if($errors->any() || ($openCreateForm ?? false))
         var addIssueModal = new bootstrap.Modal(document.getElementById('addIssueModal'));
         addIssueModal.show();
     @endif

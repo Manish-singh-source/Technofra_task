@@ -164,6 +164,54 @@
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
             @endif
+
+            @if($isClientDashboard ?? false)
+                <style>
+                    .client-portal-hero { padding: 1.5rem; border-radius: 14px; color: #fff; background: linear-gradient(135deg, #0969da, #174ea6); box-shadow: 0 12px 28px rgba(9, 105, 218, .18); }
+                    .client-portal-hero h4 { color: #fff; }
+                    .client-portal-stat { border: 0; border-radius: 12px; box-shadow: 0 5px 16px rgba(31, 56, 88, .08); }
+                    .client-portal-stat .icon { width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px; font-size: 24px; background: #edf5ff; color: #0d6efd; }
+                    .client-portal-list .list-group-item { padding: .9rem 0; border-color: #edf1f5; }
+                </style>
+                <section class="mb-4" aria-label="Client dashboard">
+                    <div class="client-portal-hero mb-4">
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                            <div>
+                                <p class="text-white-50 text-uppercase small fw-semibold mb-1">Client Portal</p>
+                                <h4 class="mb-1">Welcome back, {{ auth()->user()->name }}</h4>
+                                <p class="mb-0 text-white-50">Track your projects, services and support requests in one place.</p>
+                            </div>
+                            <div class="ms-md-auto d-flex gap-2">
+                                <a href="{{ route('project') }}" class="btn btn-light btn-sm"><i class="bx bx-briefcase me-1"></i>My Projects</a>
+                                <a href="{{ route('client-issue.create') }}" class="btn btn-outline-light btn-sm"><i class="bx bx-message-square-add me-1"></i>Raise Support Request</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4"><div class="card client-portal-stat h-100"><div class="card-body d-flex align-items-center gap-3"><span class="icon"><i class="bx bx-briefcase"></i></span><div><small class="text-muted">My Projects</small><h4 class="mb-0">{{ $clientProjects->count() }}</h4></div></div></div></div>
+                        <div class="col-md-4"><div class="card client-portal-stat h-100"><div class="card-body d-flex align-items-center gap-3"><span class="icon"><i class="bx bx-receipt"></i></span><div><small class="text-muted">My Services</small><h4 class="mb-0">{{ $clientServiceCount }}</h4></div></div></div></div>
+                        <div class="col-md-4"><div class="card client-portal-stat h-100"><div class="card-body d-flex align-items-center gap-3"><span class="icon"><i class="bx bx-support"></i></span><div><small class="text-muted">Open Support Requests</small><h4 class="mb-0">{{ $clientOpenTickets }}</h4></div></div></div></div>
+                    </div>
+
+                    <div class="row g-4">
+                        <div class="col-lg-6"><div class="card h-100"><div class="card-header bg-transparent d-flex align-items-center"><div><h6 class="mb-1">Recent Projects</h6><small class="text-muted">Your latest project activity</small></div><a href="{{ route('project') }}" class="btn btn-sm btn-outline-primary ms-auto">View all</a></div><div class="card-body pt-1"><div class="list-group list-group-flush client-portal-list">
+                            @forelse($clientProjects as $project)
+                                <a href="{{ route('project-details', $project->id) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3"><i class="bx bx-folder text-primary fs-4"></i><div class="flex-grow-1"><strong>{{ $project->project_name }}</strong><small class="d-block text-muted">{{ $project->deadline ? 'Deadline: '.$project->deadline->format('d M Y') : 'Timeline to be confirmed' }}</small></div><span class="badge bg-light text-dark border">{{ ucwords(str_replace('_', ' ', $project->status)) }}</span></a>
+                            @empty
+                                <div class="text-center py-4"><i class="bx bx-briefcase-alt-2 text-primary" style="font-size:42px"></i><h6 class="mt-2 mb-1">No projects yet</h6><p class="text-muted small mb-0">Your projects will appear here once they are assigned.</p></div>
+                            @endforelse
+                        </div></div></div></div>
+                        <div class="col-lg-6"><div class="card h-100"><div class="card-header bg-transparent d-flex align-items-center"><div><h6 class="mb-1">Support Requests</h6><small class="text-muted">Recent updates from our team</small></div><a href="{{ route('client-issue') }}" class="btn btn-sm btn-outline-primary ms-auto">View all</a></div><div class="card-body pt-1"><div class="list-group list-group-flush client-portal-list">
+                            @forelse($clientSupportTickets as $ticket)
+                                <a href="{{ route('client-issue.show', $ticket->id) }}" class="list-group-item list-group-item-action d-flex align-items-center gap-3"><i class="bx bx-message-detail text-primary fs-4"></i><div class="flex-grow-1"><strong>Support request #{{ $ticket->id }}</strong><small class="d-block text-muted">{{ $ticket->project?->project_name ?: 'General request' }}</small></div><span class="badge bg-light text-dark border">{{ ucwords(str_replace('_', ' ', $ticket->status)) }}</span></a>
+                            @empty
+                                <div class="text-center py-4"><i class="bx bx-check-circle text-success" style="font-size:42px"></i><h6 class="mt-2 mb-1">All clear</h6><p class="text-muted small mb-3">You have not raised any support requests.</p><a href="{{ route('client-issue.create') }}" class="btn btn-sm btn-primary">Raise a request</a></div>
+                            @endforelse
+                        </div></div></div></div>
+                    </div>
+                </section>
+            @endif
             @can('view_dashboard')
                 <!-- Summary Cards -->
 
