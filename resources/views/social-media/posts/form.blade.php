@@ -1,8 +1,9 @@
 @extends('layout.master')
 @php($editing = isset($post))
 @php($selectedFestival = $festival ?? null)
+@php($backToPostsUrl = ($post->social_content_plan_id ?? request('plan_id')) ? route('social-media.plans.show', $post->social_content_plan_id ?? request('plan_id')) : route('social-media.posts.index'))
 @section('content')
-<div class="page-wrapper"><div class="page-content social-media-page"><div class="page-heading"><div><h4 class="page-title">{{ $editing ? 'Edit Post' : 'Create New Post' }}</h4><p class="page-subtitle">Add the brief, plan the date and assign the right people.</p></div><a href="{{ route('social-media.posts.index') }}" class="btn btn-light">Back to posts</a></div><div class="card"><div class="card-body">
+<div class="page-wrapper"><div class="page-content social-media-page"><div class="page-heading"><div><h4 class="page-title">{{ $editing ? 'Edit Post' : 'Create New Post' }}</h4><p class="page-subtitle">Add the brief, plan the date and assign the right people.</p></div><a href="{{ $backToPostsUrl }}" class="btn btn-light">Back to {{ ($post->social_content_plan_id ?? request('plan_id')) ? 'monthly plan' : 'posts' }}</a></div><div class="card"><div class="card-body">
 @if($errors->any())<div class="alert alert-danger"><strong>Please fix the following:</strong><ul class="mb-0">@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
 @if($clients->isEmpty())<div class="alert alert-warning">No active client users were found. Create a client first from Client Management, then return here.</div>@endif
 <form method="POST" action="{{ $editing ? route('social-media.posts.update',$post) : route('social-media.posts.store') }}">@csrf @if($editing) @method('PUT') @endif

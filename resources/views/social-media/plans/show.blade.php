@@ -43,31 +43,62 @@
     @endif
 
     @if($canManageContentPlans)
-        <div class="d-flex justify-content-end mb-3"><a href="{{ route('social-media.posts.create', ['client_id' => $plan->client_id, 'plan_id' => $plan->id]) }}" class="btn btn-primary"><i class="bx bx-plus me-1"></i>Add Content Item</a></div>
+        <div class="card mb-4"><div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div><h6 class="mb-1">Add planned posts</h6><small class="text-muted">Create one post manually or upload multiple posts from Excel.</small></div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#importPlanPostsModal"><i class="bx bx-upload me-1"></i>Import Excel</button>
+                    <a href="{{ route('social-media.posts.create', ['client_id' => $plan->client_id, 'plan_id' => $plan->id]) }}" class="btn btn-primary btn-sm"><i class="bx bx-plus me-1"></i>Create Post</a>
+                </div>
+            </div>
+        </div></div>
+
+        <div class="modal fade" id="importPlanPostsModal" tabindex="-1" aria-labelledby="importPlanPostsModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header"><h5 class="modal-title" id="importPlanPostsModalLabel"><i class="bx bx-upload me-1"></i>Import posts from Excel</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                    <form method="POST" action="{{ route('social-media.plans.posts.import', $plan) }}" enctype="multipart/form-data">
+                        @csrf
+                        <div class="modal-body">
+                            <label class="form-label fw-semibold">Choose Excel file</label>
+                            <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv" required>
+                            <div class="small text-muted mt-2">Required columns: date, type, category, topic / creative direction.</div>
+                            <div class="small text-muted">Dates must be within {{ \Carbon\Carbon::create($plan->plan_year, $plan->plan_month, 1)->format('F Y') }}.</div>
+                            <a href="{{ route('social-media.plans.posts.template', $plan) }}" class="btn btn-outline-secondary btn-sm mt-3"><i class="bx bx-download me-1"></i>Download sample Excel</a>
+                        </div>
+                        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-success"><i class="bx bx-upload me-1"></i>Import Excel</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
     @endif
 
-    <div class="row g-3">
+    <div class="card">
         @if($plan->posts->isNotEmpty())
-            @foreach($plan->posts as $post)
-            <div class="col-md-6 col-xl-4"><div class="card h-100 mb-0">
-                @if($post->can_see_creative && $post->preview_file)
-                    <img src="{{ route('social-media.posts.version-files.preview', [$post, $post->preview_file]) }}" alt="{{ $post->title }}" class="card-img-top" style="height:180px;object-fit:cover">
-                @else
-                    <div class="d-flex align-items-center justify-content-center bg-light text-muted" style="height:180px"><i class="bx bx-image-alt fs-1"></i></div>
-                @endif
-                <div class="card-body d-flex flex-column">
-                    <div class="d-flex justify-content-between gap-2"><h6 class="mb-1">{{ $post->title }}</h6><span class="badge bg-light text-dark border">{{ ucwords(str_replace('_', ' ', $post->status)) }}</span></div>
-                    <small class="text-muted mb-2"><i class="bx bx-calendar me-1"></i>{{ $post->planned_at?->format('d M Y, h:i A') ?: 'Date not planned' }}</small>
-                    <p class="small text-muted mb-2">{{ \Illuminate\Support\Str::limit($post->creative_brief ?: $post->caption ?: 'No description added.', 145) }}</p>
-                    <div class="small text-muted mb-3">{{ $post->platforms->pluck('platform')->join(', ') ?: 'Platform not selected' }}</div>
-                    @if(in_array($post->id, $visiblePostIds, true))
-                        <a href="{{ route('social-media.posts.show', $post) }}" class="btn btn-outline-primary btn-sm mt-auto">View details</a>
-                    @endif
-                </div>
-            </div></div>
-            @endforeach
+            <div class="table-responsive"><table class="table align-middle table-hover mb-0">
+                <thead class="table-light"><tr>
+                    <th>Date</th><th>Type</th><th>Category</th><th>Topic / Creative Direction</th><th>Platform</th><th>Status</th><th class="text-end">Action</th>
+                </tr></thead>
+                <tbody>
+                    @foreach($plan->posts as $post)
+                        <tr>
+                            <td class="text-nowrap">{{ $post->planned_at?->format('d M Y, h:i A') ?: 'Not planned' }}</td>
+                            <td class="text-nowrap">{{ ucfirst($post->post_type) }}</td>
+                            <td>{{ $post->content_category ?: '-' }}</td>
+                            <td><strong>{{ $post->title }}</strong><small class="d-block text-muted">{{ \Illuminate\Support\Str::limit($post->creative_brief ?: $post->caption ?: 'No description added.', 150) }}</small></td>
+                            <td class="text-nowrap">{{ $post->platforms->pluck('platform')->join(', ') ?: '-' }}</td>
+                            <td class="text-nowrap"><span class="badge bg-light text-dark border">{{ ucwords(str_replace('_', ' ', $post->status)) }}</span></td>
+                            <td class="text-end">
+                                @if(in_array($post->id, $visiblePostIds, true))
+                                    <a href="{{ route('social-media.posts.show', $post) }}" class="btn btn-outline-primary btn-sm">View details</a>
+                                @endif
+                            </td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table></div>
         @else
-            <div class="col-12"><div class="card"><div class="empty-state"><i class="bx bx-calendar-x fs-2 d-block mb-2"></i>No content items have been added to this monthly plan yet.</div></div></div>
+            <div class="empty-state"><i class="bx bx-calendar-x fs-2 d-block mb-2"></i>No content items have been added to this monthly plan yet.</div>
         @endif
     </div>
 </div></div>

@@ -136,6 +136,8 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::get('/plans', 'plans')->name('plans.index');
         Route::post('/plans', 'storePlan')->name('plans.store');
         Route::get('/plans/{plan}', 'showPlan')->name('plans.show');
+        Route::get('/plans/{plan}/posts/template', 'downloadPlanPostsTemplate')->name('plans.posts.template');
+        Route::post('/plans/{plan}/posts/import', 'importPlanPosts')->name('plans.posts.import');
         Route::put('/plans/{plan}', 'updatePlan')->name('plans.update');
         Route::delete('/plans/{plan}', 'destroyPlan')->name('plans.destroy');
         Route::post('/plans/{plan}/client-decision', 'clientPlanDecision')->name('plans.client-decision');

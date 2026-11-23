@@ -15,12 +15,15 @@ use App\Models\SocialPostStatusHistory;
 use App\Models\SocialPostVersion;
 use App\Models\SocialPostVersionFile;
 use App\Models\User;
+use App\Exports\SocialMediaPlanPostsTemplateExport;
+use App\Imports\SocialMediaPlanPostsImport;
 use App\Services\UnifiedNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Maatwebsite\Excel\Facades\Excel;
 
 class SocialMediaController extends Controller
 {
@@ -330,6 +333,28 @@ class SocialMediaController extends Controller
             'visiblePostIds' => $visiblePostIds,
             'planFestivals' => $planFestivals,
         ]);
+    }
+
+    public function downloadPlanPostsTemplate(SocialContentPlan $plan)
+    {
+        $this->ensureStaffPermission('manage_social_content_plans');
+        return Excel::download(new SocialMediaPlanPostsTemplateExport(), 'social-media-plan-posts-template.xlsx');
+    }
+
+    public function importPlanPosts(Request $request, SocialContentPlan $plan)
+    {
+        $this->ensureStaffPermission('manage_social_content_plans');
+        $request->validate(['file' => 'required|file|mimes:xlsx,xls,csv|max:5120']);
+
+        $import = new SocialMediaPlanPostsImport($plan);
+        Excel::import($import, $request->file('file'));
+
+        $message = "{$import->created} post(s) imported successfully.";
+        if ($import->errors) {
+            $message .= ' Skipped: '.implode(' ', $import->errors);
+        }
+
+        return back()->with($import->created ? 'success' : 'error', $message);
     }
 
     public function updatePlan(Request $request, SocialContentPlan $plan)

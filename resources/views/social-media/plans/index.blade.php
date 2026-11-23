@@ -8,6 +8,10 @@
 .plan-badge-client_approved{background:#198754;color:#fff}
 .plan-badge-changes_requested{background:#dc3545;color:#fff}
 
+@media (max-width: 1439px) {
+    .social-media-plans .plan-notes-column { display: none !important; }
+}
+
 .plan-actions-group {
     display: inline-flex;
     align-items: center;
@@ -69,7 +73,7 @@
 @endpush
 
 @section('content')
-<div class="page-wrapper"><div class="page-content">
+<div class="page-wrapper"><div class="page-content social-media-plans">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
             <h4 class="mb-1">Monthly Content Plans</h4>
@@ -181,7 +185,7 @@
                         <th>Month & Year</th>
                         <th>Posts Count</th>
                         <th>Status</th>
-                        <th>Notes</th>
+                        <th class="plan-notes-column">Notes</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -203,7 +207,7 @@
                             @endphp
                             <span class="badge {{ $statusBadge }}">{{ ucwords(str_replace('_',' ', $plan->status ?? 'draft')) }}</span>
                         </td>
-                        <td>
+                        <td class="plan-notes-column">
                             <small class="text-muted d-block">{{ Str::limit($plan->notes ?: '-', 45) }}</small>
                             @if($plan->client_feedback)<small class="d-block mt-1 text-danger"><strong>Client feedback:</strong> {{ Str::limit($plan->client_feedback, 60) }}</small>@endif
                         </td>
