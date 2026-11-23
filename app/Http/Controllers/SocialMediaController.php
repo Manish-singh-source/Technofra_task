@@ -174,9 +174,9 @@ class SocialMediaController extends Controller
             ];
         });
 
-        // The workspace calendar is intentionally plan-only: individual posts
-        // are managed on the posts screen and do not appear here.
-        $calendarEvents = $planCalendarEvents->values()->all();
+        // The dashboard calendar represents the actual posting schedule. Monthly
+        // plans remain available in the plan table below and on /plans.
+        $calendarEvents = $postCalendarEvents->values()->all();
 
         return view('social-media.dashboard', compact('counts', 'assignedPosts', 'clientApprovals', 'monthPosts', 'monthPlans', 'selectedMonth', 'monthlyPlan', 'dashboardClients', 'calendarEvents', 'canViewContentPlans', 'canManageContentPlans'));
     }
@@ -262,6 +262,8 @@ class SocialMediaController extends Controller
             'activeTab' => $activeTab,
             'tabPosts' => $tabPosts,
             'festivals' => $festivals,
+            'festivalYears' => SocialFestivalEvent::whereNotNull('event_date')->selectRaw('YEAR(event_date) as festival_year')->distinct()->orderByDesc('festival_year')->pluck('festival_year'),
+            'festivalImportYears' => collect(range(now()->year, now()->year + 10)),
             'canManageContentPlans' => $this->canManageContentPlans(),
         ]);
     }
@@ -298,8 +300,23 @@ class SocialMediaController extends Controller
 
         $plan->load([
             'client',
-            'posts' => fn ($query) => $query->with(['platforms', 'versions.files', 'assignments'])->orderBy('planned_at'),
+            'posts' => fn ($query) => $query->with(['platforms', 'versions.files', 'assignments', 'festival'])->orderBy('planned_at'),
         ]);
+
+        $plan->posts->each(function (SocialPost $post) {
+            $latestVersion = $post->versions->sortByDesc('version_number')->first();
+            $post->preview_file = $latestVersion?->files->first(fn ($file) => str_starts_with((string) $file->mime_type, 'image/'));
+            $post->can_see_creative = ! $this->isClient() || in_array($post->status, ['pending_client_approval', 'client_changes_requested', 'client_approved', 'ready_for_publishing', 'scheduled', 'published', 'completed', 'rejected'], true);
+        });
+
+        $planFestivals = SocialFestivalEvent::query()
+            ->where(function ($query) use ($plan) {
+                $query->whereNull('client_id')->orWhere('client_id', $plan->client_id);
+            })
+            ->whereYear('event_date', $plan->plan_year)
+            ->whereMonth('event_date', $plan->plan_month)
+            ->orderBy('event_date')
+            ->get();
 
         $visiblePostIds = $this->visiblePosts(request())
             ->where('social_content_plan_id', $plan->id)
@@ -311,6 +328,7 @@ class SocialMediaController extends Controller
             'isClient' => $this->isClient(),
             'canManageContentPlans' => $this->canManageContentPlans(),
             'visiblePostIds' => $visiblePostIds,
+            'planFestivals' => $planFestivals,
         ]);
     }
 
@@ -494,6 +512,31 @@ class SocialMediaController extends Controller
         return back()->with('success', 'Festival/event removed.');
     }
 
+    public function importFestivals(Request $request)
+    {
+        $this->ensureStaffPermission('manage_social_festival_events');
+        $data = $request->validate(['year' => 'required|integer|between:2000,2100']);
+        $year = (int) $data['year'];
+        $count = app(\App\Services\FestivalCalendarService::class)->seedYear($year);
+        return back()->with('success', "{$count} India and international festivals for {$year} are ready. Existing matching records were updated, not duplicated.");
+    }
+
+    public function bulkDestroyFestivals(Request $request)
+    {
+        $this->ensureStaffPermission('manage_social_festival_events');
+        $data = $request->validate(['festival_ids' => 'required|array|min:1', 'festival_ids.*' => 'integer|exists:social_festival_events,id']);
+        $deleted = SocialFestivalEvent::whereIn('id', $data['festival_ids'])->delete();
+        return back()->with('success', "{$deleted} festival/event(s) removed.");
+    }
+
+    public function destroyFestivalsByYear(Request $request)
+    {
+        $this->ensureStaffPermission('manage_social_festival_events');
+        $data = $request->validate(['year' => 'required|integer|between:2000,2100']);
+        $deleted = SocialFestivalEvent::whereYear('event_date', $data['year'])->delete();
+        return back()->with('success', "{$deleted} festival/event(s) from {$data['year']} removed.");
+    }
+
     public function reports(Request $request)
     {
         $this->ensureStaffPermission('view_social_media_reports');
@@ -507,7 +550,16 @@ class SocialMediaController extends Controller
     public function create()
     {
         $this->ensureStaffPermission('create_social_media_posts');
-        return view('social-media.posts.form', $this->formData());
+        $festival = null;
+        if (request()->filled('festival_id')) {
+            $festival = SocialFestivalEvent::findOrFail(request('festival_id'));
+            if (request()->filled('plan_id')) {
+                $plan = SocialContentPlan::findOrFail(request('plan_id'));
+                abort_unless((int) $plan->client_id === (int) request('client_id'), 422, 'The selected festival plan client is invalid.');
+                abort_unless($festival->event_date && (int) $festival->event_date->year === (int) $plan->plan_year && (int) $festival->event_date->month === (int) $plan->plan_month, 422, 'The selected festival is outside the monthly plan period.');
+            }
+        }
+        return view('social-media.posts.form', array_merge($this->formData(), compact('festival')));
     }
 
     /** Staff-only work inbox: this is the entry point from a new assignment notification. */
@@ -532,7 +584,9 @@ class SocialMediaController extends Controller
     public function store(Request $request)
     {
         $this->ensureStaffPermission('create_social_media_posts');
+        $request->merge(['platforms' => $this->normalizePlatforms($request->input('platforms'))]);
         $data = $this->validatedPost($request);
+        $this->validatePlanClient($data);
         $data['created_by'] = auth()->id();
         // A post must not appear as assigned until at least one staff member is actually selected.
         $hasAssignments = collect($request->input('assignments', []))->contains(fn ($assignment) => ! empty($assignment['user_id']));
@@ -570,7 +624,10 @@ class SocialMediaController extends Controller
         $this->authorizePost($post);
         $this->ensureStaffPermission('edit_social_media_posts');
         $oldStatus = $post->status;
-        $post->update($this->validatedPost($request));
+        $request->merge(['platforms' => $this->normalizePlatforms($request->input('platforms'))]);
+        $data = $this->validatedPost($request);
+        $this->validatePlanClient($data);
+        $post->update($data);
         $this->syncPlatforms($post, $request->input('platforms', []));
         $this->syncAssignments($post, $request->input('assignments', []));
         if (in_array($oldStatus, ['client_approved', 'ready_for_publishing', 'scheduled'], true)) {
@@ -720,7 +777,22 @@ class SocialMediaController extends Controller
     private function canWorkOn(SocialPost $post): bool { return $post->assignments()->where('user_id', auth()->id())->exists() || $this->isPrivileged(); }
     private function ensureStaffPermission(string $permission): void { abort_unless(! $this->isClient() && (auth()->user()->can($permission) || $this->isManager()), 403); }
     private function formData(): array { return ['clients' => User::query()->whereRaw('LOWER(role) IN (?, ?)', ['client', 'customer'])->orderBy('first_name')->orderBy('last_name')->get(), 'projects' => Project::orderBy('project_name')->get(), 'staff' => User::query()->whereRaw('LOWER(role) IN (?, ?)', ['staff', 'manager'])->orderBy('first_name')->orderBy('last_name')->get(), 'statuses' => SocialPost::STATUSES]; }
-    private function validatedPost(Request $request): array { return $request->validate(['social_content_plan_id' => 'nullable|exists:social_content_plans,id', 'client_id' => 'required|exists:users,id', 'project_id' => 'nullable|exists:projects,id', 'title' => 'required|string|max:255', 'content_category' => 'nullable|string|max:100', 'post_type' => ['required', Rule::in(['image', 'carousel', 'reel', 'video', 'story', 'other'])], 'creative_brief' => 'nullable|string', 'caption' => 'nullable|string', 'hashtags' => 'nullable|string', 'reference_links' => 'nullable|string', 'priority' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])], 'planned_at' => 'nullable|date', 'internal_deadline_at' => 'nullable|date', 'client_approval_deadline_at' => 'nullable|date', 'platforms' => 'nullable|array', 'platforms.*' => 'string|max:60', 'assignments' => 'nullable|array', 'assignments.*.user_id' => 'nullable|exists:users,id', 'assignments.*.role' => ['nullable', Rule::in(['designer', 'writer', 'reviewer', 'publisher'])]]); }
+    private function validatedPost(Request $request): array { return $request->validate(['social_content_plan_id' => 'nullable|exists:social_content_plans,id', 'social_festival_event_id' => 'nullable|exists:social_festival_events,id', 'client_id' => 'required|exists:users,id', 'project_id' => 'nullable|exists:projects,id', 'title' => 'required|string|max:255', 'content_category' => 'nullable|string|max:100', 'post_type' => ['required', Rule::in(['image', 'carousel', 'reel', 'video', 'story', 'other'])], 'creative_brief' => 'nullable|string', 'caption' => 'nullable|string', 'hashtags' => 'nullable|string', 'reference_links' => 'nullable|string', 'priority' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])], 'planned_at' => 'nullable|date', 'internal_deadline_at' => 'nullable|date', 'client_approval_deadline_at' => 'nullable|date', 'platforms' => 'nullable|array', 'platforms.*' => 'string|max:60', 'assignments' => 'nullable|array', 'assignments.*.user_id' => 'nullable|exists:users,id', 'assignments.*.role' => ['nullable', Rule::in(['designer', 'writer', 'reviewer', 'publisher'])]]); }
+    private function validatePlanClient(array $data): void {
+        if (!empty($data['social_content_plan_id']) && !SocialContentPlan::whereKey($data['social_content_plan_id'])->where('client_id', $data['client_id'])->exists()) abort(422, 'The selected monthly plan does not belong to the selected client.');
+        if (!empty($data['social_festival_event_id'])) {
+            $festival = SocialFestivalEvent::findOrFail($data['social_festival_event_id']);
+            if ($festival->client_id && (int) $festival->client_id !== (int) $data['client_id']) abort(422, 'The selected festival does not belong to the selected client.');
+            if (!empty($data['social_content_plan_id'])) {
+                $plan = SocialContentPlan::findOrFail($data['social_content_plan_id']);
+                abort_unless($festival->event_date && (int) $festival->event_date->year === (int) $plan->plan_year && (int) $festival->event_date->month === (int) $plan->plan_month, 422, 'The selected festival is outside the monthly plan period.');
+            }
+        }
+    }
+    private function normalizePlatforms(mixed $platforms): array {
+        if (is_string($platforms)) $platforms = [$platforms];
+        return collect($platforms ?: [])->flatten()->filter(fn ($platform) => is_scalar($platform) && trim((string) $platform) !== '')->map(fn ($platform) => trim((string) $platform))->values()->all();
+    }
     private function syncPlatforms(SocialPost $post, array $platforms): void { $platforms = collect($platforms)->flatMap(fn ($value) => preg_split('/[,\n]+/', (string) $value))->map(fn ($value) => trim($value))->filter()->unique()->values()->all(); $post->platforms()->whereNotIn('platform', $platforms)->delete(); foreach ($platforms as $platform) SocialPostPlatform::firstOrCreate(['social_post_id' => $post->id, 'platform' => $platform]); }
     private function syncAssignments(SocialPost $post, array $assignments): void { $oldAssignments = $post->assignments()->get()->map(fn ($a) => $a->user_id.'|'.$a->assignment_role)->all(); $post->assignments()->delete(); foreach ($assignments as $assignment) if (!empty($assignment['user_id']) && !empty($assignment['role'])) { $key = $assignment['user_id'].'|'.$assignment['role']; SocialPostAssignment::create(['social_post_id' => $post->id, 'user_id' => $assignment['user_id'], 'assignment_role' => $assignment['role']]); $user = User::find($assignment['user_id']); if ($user && !in_array($key, $oldAssignments, true)) app(UnifiedNotificationService::class)->sendToUser($user, 'New social media assignment', "You are assigned as {$assignment['role']} for {$post->title}. Open My Assigned Posts to start work.", 'social_media', ['post_id' => $post->id, 'url' => route('social-media.my-assigned')]); } }
     private function transition(SocialPost $post, string $to, string $comment): void { $from = $post->status; $post->update(['status' => $to]); $this->recordStatus($post, $from, $to, $comment); }

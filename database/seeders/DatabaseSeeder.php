@@ -18,6 +18,7 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             SuperAdminSeeder::class,
+            FestivalCalendar2026Seeder::class,
             // HighVolumeDataSeeder::class,
             // LeadStatusSeeder::class,
         ]);

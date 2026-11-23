@@ -139,6 +139,9 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::put('/plans/{plan}', 'updatePlan')->name('plans.update');
         Route::delete('/plans/{plan}', 'destroyPlan')->name('plans.destroy');
         Route::post('/plans/{plan}/client-decision', 'clientPlanDecision')->name('plans.client-decision');
+        Route::post('/plans/festivals/import', 'importFestivals')->name('plans.festivals.import');
+        Route::post('/plans/festivals/bulk-delete', 'bulkDestroyFestivals')->name('plans.festivals.bulk-delete');
+        Route::post('/plans/festivals/delete-year', 'destroyFestivalsByYear')->name('plans.festivals.delete-year');
         Route::get('/internal-review', 'reviewQueue')->name('review');
         Route::get('/client-approvals', 'approvalsQueue')->name('approvals');
         Route::get('/publishing', 'publishingTracker')->name('publishing');

@@ -274,12 +274,34 @@
                 </div>
             </div>
             <div class="card"><div class="card-body">
-                <div class="d-flex justify-content-between align-items-center mb-3"><h5 class="mb-0">Festival Master</h5><small class="text-muted">{{ $festivals->count() }} events</small></div>
-                <div class="table-responsive"><table class="table align-middle table-hover mb-0"><thead class="table-light"><tr><th>Event</th><th>Date</th><th>Category</th><th>Region</th><th>Client</th><th>Repeats</th></tr></thead><tbody>
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                    <div><h5 class="mb-0">Festival Master</h5><small class="text-muted">{{ $festivals->count() }} events</small></div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <form method="POST" action="{{ route('social-media.plans.festivals.import') }}" class="d-flex gap-1" onsubmit="return confirm('Add India and international festivals for the selected year? Existing matching events will be updated.');">
+                            @csrf
+                            <select name="year" class="form-select form-select-sm" required aria-label="Festival year to add">
+                                <option value="">Select year</option>
+                                @foreach($festivalImportYears as $festivalYear)<option value="{{ $festivalYear }}">{{ $festivalYear }}</option>@endforeach
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary btn-sm text-nowrap"><i class="bx bx-calendar-plus me-1"></i>Add Festivals</button>
+                        </form>
+                        <button type="submit" form="bulk-festival-delete-form" class="btn btn-outline-danger btn-sm" id="bulkFestivalDeleteButton" disabled onclick="return confirm('Delete the selected festivals/events?');"><i class="bx bx-trash me-1"></i>Delete Selected</button>
+                        <form method="POST" action="{{ route('social-media.plans.festivals.delete-year') }}" class="d-flex gap-1" onsubmit="return confirm('Delete all festivals/events for the selected year? This cannot be undone.');">
+                            @csrf
+                            <select name="year" class="form-select form-select-sm" required aria-label="Festival year to delete">
+                                <option value="">Select year</option>
+                                @foreach($festivalYears as $festivalYear)<option value="{{ $festivalYear }}">{{ $festivalYear }}</option>@endforeach
+                            </select>
+                            <button type="submit" class="btn btn-outline-danger btn-sm text-nowrap"><i class="bx bx-trash me-1"></i>Delete Year</button>
+                        </form>
+                    </div>
+                </div>
+                <form method="POST" action="{{ route('social-media.plans.festivals.bulk-delete') }}" id="bulk-festival-delete-form">@csrf</form>
+                <div class="table-responsive"><table class="table align-middle table-hover mb-0"><thead class="table-light"><tr><th style="width:40px"><input type="checkbox" class="form-check-input" id="selectAllFestivals" title="Select all"></th><th>Event</th><th>Date</th><th>Category</th><th>Region</th><th>Client</th><th>Repeats</th><th class="text-end">Action</th></tr></thead><tbody>
                     @forelse($festivals as $festival)
-                        <tr><td><strong>{{ $festival->name }}</strong><small class="d-block text-muted">{{ Str::limit($festival->description, 65) }}</small></td><td>{{ optional($festival->event_date)->format('d M Y') ?: '-' }}</td><td>{{ $festival->category ?: '-' }}</td><td>{{ $festival->country_region ?: '-' }}</td><td>{{ $festival->client->name ?? 'All clients' }}</td><td>{{ $festival->recurrence_type === 'yearly' ? 'Yearly' : 'One time' }}</td></tr>
+                        <tr><td><input type="checkbox" form="bulk-festival-delete-form" class="form-check-input festival-checkbox" name="festival_ids[]" value="{{ $festival->id }}"></td><td><strong>{{ $festival->name }}</strong><small class="d-block text-muted">{{ Str::limit($festival->description, 65) }}</small></td><td>{{ optional($festival->event_date)->format('d M Y') ?: '-' }}</td><td>{{ $festival->category ?: '-' }}</td><td>{{ $festival->country_region ?: '-' }}</td><td>{{ $festival->client->name ?? 'All clients' }}</td><td>{{ $festival->recurrence_type === 'yearly' ? 'Yearly' : 'One time' }}</td><td class="text-end"><form method="POST" action="{{ route('social-media.festivals.destroy', $festival) }}" onsubmit="return confirm('Delete this festival/event?');" class="d-inline">@csrf @method('DELETE')<button type="submit" class="btn btn-sm btn-outline-danger" title="Delete"><i class="bx bx-trash"></i></button></form></td></tr>
                     @empty
-                        <tr><td colspan="6" class="text-center text-muted py-4">No festival events added yet.</td></tr>
+                        <tr><td colspan="8" class="text-center text-muted py-4">No festival events added yet.</td></tr>
                     @endforelse
                 </tbody></table></div>
             </div></div>
@@ -421,6 +443,26 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    var selectAllFestivals = document.getElementById('selectAllFestivals');
+    var festivalCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.festival-checkbox'));
+    var bulkFestivalDeleteButton = document.getElementById('bulkFestivalDeleteButton');
+    function refreshFestivalSelection() {
+        var selected = festivalCheckboxes.filter(function (checkbox) { return checkbox.checked; });
+        if (bulkFestivalDeleteButton) bulkFestivalDeleteButton.disabled = selected.length === 0;
+        if (selectAllFestivals) {
+            selectAllFestivals.checked = festivalCheckboxes.length > 0 && selected.length === festivalCheckboxes.length;
+            selectAllFestivals.indeterminate = selected.length > 0 && selected.length < festivalCheckboxes.length;
+        }
+    }
+    if (selectAllFestivals) {
+        selectAllFestivals.addEventListener('change', function () {
+            festivalCheckboxes.forEach(function (checkbox) { checkbox.checked = selectAllFestivals.checked; });
+            refreshFestivalSelection();
+        });
+    }
+    festivalCheckboxes.forEach(function (checkbox) { checkbox.addEventListener('change', refreshFestivalSelection); });
+    refreshFestivalSelection();
 });
 </script>
 @endpush

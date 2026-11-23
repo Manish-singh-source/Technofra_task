@@ -149,8 +149,8 @@
             <div class="card radius-10 post-calendar-card shadow-sm border-0">
                 <div class="card-header appointment-header">
                     <div>
-                        <h6 class="mb-0">Monthly Content Plan Calendar</h6>
-                        <p class="mb-0 text-muted font-13">Only monthly content plans are shown here. Individual posts are managed separately.</p>
+                        <h6 class="mb-0">Monthly Social Media Post Calendar</h6>
+                        <p class="mb-0 text-muted font-13">Planned posts for the selected month. Click a post to open its details.</p>
                     </div>
                     @if($canViewContentPlans)
                     <div class="d-flex align-items-center gap-2">
@@ -168,14 +168,19 @@
                 <div class="card-body">
                     <div class="calendar-dashboard-layout">
                         <div id="calendar"></div>
-                        <aside class="calendar-upcoming" aria-label="Monthly content plans">
-                            <h6 class="calendar-upcoming-title">Plans for selected date</h6>
+                        <aside class="calendar-upcoming" aria-label="Social media posts">
+                            <h6 class="calendar-upcoming-title">Posts for selected date</h6>
                             <p id="calendarSelectedDate" class="calendar-selected-date"></p>
                             <div class="calendar-event-legend" aria-label="Calendar post categories">
-                                <span><i class="calendar-category-dot content_plan"></i>Monthly Plan</span>
+                                <span><i class="calendar-category-dot planned"></i>Planned</span>
+                                <span><i class="calendar-category-dot in_progress"></i>In Design</span>
+                                <span><i class="calendar-category-dot internal_review"></i>In Review</span>
+                                <span><i class="calendar-category-dot pending_client_approval"></i>Client Approval</span>
+                                <span><i class="calendar-category-dot scheduled"></i>Scheduled</span>
+                                <span><i class="calendar-category-dot published"></i>Published</span>
                             </div>
                             <div id="calendarUpcomingList" class="calendar-upcoming-list" aria-live="polite">
-                                <p class="calendar-upcoming-empty">Loading plans...</p>
+                                <p class="calendar-upcoming-empty">Loading posts...</p>
                             </div>
                             <button type="button" id="calendarUpcomingMore"
                                 class="btn btn-light calendar-upcoming-more" hidden>See More</button>
@@ -567,7 +572,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (visibleEvents.length === 0) {
             var emptyMessage = document.createElement('p');
             emptyMessage.className = 'calendar-upcoming-empty';
-            emptyMessage.textContent = 'No monthly content plan for this date.';
+            emptyMessage.textContent = 'No social media posts for this date.';
             upcomingListEl.appendChild(emptyMessage);
         }
 
