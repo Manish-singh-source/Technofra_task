@@ -249,20 +249,26 @@
                 <!-- Calendar Widget -->
                 <div class="row mt-4 justify-content-center">
                     <div class="col-12">
-                        <div class="card radius-10">
+                        <div class="card radius-10 dashboard-calendar-card">
                             <div class="card-header appointment-header">
                                 <div>
                                     <h6 class="mb-0">Calendar Appointments</h6>
                                     <p class="mb-0 text-muted font-13">Plan meetings and appointments</p>
                                 </div>
-                                <a href="{{ route('calendar.index') }}" class="btn btn-outline-primary calendar-view-all">
-                                    <i class="bx bx-table me-1"></i> View Calendar List
-                                </a>
+                                <div class="calendar-header-actions">
+                                    <a href="{{ route('calendar.index') }}" class="btn btn-outline-primary calendar-view-all">
+                                        <i class="bx bx-table me-1"></i> View Calendar List
+                                    </a>
+                                    <div class="form-check form-switch calendar-agenda-switch mb-0">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="toggleCalendarAgenda" checked aria-expanded="true" aria-controls="calendarUpcomingPanel">
+                                        <label class="form-check-label" for="toggleCalendarAgenda">Agenda</label>
+                                    </div>
+                                </div>
                             </div>
                             <div class="card-body">
                                 <div class="calendar-dashboard-layout">
                                     <div id="calendar"></div>
-                                    <aside class="calendar-upcoming" aria-label="Upcoming appointments">
+                                    <aside id="calendarUpcomingPanel" class="calendar-upcoming" aria-label="Upcoming appointments">
                                         <button type="button" class="btn btn-primary calendar-add-event"
                                             data-bs-toggle="modal" data-bs-target="#addEventModal">
                                             <i class="bx bx-plus me-1"></i> Add New Event
@@ -1176,6 +1182,42 @@
                 font-weight: 600;
             }
 
+            .calendar-header-actions {
+                display: flex;
+                flex-wrap: wrap;
+                align-items: center;
+                justify-content: flex-end;
+                gap: .55rem;
+            }
+
+            .calendar-agenda-switch {
+                display: inline-flex;
+                align-items: center;
+                gap: .35rem;
+                min-height: 36px;
+                padding: .35rem .7rem .35rem .45rem;
+                border: 1px solid #cfd9e6;
+                border-radius: 6px;
+                background: #fff;
+                color: #405268;
+                font-size: 13px;
+                font-weight: 600;
+            }
+
+            .calendar-agenda-switch .form-check-input {
+                float: none;
+                margin: 0;
+                cursor: pointer;
+            }
+
+            .calendar-dashboard-layout.upcoming-hidden {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .calendar-dashboard-layout.upcoming-hidden .calendar-upcoming {
+                display: none;
+            }
+
             .calendar-upcoming-title {
                 margin: 0 0 0.4rem;
                 color: #25374a;
@@ -1364,6 +1406,12 @@
                 border: 0;
             }
 
+            /* The global footer is fixed, so reserve space after the calendar
+               instead of letting its last row sit underneath the footer. */
+            .dashboard-calendar-card {
+                margin-bottom: 4.5rem;
+            }
+
             .appointment-header {
                 display: flex;
                 align-items: center;
@@ -1378,6 +1426,15 @@
                 .appointment-header {
                     align-items: flex-start;
                     flex-direction: column;
+                }
+
+                .calendar-header-actions {
+                    width: 100%;
+                    justify-content: stretch;
+                }
+
+                .calendar-header-actions .btn {
+                    flex: 1 1 auto;
                 }
             }
 
@@ -1397,7 +1454,10 @@
                 background-color: #f8f9fa;
             }
 
-            @media (max-width: 991.98px) {
+            /* Keep the calendar usable on landscape tablets. The sidebar and
+               calendar need the full row; squeezing both into one narrow row
+               causes FullCalendar's toolbar/grid to be clipped. */
+            @media (max-width: 1199.98px) {
                 .calendar-dashboard-layout {
                     grid-template-columns: minmax(0, 1fr);
                 }
@@ -1412,6 +1472,27 @@
                     display: grid;
                     grid-template-columns: repeat(2, minmax(0, 1fr));
                     column-gap: 1rem;
+                }
+
+                #calendar .fc-header-toolbar {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: .6rem;
+                }
+
+                #calendar .fc-toolbar-chunk {
+                    display: flex;
+                    align-items: center;
+                    min-width: 0;
+                }
+
+                #calendar .fc-toolbar-title {
+                    font-size: 1rem;
+                    white-space: nowrap;
+                }
+
+                .dashboard-calendar-card {
+                    margin-bottom: 5rem;
                 }
             }
 
@@ -1731,6 +1812,34 @@
                 });
 
                 calendar.render();
+
+                // The sidebar collapse changes .page-wrapper width through CSS,
+                // not the browser viewport. FullCalendar therefore does not
+                // receive its normal resize event and can retain the old grid
+                // width. Observe the calendar layout and refresh it after the
+                // sidebar transition completes.
+                var calendarLayout = document.querySelector('.calendar-dashboard-layout');
+                var refreshCalendarSize = function() {
+                    if (calendarLayout) calendar.updateSize();
+                };
+                if (calendarLayout && window.ResizeObserver) {
+                    new ResizeObserver(refreshCalendarSize).observe(calendarLayout);
+                }
+                document.querySelectorAll('.toggle-icon').forEach(function(toggle) {
+                    toggle.addEventListener('click', function() {
+                        window.setTimeout(refreshCalendarSize, 350);
+                    });
+                });
+
+                var agendaToggle = document.getElementById('toggleCalendarAgenda');
+                if (agendaToggle && calendarLayout) {
+                    agendaToggle.addEventListener('change', function() {
+                        var isHidden = !agendaToggle.checked;
+                        calendarLayout.classList.toggle('upcoming-hidden', isHidden);
+                        agendaToggle.setAttribute('aria-expanded', String(!isHidden));
+                        window.setTimeout(refreshCalendarSize, 50);
+                    });
+                }
 
                 $(document).on('change', '.notification-channel, .edit-notification-channel', function() {
                     var isEdit = $(this).hasClass('edit-notification-channel');
