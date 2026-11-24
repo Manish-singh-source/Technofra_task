@@ -1215,7 +1215,11 @@
             }
 
             .calendar-dashboard-layout.upcoming-hidden .calendar-upcoming {
-                display: none;
+                display: none !important;
+            }
+
+            .calendar-upcoming[hidden] {
+                display: none !important;
             }
 
             .calendar-upcoming-title {
@@ -1832,12 +1836,19 @@
                 });
 
                 var agendaToggle = document.getElementById('toggleCalendarAgenda');
-                if (agendaToggle && calendarLayout) {
-                    agendaToggle.addEventListener('change', function() {
-                        var isHidden = !agendaToggle.checked;
+                var agendaPanel = document.getElementById('calendarUpcomingPanel');
+                var setAgendaVisibility = function(isHidden) {
+                    if (!agendaToggle || !calendarLayout || !agendaPanel) return;
                         calendarLayout.classList.toggle('upcoming-hidden', isHidden);
+                        agendaPanel.hidden = isHidden;
+                        agendaPanel.setAttribute('aria-hidden', String(isHidden));
                         agendaToggle.setAttribute('aria-expanded', String(!isHidden));
                         window.setTimeout(refreshCalendarSize, 50);
+                        window.setTimeout(refreshCalendarSize, 350);
+                };
+                if (agendaToggle && calendarLayout && agendaPanel) {
+                    agendaToggle.addEventListener('change', function() {
+                        setAgendaVisibility(!agendaToggle.checked);
                     });
                 }
 
