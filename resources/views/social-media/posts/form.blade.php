@@ -21,7 +21,24 @@
  <div class="col-md-3"><label class="form-label">Planned date/time</label><input type="datetime-local" class="form-control" name="planned_at" value="{{ old('planned_at', isset($post->planned_at) ? $post->planned_at->format('Y-m-d\\TH:i') : (request('planned_at') ? \Carbon\Carbon::parse(request('planned_at'))->format('Y-m-d\\TH:i') : '')) }}"></div>
  <div class="col-md-6"><label class="form-label">Internal deadline</label><input type="datetime-local" class="form-control" name="internal_deadline_at" value="{{ old('internal_deadline_at',isset($post->internal_deadline_at) ? $post->internal_deadline_at->format('Y-m-d\\TH:i') : '') }}"></div><div class="col-md-6"><label class="form-label">Client approval deadline</label><input type="datetime-local" class="form-control" name="client_approval_deadline_at" value="{{ old('client_approval_deadline_at',isset($post->client_approval_deadline_at) ? $post->client_approval_deadline_at->format('Y-m-d\\TH:i') : '') }}"></div>
  <div class="col-12"><label class="form-label">Creative brief</label><textarea class="form-control" name="creative_brief" rows="3">{{ old('creative_brief',$post->creative_brief ?? ($selectedFestival->description ?? '')) }}</textarea></div><div class="col-12"><label class="form-label">Caption</label><textarea class="form-control" name="caption" rows="3">{{ old('caption',$post->caption ?? '') }}</textarea></div><div class="col-md-6"><label class="form-label">Hashtags</label><textarea class="form-control" name="hashtags">{{ old('hashtags',$post->hashtags ?? '') }}</textarea></div><div class="col-md-6"><label class="form-label">Reference links</label><textarea class="form-control" name="reference_links">{{ old('reference_links',$post->reference_links ?? '') }}</textarea></div>
- <div class="col-12"><label class="form-label">Staff assignments</label><div class="row g-2">@foreach(['designer'=>'Designer','writer'=>'Content Writer','reviewer'=>'Reviewer','publisher'=>'Publisher'] as $role=>$label)<div class="col-md-3"><label class="small">{{ $label }}</label><select class="form-select" name="assignments[{{ $loop->index }}][user_id]"><option value="">Unassigned</option>@foreach($staff as $member)<option value="{{ $member->id }}" @selected(isset($post) && optional($post->assignments->firstWhere('assignment_role',$role))->user_id == $member->id)>{{ $member->name }}</option>@endforeach</select><input type="hidden" name="assignments[{{ $loop->index }}][role]" value="{{ $role }}"></div>@endforeach</div></div>
+  <div class="col-12"><label class="form-label">Staff assignments</label><div class="row g-2">@foreach(['designer'=>'Designer','writer'=>'Content Writer','reviewer'=>'Reviewer','publisher'=>'Publisher'] as $role=>$label)
+    <div class="col-md-3"><label class="small d-block">{{ $label }}</label><div class="dropdown assignment-dropdown"><button type="button" class="btn btn-outline-secondary dropdown-toggle w-100 text-start" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"><span class="assignment-label">Select staff</span></button><div class="dropdown-menu w-100 p-2" style="max-height: 240px; overflow-y: auto;">@forelse($staff as $member)<label class="dropdown-item d-flex align-items-center gap-2 rounded"><input class="form-check-input mt-0 assignment-checkbox" type="checkbox" name="assignments[{{ $role }}][]" value="{{ $member->id }}" @checked(in_array((string) $member->id, array_map('strval', (array) old('assignments.'.$role, isset($post) ? $post->assignments->where('assignment_role', $role)->pluck('user_id')->all() : [])), true))><span>{{ $member->name }}</span></label>@empty<span class="dropdown-item-text text-muted">No staff available</span>@endforelse</div></div><small class="text-muted">Select one or more staff members.</small></div>
+ @endforeach</div></div>
 </div><div class="mt-4 d-flex flex-wrap gap-2">@if(!$editing)<button class="btn btn-outline-primary" name="save_as_draft" value="1">Save as Draft</button>@endif<button class="btn btn-primary">{{ $editing ? 'Update Post' : 'Create & Assign' }}</button><a class="btn btn-light" href="{{ route('social-media.posts.index') }}">Cancel</a></div></form>
 </div></div></div></div>
 @endsection
+
+@push('scripts')
+<script>
+document.querySelectorAll('.assignment-dropdown').forEach(function (dropdown) {
+    const label = dropdown.querySelector('.assignment-label');
+    const checkboxes = dropdown.querySelectorAll('.assignment-checkbox');
+    const updateLabel = function () {
+        const selected = Array.from(checkboxes).filter(function (checkbox) { return checkbox.checked; });
+        label.textContent = selected.length ? selected.length + ' selected' : 'Select staff';
+    };
+    checkboxes.forEach(function (checkbox) { checkbox.addEventListener('change', updateLabel); });
+    updateLabel();
+});
+</script>
+@endpush

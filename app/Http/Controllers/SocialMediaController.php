@@ -43,7 +43,7 @@ class SocialMediaController extends Controller
         if (! $canViewContentPlans) {
             $plansQuery->whereRaw('1 = 0');
         } elseif ($this->isClient()) {
-            $plansQuery->where('client_id', auth()->id());
+            $plansQuery->where('client_id', auth()->id())->where('status', '!=', 'draft');
         } elseif ($request->filled('client_id')) {
             $plansQuery->where('client_id', $request->client_id);
         }
@@ -57,7 +57,9 @@ class SocialMediaController extends Controller
         if ($this->isClient()) {
             $assignedPosts = collect();
         } else {
-            $userAssigned = SocialPost::query()->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))->with(['client', 'platforms'])->latest()->get();
+            $userAssignedQuery = SocialPost::query()->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))->with(['client', 'platforms'])->latest();
+            if (! $this->canReviewPosts()) $userAssignedQuery->where('status', '!=', 'internal_review');
+            $userAssigned = $userAssignedQuery->get();
             if ($userAssigned->isNotEmpty()) {
                 $assignedPosts = $userAssigned;
             } elseif ($this->isManager()) {
@@ -214,7 +216,7 @@ class SocialMediaController extends Controller
         }
 
         $query = SocialContentPlan::withCount('posts')->with('client')->latest('plan_year')->latest('plan_month');
-        if ($this->isClient()) $query->where('client_id', auth()->id());
+        if ($this->isClient()) $query->where('client_id', auth()->id())->where('status', '!=', 'draft');
         elseif ($request->filled('client_id')) $query->where('client_id', $request->client_id);
         if ($request->filled('month') && preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $request->month)) {
             $query->where('plan_year', substr($request->month, 0, 4))->where('plan_month', substr($request->month, 5, 2));
@@ -231,6 +233,7 @@ class SocialMediaController extends Controller
             if ($activeTab === 'work') {
                 $tabPosts = SocialPost::query()
                     ->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))
+                    ->when(! $this->canReviewPosts(), fn ($query) => $query->where('status', '!=', 'internal_review'))
                     ->with(['client', 'platforms'])
                     ->orderByRaw('CASE WHEN internal_deadline_at IS NULL THEN 1 ELSE 0 END')
                     ->orderBy('internal_deadline_at')
@@ -296,7 +299,7 @@ class SocialMediaController extends Controller
     /** Display one monthly plan with every content item planned for the client. */
     public function showPlan(SocialContentPlan $plan)
     {
-        if (! $this->canViewContentPlans() || ($this->isClient() && $plan->client_id !== auth()->id())) {
+        if (! $this->canViewContentPlans() || ($this->isClient() && ($plan->client_id !== auth()->id() || $plan->status === 'draft'))) {
             return redirect()->route('social-media.dashboard')
                 ->with('error', 'You do not have permission to view this content plan.');
         }
@@ -486,7 +489,7 @@ class SocialMediaController extends Controller
 
     public function reviewQueue(Request $request)
     {
-        $this->ensureStaffPermission('review_social_media_posts');
+        $this->ensureReviewPermission();
         $posts = $this->visiblePosts($request)->whereIn('status', ['internal_review', 'internal_changes_requested'])->with(['client', 'versions'])->latest()->paginate(20);
         return view('social-media.queue', ['posts' => $posts, 'title' => 'Internal Review']);
     }
@@ -592,6 +595,7 @@ class SocialMediaController extends Controller
     {
         abort_unless(! $this->isClient(), 403);
         $query = SocialPost::query()->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))->with(['client', 'assignments.user']);
+        if (! $this->canReviewPosts()) $query->where('status', '!=', 'internal_review');
         if ($request->filled('status')) $query->where('status', $request->status);
         $posts = $query->orderByRaw('CASE WHEN internal_deadline_at IS NULL THEN 1 ELSE 0 END')->orderBy('internal_deadline_at')->paginate(20)->withQueryString();
         return view('social-media.my-assigned', compact('posts'));
@@ -614,13 +618,14 @@ class SocialMediaController extends Controller
         $this->validatePlanClient($data);
         $data['created_by'] = auth()->id();
         // A post must not appear as assigned until at least one staff member is actually selected.
-        $hasAssignments = collect($request->input('assignments', []))->contains(fn ($assignment) => ! empty($assignment['user_id']));
+        $assignments = $this->normalizeAssignments($data['assignments'] ?? []);
+        $hasAssignments = ! empty($assignments);
         $data['status'] = $request->boolean('save_as_draft') || ! $hasAssignments ? 'planned' : 'assigned';
 
         DB::transaction(function () use ($data, $request, &$post) {
             $post = SocialPost::create($data);
             $this->syncPlatforms($post, $request->input('platforms', []));
-            $this->syncAssignments($post, $request->input('assignments', []));
+            $this->syncAssignments($post, $data['assignments'] ?? []);
             $this->recordStatus($post, null, $post->status, 'Post created');
         });
 
@@ -634,7 +639,8 @@ class SocialMediaController extends Controller
         $comments = $post->comments->where('is_internal', false);
         if (! $this->isClient()) $comments = $post->comments;
         $canSeeCreative = ! $this->isClient() || in_array($post->status, ['pending_client_approval', 'client_changes_requested', 'client_approved', 'ready_for_publishing', 'scheduled', 'published', 'completed', 'rejected'], true);
-        return view('social-media.posts.show', compact('post', 'comments', 'canSeeCreative'));
+        $canManageReview = $this->canReviewPosts();
+        return view('social-media.posts.show', compact('post', 'comments', 'canSeeCreative', 'canManageReview'));
     }
 
     public function edit(SocialPost $post)
@@ -654,7 +660,7 @@ class SocialMediaController extends Controller
         $this->validatePlanClient($data);
         $post->update($data);
         $this->syncPlatforms($post, $request->input('platforms', []));
-        $this->syncAssignments($post, $request->input('assignments', []));
+        $this->syncAssignments($post, $data['assignments'] ?? []);
         if (in_array($oldStatus, ['client_approved', 'ready_for_publishing', 'scheduled'], true)) {
             $this->transition($post, 'pending_client_approval', 'Publishing or content details updated; client reapproval required.');
         }
@@ -690,13 +696,13 @@ class SocialMediaController extends Controller
             $this->transition($post, 'internal_review', "Version V{$next} submitted for internal review.");
             return $version;
         });
-        $this->notifyRole($post, 'reviewer', 'Creative ready for review', "{$post->title} V{$version->version_number} needs internal review.");
-        return back()->with('success', 'Version submitted for internal review.');
+        $this->notifyReviewers('Creative ready for review', "{$post->title} V{$version->version_number} needs internal review.", $post->id);
+        return redirect()->route('social-media.plans.index')->with('success', 'Version submitted for internal review.');
     }
 
     public function internalReview(Request $request, SocialPost $post)
     {
-        $this->authorizePost($post); $this->ensureStaffPermission('review_social_media_posts');
+        $this->authorizePost($post); $this->ensureReviewPermission();
         $data = $request->validate(['decision' => ['required', Rule::in(['approved', 'changes_requested'])], 'comment' => 'nullable|string|max:3000']);
         $version = $post->versions()->latest('version_number')->firstOrFail();
         SocialPostApproval::create(['social_post_id' => $post->id, 'social_post_version_id' => $version->id, 'decided_by' => auth()->id(), 'stage' => 'internal', 'decision' => $data['decision'], 'comment' => $data['comment'] ?? null]);
@@ -772,7 +778,22 @@ class SocialMediaController extends Controller
         if ($this->isClient()) return $query->where('client_id', auth()->id());
         // Regular staff work only from their assigned queue; managers and users with
         // the explicit view permission can see the complete social-media workspace.
-        if (! $this->isPrivileged()) $query->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()));
+        if ($this->isManager()) {
+            return $query;
+        }
+
+        if (! $this->canReviewPosts()) {
+            $query->whereHas('assignments', fn ($q) => $q->where('user_id', auth()->id()))
+                ->where('status', '!=', 'internal_review');
+        } else {
+            $query->where(function ($q) {
+                $q->where('status', 'internal_review')
+                    ->orWhere(function ($assigned) {
+                        $assigned->where('status', '!=', 'internal_review')
+                            ->whereHas('assignments', fn ($assignment) => $assignment->where('user_id', auth()->id()));
+                    });
+            });
+        }
         return $query;
     }
     /** Apply UI filters only after the role-specific visibility scope has been applied. */
@@ -798,11 +819,13 @@ class SocialMediaController extends Controller
     private function canViewContentPlans(): bool { return (bool) auth()->user(); }
     private function canManageContentPlans(): bool { return ! $this->isClient() && (auth()->user()->can('manage_social_content_plans') || $this->isManager()); }
     private function isManager(): bool { return auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']); }
-    private function authorizePost(SocialPost $post): void { abort_unless($this->isPrivileged() || ($this->isClient() && $post->client_id === auth()->id()) || $this->canWorkOn($post), 403); }
-    private function canWorkOn(SocialPost $post): bool { return $post->assignments()->where('user_id', auth()->id())->exists() || $this->isPrivileged(); }
+    private function authorizePost(SocialPost $post): void { abort_unless($this->isManager() || ($this->isClient() && $post->client_id === auth()->id()) || $this->canWorkOn($post) || ($post->status === 'internal_review' && $this->canReviewPosts()), 403); }
+    private function canWorkOn(SocialPost $post): bool { return $post->assignments()->where('user_id', auth()->id())->exists() || $this->isManager(); }
     private function ensureStaffPermission(string $permission): void { abort_unless(! $this->isClient() && (auth()->user()->can($permission) || $this->isManager()), 403); }
+    private function ensureReviewPermission(): void { abort_unless($this->canReviewPosts(), 403); }
+    private function canReviewPosts(): bool { return ! $this->isClient() && auth()->user()->can('review_social_media_posts'); }
     private function formData(): array { return ['clients' => User::query()->whereRaw('LOWER(role) IN (?, ?)', ['client', 'customer'])->orderBy('first_name')->orderBy('last_name')->get(), 'projects' => Project::orderBy('project_name')->get(), 'staff' => User::query()->whereRaw('LOWER(role) IN (?, ?)', ['staff', 'manager'])->orderBy('first_name')->orderBy('last_name')->get(), 'statuses' => SocialPost::STATUSES]; }
-    private function validatedPost(Request $request): array { return $request->validate(['social_content_plan_id' => 'nullable|exists:social_content_plans,id', 'social_festival_event_id' => 'nullable|exists:social_festival_events,id', 'client_id' => 'required|exists:users,id', 'project_id' => 'nullable|exists:projects,id', 'title' => 'required|string|max:255', 'content_category' => 'nullable|string|max:100', 'post_type' => ['required', Rule::in(['image', 'carousel', 'reel', 'video', 'story', 'other'])], 'creative_brief' => 'nullable|string', 'caption' => 'nullable|string', 'hashtags' => 'nullable|string', 'reference_links' => 'nullable|string', 'priority' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])], 'planned_at' => 'nullable|date', 'internal_deadline_at' => 'nullable|date', 'client_approval_deadline_at' => 'nullable|date', 'platforms' => 'nullable|array', 'platforms.*' => 'string|max:60', 'assignments' => 'nullable|array', 'assignments.*.user_id' => 'nullable|exists:users,id', 'assignments.*.role' => ['nullable', Rule::in(['designer', 'writer', 'reviewer', 'publisher'])]]); }
+    private function validatedPost(Request $request): array { return $request->validate(['social_content_plan_id' => 'nullable|exists:social_content_plans,id', 'social_festival_event_id' => 'nullable|exists:social_festival_events,id', 'client_id' => 'required|exists:users,id', 'project_id' => 'nullable|exists:projects,id', 'title' => 'required|string|max:255', 'content_category' => 'nullable|string|max:100', 'post_type' => ['required', Rule::in(['image', 'carousel', 'reel', 'video', 'story', 'other'])], 'creative_brief' => 'nullable|string', 'caption' => 'nullable|string', 'hashtags' => 'nullable|string', 'reference_links' => 'nullable|string', 'priority' => ['required', Rule::in(['low', 'medium', 'high', 'urgent'])], 'planned_at' => 'nullable|date', 'internal_deadline_at' => 'nullable|date', 'client_approval_deadline_at' => 'nullable|date', 'platforms' => 'nullable|array', 'platforms.*' => 'string|max:60', 'assignments' => 'nullable|array', 'assignments.*' => 'nullable|array', 'assignments.*.*' => 'nullable|exists:users,id']); }
     private function validatePlanClient(array $data): void {
         if (!empty($data['social_content_plan_id']) && !SocialContentPlan::whereKey($data['social_content_plan_id'])->where('client_id', $data['client_id'])->exists()) abort(422, 'The selected monthly plan does not belong to the selected client.');
         if (!empty($data['social_festival_event_id'])) {
@@ -819,10 +842,32 @@ class SocialMediaController extends Controller
         return collect($platforms ?: [])->flatten()->filter(fn ($platform) => is_scalar($platform) && trim((string) $platform) !== '')->map(fn ($platform) => trim((string) $platform))->values()->all();
     }
     private function syncPlatforms(SocialPost $post, array $platforms): void { $platforms = collect($platforms)->flatMap(fn ($value) => preg_split('/[,\n]+/', (string) $value))->map(fn ($value) => trim($value))->filter()->unique()->values()->all(); $post->platforms()->whereNotIn('platform', $platforms)->delete(); foreach ($platforms as $platform) SocialPostPlatform::firstOrCreate(['social_post_id' => $post->id, 'platform' => $platform]); }
-    private function syncAssignments(SocialPost $post, array $assignments): void { $oldAssignments = $post->assignments()->get()->map(fn ($a) => $a->user_id.'|'.$a->assignment_role)->all(); $post->assignments()->delete(); foreach ($assignments as $assignment) if (!empty($assignment['user_id']) && !empty($assignment['role'])) { $key = $assignment['user_id'].'|'.$assignment['role']; SocialPostAssignment::create(['social_post_id' => $post->id, 'user_id' => $assignment['user_id'], 'assignment_role' => $assignment['role']]); $user = User::find($assignment['user_id']); if ($user && !in_array($key, $oldAssignments, true)) app(UnifiedNotificationService::class)->sendToUser($user, 'New social media assignment', "You are assigned as {$assignment['role']} for {$post->title}. Open My Assigned Posts to start work.", 'social_media', ['post_id' => $post->id, 'url' => route('social-media.my-assigned')]); } }
+    private function normalizeAssignments(array $assignments): array
+    {
+        $roles = ['designer', 'writer', 'reviewer', 'publisher'];
+        $normalized = [];
+
+        foreach ($assignments as $key => $value) {
+            if (is_string($key) && in_array($key, $roles, true)) {
+                foreach ((array) $value as $userId) {
+                    if (! empty($userId)) $normalized[] = ['user_id' => $userId, 'role' => $key];
+                }
+                continue;
+            }
+
+            // Keep accepting the previous one-assignee-per-role payload shape.
+            if (is_array($value) && ! empty($value['user_id']) && ! empty($value['role'])) {
+                $normalized[] = ['user_id' => $value['user_id'], 'role' => $value['role']];
+            }
+        }
+
+        return collect($normalized)->unique(fn ($assignment) => $assignment['user_id'].'|'.$assignment['role'])->values()->all();
+    }
+    private function syncAssignments(SocialPost $post, array $assignments): void { $oldAssignments = $post->assignments()->get()->map(fn ($a) => $a->user_id.'|'.$a->assignment_role)->all(); $post->assignments()->delete(); foreach ($this->normalizeAssignments($assignments) as $assignment) { $key = $assignment['user_id'].'|'.$assignment['role']; SocialPostAssignment::create(['social_post_id' => $post->id, 'user_id' => $assignment['user_id'], 'assignment_role' => $assignment['role']]); $user = User::find($assignment['user_id']); if ($user && !in_array($key, $oldAssignments, true)) app(UnifiedNotificationService::class)->sendToUser($user, 'New social media assignment', "You are assigned as {$assignment['role']} for {$post->title}. Open My Assigned Posts to start work.", 'social_media', ['post_id' => $post->id, 'url' => route('social-media.my-assigned')]); } }
     private function transition(SocialPost $post, string $to, string $comment): void { $from = $post->status; $post->update(['status' => $to]); $this->recordStatus($post, $from, $to, $comment); }
     private function recordStatus(SocialPost $post, ?string $from, string $to, string $comment): void { SocialPostStatusHistory::create(['social_post_id' => $post->id, 'user_id' => auth()->id(), 'from_status' => $from, 'to_status' => $to, 'action' => str_replace('_', ' ', $to), 'comment' => $comment]); }
     private function notifyClient(SocialPost $post, string $title, string $body): void { if ($post->client) app(UnifiedNotificationService::class)->sendToUser($post->client, $title, $body, 'social_media', ['post_id' => $post->id]); }
     private function notifyRole(SocialPost $post, string $role, string $title, string $body): void { $post->assignments()->where('assignment_role', $role)->with('user')->get()->each(fn ($a) => app(UnifiedNotificationService::class)->sendToUser($a->user, $title, $body, 'social_media', ['post_id' => $post->id])); }
+    private function notifyReviewers(string $title, string $body, int $postId): void { User::query()->get()->filter(fn ($user) => ! in_array(strtolower((string) $user->getRawOriginal('role')), ['client', 'customer'], true) && $user->can('review_social_media_posts'))->each(fn ($user) => app(UnifiedNotificationService::class)->sendToUser($user, $title, $body, 'social_media', ['post_id' => $postId])); }
     private function notifyWorkers(SocialPost $post, string $title, string $body): void { $post->assignments()->with('user')->get()->unique('user_id')->each(fn ($a) => app(UnifiedNotificationService::class)->sendToUser($a->user, $title, $body, 'social_media', ['post_id' => $post->id])); }
 }
