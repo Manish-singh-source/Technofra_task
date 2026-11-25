@@ -818,7 +818,7 @@ class SocialMediaController extends Controller
         if ($this->isClient()) return $query->where('client_id', auth()->id());
         // Regular staff work only from their assigned queue; managers and users with
         // the explicit view permission can see the complete social-media workspace.
-        if ($this->isManager()) {
+        if ($this->isPrivileged()) {
             return $query;
         }
 
@@ -866,7 +866,7 @@ class SocialMediaController extends Controller
     private function canViewContentPlans(): bool { return (bool) auth()->user(); }
     private function canManageContentPlans(): bool { return ! $this->isClient() && (auth()->user()->can('manage_social_content_plans') || $this->isManager()); }
     private function isManager(): bool { return auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']); }
-    private function authorizePost(SocialPost $post): void { abort_unless($this->isManager() || ($this->isClient() && $post->client_id === auth()->id()) || $this->canWorkOn($post) || ($post->status === 'internal_review' && $this->canReviewPosts()), 403); }
+    private function authorizePost(SocialPost $post): void { abort_unless($this->isPrivileged() || ($this->isClient() && $post->client_id === auth()->id()) || $this->canWorkOn($post) || ($post->status === 'internal_review' && $this->canReviewPosts()), 403); }
     private function authorizePostOrPlanStaff(SocialPost $post): void {
         // Staff can edit posts they reach through the shared monthly-plan workspace.
         // Non-plan posts retain their existing assignment-based authorization.
