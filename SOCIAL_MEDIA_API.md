@@ -5,10 +5,13 @@ Authentication: Laravel Sanctum. Send `Authorization: Bearer {token}` and `Accep
 
 This API mirrors the existing web flow: monthly planning, post creation and assignment, creative review, client approvals, scheduling, publishing, reporting, and festival master data.
 
+The API is protected by the same authenticated route group as the application: `auth:sanctum` plus `active.user`.
+
 ## Roles and access
 
 - Admin/manager: full access when the corresponding module permission is present or the user is a manager.
 - Staff: assigned posts plus actions allowed by `view_social_media_posts`, `create_social_media_posts`, `edit_social_media_posts`, `delete_social_media_posts`, `review_social_media_posts`, `manage_social_content_plans`, `manage_social_publishing`, `manage_social_festival_events`, and `view_social_media_reports`.
+- Admin/manager users: all posts, plans, queues, calendar events and reports within the relevant module permission. `/assigned` is an all-visible workspace for these users; it remains assignment-only for regular staff.
 - Client/customer: only their non-draft plans and their own posts; they can comment and make client decisions.
 
 ## Dashboard and discovery
@@ -18,12 +21,14 @@ This API mirrors the existing web flow: monthly planning, post creation and assi
 | GET | `/options` | Clients, staff, projects, statuses, post types, priorities and assignment roles |
 | GET | `/dashboard?month=2026-11` | Status counts and calendar events |
 | GET | `/calendar?month=2026-11` | Authorized post calendar events |
-| GET | `/posts` | Paginated post list; filters: `status`, `client_id`, `assigned_to`, `month`, `search`, `per_page` |
-| GET | `/assigned` | Current staff member's assigned work queue |
+| GET | `/posts` | Paginated post list; filters: `status`, `priority`, `client_id`, `assigned_to`, `month`, `search`, `per_page` |
+| GET | `/assigned` | Staff assignment queue; admin/manager users with full social-media visibility receive all visible posts |
 | GET | `/queues/review` | Internal review queue |
 | GET | `/queues/approvals` | Client approval queue |
 | GET | `/publishing` | Publishing tracker |
 | GET | `/reports?month=2026-11` | Monthly summary and authorized post rows |
+
+`month` uses `YYYY-MM`; `per_page` is capped at 100. Dashboard, calendar, post list, reports, plans, and publishing endpoints apply supplied month/client filters to the authorized scope.
 
 ## Posts and workflow
 
@@ -36,6 +41,8 @@ This API mirrors the existing web flow: monthly planning, post creation and assi
 | POST | `/posts/{post}/start` | Assigned worker starts work |
 | POST | `/posts/{post}/versions` | Upload creative version (`multipart/form-data`, `files[]`, optional `note`) |
 | GET | `/posts/{post}/versions/{version}/files/{file}` | Authenticated version-file download |
+| GET | `/posts/{post}/version-files/{file}/download` | Web-flow-compatible version-file download |
+| GET | `/posts/{post}/version-files/{file}/preview` | Inline image/video preview for an authorized user |
 | POST | `/posts/{post}/internal-decision` | `decision`: `approved` or `changes_requested` |
 | POST | `/posts/{post}/client-decision` | `decision`: `approved`, `changes_requested`, or `rejected`; comment required for changes/rejection |
 | POST | `/posts/{post}/comments` | Add comment; `is_internal` is staff-only and `parent_id` is optional |
@@ -77,6 +84,7 @@ Post status flow: `planned` → `assigned` → `in_progress` → `internal_revie
 | GET | `/plans` | Paginated plans |
 | POST | `/plans` | Create/update one or multiple client plans using `client_id` or `client_ids[]` |
 | GET | `/plans/{plan}` | Plan detail and linked posts |
+| GET | `/plans/{plan}/posts/template` | Download the XLSX import template |
 | PUT/PATCH | `/plans/{plan}` | Update plan metadata/status |
 | DELETE | `/plans/{plan}` | Delete plan and linked posts |
 | POST | `/plans/{plan}/client-decision` | Client decision: `approved`, `changes_requested`, or `not_required` |
@@ -97,7 +105,18 @@ Post status flow: `planned` → `assigned` → `in_progress` → `internal_revie
 | POST | `/festivals/bulk-delete` | Delete selected `festival_ids[]` |
 | POST | `/festivals/delete-year` | Delete all events for `{ "year": 2026 }` |
 
+The festival import/bulk-delete/delete-year actions are also available under `/plans/festivals/...` for clients that mirror the web Content Planning routes.
+
 Festival fields: `name`, `event_date`, `category`, `country_region`, `recurrence_type` (`none` or `yearly`), optional `client_id`, `description`, and `reference_url`.
+
+## Data and workflow notes
+
+- Post create/update accepts `social_content_plan_id` and `social_festival_event_id`; the API verifies that the plan belongs to the selected client and that a linked festival belongs to that client and falls within the plan month.
+- Assignments accept `{ "user_id": 5, "role": "designer" }`. Supported roles are `designer`, `writer`, `reviewer`, and `publisher`.
+- Staff can open posts linked from the monthly planning workspace even when they are not individually assigned. Clients still only see their own posts.
+- Version downloads/previews verify the post/version/file relationship, visibility scope, and stored file existence.
+- `parent_id` comments must belong to the same post; clients cannot create internal comments.
+- Bulk assignment accepts staff/manager users only, and bulk deletion rejects IDs outside the selected plan.
 
 ## Errors and uploads
 

@@ -120,6 +120,8 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
             Route::post('/posts/{post}/start', 'start');
             Route::post('/posts/{post}/versions', 'uploadVersion');
             Route::get('/posts/{post}/versions/{version}/files/{file}', 'versionFile');
+            Route::get('/posts/{post}/version-files/{file}/download', 'downloadVersionFile');
+            Route::get('/posts/{post}/version-files/{file}/preview', 'previewVersionFile');
             Route::post('/posts/{post}/internal-decision', 'internalDecision');
             Route::post('/posts/{post}/client-decision', 'clientDecision');
             Route::post('/posts/{post}/comments', 'comment');
@@ -133,6 +135,7 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
             Route::get('/plans', 'plans');
             Route::post('/plans', 'storePlan');
             Route::get('/plans/{plan}', 'showPlan');
+            Route::get('/plans/{plan}/posts/template', 'downloadPlanPostsTemplate');
             Route::match(['put', 'patch'], '/plans/{plan}', 'updatePlan');
             Route::delete('/plans/{plan}', 'destroyPlan');
             Route::post('/plans/{plan}/client-decision', 'clientPlanDecision');
@@ -148,6 +151,9 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
             Route::post('/festivals/import', 'importFestivals');
             Route::post('/festivals/bulk-delete', 'bulkDestroyFestivals');
             Route::post('/festivals/delete-year', 'destroyFestivalsByYear');
+            Route::post('/plans/festivals/import', 'importFestivals');
+            Route::post('/plans/festivals/bulk-delete', 'bulkDestroyFestivals');
+            Route::post('/plans/festivals/delete-year', 'destroyFestivalsByYear');
         });
 
         // SEO campaign management API. These endpoints mirror the authenticated
