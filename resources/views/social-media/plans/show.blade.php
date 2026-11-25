@@ -89,7 +89,7 @@
                             <td class="text-nowrap">{{ $post->platforms->pluck('platform')->join(', ') ?: '-' }}</td>
                             <td class="text-nowrap"><span class="badge bg-light text-dark border">{{ ucwords(str_replace('_', ' ', $post->status)) }}</span></td>
                             <td class="text-end">
-                                @if(in_array($post->id, $visiblePostIds, true))
+                                @if(! $isClient || in_array($post->id, $visiblePostIds, true))
                                     <a href="{{ route('social-media.posts.show', $post) }}" class="btn btn-outline-primary btn-sm">View details</a>
                                 @endif
                             </td>

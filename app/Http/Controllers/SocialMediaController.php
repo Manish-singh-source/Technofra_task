@@ -669,7 +669,12 @@ class SocialMediaController extends Controller
 
     public function show(SocialPost $post)
     {
-        $this->authorizePost($post);
+        // Content-plan posts are already visible in the monthly plan workspace,
+        // so staff viewing that workspace may open their details even when they
+        // are not assigned to the individual post.
+        if ($this->isClient() || ! $post->social_content_plan_id) {
+            $this->authorizePost($post);
+        }
         $post->load(['client', 'project', 'platforms', 'assignments.user', 'versions.files', 'versions.creator', 'approvals.decider', 'histories.user', 'publishingRecords', 'comments.user']);
         $comments = $post->comments->where('is_internal', false);
         if (! $this->isClient()) $comments = $post->comments;
@@ -680,14 +685,14 @@ class SocialMediaController extends Controller
 
     public function edit(SocialPost $post)
     {
-        $this->authorizePost($post);
+        $this->authorizePostOrPlanStaff($post);
         $this->ensureStaffPermission('edit_social_media_posts');
         return view('social-media.posts.form', array_merge($this->formData(), compact('post')));
     }
 
     public function update(Request $request, SocialPost $post)
     {
-        $this->authorizePost($post);
+        $this->authorizePostOrPlanStaff($post);
         $this->ensureStaffPermission('edit_social_media_posts');
         $oldStatus = $post->status;
         $request->merge(['platforms' => $this->normalizePlatforms($request->input('platforms'))]);
@@ -862,6 +867,13 @@ class SocialMediaController extends Controller
     private function canManageContentPlans(): bool { return ! $this->isClient() && (auth()->user()->can('manage_social_content_plans') || $this->isManager()); }
     private function isManager(): bool { return auth()->user()->hasRole(['super_admin', 'super-admin', 'superadmin', 'super_admin2', 'admin', 'Admin', 'Super Admin']); }
     private function authorizePost(SocialPost $post): void { abort_unless($this->isManager() || ($this->isClient() && $post->client_id === auth()->id()) || $this->canWorkOn($post) || ($post->status === 'internal_review' && $this->canReviewPosts()), 403); }
+    private function authorizePostOrPlanStaff(SocialPost $post): void {
+        // Staff can edit posts they reach through the shared monthly-plan workspace.
+        // Non-plan posts retain their existing assignment-based authorization.
+        if ($this->isClient() || ! $post->social_content_plan_id) {
+            $this->authorizePost($post);
+        }
+    }
     private function canWorkOn(SocialPost $post): bool { return $post->assignments()->where('user_id', auth()->id())->exists() || $this->isManager(); }
     private function ensureStaffPermission(string $permission): void { abort_unless(! $this->isClient() && (auth()->user()->can($permission) || $this->isManager()), 403); }
     private function ensureReviewPermission(): void { abort_unless($this->canReviewPosts(), 403); }
