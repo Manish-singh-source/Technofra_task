@@ -73,15 +73,33 @@
         </div>
     @endif
 
+    @if($canManageContentPlans && $plan->posts->isNotEmpty())
+        <div class="card mb-3 border-primary-subtle"><div class="card-body py-3"><div class="d-flex flex-wrap align-items-center gap-2">
+            <strong class="me-2"><span id="selectedPlanPostCount">0</span> selected</strong>
+            <form method="POST" action="{{ route('social-media.plans.posts.bulk-assign', $plan) }}" id="bulkPlanAssignForm" class="d-flex flex-wrap align-items-center gap-2">@csrf
+                <input type="hidden" name="role" id="bulkAssignRole" value="designer">
+                <div class="dropdown"><button class="btn btn-outline-primary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" id="bulkAssignButton" disabled>Bulk assign</button><div class="dropdown-menu p-3" style="min-width:280px">
+                    <label class="form-label small fw-semibold mb-1">Role</label><select class="form-select form-select-sm mb-2" id="bulkAssignRoleSelect"><option value="designer">Designer</option><option value="writer">Content Writer</option><option value="reviewer">Reviewer</option><option value="publisher">Publisher</option></select>
+                    <label class="form-label small fw-semibold mb-1">Staff members</label><div class="border rounded p-2 mb-3" style="max-height:150px;overflow-y:auto">@forelse($staff as $member)<label class="d-flex align-items-center gap-2 py-1 small"><input type="checkbox" class="form-check-input m-0 bulk-assign-user-checkbox" name="user_ids[]" value="{{ $member->id }}"><span>{{ $member->name }}</span></label>@empty<span class="text-muted small">No staff members available.</span>@endforelse</div>
+                    <button type="submit" class="btn btn-primary btn-sm w-100" id="confirmBulkAssign" disabled>Assign selected posts</button>
+                </div></div>
+            </form>
+            @if($canDeleteSocialPosts)<form method="POST" action="{{ route('social-media.plans.posts.bulk-delete', $plan) }}" id="bulkPlanDeleteForm" onsubmit="return confirm('Delete the selected posts and all related content? This cannot be undone.');">@csrf<button type="submit" class="btn btn-outline-danger btn-sm" id="bulkPlanDeleteButton" disabled><i class="bx bx-trash me-1"></i>Delete selected</button></form>@endif
+            <small class="text-muted ms-auto">Select posts below to manage them in bulk.</small>
+        </div></div></div>
+    @endif
+
     <div class="card">
         @if($plan->posts->isNotEmpty())
             <div class="table-responsive"><table class="table align-middle table-hover mb-0">
                 <thead class="table-light"><tr>
+                    @if($canManageContentPlans)<th style="width:40px"><input type="checkbox" class="form-check-input" id="selectAllPlanPosts" title="Select all planned posts" aria-label="Select all planned posts"></th>@endif
                     <th>Date</th><th>Type</th><th>Category</th><th>Topic / Creative Direction</th><th>Platform</th><th>Status</th><th class="text-end">Action</th>
                 </tr></thead>
                 <tbody>
                     @foreach($plan->posts as $post)
                         <tr>
+                            @if($canManageContentPlans)<td><input type="checkbox" class="form-check-input plan-post-checkbox" value="{{ $post->id }}" aria-label="Select {{ $post->title }}"></td>@endif
                             <td class="text-nowrap">{{ $post->planned_at?->format('d M Y, h:i A') ?: 'Not planned' }}</td>
                             <td class="text-nowrap">{{ ucfirst($post->post_type) }}</td>
                             <td>{{ $post->content_category ?: '-' }}</td>
@@ -92,6 +110,7 @@
                                 @if(! $isClient || in_array($post->id, $visiblePostIds, true))
                                     <a href="{{ route('social-media.posts.show', $post) }}" class="btn btn-outline-primary btn-sm">View details</a>
                                 @endif
+                                @if($canDeleteSocialPosts)<form method="POST" action="{{ route('social-media.posts.destroy', $post) }}" class="d-inline" onsubmit="return confirm('Delete this post and all related content? This cannot be undone.');">@csrf @method('DELETE')<button type="submit" class="btn btn-outline-danger btn-sm ms-1" title="Delete post"><i class="bx bx-trash"></i></button></form>@endif
                             </td>
                         </tr>
                     @endforeach
@@ -103,3 +122,28 @@
     </div>
 </div></div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const selectAll = document.getElementById('selectAllPlanPosts'), checkboxes = Array.from(document.querySelectorAll('.plan-post-checkbox'));
+    const count = document.getElementById('selectedPlanPostCount'), assignButton = document.getElementById('bulkAssignButton'), deleteButton = document.getElementById('bulkPlanDeleteButton');
+    const assignForm = document.getElementById('bulkPlanAssignForm'), deleteForm = document.getElementById('bulkPlanDeleteForm'), userCheckboxes = Array.from(document.querySelectorAll('.bulk-assign-user-checkbox'));
+    const roleSelect = document.getElementById('bulkAssignRoleSelect'), roleInput = document.getElementById('bulkAssignRole'), confirmAssign = document.getElementById('confirmBulkAssign');
+    function sync() {
+        const selected = checkboxes.filter(function (checkbox) { return checkbox.checked; });
+        if (count) count.textContent = selected.length;
+        if (assignButton) assignButton.disabled = selected.length === 0;
+        if (deleteButton) deleteButton.disabled = selected.length === 0;
+        if (selectAll) { selectAll.checked = checkboxes.length > 0 && selected.length === checkboxes.length; selectAll.indeterminate = selected.length > 0 && selected.length < checkboxes.length; }
+        [assignForm, deleteForm].forEach(function (form) { if (!form) return; form.querySelectorAll('input[name="post_ids[]"]').forEach(function (input) { input.remove(); }); selected.forEach(function (checkbox) { const input = document.createElement('input'); input.type = 'hidden'; input.name = 'post_ids[]'; input.value = checkbox.value; form.appendChild(input); }); });
+        if (confirmAssign) confirmAssign.disabled = selected.length === 0 || userCheckboxes.filter(function (checkbox) { return checkbox.checked; }).length === 0;
+    }
+    if (selectAll) selectAll.addEventListener('change', function () { checkboxes.forEach(function (checkbox) { checkbox.checked = selectAll.checked; }); sync(); });
+    checkboxes.forEach(function (checkbox) { checkbox.addEventListener('change', sync); });
+    if (roleSelect) roleSelect.addEventListener('change', function () { roleInput.value = roleSelect.value; });
+    userCheckboxes.forEach(function (checkbox) { checkbox.addEventListener('change', sync); });
+    sync();
+});
+</script>
+@endpush

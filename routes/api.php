@@ -109,18 +109,45 @@ Route::middleware(['auth:sanctum', 'active.user'])->group(function () {
 
         // Social Media Post Management API
         Route::prefix('social-media')->controller(ApiSocialMediaController::class)->group(function () {
+            Route::get('/dashboard', 'dashboard');
+            Route::get('/calendar', 'calendar');
             Route::get('/options', 'options');
             Route::get('/posts', 'index');
             Route::post('/posts', 'store');
             Route::get('/posts/{post}', 'show');
             Route::match(['put', 'patch'], '/posts/{post}', 'update');
+            Route::delete('/posts/{post}', 'destroy');
             Route::post('/posts/{post}/start', 'start');
             Route::post('/posts/{post}/versions', 'uploadVersion');
+            Route::get('/posts/{post}/versions/{version}/files/{file}', 'versionFile');
             Route::post('/posts/{post}/internal-decision', 'internalDecision');
             Route::post('/posts/{post}/client-decision', 'clientDecision');
             Route::post('/posts/{post}/comments', 'comment');
             Route::post('/posts/{post}/schedule', 'schedule');
             Route::post('/posts/{post}/publish', 'publish');
+            Route::get('/assigned', 'assigned');
+            Route::get('/queues/{queue}', 'queue');
+            Route::get('/publishing', 'publishing');
+            Route::get('/reports', 'reports');
+
+            Route::get('/plans', 'plans');
+            Route::post('/plans', 'storePlan');
+            Route::get('/plans/{plan}', 'showPlan');
+            Route::match(['put', 'patch'], '/plans/{plan}', 'updatePlan');
+            Route::delete('/plans/{plan}', 'destroyPlan');
+            Route::post('/plans/{plan}/client-decision', 'clientPlanDecision');
+            Route::post('/plans/{plan}/posts/import', 'importPlanPosts');
+            Route::post('/plans/{plan}/posts/bulk-assign', 'bulkAssignPlanPosts');
+            Route::post('/plans/{plan}/posts/bulk-delete', 'bulkDestroyPlanPosts');
+
+            Route::get('/festivals', 'festivals');
+            Route::post('/festivals', 'storeFestival');
+            Route::get('/festivals/{festival}', 'showFestival');
+            Route::match(['put', 'patch'], '/festivals/{festival}', 'updateFestival');
+            Route::delete('/festivals/{festival}', 'destroyFestival');
+            Route::post('/festivals/import', 'importFestivals');
+            Route::post('/festivals/bulk-delete', 'bulkDestroyFestivals');
+            Route::post('/festivals/delete-year', 'destroyFestivalsByYear');
         });
 
         // SEO campaign management API. These endpoints mirror the authenticated

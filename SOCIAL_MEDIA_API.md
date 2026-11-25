@@ -1,42 +1,48 @@
 # Social Media API
 
-Base URL: `{{APP_URL}}/api/v1/social-media`  
-Authentication: Laravel Sanctum. Send `Authorization: Bearer {token}` and `Accept: application/json` with every request.
+Base URL: `/api/v1/social-media`
+Authentication: Laravel Sanctum. Send `Authorization: Bearer {token}` and `Accept: application/json` to every endpoint. Responses use `{ "success": true, "data": ... }`; paginated responses also include `meta`.
 
-## Access by user type
+This API mirrors the existing web flow: monthly planning, post creation and assignment, creative review, client approvals, scheduling, publishing, reporting, and festival master data.
 
-| User | Access |
-|---|---|
-| Super Admin / Admin | Full module access |
-| Staff | Assigned posts plus actions granted by permissions |
-| Client | Only their posts, comments and approval decision |
+## Roles and access
 
-## Endpoints
+- Admin/manager: full access when the corresponding module permission is present or the user is a manager.
+- Staff: assigned posts plus actions allowed by `view_social_media_posts`, `create_social_media_posts`, `edit_social_media_posts`, `delete_social_media_posts`, `review_social_media_posts`, `manage_social_content_plans`, `manage_social_publishing`, `manage_social_festival_events`, and `view_social_media_reports`.
+- Client/customer: only their non-draft plans and their own posts; they can comment and make client decisions.
 
-| Method | URL | Purpose |
+## Dashboard and discovery
+
+| Method | Endpoint | Purpose |
 |---|---|---|
-| GET | `/options` | Clients, staff, projects, statuses and form choices |
-| GET | `/posts` | Paginated post list |
-| POST | `/posts` | Create post / draft |
-| GET | `/posts/{id}` | Full post detail, versions, comments, activity |
-| PUT/PATCH | `/posts/{id}` | Update post details and assignments |
-| POST | `/posts/{id}/start` | Start assigned work |
-| POST | `/posts/{id}/versions` | Upload a creative version for internal review |
-| POST | `/posts/{id}/internal-decision` | Approve or request internal changes |
-| POST | `/posts/{id}/client-decision` | Client approves, requests changes or rejects |
-| POST | `/posts/{id}/comments` | Add comment |
-| POST | `/posts/{id}/schedule` | Schedule an approved post |
-| POST | `/posts/{id}/publish` | Confirm a post is published |
+| GET | `/options` | Clients, staff, projects, statuses, post types, priorities and assignment roles |
+| GET | `/dashboard?month=2026-11` | Status counts and calendar events |
+| GET | `/calendar?month=2026-11` | Authorized post calendar events |
+| GET | `/posts` | Paginated post list; filters: `status`, `client_id`, `assigned_to`, `month`, `search`, `per_page` |
+| GET | `/assigned` | Current staff member's assigned work queue |
+| GET | `/queues/review` | Internal review queue |
+| GET | `/queues/approvals` | Client approval queue |
+| GET | `/publishing` | Publishing tracker |
+| GET | `/reports?month=2026-11` | Monthly summary and authorized post rows |
 
-## List posts
+## Posts and workflow
 
-`GET /posts?status=internal_review&client_id=12&assigned_to=5&month=2026-10&search=diwali&per_page=20`
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/posts` | Create a draft or assigned post |
+| GET | `/posts/{post}` | Post detail with versions, comments, history and publishing records |
+| PUT/PATCH | `/posts/{post}` | Update post fields, platforms and assignments |
+| DELETE | `/posts/{post}` | Delete a post |
+| POST | `/posts/{post}/start` | Assigned worker starts work |
+| POST | `/posts/{post}/versions` | Upload creative version (`multipart/form-data`, `files[]`, optional `note`) |
+| GET | `/posts/{post}/versions/{version}/files/{file}` | Authenticated version-file download |
+| POST | `/posts/{post}/internal-decision` | `decision`: `approved` or `changes_requested` |
+| POST | `/posts/{post}/client-decision` | `decision`: `approved`, `changes_requested`, or `rejected`; comment required for changes/rejection |
+| POST | `/posts/{post}/comments` | Add comment; `is_internal` is staff-only and `parent_id` is optional |
+| POST | `/posts/{post}/schedule` | Schedule approved content with `scheduled_at` |
+| POST | `/posts/{post}/publish` | Confirm publication with `actual_published_at`, optional `published_url` and optional `proof` |
 
-All filters are optional. Supported `status` values: `planned`, `assigned`, `in_progress`, `internal_review`, `internal_changes_requested`, `pending_client_approval`, `client_changes_requested`, `client_approved`, `ready_for_publishing`, `scheduled`, `published`, `completed`, `on_hold`, `rejected`, `cancelled`.
-
-## Create / update a post
-
-Use JSON for normal create/update requests.
+Create/update example:
 
 ```json
 {
@@ -52,89 +58,52 @@ Use JSON for normal create/update requests.
   "creative_brief": "Warm Diwali visual in brand colours.",
   "caption": "Wishing you a bright and prosperous Diwali.",
   "hashtags": "#Diwali #Festival",
-  "reference_links": "https://example.com/brand-guide",
   "platforms": ["Instagram", "Facebook", "LinkedIn"],
   "assignments": [
     {"user_id": 5, "role": "designer"},
     {"user_id": 7, "role": "reviewer"},
     {"user_id": 9, "role": "publisher"}
-  ]
+  ],
+  "save_as_draft": false
 }
 ```
 
-Set `save_as_draft: true` to create a post in `planned` status. If no staff assignment is sent, it is also created as `planned`; otherwise it is `assigned`.
+Post status flow: `planned` → `assigned` → `in_progress` → `internal_review` → `pending_client_approval` → `client_approved` → `scheduled` → `published`. Revision branches use `internal_changes_requested` and `client_changes_requested`; terminal/paused statuses are `rejected`, `cancelled`, `on_hold`, and `completed`.
 
-## Workflow actions
+## Monthly content plans
 
-### Start work
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/plans` | Paginated plans |
+| POST | `/plans` | Create/update one or multiple client plans using `client_id` or `client_ids[]` |
+| GET | `/plans/{plan}` | Plan detail and linked posts |
+| PUT/PATCH | `/plans/{plan}` | Update plan metadata/status |
+| DELETE | `/plans/{plan}` | Delete plan and linked posts |
+| POST | `/plans/{plan}/client-decision` | Client decision: `approved`, `changes_requested`, or `not_required` |
+| POST | `/plans/{plan}/posts/import` | Import XLS/XLSX/CSV as `multipart/form-data` with `file` |
+| POST | `/plans/{plan}/posts/bulk-assign` | Assign `post_ids[]` to `user_ids[]` with one role |
+| POST | `/plans/{plan}/posts/bulk-delete` | Delete selected `post_ids[]` belonging to the plan |
 
-`POST /posts/{id}/start` — no request body. The caller must be assigned to the post (or be an admin).
+## Festival/event master
 
-### Upload version
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/festivals` | Paginated festival list; optional `year` filter |
+| POST | `/festivals` | Create event |
+| GET | `/festivals/{festival}` | Event detail |
+| PUT/PATCH | `/festivals/{festival}` | Update event |
+| DELETE | `/festivals/{festival}` | Delete event |
+| POST | `/festivals/import` | Seed/update the standard festival calendar, body `{ "year": 2026 }` |
+| POST | `/festivals/bulk-delete` | Delete selected `festival_ids[]` |
+| POST | `/festivals/delete-year` | Delete all events for `{ "year": 2026 }` |
 
-`POST /posts/{id}/versions` with `multipart/form-data`:
+Festival fields: `name`, `event_date`, `category`, `country_region`, `recurrence_type` (`none` or `yearly`), optional `client_id`, `description`, and `reference_url`.
 
-- `files[]` — required; JPG, PNG, WEBP, GIF, MP4, MOV, WEBM or PDF; maximum 50 MB per file
-- `note` — optional version note
+## Errors and uploads
 
-This changes the post to `internal_review`.
+- `401`: missing/invalid Sanctum token.
+- `403`: outside the user's role, permission, or visibility scope.
+- `404`: resource or protected version file not found.
+- `422`: validation failure or invalid workflow transition.
 
-### Internal review
-
-`POST /posts/{id}/internal-decision`
-
-```json
-{"decision":"approved","comment":"Creative approved; send to client."}
-```
-
-Allowed decisions: `approved`, `changes_requested`. Approved posts move to `pending_client_approval`.
-
-### Client decision
-
-`POST /posts/{id}/client-decision`
-
-```json
-{"decision":"approved","comment":"Looks good."}
-```
-
-Allowed decisions: `approved`, `changes_requested`, `rejected`. A comment is mandatory for changes/rejection.
-
-### Schedule
-
-`POST /posts/{id}/schedule`
-
-```json
-{"scheduled_at":"2026-11-08T10:00:00+05:30"}
-```
-
-Only approved posts can be scheduled.
-
-### Publish
-
-`POST /posts/{id}/publish` with JSON or `multipart/form-data`:
-
-```json
-{"actual_published_at":"2026-11-08T10:05:00+05:30","published_url":"https://instagram.com/p/example"}
-```
-
-Optional `proof` upload supports JPG, PNG, WEBP and PDF up to 20 MB.
-
-## Comments
-
-`POST /posts/{id}/comments`
-
-```json
-{"comment":"Please make the logo a little larger.","is_internal":false}
-```
-
-`is_internal` is honoured only for staff; client users cannot create internal comments.
-
-## Response format
-
-Successful requests return:
-
-```json
-{"success":true,"data":{}}
-```
-
-Validation errors use HTTP `422`; unauthenticated users receive `401`; access-denied requests receive `403`.
+Creative uploads are up to 50 MB each (`jpg`, `jpeg`, `png`, `webp`, `gif`, `mp4`, `mov`, `webm`, `pdf`). Publishing proof is up to 20 MB (`jpg`, `jpeg`, `png`, `webp`, `pdf`).

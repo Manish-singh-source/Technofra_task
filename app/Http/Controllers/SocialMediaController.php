@@ -362,6 +362,8 @@ class SocialMediaController extends Controller
             'plan' => $plan,
             'isClient' => $this->isClient(),
             'canManageContentPlans' => $this->canManageContentPlans(),
+            'canDeleteSocialPosts' => ! $this->isClient() && (auth()->user()->can('delete_social_media_posts') || $this->isManager()),
+            'staff' => $this->formData()['staff'],
             'visiblePostIds' => $visiblePostIds,
             'planFestivals' => $planFestivals,
         ]);
@@ -387,6 +389,38 @@ class SocialMediaController extends Controller
         }
 
         return back()->with($import->created ? 'success' : 'error', $message);
+    }
+
+    public function bulkAssignPlanPosts(Request $request, SocialContentPlan $plan)
+    {
+        $this->ensureStaffPermission('edit_social_media_posts');
+        $data = $request->validate([
+            'post_ids' => 'required|array|min:1', 'post_ids.*' => 'integer|distinct|exists:social_posts,id',
+            'role' => ['required', Rule::in(['designer', 'writer', 'reviewer', 'publisher'])],
+            'user_ids' => 'required|array|min:1', 'user_ids.*' => 'integer|distinct|exists:users,id',
+        ]);
+        $posts = SocialPost::where('social_content_plan_id', $plan->id)->whereIn('id', $data['post_ids'])->get();
+        abort_unless($posts->count() === count($data['post_ids']), 422, 'One or more selected posts do not belong to this plan.');
+        abort_unless(User::query()->whereIn('id', $data['user_ids'])->whereRaw('LOWER(role) IN (?, ?)', ['staff', 'manager'])->count() === count($data['user_ids']), 422, 'All selected assignees must be staff members.');
+        DB::transaction(function () use ($posts, $data) {
+            foreach ($posts as $post) {
+                $assignments = $post->assignments->map(fn ($assignment) => ['user_id' => $assignment->user_id, 'role' => $assignment->assignment_role])->all();
+                foreach ($data['user_ids'] as $userId) $assignments[] = ['user_id' => $userId, 'role' => $data['role']];
+                $this->syncAssignments($post, $assignments);
+                if ($post->status === 'planned') $this->transition($post, 'assigned', 'Bulk assigned from monthly content plan.');
+            }
+        });
+        return back()->with('success', $posts->count().' post(s) assigned successfully.');
+    }
+
+    public function bulkDestroyPlanPosts(Request $request, SocialContentPlan $plan)
+    {
+        $this->ensureStaffPermission('delete_social_media_posts');
+        $data = $request->validate(['post_ids' => 'required|array|min:1', 'post_ids.*' => 'integer|distinct|exists:social_posts,id']);
+        $posts = SocialPost::where('social_content_plan_id', $plan->id)->whereIn('id', $data['post_ids'])->get();
+        abort_unless($posts->count() === count($data['post_ids']), 422, 'One or more selected posts do not belong to this plan.');
+        DB::transaction(fn () => $posts->each->delete());
+        return back()->with('success', $posts->count().' post(s) deleted successfully.');
     }
 
     public function updatePlan(Request $request, SocialContentPlan $plan)
