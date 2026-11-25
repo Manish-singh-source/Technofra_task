@@ -1,5 +1,8 @@
 @extends('layout.master')
 <?php $isClient = in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client', 'customer'], true); ?>
+@php
+    $selectedPlanClientIds = array_map('intval', (array) old('client_ids', []));
+@endphp
 
 @push('styles')
 <style>
@@ -7,10 +10,7 @@
 .plan-badge-pending_client_review{background:#fd7e14;color:#fff}
 .plan-badge-client_approved{background:#198754;color:#fff}
 .plan-badge-changes_requested{background:#dc3545;color:#fff}
-
-@media (max-width: 1439px) {
-    .social-media-plans .plan-notes-column { display: none !important; }
-}
+.plan-client-select-toggle{display:flex;align-items:center;min-height:39px;background-color:#fff!important;background-image:none!important;border-color:#dce5f2!important;color:#334766!important;font-weight:400;text-align:left}.plan-client-select-toggle:after{margin-left:auto}.plan-client-select-toggle:focus{border-color:#7db2f5!important;box-shadow:0 0 0 .18rem rgba(23,110,226,.1)!important}.plan-client-select-menu{border:1px solid #dce5f2;border-radius:8px;background:#fff}.plan-client-select-menu label{border-radius:6px;cursor:pointer}.plan-client-select-menu label:hover{background:#f6f8fc}
 
 .plan-actions-group {
     display: inline-flex;
@@ -124,14 +124,21 @@
         <div class="card-body">
             <form class="row g-3" method="POST" action="{{ route('social-media.plans.store') }}">
                 @csrf
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Client *</label>
-                    <select required class="form-select" name="client_id">
-                        <option value="">Select client</option>
+                <div class="col-md-4">
+                    <label class="form-label small fw-semibold">Clients *</label>
+                    <div class="dropdown">
+                        <button class="form-select plan-client-select-toggle dropdown-toggle w-100" type="button" id="planClientSelect" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                            <i class="bx bx-buildings me-1"></i><span id="planClientSelectLabel">{{ count($selectedPlanClientIds) ? count($selectedPlanClientIds).' client(s) selected' : 'Select clients' }}</span>
+                        </button>
+                        <div class="dropdown-menu plan-client-select-menu w-100 p-2 shadow" aria-labelledby="planClientSelect" style="max-height:260px;overflow-y:auto">
                         @foreach($clients as $client)
-                            <option value="{{ $client->id }}">{{ $client->name }}</option>
+                            <label class="dropdown-item-text d-flex align-items-center gap-2 px-1 py-2 mb-0" for="plan-client-{{ $client->id }}">
+                                <input class="form-check-input m-0 plan-client-checkbox" type="checkbox" name="client_ids[]" value="{{ $client->id }}" id="plan-client-{{ $client->id }}" data-client-name="{{ $client->name }}" @checked(in_array((int) $client->id, $selectedPlanClientIds, true))>
+                                <span>{{ $client->name }}</span>
+                            </label>
                         @endforeach
-                    </select>
+                        </div>
+                    </div>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-semibold">Month *</label>
@@ -145,11 +152,7 @@
                     <label class="form-label small fw-semibold">Year *</label>
                     <input name="plan_year" type="number" class="form-control" value="{{ now()->year }}">
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label small fw-semibold">Plan Title</label>
-                    <input name="title" class="form-control" placeholder="e.g. Diwali Campaign / October Plan">
-                </div>
-                <div class="col-md-2">
+                <div class="col-md-4">
                     <label class="form-label small fw-semibold">Status</label>
                     <select name="status" class="form-select">
                         <option value="draft">Draft</option>
@@ -157,13 +160,9 @@
                         <option value="client_approved">Client Approved</option>
                     </select>
                 </div>
-                <div class="col-12">
-                    <label class="form-label small fw-semibold">Notes / Strategy (Optional)</label>
-                    <textarea name="notes" class="form-control" rows="2" placeholder="Brief outline, themes, target audience or notes for this monthly plan..."></textarea>
-                </div>
                 <div class="col-12 text-end">
                     <button type="submit" class="btn btn-primary px-4">
-                        <i class="bx bx-save me-1"></i> Save Content Plan
+                        <i class="bx bx-save me-1"></i> Save Content Plans
                     </button>
                 </div>
             </form>
@@ -181,11 +180,9 @@
                 <thead class="table-light">
                     <tr>
                         <th>Client</th>
-                        <th>Plan Title</th>
                         <th>Month & Year</th>
                         <th>Posts Count</th>
                         <th>Status</th>
-                        <th class="plan-notes-column">Notes</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -193,7 +190,6 @@
                     @forelse($plans as $plan)
                     <tr>
                         <td><strong>{{ $plan->client->name ?? '-' }}</strong></td>
-                        <td>{{ $plan->title ?: 'Content Plan' }}</td>
                         <td data-order="{{ sprintf('%04d-%02d', $plan->plan_year, $plan->plan_month) }}">{{ \Carbon\Carbon::create($plan->plan_year, $plan->plan_month, 1)->format('F Y') }}</td>
                         <td><span class="badge bg-light text-dark border">{{ $plan->posts_count }} posts</span></td>
                         <td>
@@ -206,10 +202,6 @@
                                 };
                             @endphp
                             <span class="badge {{ $statusBadge }}">{{ ucwords(str_replace('_',' ', $plan->status ?? 'draft')) }}</span>
-                        </td>
-                        <td class="plan-notes-column">
-                            <small class="text-muted d-block">{{ Str::limit($plan->notes ?: '-', 45) }}</small>
-                            @if($plan->client_feedback)<small class="d-block mt-1 text-danger"><strong>Client feedback:</strong> {{ Str::limit($plan->client_feedback, 60) }}</small>@endif
                         </td>
                         <td class="text-end">
                             <a class="plan-btn-action plan-btn-post" href="{{ route('social-media.plans.show', $plan) }}" title="View monthly plan and content">
@@ -225,13 +217,11 @@
                                         data-client-id="{{ $plan->client_id }}"
                                         data-month="{{ $plan->plan_month }}"
                                         data-year="{{ $plan->plan_year }}"
-                                        data-title="{{ $plan->title }}"
                                         data-status="{{ $plan->status }}"
-                                        data-notes="{{ $plan->notes }}"
                                         title="Edit Plan">
                                         <i class="bx bx-edit-alt"></i> Edit
                                     </button>
-                                    <form method="POST" action="{{ route('social-media.plans.destroy', $plan) }}" class="d-inline m-0 p-0" onsubmit="return confirm('Are you sure you want to delete this content plan?');">
+                                    <form method="POST" action="{{ route('social-media.plans.destroy', $plan) }}" class="d-inline m-0 p-0" onsubmit="return confirm('Delete this content plan and all of its related posts? This cannot be undone.');">
                                         @csrf
                                         @method('DELETE')
                                         <button type="submit" class="plan-btn-action plan-btn-delete" title="Delete Plan">
@@ -255,7 +245,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="text-center text-muted py-4">No content plans found.</td>
+                        <td colspan="5" class="text-center text-muted py-4">No content plans found.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -380,10 +370,6 @@
                             <input name="plan_year" id="edit_plan_year" type="number" class="form-control" required>
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label small fw-semibold">Plan Title</label>
-                            <input name="title" id="edit_title" class="form-control" placeholder="Plan title">
-                        </div>
-                        <div class="col-md-4">
                             <label class="form-label small fw-semibold">Status</label>
                             <select name="status" id="edit_status" class="form-select">
                                 <option value="draft">Draft</option>
@@ -392,10 +378,6 @@
                                 <option value="changes_requested">Changes Requested</option>
                                 <option value="not_required">Monthly Planning Not Required</option>
                             </select>
-                        </div>
-                        <div class="col-12">
-                            <label class="form-label small fw-semibold">Notes / Strategy</label>
-                            <textarea name="notes" id="edit_notes" class="form-control" rows="3" placeholder="Outline, notes, target audience..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -417,8 +399,8 @@ document.addEventListener('DOMContentLoaded', function () {
         plansTable.DataTable({
             pageLength: 10,
             lengthMenu: [[10, 25, 50, -1], [10, 25, 50, 'All']],
-            order: [[2, 'desc']],
-            columnDefs: [{ targets: 6, orderable: false, searchable: false }],
+            order: [[1, 'desc']],
+            columnDefs: [{ targets: 4, orderable: false, searchable: false }],
             language: {
                 search: '',
                 searchPlaceholder: 'Search plans...'
@@ -437,9 +419,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('edit_client_id').value = this.dataset.clientId || '';
             document.getElementById('edit_plan_month').value = this.dataset.month || '1';
             document.getElementById('edit_plan_year').value = this.dataset.year || new Date().getFullYear();
-            document.getElementById('edit_title').value = this.dataset.title || '';
             document.getElementById('edit_status').value = this.dataset.status || 'draft';
-            document.getElementById('edit_notes').value = this.dataset.notes || '';
             if (editModal) {
                 editModal.show();
             } else if (window.$) {
@@ -447,6 +427,22 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    var planClientSelectLabel = document.getElementById('planClientSelectLabel');
+    var planClientCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.plan-client-checkbox'));
+    function refreshPlanClientSelection() {
+        if (!planClientSelectLabel) return;
+        var selectedClients = planClientCheckboxes.filter(function (checkbox) { return checkbox.checked; });
+        if (selectedClients.length === 0) {
+            planClientSelectLabel.textContent = 'Select clients';
+        } else if (selectedClients.length <= 2) {
+            planClientSelectLabel.textContent = selectedClients.map(function (checkbox) { return checkbox.dataset.clientName; }).join(', ');
+        } else {
+            planClientSelectLabel.textContent = selectedClients.length + ' clients selected';
+        }
+    }
+    planClientCheckboxes.forEach(function (checkbox) { checkbox.addEventListener('change', refreshPlanClientSelection); });
+    refreshPlanClientSelection();
 
     var selectAllFestivals = document.getElementById('selectAllFestivals');
     var festivalCheckboxes = Array.prototype.slice.call(document.querySelectorAll('.festival-checkbox'));

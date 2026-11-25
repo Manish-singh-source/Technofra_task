@@ -36,6 +36,10 @@ class SocialMediaController extends Controller
 
         $canViewContentPlans = $this->canViewContentPlans();
         $canManageContentPlans = $this->canManageContentPlans();
+        $selectedClientIds = array_values(array_filter(
+            (array) $request->input('client_ids', $request->filled('client_id') ? [$request->input('client_id')] : []),
+            fn ($clientId) => filter_var($clientId, FILTER_VALIDATE_INT) !== false && (int) $clientId > 0
+        ));
 
         // Query planned monthly content plans created on /social-media/plans.
         // Staff without plan access must not receive plan data or links from the dashboard.
@@ -44,8 +48,8 @@ class SocialMediaController extends Controller
             $plansQuery->whereRaw('1 = 0');
         } elseif ($this->isClient()) {
             $plansQuery->where('client_id', auth()->id())->where('status', '!=', 'draft');
-        } elseif ($request->filled('client_id')) {
-            $plansQuery->where('client_id', $request->client_id);
+        } elseif ($selectedClientIds) {
+            $plansQuery->whereIn('client_id', $selectedClientIds);
         }
         $totalPlansCount = (clone $plansQuery)->count();
         $calendarPlansQuery = clone $plansQuery;
@@ -99,8 +103,17 @@ class SocialMediaController extends Controller
             ->orderBy('first_name')->orderBy('last_name')->get();
 
         // Calendar events for embedded Post Calendar
-        $calendarPosts = $this->applyPostFilters($this->visiblePosts($request), $request)
-            ->where(function ($query) { $query->whereNotNull('planned_at')->orWhereNotNull('publishing_scheduled_at'); })
+        $calendarPostsQuery = $this->applyPostFilters($this->visiblePosts($request), $request)
+            ->where(function ($query) { $query->whereNotNull('planned_at')->orWhereNotNull('publishing_scheduled_at'); });
+        if ($this->isClient()) {
+            // Draft plans are internal work. A client must not see their linked posts
+            // in the calendar until the plan moves out of draft.
+            $calendarPostsQuery->where(function ($query) {
+                $query->whereNull('social_content_plan_id')
+                    ->orWhereHas('plan', fn ($planQuery) => $planQuery->where('status', '!=', 'draft'));
+            });
+        }
+        $calendarPosts = $calendarPostsQuery
             ->with(['client', 'platforms'])->orderByRaw('COALESCE(publishing_scheduled_at, planned_at)')->get();
         $postCalendarEvents = $calendarPosts->map(function (SocialPost $post) {
             $statusMeta = match ($post->status) {
@@ -183,7 +196,7 @@ class SocialMediaController extends Controller
         // plans remain available in the plan table below and on /plans.
         $calendarEvents = $postCalendarEvents->values()->all();
 
-        return view('social-media.dashboard', compact('counts', 'assignedPosts', 'clientApprovals', 'monthPosts', 'monthPlans', 'selectedMonth', 'monthlyPlan', 'dashboardClients', 'calendarEvents', 'canViewContentPlans', 'canManageContentPlans'));
+        return view('social-media.dashboard', compact('counts', 'assignedPosts', 'clientApprovals', 'monthPosts', 'monthPlans', 'selectedMonth', 'selectedClientIds', 'monthlyPlan', 'dashboardClients', 'calendarEvents', 'canViewContentPlans', 'canManageContentPlans'));
     }
 
     public function index(Request $request)
@@ -278,22 +291,38 @@ class SocialMediaController extends Controller
     {
         $this->ensureStaffPermission('manage_social_content_plans');
         $data = $request->validate([
-            'client_id' => 'required|exists:users,id',
+            'client_ids' => 'required_without:client_id|array|min:1',
+            'client_ids.*' => 'integer|distinct|exists:users,id',
+            'client_id' => 'nullable|required_without:client_ids|exists:users,id',
             'plan_month' => 'required|integer|between:1,12',
             'plan_year' => 'required|integer|between:2020,2100',
             'title' => 'nullable|string|max:255',
             'notes' => 'nullable|string|max:4000',
             'status' => 'nullable|in:draft,pending_client_review,client_approved,changes_requested,not_required'
         ]);
+        $clientIds = $data['client_ids'] ?? [$data['client_id']];
+        unset($data['client_ids'], $data['client_id']);
         $data['created_by'] = auth()->id();
         if (empty($data['status'])) {
             $data['status'] = 'draft';
         }
-        $plan = SocialContentPlan::updateOrCreate(['client_id' => $data['client_id'], 'plan_month' => $data['plan_month'], 'plan_year' => $data['plan_year']], $data);
-        if ($plan->status === 'pending_client_review' && $plan->client) {
-            app(UnifiedNotificationService::class)->sendToUser($plan->client, 'Monthly content plan ready for review', "Please review your {$plan->title} content plan.", 'social_media', ['url' => route('social-media.plans.index')]);
+        $plans = DB::transaction(function () use ($clientIds, $data) {
+            return collect($clientIds)->map(function ($clientId) use ($data) {
+                $planData = array_merge($data, ['client_id' => $clientId]);
+
+                return SocialContentPlan::updateOrCreate(
+                    ['client_id' => $clientId, 'plan_month' => $data['plan_month'], 'plan_year' => $data['plan_year']],
+                    $planData
+                );
+            });
+        });
+        foreach ($plans as $plan) {
+            if ($plan->status === 'pending_client_review' && $plan->client) {
+                app(UnifiedNotificationService::class)->sendToUser($plan->client, 'Monthly content plan ready for review', "Please review your {$plan->title} content plan.", 'social_media', ['url' => route('social-media.plans.index')]);
+            }
         }
-        return back()->with('success', 'Monthly content plan saved.');
+
+        return back()->with('success', $plans->count().' monthly content plan(s) saved.');
     }
 
     /** Display one monthly plan with every content item planned for the client. */
@@ -385,8 +414,14 @@ class SocialMediaController extends Controller
     public function destroyPlan(SocialContentPlan $plan)
     {
         $this->ensureStaffPermission('manage_social_content_plans');
-        $plan->delete();
-        return back()->with('success', 'Monthly content plan deleted successfully.');
+        $deletedPosts = DB::transaction(function () use ($plan) {
+            $postCount = SocialPost::where('social_content_plan_id', $plan->id)->delete();
+            $plan->delete();
+
+            return $postCount;
+        });
+
+        return back()->with('success', "Monthly content plan and {$deletedPosts} related post(s) deleted successfully.");
     }
 
     /** Clients own the final decision for their monthly plan. */
@@ -798,7 +833,14 @@ class SocialMediaController extends Controller
     }
     /** Apply UI filters only after the role-specific visibility scope has been applied. */
     private function applyPostFilters($query, Request $request) {
-        if (! $this->isClient() && $request->filled('client_id')) $query->where('client_id', $request->input('client_id'));
+        if (! $this->isClient()) {
+            $clientIds = array_values(array_filter(
+                (array) $request->input('client_ids', []),
+                fn ($clientId) => filter_var($clientId, FILTER_VALIDATE_INT) !== false && (int) $clientId > 0
+            ));
+            if ($clientIds) $query->whereIn('client_id', $clientIds);
+            elseif ($request->filled('client_id')) $query->where('client_id', $request->input('client_id'));
+        }
         if ($request->filled('status') && in_array($request->input('status'), SocialPost::STATUSES, true)) $query->where('status', $request->input('status'));
         return $query;
     }

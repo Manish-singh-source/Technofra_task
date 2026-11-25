@@ -9,6 +9,10 @@
 .social-dashboard .table thead th{font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;color:#495057;background:#f8f9fa}
 .social-dashboard .table td{border-color:#edf1f6;padding:.85rem .75rem}
 .social-dashboard .form-select,.social-dashboard .form-control{border-color:#dce5f2;border-radius:8px}
+.social-dashboard .dashboard-client-filter-toggle{display:flex;align-items:center;min-height:39px;background-color:#fff;background-image:none;border-color:#dce5f2;color:#334766;font-weight:400;box-shadow:none}.social-dashboard .dashboard-client-filter-toggle:after{margin-left:auto}
+.social-dashboard .dashboard-client-filter-toggle:focus{border-color:#7db2f5;box-shadow:0 0 0 .18rem rgba(23,110,226,.1)}
+.social-dashboard .dashboard-client-filter-menu{border:1px solid #dce5f2;border-radius:8px;background:#fff;color:#334766}
+.social-dashboard .dashboard-client-filter-menu label{border-radius:6px;cursor:pointer}.social-dashboard .dashboard-client-filter-menu label:hover{background:#f6f8fc}
 .status-summary{display:flex;flex-wrap:nowrap;align-items:center;gap:.38rem;white-space:nowrap}.status-summary-item{position:relative;display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;padding:0;border:1px solid #e3eaf3;border-radius:7px;background:#fff;color:#536171;line-height:1;text-decoration:none;transition:background .15s ease,transform .15s ease}.status-summary-item:hover{background:#f5f8fc;color:#1a315a;transform:translateY(-1px)}.status-summary-item i{font-size:1rem}.status-summary-count{position:absolute;top:-5px;right:-5px;display:inline-flex;align-items:center;justify-content:center;min-width:15px;height:15px;padding:0 3px;border:1px solid #fff;border-radius:999px;background:#edf3fb;color:#1a315a;font-size:.62rem;font-weight:700}.status-summary-item.status-planned i{color:#6c757d}.status-summary-item.status-in_progress i{color:#0d6efd}.status-summary-item.status-internal_review i{color:#fd7e14}.status-summary-item.status-pending_client_approval i{color:#0dcaf0}.status-summary-item.status-client_changes_requested i,.status-summary-item.status-rejected i{color:#dc3545}.status-summary-item.status-scheduled i{color:#6f42c1}.status-summary-item.status-published i{color:#198754}@media (max-width:1199.98px){.status-summary{flex-wrap:wrap}}
 .social-dashboard .radius-10{position:relative;overflow:hidden}
 .social-dashboard .radius-10:before{content:'';position:absolute;left:0;top:0;width:4px;height:100%;background:#1674ea}
@@ -25,6 +29,11 @@
 .calendar-upcoming { min-width: 0; padding-left: 1.25rem; border-left: 1px solid #e8edf2; display: flex; flex-direction: column; }
 
 .calendar-view-all { min-height: 36px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+.calendar-header-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: .55rem; }
+.calendar-agenda-switch { display: inline-flex; align-items: center; gap: .35rem; min-height: 36px; padding: .35rem .7rem .35rem .45rem; margin: 0; border: 1px solid #cfd9e6; border-radius: 6px; background: #fff; color: #405268; font-size: 13px; font-weight: 600; }
+.calendar-agenda-switch .form-check-input { float: none; margin: 0; cursor: pointer; }
+.calendar-dashboard-layout.upcoming-hidden { grid-template-columns: minmax(0, 1fr); }
+.calendar-dashboard-layout.upcoming-hidden .calendar-upcoming, .calendar-upcoming[hidden] { display: none !important; }
 .calendar-upcoming-title { margin: 0 0 0.4rem; color: #25374a; font-size: 0.95rem; font-weight: 600; }
 .calendar-selected-date { margin: 0 0 0.4rem; color: #7b8794; font-size: 0.75rem; }
 .calendar-event-legend { display: flex; flex-wrap: wrap; gap: 0.4rem 0.65rem; margin: 0.25rem 0 0.5rem; }
@@ -100,7 +109,7 @@
     </div>
 
     @php
-        $dashboardFilters = array_filter(request()->only(['client_id', 'month']));
+        $dashboardFilters = array_filter(request()->only(['client_id', 'client_ids', 'month']));
         $statusConfig = [
             'planned' => ['label' => 'Planned', 'icon' => 'bx-calendar-check', 'url' => $canViewContentPlans ? route('social-media.plans.index', $dashboardFilters) : null],
             'in_progress' => ['label' => 'In Design', 'icon' => 'bx-palette', 'url' => route('social-media.posts.index', array_merge($dashboardFilters, ['status' => 'in_progress']))],
@@ -117,7 +126,23 @@
         <div class="card-body py-3">
             <div class="row g-2 align-items-end">
                 @if(!$dashboardClients->isEmpty())
-                    <div class="col-md-4 col-lg-2"><label class="form-label small mb-1">Client</label><select name="client_id" class="form-select"><option value="">All accessible clients</option>@foreach($dashboardClients as $client)<option value="{{ $client->id }}" @selected((string) request('client_id') === (string) $client->id)>{{ $client->name }}</option>@endforeach</select></div>
+                    <div class="col-md-4 col-lg-3">
+                        <label class="form-label small mb-1">Clients</label>
+                        <div class="dropdown dashboard-client-filter">
+                            <button class="form-select dashboard-client-filter-toggle dropdown-toggle w-100 text-start" type="button" id="dashboardClientFilter" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+                                <i class="bx bx-buildings me-1"></i>
+                                {{ count($selectedClientIds) ? count($selectedClientIds).' client(s) selected' : 'All accessible clients' }}
+                            </button>
+                            <div class="dropdown-menu dashboard-client-filter-menu w-100 p-2 shadow" aria-labelledby="dashboardClientFilter" style="max-height:260px;overflow-y:auto">
+                                @foreach($dashboardClients as $client)
+                                    <label class="dropdown-item-text d-flex align-items-center gap-2 px-1 py-2 mb-0" for="dashboard-client-{{ $client->id }}">
+                                        <input class="form-check-input m-0 dashboard-client-filter-option" type="checkbox" name="client_ids[]" value="{{ $client->id }}" id="dashboard-client-{{ $client->id }}" @checked(in_array((int) $client->id, array_map('intval', $selectedClientIds), true))>
+                                        <span>{{ $client->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                 @endif
                 <div class="col-md-3 col-lg-2"><label class="form-label small mb-1">Status</label><select name="status" class="form-select"><option value="">All statuses</option>@foreach(\App\Models\SocialPost::STATUSES as $status)<option value="{{ $status }}" @selected(request('status') === $status)>{{ ucwords(str_replace('_', ' ', $status)) }}</option>@endforeach</select></div>
                 <div class="col-md-3 col-lg-2"><label class="form-label small mb-1">Plan month</label><input type="month" name="month" value="{{ $selectedMonth }}" class="form-control"></div>
@@ -152,8 +177,8 @@
                         <h6 class="mb-0">Monthly Social Media Post Calendar</h6>
                         <p class="mb-0 text-muted font-13">Planned posts for the selected month. Click a post to open its details.</p>
                     </div>
+                    <div class="calendar-header-actions">
                     @if($canViewContentPlans)
-                    <div class="d-flex align-items-center gap-2">
                         @if(!in_array(strtolower((string) auth()->user()->getRawOriginal('role')), ['client','customer']))
                             <a href="{{ route('social-media.plans.index') }}" class="btn btn-primary btn-sm">
                                 <i class="bx bx-calendar-plus me-1"></i> Manage Plans
@@ -162,13 +187,17 @@
                         <a href="{{ route('social-media.plans.index') }}" class="btn btn-outline-primary calendar-view-all">
                             <i class="bx bx-table me-1"></i> View All Plans
                         </a>
-                    </div>
                     @endif
+                        <div class="form-check form-switch calendar-agenda-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="toggleSocialCalendarAgenda" checked aria-expanded="true" aria-controls="socialCalendarUpcomingPanel">
+                            <label class="form-check-label" for="toggleSocialCalendarAgenda">Agenda</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="calendar-dashboard-layout">
                         <div id="calendar"></div>
-                        <aside class="calendar-upcoming" aria-label="Social media posts">
+                        <aside id="socialCalendarUpcomingPanel" class="calendar-upcoming" aria-label="Social media posts">
                             <h6 class="calendar-upcoming-title">Posts for selected date</h6>
                             <p id="calendarSelectedDate" class="calendar-selected-date"></p>
                             <div class="calendar-event-legend" aria-label="Calendar post categories">
@@ -729,6 +758,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
     
     calendar.render();
+
+    // Keep the calendar full-width whenever the Agenda panel is hidden.
+    var calendarLayout = document.querySelector('.calendar-dashboard-layout');
+    var agendaToggle = document.getElementById('toggleSocialCalendarAgenda');
+    var agendaPanel = document.getElementById('socialCalendarUpcomingPanel');
+    var refreshCalendarSize = function() {
+        calendar.updateSize();
+    };
+    var setAgendaVisibility = function(isHidden) {
+        if (!agendaToggle || !calendarLayout || !agendaPanel) return;
+        calendarLayout.classList.toggle('upcoming-hidden', isHidden);
+        agendaPanel.hidden = isHidden;
+        agendaPanel.setAttribute('aria-hidden', String(isHidden));
+        agendaToggle.setAttribute('aria-expanded', String(!isHidden));
+        window.setTimeout(refreshCalendarSize, 50);
+        window.setTimeout(refreshCalendarSize, 350);
+    };
+    if (calendarLayout && window.ResizeObserver) {
+        new ResizeObserver(refreshCalendarSize).observe(calendarLayout);
+    }
+    if (agendaToggle && calendarLayout && agendaPanel) {
+        agendaToggle.addEventListener('change', function() {
+            setAgendaVisibility(!agendaToggle.checked);
+        });
+    }
+
+    var dashboardFilterForm = document.querySelector('.dashboard-filter-card');
+    document.querySelectorAll('.dashboard-client-filter-option').forEach(function(option) {
+        option.addEventListener('change', function() {
+            if (dashboardFilterForm) dashboardFilterForm.requestSubmit();
+        });
+    });
 
     // DataTables Initialization for Split View Tables (matching index.blade.php)
     const initDashboardTable = (selector) => {
