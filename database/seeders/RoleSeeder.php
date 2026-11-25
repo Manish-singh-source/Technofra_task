@@ -302,6 +302,7 @@ class RoleSeeder extends Seeder
             'delete_social_media_posts', 'manage_social_content_plans', 'manage_social_festival_events',
             'assign_social_media_posts', 'review_social_media_posts', 'send_social_posts_to_client',
             'manage_social_publishing', 'view_social_media_reports',
+            'approve_own_social_posts', 'comment_own_social_posts',
         ];
         foreach (['super_admin', 'admin', 'manager'] as $roleName) {
             $roles[$roleName] = array_merge($roles[$roleName], $socialManagerPermissions);
