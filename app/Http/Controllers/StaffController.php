@@ -51,7 +51,7 @@ class StaffController extends Controller
     public function index()
     {
         $staff = User::query()
-            ->with('address')
+            ->with(['address', 'salaryProfile'])
             ->withMax('activityLogs', 'logged_in_at')
             ->whereNotNull('role')
             ->whereIn('role', ['staff', 'super_admin2', 'admin'])

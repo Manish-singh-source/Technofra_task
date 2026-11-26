@@ -28,7 +28,23 @@ class SalaryManagementController extends Controller
 
     public function salaryMaster(Request $request)
     {
-        return $this->renderPage($request, null, null, now()->format('Y-m'), 'master');
+        $previewToken = $request->session()->get('salary_preview_token');
+        $preview = $previewToken
+            ? Cache::get($this->previewKey($request->user()->id, $previewToken))
+            : null;
+
+        if (! $preview) {
+            $previewToken = null;
+        }
+
+        return $this->renderPage(
+            $request,
+            $preview['rows'] ?? null,
+            $previewToken,
+            $preview['month'] ?? now()->format('Y-m'),
+            'master',
+            $preview['missing_existing_count'] ?? 0
+        );
     }
 
     public function salaryReports(Request $request)
@@ -289,7 +305,7 @@ class SalaryManagementController extends Controller
             'rows' => $previewRows,
             'missing_existing_count' => $missingExistingCount,
         ], now()->addMinutes(30));
-        return redirect()->route('salary-management.upload-form')
+        return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
             ->with('salary_preview_token', $previewToken);
     }
 
@@ -304,13 +320,13 @@ class SalaryManagementController extends Controller
         $preview = Cache::get($key);
 
         if (! $preview) {
-            return redirect()->route('salary-management.upload-form')
+            return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
                 ->withErrors(['file' => 'This preview expired. Upload the workbook again.']);
         }
 
         foreach ($preview['rows'] as $row) {
             if ($row['errors'] !== []) {
-                return redirect()->route('salary-management.upload-form')
+                return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
                     ->with('salary_preview_token', $validated['preview_token'])
                     ->withErrors(['file' => 'Resolve all unmatched or invalid rows before saving.']);
             }
@@ -388,7 +404,7 @@ class SalaryManagementController extends Controller
                 return compact('added', 'updated');
             });
         } catch (\Illuminate\Validation\ValidationException $exception) {
-            return redirect()->route('salary-management.upload-form')
+            return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
                 ->with('salary_preview_token', $validated['preview_token'])
                 ->withErrors($exception->errors());
         }
@@ -401,7 +417,7 @@ class SalaryManagementController extends Controller
             $message = "{$result['added']} payroll record(s) added and {$result['updated']} updated. Existing records not in this workbook were kept.";
         }
 
-        return redirect()->route('salary-management.attendance')->with('success', $message);
+        return $this->redirectSalaryTarget($request, 'salary-management.attendance', 'attendance')->with('success', $message);
     }
 
     public function cancelPreview(Request $request)
@@ -410,7 +426,8 @@ class SalaryManagementController extends Controller
         Cache::forget($this->previewKey($request->user()->id, $validated['preview_token']));
         $request->session()->forget('salary_preview_token');
 
-        return redirect()->route('salary-management.attendance')->with('success', 'Payroll preview cancelled. Saved payroll was not changed.');
+        return $this->redirectSalaryTarget($request, 'salary-management.attendance', 'attendance')
+            ->with('success', 'Payroll preview cancelled. Saved payroll was not changed.');
     }
 
     public function reopen(Request $request, SalaryRecord $salaryRecord)
@@ -443,7 +460,7 @@ class SalaryManagementController extends Controller
             $record->update(['data' => $data]);
         });
 
-        return redirect()->route('salary-management.attendance')
+        return $this->redirectSalaryTarget($request, 'salary-management.attendance', 'attendance')
             ->with('success', 'Payroll reopened and its approved version was retained in history. Upload the workbook again to review changes.');
     }
 
@@ -461,19 +478,19 @@ class SalaryManagementController extends Controller
         $preview = Cache::get($key);
 
         if (! $preview || ! array_key_exists($rowIndex, $preview['rows'])) {
-            return redirect()->route('salary-management.upload-form')
+            return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
                 ->withErrors(['file' => 'This preview row is no longer available. Upload the workbook again.']);
         }
 
         $row = $preview['rows'][$rowIndex];
         if ($row['errors'] !== [] || $row['calculation'] === null) {
-            return redirect()->route('salary-management.upload-form')
+            return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
                 ->withErrors(['file' => 'Resolve this employee’s attendance validation errors before adjusting salary.']);
         }
 
         $daysInMonth = (int) $row['calculation']['days_in_month'];
         if ((int) $validated['days'] > $daysInMonth) {
-            return redirect()->route('salary-management.upload-form')
+            return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
                 ->with('salary_preview_token', $previewToken)
                 ->withErrors(['days' => "Days to deduct cannot exceed the {$daysInMonth} days in this month."]);
         }
@@ -491,7 +508,7 @@ class SalaryManagementController extends Controller
 
         Cache::put($key, $preview, now()->addMinutes(30));
 
-        return redirect()->route('salary-management.upload-form')
+        return $this->redirectSalaryTarget($request, 'salary-management.upload-form', 'attendance')
             ->with('salary_preview_token', $previewToken)
             ->with('success', 'Salary adjustment applied to ' . $row['employee']['name'] . ' for this payroll preview.');
     }
@@ -538,7 +555,7 @@ class SalaryManagementController extends Controller
     /**
      * Permanently remove one saved payroll record and its associated history.
      */
-    public function destroy(SalaryRecord $salaryRecord)
+    public function destroy(Request $request, SalaryRecord $salaryRecord)
     {
         DB::transaction(function () use ($salaryRecord) {
             SalaryRecord::query()
@@ -547,7 +564,7 @@ class SalaryManagementController extends Controller
                 ->delete();
         });
 
-        return redirect()->route('salary-management.attendance')
+        return $this->redirectSalaryTarget($request, 'salary-management.attendance', 'attendance')
             ->with('success', 'Payroll record deleted permanently.');
     }
 
@@ -741,8 +758,13 @@ class SalaryManagementController extends Controller
         ];
 
         $salaryProfiles = SalaryProfile::query()->with('staffUser')->orderBy('employee_code')->get();
+        $reportData = $this->buildSalaryReport($request);
+        $requestedTab = (string) $request->query('tab', '');
+        $activeSalaryTab = $previewRows !== null
+            ? 'attendance'
+            : (in_array($requestedTab, ['master', 'attendance', 'reports'], true) ? $requestedTab : 'master');
 
-        return view($salarySection === 'master' ? 'salary-management.master' : 'salary-management.attendance-import', compact(
+        return view($salarySection === 'master' ? 'salary-management.master' : 'salary-management.attendance-import', array_merge(compact(
             'records',
             'previewRows',
             'previewToken',
@@ -764,8 +786,27 @@ class SalaryManagementController extends Controller
             'leaveRequests',
             'documents',
             'salaryProfiles',
-            'salarySection'
-        ));
+            'salarySection',
+            'activeSalaryTab'
+        ), [
+            'reportMonth' => $reportData['salaryMonth'],
+            'reportRows' => $reportData['reportRows'],
+            'reportSummary' => $reportData['summary'],
+            'reportDepartmentOptions' => $reportData['departmentOptions'],
+            'reportFilters' => $reportData['filters'],
+        ]));
+    }
+
+    /**
+     * Redirect attendance/payroll mutations back to the unified Salary page when submitted from there.
+     */
+    private function redirectSalaryTarget(Request $request, string $defaultRoute, string $tab = 'attendance')
+    {
+        if ($request->input('return_to') === 'salary-master') {
+            return redirect()->route('salary-management.salary-master', ['tab' => $tab]);
+        }
+
+        return redirect()->route($defaultRoute);
     }
 
     private function matchRows(array $rows, $users, SalaryCalculationService $calculator, int $daysInMonth): array

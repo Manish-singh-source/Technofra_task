@@ -228,13 +228,15 @@
                 $canSocialMediaMenu = $isClientPortalUser || $isStaffPortalUser
                     || $sidebarUser?->can('view_social_media_posts')
                     || $sidebarUser?->can('manage_social_content_plans');
+                $canEmployeeMaster = $sidebarUser?->can('view_staff')
+                    || $sidebarUser?->can('view_salary_management');
                 $hasMasterMenu = $canRenewalMaster
+                    || $canEmployeeMaster
                     || $sidebarUser?->can('view_leads_management')
                     || $sidebarUser?->can('view_orders')
                     || $canViewProjectsMenu
                     || $sidebarUser?->can('view_tasks')
                     || $canRaiseIssueMenu
-                    || $sidebarUser?->can('view_staff')
                     || $sidebarUser?->can('view_book_calls')
                     || $sidebarUser?->can('view_digital_marketing_leads')
                     || $canAccessControlMenu
@@ -373,15 +375,6 @@
                         </a>
                     </li>
                 @endif
-                @can('view_staff')
-                    <li>
-                        <a href="{{ route('staff') }}">
-                            <div class="parent-icon"><i class="bx bx-user"></i>
-                            </div>
-                            <div class="menu-title">Staff</div>
-                        </a>
-                    </li>
-                @endcan
                 @can('view_book_calls')
                     <li>
                         <a href="{{ route('book-call.index') }}">
@@ -468,25 +461,26 @@
                     </li>
                 @endif
 
-                @can('view_salary_management')
-                    <li class="{{ request()->routeIs('salary-management.*') ? 'mm-active' : '' }}">
+                @if($canEmployeeMaster)
+                    <li class="{{ request()->routeIs('staff', 'add-staff', 'view-staff', 'staff.*', 'salary-management.*') ? 'mm-active' : '' }}">
                         <a href="javascript:;" class="has-arrow">
                             <div class="parent-icon"><i class="bx bxs-user-detail"></i></div>
-                            <div class="menu-title">Salary Management</div>
+                            <div class="menu-title">Employee Master</div>
                         </a>
                         <ul>
-                            <li class="{{ request()->routeIs('salary-management.salary-master') ? 'mm-active' : '' }}">
-                                <a href="{{ route('salary-management.salary-master') }}"><i class="bx bx-radio-circle"></i>Salary Master</a>
-                            </li>
-                            <li class="{{ request()->routeIs('salary-management.attendance', 'salary-management.upload-form') ? 'mm-active' : '' }}">
-                                <a href="{{ route('salary-management.attendance') }}"><i class="bx bx-radio-circle"></i>Import SalaryBox Attendance</a>
-                            </li>
-                            <li class="{{ request()->routeIs('salary-management.reports') ? 'mm-active' : '' }}">
-                                <a href="{{ route('salary-management.reports') }}"><i class="bx bx-radio-circle"></i>Salary Reports</a>
-                            </li>
+                            @can('view_staff')
+                                <li class="{{ request()->routeIs('staff', 'add-staff', 'view-staff', 'staff.*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('staff') }}"><i class="bx bx-radio-circle"></i>Staff</a>
+                                </li>
+                            @endcan
+                            @can('view_salary_management')
+                                <li class="{{ request()->routeIs('salary-management.*') ? 'mm-active' : '' }}">
+                                    <a href="{{ route('salary-management.salary-master') }}"><i class="bx bx-radio-circle"></i>Salary Management</a>
+                                </li>
+                            @endcan
                         </ul>
                     </li>
-                @endcan
+                @endif
 
                 @if($canAccessControlMenu)
                     <li>
