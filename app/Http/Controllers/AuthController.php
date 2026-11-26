@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Helpers\FileUpload;
+use App\Models\SalaryRecord;
 use App\Models\Setting;
 use App\Models\StaffActivityLog;
 use App\Models\User;
@@ -190,9 +191,34 @@ class AuthController extends Controller
      */
     public function profile(Request $request)
     {
-        $user = $request->user()->load(['staff', 'customer']);
+        $user = $request->user()->load(['staff', 'customer', 'address', 'salaryProfile', 'roles', 'departments']);
 
-        return view('user-profile', compact('user'));
+        $latestSalaryMonth = SalaryRecord::query()
+            ->where('staff_user_id', $user->id)
+            ->orderByDesc('salary_month')
+            ->value('salary_month');
+        $defaultSlipCarbon = $latestSalaryMonth ? Carbon::parse($latestSalaryMonth) : now();
+
+        $availableSalaryYears = SalaryRecord::query()
+            ->where('staff_user_id', $user->id)
+            ->pluck('salary_month')
+            ->filter()
+            ->map(fn ($date) => (int) Carbon::parse($date)->year);
+
+        $currentYear = (int) now()->year;
+        $salarySlipYears = collect(range(max(2020, $currentYear - 5), $currentYear + 1))
+            ->merge($availableSalaryYears)
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+
+        return view('user-profile', [
+            'user' => $user,
+            'salarySlipDefaultMonth' => (int) $defaultSlipCarbon->month,
+            'salarySlipDefaultYear' => (int) $defaultSlipCarbon->year,
+            'salarySlipYears' => $salarySlipYears,
+        ]);
     }
 
     /**
@@ -211,6 +237,11 @@ class AuthController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => $emailRules,
             'phone' => [$staff ? 'required' : 'nullable', 'string', 'max:20'],
+            'date_of_birth' => ['nullable', 'date'],
+            'gender' => ['nullable', 'string', 'max:32'],
+            'marital_status' => ['nullable', 'string', 'max:40'],
+            'blood_group' => ['nullable', 'string', 'max:16'],
+            'current_address' => ['nullable', 'string', 'max:1000'],
             'current_password' => ['nullable', 'required_with:password', 'string'],
             'password' => ['nullable', 'string', 'min:8', 'confirmed'],
         ]);
@@ -230,47 +261,39 @@ class AuthController extends Controller
         DB::beginTransaction();
 
         try {
-            $user->name = $request->name;
+            $nameParts = preg_split('/\s+/', trim((string) $request->name), 2);
+            $user->first_name = $nameParts[0] ?? trim((string) $request->name);
+            $user->last_name = isset($nameParts[1]) && $nameParts[1] !== '' ? $nameParts[1] : null;
             $user->email = $request->email;
+            $user->phone = $request->filled('phone') ? trim((string) $request->phone) : null;
+
+            foreach (['gender', 'marital_status', 'blood_group', 'current_address'] as $optionalField) {
+                if ($request->has($optionalField)) {
+                    $val = trim((string) $request->input($optionalField));
+                    $user->{$optionalField} = $val !== '' ? $val : null;
+                }
+            }
+
+            if ($request->has('date_of_birth')) {
+                $user->date_of_birth = $request->filled('date_of_birth') ? $request->input('date_of_birth') : null;
+            }
 
             if ($request->filled('password')) {
                 $user->password = Hash::make($request->password);
             }
 
-            if ($request->hasFile('profileImage') && ! $staff) {
+            if ($request->hasFile('profileImage')) {
+                $uploadDir = $staff ? 'uploads/staff/' : 'uploads/profile/';
                 $user->profile_image = basename(FileUpload::updateFileUpload(
                     $request->file('profileImage'),
-                    $user->profile_image ? 'uploads/profile/'.$user->profile_image : '',
-                    'uploads/profile/'
+                    $user->profile_image ? $uploadDir . $user->profile_image : '',
+                    $uploadDir
                 ));
             }
 
             $user->save();
 
-            if ($staff) {
-                $nameParts = preg_split('/\s+/', trim($request->name), 2);
-
-                $staff->first_name = $nameParts[0] ?? $request->name;
-                $staff->last_name = $nameParts[1] ?? '';
-                $staff->email = $request->email;
-                $staff->phone = $request->phone;
-
-                if ($request->filled('password')) {
-                    $staff->password = $user->password;
-                }
-
-                if ($request->hasFile('profileImage')) {
-                    $staff->profile_image = basename(FileUpload::updateFileUpload(
-                        $request->file('profileImage'),
-                        $staff->profile_image ? 'uploads/staff/'.$staff->profile_image : '',
-                        'uploads/staff/'
-                    ));
-                }
-
-                $staff->save();
-            }
-
-            if ($customer) {
+            if ($customer && (int) $customer->id !== (int) $user->id) {
                 $customer->contact_person = $request->name;
                 $customer->email = $request->email;
                 $customer->phone = $request->phone;

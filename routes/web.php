@@ -314,6 +314,10 @@ Route::middleware(['auth', 'active.user'])->group(function () {
         Route::delete('/staff/force-delete/{id}', 'forceDelete')->name('staff.force-delete');
         Route::get('/add-staff', 'create')->name('add-staff');
         Route::get('/view-staff/{id}', 'show')->name('view-staff');
+        Route::get('/edit-staff/{id}', 'edit')->name('staff.edit');
+        Route::patch('/staff/{id}/status', 'updateStatus')->name('staff.status.update');
+        Route::get('/staff/{id}/reports', 'reports')->name('staff.reports');
+        Route::get('/staff/{id}/salary-slip', 'downloadSalarySlip')->name('staff.salary-slip.download');
         Route::get('/staff/{id}/analytics', 'analytics')->name('staff.analytics');
         Route::get('/staff/{id}/lead-chart', 'leadChart')->name('staff.lead-chart');
         Route::get('/staff/{id}/followup-chart', 'followupChart')->name('staff.followup-chart');

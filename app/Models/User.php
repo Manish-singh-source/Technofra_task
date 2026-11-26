@@ -31,8 +31,41 @@ class User extends Authenticatable
         'last_name',
         'email',
         'phone',
+        'gender',
+        'marital_status',
+        'blood_group',
+        'guardian_name',
+        'date_of_birth',
+        'alternate_phone',
+        'emergency_contact_name',
+        'emergency_contact_phone',
+        'emergency_contact_relationship',
+        'emergency_contact_address',
+        'current_address',
+        'permanent_address',
+        'branch',
+        'employee_code',
+        'designation',
+        'employee_type',
+        'date_of_joining',
+        'date_of_leaving',
+        'work_mode',
+        'reporting_manager',
+        'official_email',
+        'esi_number',
+        'pf_number',
+        'past_employment',
+        'aadhar_number',
+        'aadhar_front_image',
+        'aadhar_back_image',
+        'pan_number',
+        'pan_front_image',
+        'account_number',
+        'bank_name',
+        'ifsc_code',
         'password',
         'status',
+        'status_reason',
         'role',
         'profile_image',
     ];
@@ -55,11 +88,65 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
         'session_invalidated_at' => 'datetime',
+        'date_of_birth' => 'date',
+        'date_of_joining' => 'date',
+        'date_of_leaving' => 'date',
+        'past_employment' => 'array',
     ];
 
     public function getNameAttribute(): string
     {
         return trim(collect([$this->first_name, $this->last_name])->filter()->implode(' '));
+    }
+
+    public function getInitialsAttribute(): string
+    {
+        return collect([$this->first_name, $this->last_name])
+            ->filter()
+            ->map(fn ($part) => strtoupper(mb_substr(trim((string) $part), 0, 1)))
+            ->implode('') ?: 'ST';
+    }
+
+    public function getResolvedProfileImageUrlAttribute(): ?string
+    {
+        return $this->resolveStaffAssetUrl($this->getRawOriginal('profile_image'), 'uploads/staff');
+    }
+
+    public function getAadharFrontUrlAttribute(): ?string
+    {
+        return $this->resolveStaffAssetUrl($this->aadhar_front_image, 'uploads/staff/documents');
+    }
+
+    public function getAadharBackUrlAttribute(): ?string
+    {
+        return $this->resolveStaffAssetUrl($this->aadhar_back_image, 'uploads/staff/documents');
+    }
+
+    public function getPanFrontUrlAttribute(): ?string
+    {
+        return $this->resolveStaffAssetUrl($this->pan_front_image, 'uploads/staff/documents');
+    }
+
+    /**
+     * Resolve a stored staff asset path or filename to a public asset URL if the file exists.
+     */
+    private function resolveStaffAssetUrl(?string $raw, string $defaultDirectory): ?string
+    {
+        if (! $raw) {
+            return null;
+        }
+
+        $normalized = ltrim(str_replace('\\', '/', (string) $raw), '/');
+        $prefixed = trim($defaultDirectory, '/') . '/' . $normalized;
+
+        if (file_exists(public_path($normalized))) {
+            return asset($normalized);
+        }
+        if (file_exists(public_path($prefixed))) {
+            return asset($prefixed);
+        }
+
+        return null;
     }
 
     public function setNameAttribute($value): void

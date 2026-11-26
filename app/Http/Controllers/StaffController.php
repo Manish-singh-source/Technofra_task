@@ -6,10 +6,13 @@ use App\Helpers\FileUpload;
 use App\Mail\StaffInviteMail;
 use App\Models\Department;
 use App\Models\Project;
+use App\Models\SalaryProfile;
+use App\Models\SalaryRecord;
 use App\Models\Setting;
 use App\Models\StaffActivityLog;
 use App\Models\Team;
 use App\Models\User;
+use App\Models\UserAddress;
 use App\Services\StaffLeadAnalyticsService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -305,41 +308,238 @@ class StaffController extends Controller
     {
         $staff = $this->hydrateStaffUser(
             User::withTrashed()
-                ->with(['roles', 'teams', 'departments'])
+                ->with(['roles', 'teams', 'departments', 'address', 'salaryProfile'])
                 ->findOrFail($id)
         );
 
-        $roles = Role::all();
-        $teams = Team::getTeamOptions();
-        $departments = Department::getDepartmentOptions();
+        $latestSalaryMonth = SalaryRecord::query()
+            ->where('staff_user_id', $staff->id)
+            ->orderByDesc('salary_month')
+            ->value('salary_month');
+        $defaultSlipCarbon = $latestSalaryMonth ? Carbon::parse($latestSalaryMonth) : now();
+
+        $availableSalaryYears = SalaryRecord::query()
+            ->where('staff_user_id', $staff->id)
+            ->pluck('salary_month')
+            ->filter()
+            ->map(fn ($date) => (int) Carbon::parse($date)->year);
+
+        $currentYear = (int) now()->year;
+        $salarySlipYears = collect(range(max(2020, $currentYear - 5), $currentYear + 1))
+            ->merge($availableSalaryYears)
+            ->unique()
+            ->sortDesc()
+            ->values()
+            ->all();
+
+        return view('staff.view', array_merge(
+            [
+                'staff' => $staff,
+                'salarySlipDefaultMonth' => (int) $defaultSlipCarbon->month,
+                'salarySlipDefaultYear' => (int) $defaultSlipCarbon->year,
+                'salarySlipYears' => $salarySlipYears,
+            ],
+            $this->buildStaffFormOptions($staff)
+        ));
+    }
+
+    /**
+     * Show the dedicated edit page for the specified staff member.
+     */
+    public function edit($id)
+    {
+        $staff = $this->hydrateStaffUser(
+            User::withTrashed()
+                ->with(['roles', 'teams', 'departments', 'address', 'salaryProfile'])
+                ->findOrFail($id)
+        );
+
+        if ($staff->trashed()) {
+            return redirect()->route('view-staff', $staff->id)
+                ->with('error', 'Restore this staff member before editing the record.');
+        }
+
+        return view('staff.edit', array_merge(
+            ['staff' => $staff],
+            $this->buildStaffFormOptions($staff)
+        ));
+    }
+
+    /**
+     * Update staff status along with optional leaving date and reason.
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $staff = User::withTrashed()->findOrFail($id);
+
+        if ($staff->trashed()) {
+            return redirect()->route('view-staff', $staff->id)
+                ->with('error', 'Restore this staff member before changing status.');
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', Rule::in(['active', 'inactive'])],
+            'date_of_leaving' => ['nullable', 'date'],
+            'status_reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
+        $updatePayload = [
+            'status' => $validated['status'],
+            'date_of_leaving' => $request->filled('date_of_leaving') ? $validated['date_of_leaving'] : null,
+            'status_reason' => $request->filled('status_reason') ? trim((string) $validated['status_reason']) : null,
+        ];
+
+        $staff->forceFill($updatePayload)->save();
+
+        if ($validated['status'] === 'inactive') {
+            $this->invalidateStaffSessions($staff);
+        }
+
+        return redirect()->route('view-staff', $staff->id)
+            ->with('success', 'Staff status updated successfully.');
+    }
+
+    /**
+     * Download the staff member's salary slip for the selected month and year.
+     */
+    public function downloadSalarySlip(Request $request, $id)
+    {
+        $staff = User::withTrashed()
+            ->with(['departments', 'salaryProfile'])
+            ->findOrFail($id);
+
+        $authUser = $request->user();
+        $hasSalaryAccess = $authUser
+            && ($authUser->can('view_salary_management') || $authUser->can('upload_salary_management'));
+        if (! $hasSalaryAccess) {
+            $this->authorizeStaffAnalyticsAccess($staff);
+        }
+
+        $validated = $request->validate([
+            'month' => 'required|integer|min:1|max:12',
+            'year' => 'required|integer|min:2000|max:2100',
+        ]);
+
+        $month = (int) $validated['month'];
+        $year = (int) $validated['year'];
+        $targetCarbon = Carbon::create($year, $month, 1);
+
+        $record = SalaryRecord::query()
+            ->where('staff_user_id', $staff->id)
+            ->whereYear('salary_month', $year)
+            ->whereMonth('salary_month', $month)
+            ->latest('id')
+            ->first();
+
+        if (! $record) {
+            return redirect()
+                ->back(fallback: route('view-staff', $staff->id))
+                ->with('error', 'No salary slip found for ' . $targetCarbon->format('F Y') . '.');
+        }
+
+        $html = view('salary-management.payslip', [
+            'record' => $record->load('staffUser'),
+        ])->render();
+
+        // Embed company logo and stamp as data URIs so the downloaded HTML works offline.
+        $inlineAssets = [
+            route('salary-management.logo') => base_path('salary/logo-black.png'),
+            route('salary-management.stamp') => base_path('salary/stamp.png'),
+        ];
+        foreach ($inlineAssets as $assetUrl => $diskPath) {
+            if (is_file($diskPath) && is_readable($diskPath)) {
+                $encoded = 'data:image/png;base64,' . base64_encode((string) file_get_contents($diskPath));
+                $html = str_replace($assetUrl, $encoded, $html);
+            }
+        }
+
+        $employeeCode = $staff->employee_code
+            ?: (optional($staff->salaryProfile)->employee_code ?: 'TF' . str_pad((string) $staff->id, 3, '0', STR_PAD_LEFT));
+        $safeCode = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $employeeCode) ?: ('staff-' . $staff->id);
+        $filename = sprintf('salary-slip-%s-%s-%d.html', $safeCode, strtolower($targetCarbon->format('F')), $year);
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Display the dedicated Leads & Projects reports page for a staff member.
+     */
+    public function reports($id)
+    {
+        $staff = $this->hydrateStaffUser(
+            User::withTrashed()
+                ->with(['roles', 'teams', 'departments', 'salaryProfile'])
+                ->findOrFail($id)
+        );
+
+        $this->authorizeStaffAnalyticsAccess($staff);
+
         $projects = $staff->projects()
             ->with(['statusHistories' => fn ($query) => $query->orderBy('changed_at')])
             ->latest()
             ->get();
         $tasks = $staff->tasks()->with('project')->latest()->get();
-        $loggedTimeStats = $this->buildStaffLoggedTimeStats($staff);
         $staffProjectAnalytics = $this->buildStaffProjectAnalytics($staff, $projects, $tasks);
         $projectTimelineRows = $staffProjectAnalytics['charts']['monthly_project_timeline'] ?? [];
-        $this->authorizeStaffAnalyticsAccess($staff);
         $analyticsFilters = [
             'period' => request()->query('period', '30d'),
             'from' => request()->query('from'),
             'to' => request()->query('to'),
         ];
         $staffLeadAnalytics = $this->staffLeadAnalyticsService->buildDashboard((int) $staff->id, $analyticsFilters);
-        return view('staff.view', compact(
+
+        return view('staff.reports', compact(
             'staff',
-            'roles',
-            'teams',
-            'departments',
             'projects',
             'tasks',
-            'loggedTimeStats',
             'staffProjectAnalytics',
             'projectTimelineRows',
             'staffLeadAnalytics',
             'analyticsFilters'
         ));
+    }
+
+    private function buildStaffFormOptions(User $staff): array
+    {
+        $roles = Role::all();
+        $teams = Team::getTeamOptions();
+        $departments = Department::getDepartmentOptions();
+        $branchOptions = User::query()
+            ->whereNotNull('branch')
+            ->where('branch', '!=', '')
+            ->distinct()
+            ->pluck('branch')
+            ->prepend('Technofra Main Branch')
+            ->map(fn ($branch) => trim((string) $branch))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+        $employeeTypeOptions = ['Full Time', 'Part Time', 'Contract', 'Intern', 'Probation', 'Freelance'];
+        $workModeOptions = ['On-Site', 'Hybrid', 'Remote'];
+        $reportingManagers = User::query()
+            ->whereIn('role', ['admin', 'super_admin2', 'staff'])
+            ->where('id', '!=', $staff->id)
+            ->orderBy('first_name')
+            ->get(['id', 'first_name', 'last_name'])
+            ->map(fn (User $u) => trim($u->first_name . ' ' . $u->last_name))
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        return compact(
+            'roles',
+            'teams',
+            'departments',
+            'branchOptions',
+            'employeeTypeOptions',
+            'workModeOptions',
+            'reportingManagers'
+        );
     }
 
     public function analytics(Request $request, $id): JsonResponse
@@ -1517,28 +1717,175 @@ class StaffController extends Controller
         return Validator::make($request->all(), [
             'profileImage' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'profile_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
+            'full_name' => 'required_without:first_name|string|max:255',
+            'first_name' => 'required_without:full_name|string|max:255',
+            'last_name' => 'nullable|string|max:255',
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($id)],
             'phone' => 'required|string|max:20',
+            'password' => 'nullable|string|min:8',
+            'gender' => 'nullable|string|max:32',
+            'marital_status' => 'nullable|string|max:40',
+            'blood_group' => 'nullable|string|max:16',
+            'guardian_name' => 'nullable|string|max:150',
+            'date_of_birth' => 'nullable|date',
+            'alternate_phone' => 'nullable|string|max:25',
+            'emergency_contact_name' => 'nullable|string|max:120',
+            'emergency_contact_phone' => 'nullable|string|max:25',
+            'emergency_contact_relationship' => 'nullable|string|max:80',
+            'emergency_contact_address' => 'nullable|string|max:1000',
+            'current_address' => 'nullable|string|max:1000',
+            'permanent_address' => 'nullable|string|max:1000',
+            'address_line_1' => 'nullable|string|max:255',
+            'address_line_2' => 'nullable|string|max:255',
+            'city' => 'nullable|string|max:100',
+            'state' => 'nullable|string|max:100',
+            'country' => 'nullable|string|max:100',
+            'pincode' => 'nullable|string|max:20',
+            'branch' => 'nullable|string|max:150',
+            'employee_code' => 'nullable|string|max:50',
+            'designation' => 'nullable|string|max:150',
+            'employee_type' => 'nullable|string|max:50',
+            'date_of_joining' => 'nullable|date',
+            'date_of_leaving' => 'nullable|date|after_or_equal:date_of_joining',
+            'work_mode' => 'nullable|string|max:50',
+            'reporting_manager' => 'nullable|string|max:150',
+            'official_email' => 'nullable|email|max:255',
+            'salary' => 'nullable|numeric|min:0',
+            'esi_number' => 'nullable|string|max:64',
+            'pf_number' => 'nullable|string|max:64',
+            'aadhar_number' => 'nullable|string|max:32',
+            'aadhar_front_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'aadhar_back_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'pan_number' => 'nullable|string|max:32',
+            'pan_front_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:4096',
+            'account_number' => 'nullable|string|max:64',
+            'bank_name' => 'nullable|string|max:150',
+            'ifsc_code' => 'nullable|string|max:32',
+            'past_employment' => 'nullable|array',
+            'past_employment.*.company' => 'nullable|string|max:150',
+            'past_employment.*.job_title' => 'nullable|string|max:150',
+            'past_employment.*.from_date' => 'nullable|date',
+            'past_employment.*.to_date' => 'nullable|date',
             // 'role' => ['required', 'string', 'max:255', Rule::exists('roles', 'name')],
-            'status' => 'required|in:active,inactive',
+            'status' => 'nullable|in:active,inactive',
+            'status_reason' => 'nullable|string|max:500',
             'team' => ['nullable', 'string', 'max:255', Rule::in($teams)],
-            'departments' => 'nullable|array',
+            'departments' => [
+                'nullable',
+                function ($attribute, $value, $fail) {
+                    if (! is_array($value) && ! is_string($value)) {
+                        $fail('The departments format is invalid.');
+                    }
+                },
+            ],
             'departments.*' => 'string|max:255',
         ]);
     }
 
     private function buildStaffUpdateData(Request $request, User $staff): array
     {
+        if ($request->filled('full_name') && ! $request->filled('first_name')) {
+            $nameParts = preg_split('/\s+/', trim((string) $request->input('full_name')), 2);
+            $firstName = $nameParts[0] ?? '';
+            $lastName = isset($nameParts[1]) && $nameParts[1] !== '' ? $nameParts[1] : null;
+        } else {
+            $firstName = trim((string) $request->input('first_name'));
+            $lastName = $request->has('last_name')
+                ? (trim((string) $request->input('last_name')) !== '' ? trim((string) $request->input('last_name')) : null)
+                : $staff->last_name;
+        }
+
         $updateData = [
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'email' => $request->email,
             'phone' => $request->phone,
             'role' => 'staff',
-            'status' => $request->status,
+            'status' => $request->filled('status') ? $request->status : ($staff->status ?: 'active'),
         ];
+
+        if ($request->filled('password')) {
+            $updateData['password'] = Hash::make((string) $request->input('password'));
+        }
+
+        $optionalStringFields = [
+            'gender',
+            'marital_status',
+            'blood_group',
+            'guardian_name',
+            'alternate_phone',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'emergency_contact_relationship',
+            'emergency_contact_address',
+            'current_address',
+            'permanent_address',
+            'employee_code',
+            'designation',
+            'employee_type',
+            'work_mode',
+            'reporting_manager',
+            'official_email',
+            'esi_number',
+            'pf_number',
+            'aadhar_number',
+            'pan_number',
+            'account_number',
+            'bank_name',
+            'ifsc_code',
+            'status_reason',
+        ];
+        $uppercaseFields = ['pan_number', 'ifsc_code'];
+        foreach ($optionalStringFields as $field) {
+            if ($request->has($field)) {
+                $val = trim((string) $request->input($field));
+                if ($val !== '' && in_array($field, $uppercaseFields, true)) {
+                    $val = strtoupper($val);
+                }
+                $updateData[$field] = $val !== '' ? $val : null;
+            }
+        }
+
+        if ($request->has('past_employment')) {
+            $pastRows = collect($request->input('past_employment', []))
+                ->filter(fn ($row) => is_array($row))
+                ->map(fn ($row) => [
+                    'company' => trim((string) ($row['company'] ?? '')),
+                    'job_title' => trim((string) ($row['job_title'] ?? '')),
+                    'from_date' => trim((string) ($row['from_date'] ?? '')),
+                    'to_date' => trim((string) ($row['to_date'] ?? '')),
+                ])
+                ->filter(fn ($row) => $row['company'] !== '' || $row['job_title'] !== '' || $row['from_date'] !== '' || $row['to_date'] !== '')
+                ->values()
+                ->all();
+            $updateData['past_employment'] = ! empty($pastRows) ? $pastRows : null;
+        }
+
+        if ($request->has('branch')) {
+            $branch = trim((string) $request->input('branch'));
+            $updateData['branch'] = $branch !== '' ? $branch : 'Technofra Main Branch';
+        }
+
+        foreach (['date_of_birth', 'date_of_joining', 'date_of_leaving'] as $dateField) {
+            if ($request->has($dateField)) {
+                $updateData[$dateField] = $request->filled($dateField) ? $request->input($dateField) : null;
+            }
+        }
+
+        foreach (['aadhar_front_image', 'aadhar_back_image', 'pan_front_image'] as $docField) {
+            $docFile = $request->file($docField);
+            if ($docFile instanceof UploadedFile && $docFile->isValid()) {
+                $existingDocPath = (string) ($staff->getRawOriginal($docField) ?: '');
+                $uploadedDocPath = FileUpload::updateFileUpload(
+                    $docFile,
+                    $existingDocPath,
+                    'uploads/staff/documents/'
+                );
+                if (! empty($uploadedDocPath)) {
+                    $updateData[$docField] = $uploadedDocPath;
+                }
+            }
+        }
 
         // Only update profile image when an actual uploaded file is present.
         // Otherwise keep existing image as-is.
@@ -1576,35 +1923,104 @@ class StaffController extends Controller
 
     private function syncUserForStaffUpdate(User $staff, Request $request): void
     {
-        $staff->update([
-            'first_name' => $request->first_name,
-            'last_name' => $request->last_name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-            'status' => $request->status,
-        ]);
-
         $spatieRole = trim((string) $request->role);
         if ($spatieRole !== '') {
             $staff->syncRoles([$spatieRole]);
         }
 
-        $this->syncUserDepartmentAssignments($staff, $request->input('departments', []));
-        $this->syncUserTeamAssignment($staff, $request->input('team'));
+        $addressFields = ['address_line_1', 'address_line_2', 'city', 'state', 'country', 'pincode'];
+        if ($request->hasAny($addressFields)) {
+            $addressPayload = [];
+            foreach ($addressFields as $field) {
+                $val = trim((string) $request->input($field, ''));
+                $addressPayload[$field] = $val !== '' ? $val : null;
+            }
+
+            $existingAddress = UserAddress::withTrashed()->where('user_id', $staff->id)->first();
+            $hasNonEmptyAddress = collect($addressPayload)->filter()->isNotEmpty();
+
+            if ($existingAddress) {
+                if ($existingAddress->trashed() && $hasNonEmptyAddress) {
+                    $existingAddress->restore();
+                }
+                $existingAddress->update($addressPayload);
+            } elseif ($hasNonEmptyAddress) {
+                UserAddress::create(array_merge(['user_id' => $staff->id], $addressPayload));
+            }
+        }
+
+        if ($staff->salaryProfile || $request->filled('salary')) {
+            $salaryProfileUpdates = [];
+            if ($request->has('salary')) {
+                $salaryProfileUpdates['monthly_salary'] = $request->filled('salary')
+                    ? round((float) $request->input('salary'), 2)
+                    : 0;
+            }
+            if ($request->filled('employee_code')) {
+                $salaryProfileUpdates['employee_code'] = trim((string) $request->input('employee_code'));
+            }
+            if ($request->has('bank_name')) {
+                $salaryProfileUpdates['bank_name'] = trim((string) $request->input('bank_name')) ?: null;
+            }
+            if ($request->has('account_number')) {
+                $digits = preg_replace('/\s+/', '', (string) $request->input('account_number'));
+                $salaryProfileUpdates['bank_account_last4'] = $digits !== '' ? substr($digits, -4) : null;
+            }
+            if (! empty($salaryProfileUpdates)) {
+                if ($staff->salaryProfile) {
+                    $staff->salaryProfile->update($salaryProfileUpdates);
+                } else {
+                    SalaryProfile::create(array_merge([
+                        'staff_user_id' => $staff->id,
+                        'monthly_salary' => 0,
+                        'standard_deduction' => 0,
+                    ], $salaryProfileUpdates));
+                }
+            }
+        }
+
+        $this->syncUserDepartmentAssignments($staff, $this->parseDepartmentNames($request->input('departments', [])));
+        if ($request->has('team')) {
+            $this->syncUserTeamAssignment($staff, $request->input('team'));
+        }
+    }
+
+    private function parseDepartmentNames(mixed $rawDepartments): array
+    {
+        if (is_string($rawDepartments)) {
+            $rawDepartments = explode(',', $rawDepartments);
+        }
+
+        if (! is_array($rawDepartments)) {
+            return [];
+        }
+
+        return collect($rawDepartments)
+            ->filter(fn ($department) => is_string($department) && trim($department) !== '')
+            ->map(fn ($department) => trim($department))
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function syncUserDepartmentAssignments(User $user, array $departmentNames): void
     {
         DB::table('staff_department')->where('user_id', $user->id)->delete();
 
-        $departmentIds = Department::query()
-            ->whereIn('name', collect($departmentNames)
-                ->filter(fn($department) => is_string($department) && trim($department) !== '')
-                ->map(fn($department) => trim($department))
-                ->unique()
-                ->values()
-                ->all())
-            ->pluck('id')
+        $normalizedNames = $this->parseDepartmentNames($departmentNames);
+        if (empty($normalizedNames)) {
+            return;
+        }
+
+        $departmentIds = collect($normalizedNames)
+            ->map(function (string $departmentName) {
+                return Department::firstOrCreate(
+                    ['name' => $departmentName],
+                    ['is_active' => true]
+                )->id;
+            })
+            ->unique()
+            ->values()
             ->all();
 
         if (empty($departmentIds)) {
