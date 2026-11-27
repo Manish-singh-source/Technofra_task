@@ -385,10 +385,12 @@ class SocialMediaController extends Controller
 
         $message = "{$import->created} post(s) imported successfully.";
         if ($import->errors) {
-            $message .= ' Skipped: '.implode(' ', $import->errors);
+            $message .= ' '.count($import->errors).' row(s) could not be imported. See the details below.';
         }
 
-        return back()->with($import->created ? 'success' : 'error', $message);
+        return back()
+            ->with($import->created ? 'success' : 'error', $message)
+            ->with('import_errors', $import->errors);
     }
 
     public function bulkAssignPlanPosts(Request $request, SocialContentPlan $plan)

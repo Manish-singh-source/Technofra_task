@@ -35,7 +35,13 @@ class SocialMediaPlanPostsImport implements ToCollection, WithHeadingRow
             }
 
             if ($type === null) {
-                $this->errors[] = "Row {$line}: type could not be recognised. Use Static Post, Motion, Reel, Carousel, Video, Story or Image.";
+                $categoryType = $this->normaliseType($category);
+
+                if ($categoryType !== null && trim((string) ($row['type'] ?? '')) !== '') {
+                    $this->errors[] = "Row {$line}: The Type and Category values appear to be switched. Put '{$category}' in the Type column and '{$row['type']}' in the Category column.";
+                } else {
+                    $this->errors[] = "Row {$line}: '{$row['type']}' is not a valid post type. In the Type column, enter Static Post, Motion, Reel, Carousel, Video, Story or Image.";
+                }
                 continue;
             }
 

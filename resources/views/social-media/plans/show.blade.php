@@ -11,6 +11,17 @@
     </div>
 
     @if(session('success'))<div class="alert alert-success">{{ session('success') }}</div>@endif
+    @if(session('error'))<div class="alert alert-danger"><strong>Excel file could not be imported.</strong><div class="mt-1">{{ session('error') }}</div></div>@endif
+    @if(session('import_errors'))
+        <div class="alert alert-warning">
+            <strong>What needs to be fixed:</strong>
+            <ol class="mb-0 mt-2 ps-3">
+                @foreach(session('import_errors') as $importError)
+                    <li class="mb-1">{{ $importError }}</li>
+                @endforeach
+            </ol>
+        </div>
+    @endif
 
     <div class="card mb-4"><div class="card-body">
         <div class="d-flex flex-wrap align-items-start justify-content-between gap-3">
